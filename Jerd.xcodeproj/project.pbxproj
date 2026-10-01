@@ -10,6 +10,7 @@
 		11F939BA838A0CCB8900BE60 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 38AE69F26CB31A360537396B /* JerdCore */; };
 		3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13AA2674D69717280670C24F /* JerdCore */; };
 		531A59644626251570A38E9A /* JerdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40476A491ED7D264F633834E /* JerdApp.swift */; };
+		5D8092F76EC98F74478D1295 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */; };
 		64E24C1FFAD7ED730EF9BB7F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9918AF917D4FFB6EB3496696 /* AppModel.swift */; };
 		9F9124D469BD32E0DC58755D /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB8074D9852A3B48218EE66 /* HelperClient.swift */; };
 		ACD57C8FB967DB947905D60B /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1EAD8E59C6255FC977CB98B0 /* JerdCore */; };
@@ -54,6 +55,7 @@
 		BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCertificateTrust.swift; sourceTree = "<group>"; };
 		C17F56386FAFD38773B0C208 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D3FCAA0733515A1222E2C1C2 /* Jerd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jerd.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				9918AF917D4FFB6EB3496696 /* AppModel.swift */,
+				DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */,
 				C17F56386FAFD38773B0C208 /* ContentView.swift */,
 				1CB8074D9852A3B48218EE66 /* HelperClient.swift */,
 				40476A491ED7D264F633834E /* JerdApp.swift */,
@@ -172,6 +175,7 @@
 			buildPhases = (
 				57FD94AA6B9C23E61561F065 /* Sources */,
 				4B1CEBCD4C361B9E30AFF822 /* Embed approved helper and development runtimes */,
+				30B02CC92790BA93E6B91F6D /* Resources */,
 				8C236E15DD47D7FEC9892F67 /* Frameworks */,
 			);
 			buildRules = (
@@ -247,6 +251,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		30B02CC92790BA93E6B91F6D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D8092F76EC98F74478D1295 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		4B1CEBCD4C361B9E30AFF822 /* Embed approved helper and development runtimes */ = {
