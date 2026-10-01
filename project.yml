@@ -1,0 +1,86 @@
+name: Jerd
+options:
+  bundleIdPrefix: dev.jerd
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+packages:
+  JerdCore:
+    path: Packages/JerdCore
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+targets:
+  Jerd:
+    type: application
+    platform: macOS
+    sources: [Jerd]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jerd.app
+        PRODUCT_NAME: Jerd
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Jerd
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Jerd contributors"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        COMBINE_HIDPI_IMAGES: YES
+    dependencies:
+      - package: JerdCore
+      - target: JerdHelper
+        embed: false
+      - target: JerdCLI
+        embed: false
+    postCompileScripts:
+      - name: Embed approved helper and development runtimes
+        script: |
+          set -eu
+          mkdir -p "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices"
+          mkdir -p "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons"
+          cp "$BUILT_PRODUCTS_DIR/JerdHelper" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices/JerdHelper"
+          cp "$BUILT_PRODUCTS_DIR/JerdCLI" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI"
+          cp "$SRCROOT/JerdHelper/dev.jerd.helper.plist" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist"
+          /usr/bin/python3 "$SRCROOT/Scripts/embed-development-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes"
+        basedOnDependencyAnalysis: false
+  JerdCLI:
+    type: tool
+    platform: macOS
+    sources: [JerdCLI]
+    dependencies:
+      - package: JerdCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jerd.cli
+        PRODUCT_NAME: JerdCLI
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+  JerdHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: JerdHelper
+        excludes: ["*.plist"]
+    dependencies:
+      - package: JerdCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jerd.helper
+        PRODUCT_NAME: JerdHelper
+        GENERATE_INFOPLIST_FILE: YES
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+schemes:
+  Jerd:
+    build:
+      targets:
+        Jerd: all
