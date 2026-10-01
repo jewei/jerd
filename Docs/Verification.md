@@ -90,6 +90,11 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   that rule, and the app reported Ready. Both home pages returned 200 with
   normal macOS trust. The user confirmed that both sites now load in Brave.
   No browser certificate-warning bypass was used.
+- The new app icon was present in the installed bundle, but the running app
+  reported an empty icon and the menu bar still used a server symbol. The app
+  now loads the bundled icon for both. After the signed update, macOS reported
+  the correct running-app icon and a menu-bar capture showed the rainbow J.
+  Both sites returned 200 after restart.
 
 The runtime inspection and real TLS tests use actual executables. Test doubles
 are used only for controlled failure/transaction cases. Root access is not used

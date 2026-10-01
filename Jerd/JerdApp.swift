@@ -5,6 +5,9 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var model: AppModel?
     private var quitting = false
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if let icon = JerdIcon.application { NSApp.applicationIconImage = icon }
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !quitting else { return .terminateLater }
@@ -28,10 +31,28 @@ struct JerdApp: App {
                 .task { delegate.model = model; model.load() }
         }
         .defaultSize(width: 980, height: 660)
-        MenuBarExtra("Jerd", systemImage: "server.rack") {
+        MenuBarExtra {
             MenuContent(model: model)
+        } label: {
+            if let icon = JerdIcon.menuBar {
+                Image(nsImage: icon).renderingMode(.original).accessibilityLabel("Jerd")
+            } else {
+                Image(systemName: "server.rack").accessibilityLabel("Jerd")
+            }
         }
     }
+}
+
+@MainActor
+private enum JerdIcon {
+    static let application = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
+        .flatMap { NSImage(contentsOf: $0) }
+    static let menuBar: NSImage? = {
+        guard let icon = application?.copy() as? NSImage else { return nil }
+        icon.size = NSSize(width: 18, height: 18)
+        icon.isTemplate = false
+        return icon
+    }()
 }
 
 private struct MenuContent: View {
