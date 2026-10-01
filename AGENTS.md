@@ -12,6 +12,10 @@ updates or release distribution except for the approved development bootstrap.
 The user also approved PHP, Composer, and Laravel installer CLI companions.
 Composer must use the PHP selection for the registered site containing the
 working directory, with the default used outside registered sites.
+The user also approved a first database-service version after research into
+DBngin. Add independent MySQL, PostgreSQL, and Redis services with native
+runtimes, private data folders, and per-service controls. Keep existing DBngin
+services and data separate. Mailpit is a later step.
 
 ## Safety boundaries
 
@@ -35,6 +39,9 @@ working directory, with the default used outside registered sites.
 - Default tests must not require root or change system configuration.
 - Preserve corrupt data. Do not replace it with an empty configuration.
 - Keep file and process work off the main actor.
+- Preserve database data when stopping or removing a service registration.
+  Never reuse an existing database directory with a different runtime version.
+  Database shutdown must be graceful; a timeout must not force-kill the server.
 
 ## Build and test
 

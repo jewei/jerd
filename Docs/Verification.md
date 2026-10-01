@@ -4,7 +4,8 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 
 ## Passed
 
-- 40 Swift Testing tests in 10 suites, including five real TLS/PHP cases.
+- 49 Swift Testing tests in 12 suites, including five real TLS/PHP cases,
+  the real three-engine database test, and the existing wildcard-port check.
 - PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
 - Caddy 2.11.4, using its official arm64 artifact.
 - Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
@@ -95,6 +96,41 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   now loads the bundled icon for both. After the signed update, macOS reported
   the correct running-app icon and a menu-bar capture showed the rainbow J.
   Both sites returned 200 after restart.
+- The DBngin website, public repository screenshots, and installed DBngin
+  27.0.1 window were inspected. The existing DBngin PostgreSQL and Redis
+  processes remained running on ports 5432 and 6379.
+- The database bootstrap verified Oracle's MySQL 8.4.11 signature, the fixed
+  archive hashes, and the Postgres.app signature. PostgreSQL 18.6 and a local
+  Redis 8.8.3 build passed actual version checks. The app installed all three
+  independent runtimes from its bundle.
+- The real database test started all three engines together, made SQL and
+  Redis writes, rejected wrong passwords, and read the data after restart.
+  It checked independent stop, unexpected exit, runtime identity mismatch,
+  and retained data and credentials after registration removal.
+- Database unit tests cover corrupt settings, immutable runtime selection,
+  duplicate ports, retained files, private credentials, and graceful shutdown
+  timeout. The timeout fixture remained tracked until a later graceful stop.
+- Real Redis restart exposed a TIME_WAIT port-check failure. A closed-connection
+  regression test and the three-engine test passed after the reuse correction.
+  The installed-app check then exposed a distinct macOS wildcard-port case:
+  a loopback Redis listener could share DBngin's wildcard port. Jerd's test
+  service was stopped. Port checks now inspect existing TCP listeners before
+  binding and verify exclusive ownership after startup. The separate read-only
+  regression test rejected DBngin's port 6379 and preserved its listener list.
+- The signed installed app created MySQL, PostgreSQL, and Redis services through
+  the native form. Their final ports are 3306, 5433, and 6380. The updated Add
+  form suggested 6381 for another Redis service: 6379 was occupied and 6380
+  was already registered. No extra service was created.
+- All three installed services passed authenticated queries. Their TCP listeners
+  were restricted to `127.0.0.1`, with no UDP sockets, no shared database ports,
+  and UID 501. Credential files had mode 0600. PostgreSQL Stop left MySQL,
+  Redis, both DBngin processes, and both HTTPS sites available. PostgreSQL
+  Start restored its authenticated query.
+- Normal app quit stopped all three owned databases and retained each data
+  folder and credential file. After app replacement and reopen, manual Start
+  restored all three database connections and both trusted HTTPS sites.
+  The final unsigned Debug build, signed Release build, and deep strict
+  signature verification passed.
 
 The runtime inspection and real TLS tests use actual executables. Test doubles
 are used only for controlled failure/transaction cases. Root access is not used
@@ -111,7 +147,7 @@ A test double also closed the same numeric descriptor twice during parallel
 tests. Its cleanup is now idempotent. The restart test allows up to one second
 for transient descriptor cleanup during parallel process tests. It separately
 checks that an active listener cannot be shared. No `SO_REUSEPORT` is used.
-The final full run passed all 40 tests.
+The final full run passed all 49 tests.
 
 The host's `/usr/bin/curl` has multiple TLS backends. Its default backend did
 not use the installed macOS CA for this request. This command passed using
@@ -186,3 +222,7 @@ Execution with two different PHP binary versions is also pending; the separate
 process-group test uses two runtime IDs for the available PHP 8.5.11 binary.
 The developer signing identity is for local testing, not evidence of a release.
 The development download pins are not publisher-signed manifests.
+Database execution was checked on this arm64 Mac. The first database catalog
+has one fixed version per engine and a development payload of about 1.1 GB.
+More versions, release package size, database TLS, export/import UI, automatic
+recovery after app crashes, and Mailpit remain later work.

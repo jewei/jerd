@@ -5,13 +5,16 @@ suggested `folder-name.test` hostname, and approve HTTPS setup. The current
 implementation serves all enabled sites at the same time. Each site uses its
 selected PHP runtime. The bundled versions are PHP 8.5.11 and Caddy 2.11.4.
 The app also includes Composer 2.10.3 and Laravel Installer 5.32.0.
+The Databases tab manages separate MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.3
+services. Each service has its own port, password, and persistent data folder.
 It has no remote Swift package dependencies.
 
 **Verification status:** The signed app serves `https://games-jp.test` and
 `https://games-hk.test` at the same time on the development Mac. Safari, Brave,
 and the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 40 core tests pass, including five real PHP/TLS cases. This is a local
+All 49 core tests pass, including five real PHP/TLS cases and a real three-engine
+database test. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -46,7 +49,7 @@ The prepared dependency files and license notices are retained and hashed.
 Laravel dependency downloads use Composer's lock references and HTTPS;
 these are not publisher-signed or independently digest-pinned archives.
 
-This is the explicitly approved development bootstrap. It does not verify
+This PHP/Caddy setup is the approved development bootstrap. It does not verify
 a publisher signature and is not the production runtime update system.
 The release installer, signed update metadata, and supported extension
 profiles remain Milestone 4 work.
@@ -58,6 +61,52 @@ runtime selections are retained. If the payload is absent, the app shows
 the error; local executable selection remains available for development.
 Jerd does not use Herd binaries or install Homebrew. Shell commands are an
 explicit, optional setup step described below.
+
+To prepare the database payload as well:
+
+```sh
+python3 Scripts/prepare-database-runtimes.py
+```
+
+This requires the installed Xcode compiler and GnuPG. It does not install
+Homebrew or a system database service. Fixed pins in `DatabaseRuntimes/pins.json`
+select Oracle's MySQL archive, the PostgreSQL runtime from Postgres.app, and
+Redis source. The script checks MySQL's publisher signature, all archive
+SHA-256 values, and the Postgres.app code signature. Redis is compiled locally.
+The build embeds the prepared files; Jerd verifies and copies them to its own
+runtime directory. The current development database payload is about 1.1 GB.
+It includes upstream shared libraries and notices. Downloads on demand and
+smaller release packages are later work.
+
+## Database services
+
+1. Open **Databases → Add database**.
+2. Choose MySQL, PostgreSQL, or Redis. Check the version, service name, and port.
+   Jerd suggests a free port and reserves a different port for each registration.
+3. Select **Create and start**. Ready requires a successful authenticated query
+   or Redis `PING`, plus inspection of the process's network listeners.
+4. Use **Copy Laravel settings** or **Copy password** for your application or
+   database client. Jerd does not edit project `.env` files.
+
+The first build provides one fixed version per engine. It supports multiple
+instances of each engine. Each listens on `127.0.0.1` as the current user.
+The SQL user is `jerd`; the initial database is `jerd` for MySQL and `postgres`
+for PostgreSQL. Redis uses its `default` user and database 0. Passwords are
+generated separately for each service and stored in private files with mode 0600.
+Passwords are passed through private client files or the Redis client environment,
+not process arguments. These local connections do not have database TLS configured.
+
+Start and Stop affect only the selected service. Sites and other databases
+continue to run. **Remove registration** stops that service and keeps all its
+database files. Use **Show data folder** and **Open log** to inspect them.
+Quitting Jerd requests graceful database shutdown. A 30-second timeout keeps
+the process tracked and cancels app termination; it does not force-kill it.
+Services start manually after the app reopens.
+
+A service's database version is fixed when its data is created. Use a new
+service and the engine's export/import tools to move to another version.
+Jerd does not reuse DBngin runtimes or data. Existing DBngin services can run
+beside Jerd on different ports. Mailpit remains a later step.
 
 ## Build and run
 
@@ -203,6 +252,24 @@ hidden files, PHP source, and PHP execution under the storage URL.
 Set `JERD_KEEP_TEST_FILES=1` to retain diagnostic files.
 Never install a test CA in a system trust store.
 
+Run the real database test with the prepared independent runtimes:
+
+```sh
+JERD_DATABASE_INTEGRATION=1 \
+JERD_DATABASE_RUNTIMES="$PWD/.build/database-runtimes" \
+swift test --package-path Packages/JerdCore --filter Database
+```
+
+The test creates temporary instances of all three engines on high loopback
+ports. It checks real writes, wrong-password rejection, persistence after
+restart, independent shutdown, process-exit detection, version mismatch,
+and retained data after registration removal. No existing databases are used.
+
+The separate `JERD_OCCUPIED_DATABASE_PORT` option enables a read-only regression
+check against an existing wildcard TCP listener. It checks that registration
+rejects the port without changing or connecting to that service. This passed
+with DBngin Redis on port 6379.
+
 The signed XPC harness is documented in [Verification](Docs/Verification.md).
 It uses an anonymous listener and high ports. It installs no system service.
 
@@ -216,6 +283,17 @@ It uses an anonymous listener and high ports. It installs no system service.
     cli-tools.json      installed Composer and Laravel script paths
   bin/                  optional native CLI launcher and command links
   shell-backups/        private shell-file backups from explicit CLI setup
+  database-runtimes/    fixed database versions, libraries, receipts, notices
+  databases/
+    services.json       database runtime and service records
+    services.previous.json
+    instances/<UUID>/
+      data/             database files, retained after removal
+      credentials.json  private generated password
+      runtime.json      immutable instance/runtime identity
+      initialized.json  successful data initialization record
+      active-run.json   present while an owned database process runs
+      server.log        current output; previous start retained separately
   environment/
     installation-id     stable identity for this installation's CA
     configuration/      generated Caddy/FPM/INI files
@@ -235,6 +313,14 @@ so failed changes can restore the previous policy exactly.
 Configuration writes are atomic and retain a valid backup. Corrupt documents
 are preserved and block changes. Restore a reviewed backup after inspection;
 there is no destructive automatic reset.
+
+Database startup rejects a different runtime identity, incomplete initialization,
+missing credentials, and an instance already in use. If an app crash leaves a
+database process alive, the saved process record blocks a second start. Jerd
+does not signal a process that it did not spawn in the current session.
+Automatic recovery of such processes is not implemented. A removed database
+can be recovered from its retained folder with engine-specific tools; the app
+does not yet have a restore-registration action.
 
 If helper setup is interrupted and `pending.json` remains, further system
 changes stop. Preserve the helper directory and inspect the recorded hostnames,

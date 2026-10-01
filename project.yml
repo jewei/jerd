@@ -48,6 +48,7 @@ targets:
           cp "$BUILT_PRODUCTS_DIR/JerdCLI" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI"
           cp "$SRCROOT/JerdHelper/dev.jerd.helper.plist" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist"
           /usr/bin/python3 "$SRCROOT/Scripts/embed-development-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes"
+          /usr/bin/python3 "$SRCROOT/Scripts/embed-database-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes"
         basedOnDependencyAnalysis: false
   JerdCLI:
     type: tool

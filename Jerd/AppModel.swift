@@ -2,8 +2,12 @@ import AppKit
 import Observation
 import JerdCore
 
+enum AppSection { case sites, databases }
+
 @MainActor @Observable
 final class AppModel {
+    var selectedSection = AppSection.sites
+    let databases = DatabaseModel()
     var configuration = AppConfiguration()
     var selectedSiteID: UUID?
     var errorMessage: String?
@@ -45,6 +49,7 @@ final class AppModel {
                 }
             }
             self.startMonitoring()
+            self.databases.load()
             if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
         }
     }
@@ -229,11 +234,16 @@ final class AppModel {
         NSWorkspace.shared.open(url)
     }
 
-    func shutdown() async {
+    func shutdown() async -> Bool {
+        guard await databases.shutdown() else {
+            errorMessage = "A database service could not stop safely. Jerd will remain open. Check Databases and retry Stop."
+            return false
+        }
         await work?.value
         monitor?.cancel()
         await stopEnvironment()
         await helper.invalidate()
+        return true
     }
 
     static func chooseDirectory() -> URL? {

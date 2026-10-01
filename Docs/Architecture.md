@@ -17,6 +17,9 @@ work runs in actors away from the UI actor.
 | SystemCertificateTrust, CertificateTrustSettings | System keychain and explicit TLS trust policies through Security.framework |
 | TrustConsentClient, TrustConsentService, TrustConsentScope | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
 | JerdCLI, CLIRuntimeSelection | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
+| DatabaseModel, DatabaseServicesView | Database list, connection details, and independent service controls |
+| DatabaseManager, DatabaseDriver | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
+| DatabaseStore, BundledDatabaseRuntimes | Separate versioned service records and verified native runtime installation |
 
 ## Projects and processes
 
@@ -207,7 +210,78 @@ PHP inspection uses `-n` and an empty INI scan directory. Runtime startup uses
 Jerd's INI and an empty scan directory. The UI reports observed CLI/FPM modules.
 The intended common extension profile remains a release target. Upstream
 built-in extras do not establish a supported optional-extension feature.
-Database client modules do not imply database server management.
+Database servers are managed by the separate modules described below. The
+tested PHP build includes `pdo_mysql`, `pdo_pgsql`, and `redis` for clients.
 
 Jerd uses its own source and interface. It copies no Herd binary or asset.
 This tool runs trusted local code; it is not a sandbox for hostile projects.
+
+## Database research and implementation
+
+Research date: 2026-10-01. [DBngin](https://dbngin.com/) describes native
+database processes with selectable versions and ports. Its
+[public repository](https://github.com/TablePlus/DBngin) is an issue tracker
+with screenshots, not application source. The screenshots show a short
+create form and a service list with per-row Start/Stop controls. The installed
+DBngin 27.0.1 app was inspected through its window and public scripting command.
+Its PostgreSQL 18.4 and Redis 8.8.0 services were already running on 5432 and
+6379. No DBngin binary or image is included in Jerd.
+
+Jerd adopts the independent-service workflow. Database records are separate
+from site records. Every instance has a UUID, runtime ID, name, unique port,
+private credentials, and an owned data directory. The first catalog supplies
+one version per engine and permits multiple instances. It does not implement
+a SQL editor, automatic data migration, Homebrew service control, or login startup.
+
+Runtime sources are [Oracle MySQL 8.4](https://dev.mysql.com/downloads/mysql/8.4.html),
+[Postgres.app](https://postgresapp.com/downloads.html), and
+[Redis source](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-from-source/).
+The exact selected versions and SHA-256 values are in `DatabaseRuntimes/pins.json`.
+MySQL 8.4.11 also passes the upstream GPG signature check with the pinned
+Oracle key. PostgreSQL 18.6 comes from the digest-pinned Postgres.app 2.9.6
+image; its app signature is checked before runtime extraction. Redis 8.8.3
+source matches the official redis-hashes entry and is compiled locally with
+the installed compiler. The script stages files in the repository's build
+directory and runs no system installer. Safe in-archive links become regular
+files; per-file hashes are checked during embedding and installation.
+
+DatabaseManager runs off the UI actor. It serializes each instance's lifecycle
+and all record mutations, while different instances can start independently.
+An exclusive file lock prevents two Jerd processes from using the same instance.
+The saved runtime identity must match before existing data can start. A failed
+or interrupted initialization preserves partial data and blocks reinitialization.
+A saved live PID from a previous app session blocks a second server; automatic
+attachment to or signalling of that old process is deliberately not implemented.
+
+MySQL uses `--no-defaults`, a private data directory, no X Protocol listener,
+and an initial socket-only bootstrap. That bootstrap sets passwords and creates
+the `jerd` user and database before TCP starts. PostgreSQL uses `initdb` with
+SCRAM password authentication and a private password file. Redis uses a private
+configuration, a generated password, and append-only persistence. All final
+listeners are restricted to `127.0.0.1`; runtime processes have no root access.
+Readiness requires an authenticated SQL query or Redis PING and actual per-PID
+TCP/UDP listener inspection. Passwords do not enter process arguments or probe
+results. They are retained in mode-0600 files within mode-0700 instance folders.
+
+The manager watches process exit. One failed database does not stop other
+databases or the web environment. MySQL and Redis receive SIGTERM for shutdown;
+PostgreSQL receives SIGINT for its documented fast shutdown. The supervisor
+waits up to 30 seconds without escalating to SIGKILL. On timeout the process
+remains tracked, and app termination is cancelled. Removal first completes
+shutdown, then removes only the registration. Data and credentials remain.
+See [PostgreSQL shutdown modes](https://www.postgresql.org/docs/18/server-shutdown.html).
+
+The database port check first inspects active TCP listeners with `lsof`,
+then checks a loopback bind with SO_REUSEADDR. This allows restart while closed
+connections are in TIME_WAIT. A bind alone is insufficient on macOS: a specific
+address can share a port with an existing wildcard listener. The live DBngin
+Redis service exposed this case. Jerd now rejects any existing listener on the
+port, then checks after startup that only its own PID listens there.
+It never enables SO_REUSEPORT. See [Apple socket options](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setsockopt.2.html).
+
+The development build embeds the full prepared payload, about 1.1 GB, including
+shared libraries and upstream notices. An on-demand installer, smaller release
+packages, more versions, export/import UI, and crash recovery are later work.
+The [Mailpit site](https://mailpit.axllent.org/) describes a standalone SMTP
+capture service with a web UI and API. It fits a later independent-service
+module; no Mailpit process or setting is changed by this milestone.

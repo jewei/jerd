@@ -3,6 +3,8 @@
 The user approved completion of the real Milestone 1 proof and work on
 Milestone 2. The user then confirmed that Jerd must serve all enabled registered
 sites at the same time. Keep the app small and honor each site's PHP selection.
+The user then requested research into DBngin and a first MySQL, PostgreSQL,
+and Redis service version. Mailpit follows after the database work.
 
 ## Completed and tested
 
@@ -26,6 +28,13 @@ sites at the same time. Keep the app small and honor each site's PHP selection.
 - Hostname-list setup, explicit CA trust policies, version 1/2 helper record
   migration, rollback, and removal of one host while retaining the others.
 - Two-site real PHP/TLS tests with shared and separate PHP process groups.
+- Native database services with independent ports, credentials, data folders,
+  start/stop controls, logs, and Laravel connection settings.
+- Fixed MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.3 development runtimes.
+- Real authenticated reads/writes, wrong-password rejection, restart persistence,
+  independent stop/removal, and process-exit detection for all three engines.
+- Graceful database shutdown without force-kill escalation; a timeout retains
+  the process and prevents app termination.
 
 ## Milestone 2 system checks completed on the development Mac
 
@@ -58,3 +67,11 @@ signed release metadata, updates with rollback, notarized distribution, and
 full uninstall. The current GitHub/HTTPS development bootstrap is not that
 release system. Crash recovery and interrupted helper transaction recovery
 also need completion before a production release.
+
+Database follow-up includes downloads on demand, a wider tested version catalog,
+export/import and restore-registration controls, and verified recovery of
+database processes after an app crash. The first version keeps database
+versions fixed per data directory and retains data on removal. GUI checks of
+withheld shutdown and interrupted initialization remain separate acceptance work.
+Mailpit can use the same unprivileged process controls with separate SMTP and
+HTTP listeners. It is not implemented in this database milestone.

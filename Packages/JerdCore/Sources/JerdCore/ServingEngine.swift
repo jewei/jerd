@@ -8,6 +8,14 @@ public enum LoopbackPort {
         let descriptor = socket(AF_INET, SOCK_STREAM, 0)
         guard descriptor >= 0 else { throw JerdError.process("Cannot create a port check socket.") }
         defer { close(descriptor) }
+        // A stopped server can leave TCP connections in TIME_WAIT. Match the
+        // real listener's reuse policy, then also listen to reject another
+        // listener on this exact address. DatabaseManager separately checks
+        // wildcard listeners. SO_REUSEPORT is deliberately not enabled.
+        var reuse: Int32 = 1
+        guard setsockopt(descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) == 0 else {
+            throw JerdError.process("Cannot configure the port check socket.")
+        }
         var address = sockaddr_in()
         address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         address.sin_family = sa_family_t(AF_INET)
@@ -18,7 +26,7 @@ public enum LoopbackPort {
                 Darwin.bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
-        guard result == 0 else { throw JerdError.unavailable("Loopback port \(port) is occupied or cannot be bound. No process was stopped.") }
+        guard result == 0, listen(descriptor, 1) == 0 else { throw JerdError.unavailable("Loopback port \(port) is occupied or cannot be bound. No process was stopped.") }
     }
 }
 

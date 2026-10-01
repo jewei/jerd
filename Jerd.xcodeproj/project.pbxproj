@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		11F939BA838A0CCB8900BE60 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 38AE69F26CB31A360537396B /* JerdCore */; };
+		1C93AF63B7CD1D068A4B426D /* DatabaseServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */; };
 		3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13AA2674D69717280670C24F /* JerdCore */; };
 		531A59644626251570A38E9A /* JerdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40476A491ED7D264F633834E /* JerdApp.swift */; };
 		5D8092F76EC98F74478D1295 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */; };
 		64E24C1FFAD7ED730EF9BB7F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9918AF917D4FFB6EB3496696 /* AppModel.swift */; };
+		92F69703F808681C8F84BC31 /* DatabaseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652EDE0E18121CDA3002E94F /* DatabaseModel.swift */; };
 		9F9124D469BD32E0DC58755D /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB8074D9852A3B48218EE66 /* HelperClient.swift */; };
 		ACD57C8FB967DB947905D60B /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1EAD8E59C6255FC977CB98B0 /* JerdCore */; };
 		AF8C0E62CEA972166453DA30 /* SystemCertificateTrust.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */; };
@@ -41,10 +43,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseServicesView.swift; sourceTree = "<group>"; };
 		1158F4F6B4D528C105E86D10 /* TrustConsentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentService.swift; sourceTree = "<group>"; };
 		1CB8074D9852A3B48218EE66 /* HelperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperClient.swift; sourceTree = "<group>"; };
 		3C8346E110A794E2E6A64F8F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		40476A491ED7D264F633834E /* JerdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdApp.swift; sourceTree = "<group>"; };
+		652EDE0E18121CDA3002E94F /* DatabaseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseModel.swift; sourceTree = "<group>"; };
 		6CED13C4F5EB4F20B0E4333D /* TrustConsentClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentClient.swift; sourceTree = "<group>"; };
 		75BCC5D6DDA4C86990D41DCC /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
 		8289025B679952540B924F89 /* JerdCLI */ = {isa = PBXFileReference; includeInIndex = 0; path = JerdCLI; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -140,6 +144,8 @@
 				9918AF917D4FFB6EB3496696 /* AppModel.swift */,
 				DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */,
 				C17F56386FAFD38773B0C208 /* ContentView.swift */,
+				652EDE0E18121CDA3002E94F /* DatabaseModel.swift */,
+				06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */,
 				1CB8074D9852A3B48218EE66 /* HelperClient.swift */,
 				40476A491ED7D264F633834E /* JerdApp.swift */,
 				1158F4F6B4D528C105E86D10 /* TrustConsentService.swift */,
@@ -281,7 +287,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices\"\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncp \"$BUILT_PRODUCTS_DIR/JerdHelper\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices/JerdHelper\"\ncp \"$BUILT_PRODUCTS_DIR/JerdCLI\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI\"\ncp \"$SRCROOT/JerdHelper/dev.jerd.helper.plist\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist\"\n/usr/bin/python3 \"$SRCROOT/Scripts/embed-development-runtimes.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes\"\n";
+			shellScript = "set -eu\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices\"\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncp \"$BUILT_PRODUCTS_DIR/JerdHelper\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices/JerdHelper\"\ncp \"$BUILT_PRODUCTS_DIR/JerdCLI\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI\"\ncp \"$SRCROOT/JerdHelper/dev.jerd.helper.plist\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist\"\n/usr/bin/python3 \"$SRCROOT/Scripts/embed-development-runtimes.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes\"\n/usr/bin/python3 \"$SRCROOT/Scripts/embed-database-runtimes.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -311,6 +317,8 @@
 			files = (
 				64E24C1FFAD7ED730EF9BB7F /* AppModel.swift in Sources */,
 				E88A1F308959A16BEB2C37E9 /* ContentView.swift in Sources */,
+				92F69703F808681C8F84BC31 /* DatabaseModel.swift in Sources */,
+				1C93AF63B7CD1D068A4B426D /* DatabaseServicesView.swift in Sources */,
 				9F9124D469BD32E0DC58755D /* HelperClient.swift in Sources */,
 				531A59644626251570A38E9A /* JerdApp.swift in Sources */,
 				DFFF7D1F14BE4679BBD05460 /* TrustConsentService.swift in Sources */,

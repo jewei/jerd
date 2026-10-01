@@ -152,6 +152,33 @@ public actor ProcessSupervisor: ProcessControlling {
         stopping.remove(id)
     }
 
+    /// Database shutdown must not escalate to SIGKILL. A timeout retains the
+    /// owned child so the caller can report it and retry without losing data.
+    public func stopGracefully(_ id: UUID, signal: Int32 = SIGTERM, timeout: Duration = .seconds(30)) async -> Bool {
+        guard let pid = children[id] else { return true }
+        if stopping.contains(id) {
+            while stopping.contains(id) { await pause() }
+            return children[id] == nil
+        }
+        stopping.insert(id)
+        defer { stopping.remove(id) }
+        var ownership = siginfo_t()
+        var result: Int32
+        repeat { result = waitid(P_PID, id_t(pid), &ownership, WEXITED | WNOHANG | WNOWAIT) } while result < 0 && errno == EINTR
+        guard result == 0 else {
+            children[id] = nil
+            return false
+        }
+        if status(pid) == nil { _ = kill(pid, signal) }
+        let deadline = ContinuousClock.now + timeout
+        while status(pid) == nil, ContinuousClock.now < deadline { await pause() }
+        guard status(pid) != nil else { return false }
+        var rawStatus: Int32 = 0
+        while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
+        children[id] = nil
+        return true
+    }
+
     private func waitForExit(_ pid: pid_t, seconds: Int) async {
         let deadline = ContinuousClock.now + .seconds(seconds)
         while status(pid) == nil && ContinuousClock.now < deadline { await pause() }

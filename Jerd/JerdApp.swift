@@ -13,8 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !quitting else { return .terminateLater }
         quitting = true
         Task {
-            await model?.shutdown()
-            sender.reply(toApplicationShouldTerminate: true)
+            let stopped = await model?.shutdown() ?? true
+            if !stopped { quitting = false }
+            sender.reply(toApplicationShouldTerminate: stopped)
         }
         return .terminateLater
     }
@@ -26,7 +27,11 @@ struct JerdApp: App {
     @State private var model = AppModel()
     var body: some Scene {
         Window("Jerd", id: "main") {
-            ContentView(model: model)
+            TabView(selection: $model.selectedSection) {
+                ContentView(model: model).tabItem { Label("Sites", systemImage: "globe") }.tag(AppSection.sites)
+                DatabaseServicesView(model: model.databases)
+                    .tabItem { Label("Databases", systemImage: "externaldrive") }.tag(AppSection.databases)
+            }
                 .frame(minWidth: 820, minHeight: 540)
                 .task { delegate.model = model; model.load() }
         }
@@ -63,6 +68,11 @@ private struct MenuContent: View {
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Button("Open databases") {
+            model.selectedSection = .databases
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Text(model.stateLabel)
         Divider()
         ForEach(model.configuration.sites.filter(\.isEnabled)) { site in
@@ -72,6 +82,16 @@ private struct MenuContent: View {
             Button("Stop environment") { model.stop() }.disabled(model.isBusy)
         } else if model.configuration.sites.contains(where: \.isEnabled) {
             Button("Start all sites") { model.start() }.disabled(model.isBusy)
+        }
+        if !model.databases.configuration.services.isEmpty {
+            Menu("Databases") {
+                ForEach(model.databases.configuration.services) { service in
+                    let active = model.databases.status(service).processID != nil
+                    Button("\(active ? "Stop" : "Start") \(service.name)") {
+                        if active { model.databases.stop(service) } else { model.databases.start(service) }
+                    }.disabled(model.databases.isBusy(service))
+                }
+            }
         }
         Divider()
         Button("Quit Jerd") { NSApp.terminate(nil) }.keyboardShortcut("q")
