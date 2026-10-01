@@ -11,7 +11,7 @@ It has no remote Swift package dependencies.
 `https://games-hk.test` at the same time on the development Mac. Safari and
 the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 37 core tests pass, including four real PHP/TLS cases. This is a local
+All 38 core tests pass, including five real PHP/TLS cases. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -114,6 +114,8 @@ paths or executable commands. The CA key remains in the user's data directory.
 One Caddy process serves all enabled sites. Sites with the same PHP runtime
 share a PHP-FPM process group. Different runtime selections use separate groups.
 Each hostname routes to its own document root and selected PHP socket.
+Laravel's `public/storage` link can serve public images and other static files.
+Project-root storage stays blocked. PHP files under `/storage` are also blocked.
 **Start all sites** and **Stop all sites** control the environment. Changes to a
 running site's settings restart the environment, which briefly affects all sites.
 Adding a hostname requires HTTPS approval for the updated list.
@@ -193,6 +195,8 @@ redirects, listeners, FPM failure, and cleanup. It runs both direct listeners
 and inherited sockets. Two-site cases check separate roots with one shared
 PHP group and with two separate PHP groups. Both use the available PHP 8.5.11
 binary; execution with two different PHP versions still needs a separate check.
+The public storage case verifies linked asset bytes and rejects private storage,
+hidden files, PHP source, and PHP execution under the storage URL.
 Set `JERD_KEEP_TEST_FILES=1` to retain diagnostic files.
 Never install a test CA in a system trust store.
 

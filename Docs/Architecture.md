@@ -59,6 +59,13 @@ The executable PHP suffix matcher is case-sensitive. This prevents an uppercase
 FastCGI failures never fall through to static serving.
 [Caddy PHP routing](https://caddyserver.com/docs/caddyfile/directives/php_fastcgi).
 
+When the document root is the project directory, `/storage` remains blocked.
+With a separate public document root, it can serve Laravel's `public/storage`
+link to `storage/app/public`. Hidden files and PHP-like source stay blocked;
+PHP under `/storage` is rejected before FastCGI, including path-info requests
+and directory URLs rewritten to `index.php`.
+[Laravel public storage](https://laravel.com/docs/12.x/filesystem#the-public-disk).
+
 `/.jerd/ready` is a reserved static health response. Readiness checks do not
 execute project code or require a working project home page.
 

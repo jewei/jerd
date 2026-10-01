@@ -5,6 +5,76 @@ import Darwin
 
 struct TLSSmokeTests {
     @Test(.enabled(if: ProcessInfo.processInfo.environment["JERD_INTEGRATION"] == "1",
+                   "Select independent PHP and Caddy binaries for the public storage test."))
+    func publicStorageAssetsDoNotExposePrivateStorageOrExecutePHP() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let root = try temporaryDirectory(" public storage")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let project = root.appendingPathComponent("laravel")
+        let publicRoot = project.appendingPathComponent("public")
+        let publicStorage = project.appendingPathComponent("storage/app/public")
+        let privateProject = root.appendingPathComponent("project-root")
+        try PrivateFiles.directory(publicRoot)
+        try PrivateFiles.directory(publicStorage.appendingPathComponent("112"))
+        try PrivateFiles.directory(publicStorage.appendingPathComponent("directory"))
+        try PrivateFiles.directory(privateProject.appendingPathComponent("storage/logs"))
+        try Data("<?php echo 'front-controller';".utf8).write(to: publicRoot.appendingPathComponent("index.php"))
+        try Data("<?php echo 'other-site';".utf8).write(to: privateProject.appendingPathComponent("index.php"))
+        try Data("private-log-must-not-leak".utf8).write(to: privateProject.appendingPathComponent("storage/logs/laravel.log"))
+        try Data("private-env-must-not-leak".utf8).write(to: publicStorage.appendingPathComponent(".env"))
+        let asset = Data([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46, 0xff, 0xd9])
+        try asset.write(to: publicStorage.appendingPathComponent("112/amazon-us.jpg"))
+        let scripts = ["upload.php", "upload.PHP", "upload.php.bak", "upload.phtml", "upload.phar"]
+        for name in scripts {
+            try Data("<?php echo 'upload-must-not-execute';".utf8).write(to: publicStorage.appendingPathComponent(name))
+        }
+        try Data("<?php echo 'directory-index-must-not-execute';".utf8)
+            .write(to: publicStorage.appendingPathComponent("directory/index.php"))
+        try FileManager.default.createSymbolicLink(at: publicRoot.appendingPathComponent("storage"),
+                                                   withDestinationURL: publicStorage)
+        var publicSite = makeSite(project, hostname: "public-storage.test")
+        publicSite.documentRoot = publicRoot.path
+        let privateSite = makeSite(privateProject, hostname: "private-storage.test")
+        let paths = EnginePaths(root: root.appendingPathComponent("engine"),
+            socketDirectory: URL(fileURLWithPath: "/tmp/jerd-storage-\(UUID().uuidString.prefix(12))"))
+        let provider = DevelopmentRuntimeProvider()
+        let runtime = try await provider.inspectPHP(cli: URL(fileURLWithPath: try #require(environment["JERD_PHP_CLI"])),
+            fpm: URL(fileURLWithPath: try #require(environment["JERD_PHP_FPM"])), workDirectory: root)
+        let caddy = try await provider.inspectCaddy(binary: URL(fileURLWithPath: try #require(environment["JERD_CADDY"])), workDirectory: root)
+        let sockets = try ListeningSockets.bind(httpPort: 0, httpsPort: 0)
+        defer { sockets.close() }
+        let ports = try sockets.ports()
+        let engine = ServingEngine()
+        do {
+            try await engine.start(sites: [SiteRuntime(site: publicSite, runtime: runtime), SiteRuntime(site: privateSite, runtime: runtime)],
+                caddy: caddy, paths: paths, httpsPort: ports.https, httpPort: ports.http, listeningSockets: sockets)
+            func request(_ host: String, _ path: String) async throws -> (String, Data) {
+                let output = root.appendingPathComponent("response-\(UUID().uuidString)")
+                let result = try await LocalCommandRunner().run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/curl"),
+                    arguments: ["--noproxy", "*", "--silent", "--show-error", "--max-time", "4",
+                        "--cacert", paths.rootCertificate.path, "--resolve", "\(host):\(ports.https):127.0.0.1",
+                        "--output", output.path, "--write-out", "%{http_code} %{content_type}",
+                        "https://\(host):\(ports.https)\(path)"], directory: root), timeout: .seconds(6))
+                #expect(result.status == 0)
+                return (result.output, try Data(contentsOf: output))
+            }
+            let image = try await request(publicSite.hostname, "/storage/112/amazon-us.jpg")
+            #expect(image.0 == "200 image/jpeg")
+            #expect(image.1 == asset)
+            #expect(try await request(publicSite.hostname, "/").1 == Data("front-controller".utf8))
+            for path in ["/storage/.env", "/storage/upload.php/extra", "/storage/directory", "/storage/directory/"] + scripts.map({ "/storage/\($0)" }) {
+                let denied = try await request(publicSite.hostname, path)
+                #expect(denied.0.hasPrefix("404 "), "Unexpected response for \(path): \(denied.0)")
+                #expect(denied.1.isEmpty)
+            }
+            let privateStorage = try await request(privateSite.hostname, "/storage/logs/laravel.log")
+            #expect(privateStorage.0.hasPrefix("404 "))
+            #expect(privateStorage.1.isEmpty)
+            await engine.stop()
+        } catch { await engine.stop(); throw error }
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["JERD_INTEGRATION"] == "1",
                    "Select the independent development runtimes for the real multi-site test."), arguments: [false, true])
     func multipleSitesUseTheirOwnRootsAndSelectedPools(separatePools: Bool) async throws {
         let environment = ProcessInfo.processInfo.environment

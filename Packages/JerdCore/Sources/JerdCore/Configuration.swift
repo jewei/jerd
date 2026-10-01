@@ -125,17 +125,23 @@ public enum ConfigurationGenerator {
         guard !site.documentRoot.contains("{"), !site.documentRoot.contains("}") else {
             throw JerdError.invalid("Jerd does not support braces in document-root paths.")
         }
+        // A separate public root can expose Laravel's public/storage link.
+        // Keep project-root storage private and never execute uploaded PHP.
+        let privateDirectories = site.documentRoot == site.projectPath ? "(vendor|storage)" : "vendor"
+        let deniedPaths = "(?i)(^|/)\\.|^/\(privateDirectories)(/|$)|^/(composer\\.(json|lock)|auth\\.json|artisan)$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)"
         return [
             ["match": [["path": [healthPath]]],
              "handle": [["handler": "static_response", "status_code": 200, "body": healthResponse]]],
             ["handle": [["handler": "vars", "root": site.documentRoot]]],
             // Reject backups before the file matcher can split their .php suffix.
-            ["match": [["path_regexp": ["pattern": "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|^/(composer\\.(json|lock)|auth\\.json|artisan)$|\\.php[^/]|\\.(phtml|phar|inc)"]]],
+            ["match": [["path_regexp": ["pattern": deniedPaths]]],
              "handle": [response(404)]],
             ["match": [["file": ["try_files": ["{http.request.uri.path}", "{http.request.uri.path}/index.php", "index.php"],
                                   "try_policy": "first_exist_fallback", "split_path": [".php"]]]],
              "handle": [["handler": "rewrite", "uri": "{http.matchers.file.relative}"]]],
-            ["match": [["path_regexp": ["pattern": "\\.php$"]]],
+            // Recheck storage after rewriting a directory URL to its index.php.
+            ["match": [["path_regexp": ["pattern": "\\.php$"],
+                         "not": [["path_regexp": ["pattern": "(?i)^/storage/"]]]]],
              "handle": [["handler": "reverse_proxy", "upstreams": [["dial": "unix/" + socket.path]],
                           "transport": ["protocol": "fastcgi", "root": site.documentRoot,
                                         "split_path": [".php"], "dial_timeout": 3_000_000_000,

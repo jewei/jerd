@@ -4,13 +4,18 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 
 ## Passed
 
-- 37 Swift Testing tests in 10 suites, including four real TLS/PHP cases.
+- 38 Swift Testing tests in 10 suites, including five real TLS/PHP cases.
 - PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
 - Caddy 2.11.4, using its official arm64 artifact.
 - Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
 - Two simultaneous sites with distinct roots and computed PHP output. One
   case shares a PHP process group; another uses separate runtime IDs and
   groups. Both run the available PHP 8.5.11 binary.
+- A real TLS regression test first reproduced the public storage asset 404,
+  then passed with the corrected route. It verifies exact asset bytes and
+  `image/jpeg`, private project-root storage rejection, hidden-file rejection,
+  and rejection of PHP execution and source under `/storage`, including
+  directory URLs that would otherwise execute an uploaded `index.php`.
 - Multiple-host updates, version 1 helper record migration, trust rollback,
   consent-scope checks, and removal of one hostname while retaining another.
 - CA-verified TLS, computed PHP output and FPM SAPI, static content, sensitive
@@ -68,6 +73,12 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 - The SHA-256 values for both projects' `public/index.php` files were unchanged.
   Both registrations remain enabled. PHP, Composer, and Laravel CLI version
   checks also passed after the app update, including Composer inside `games-hk`.
+- The reported `https://games-hk.test/storage/112/amazon-us.jpg` initially
+  returned an empty 404 even though its file and Laravel public storage link
+  existed. The route blocked all storage URLs. After the fix and signed app
+  update, the same URL returned 200, `image/jpeg`, and 14,338 bytes over normal
+  macOS-trusted HTTPS. The response SHA-256 matched the source file exactly.
+  Both site home pages still returned 200.
 
 The runtime inspection and real TLS tests use actual executables. Test doubles
 are used only for controlled failure/transaction cases. Root access is not used
@@ -84,7 +95,7 @@ A test double also closed the same numeric descriptor twice during parallel
 tests. Its cleanup is now idempotent. The restart test allows up to one second
 for transient descriptor cleanup during parallel process tests. It separately
 checks that an active listener cannot be shared. No `SO_REUSEPORT` is used.
-The final full run passed all 37 tests.
+The final full run passed all 38 tests.
 
 The host's `/usr/bin/curl` has multiple TLS backends. Its default backend did
 not use the installed macOS CA for this request. This command passed using
