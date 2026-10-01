@@ -330,5 +330,54 @@ Stop sends SIGTERM and waits up to 30 seconds without a forced kill. A timeout
 keeps the owned process and cancels quit. If a later database stop cancels quit,
 the mail controls and monitor resume. Stop and Quit never delete captured mail.
 
-The development Mac already runs Homebrew Mailpit on 1025/8025. Jerd selects
-other free ports and neither imports that inbox nor stops that process.
+The development Mac initially ran Homebrew Mailpit on 1025/8025. Jerd selected
+other free ports and did not import that inbox. The user later requested that
+the Homebrew service be stopped; its own service command was used.
+
+## Local storage
+
+[RustFS](https://docs.rustfs.com/en/installation/macos) supplies a native Apple
+Silicon server with an S3 API and embedded console. Jerd bundles the official
+[1.0.0 release](https://github.com/rustfs/rustfs/releases/tag/1.0.0) with its
+Apache license. The fixed archive digest matches the GitHub asset metadata.
+The preparation script checks size, digest, and regular archive member type.
+The embed script and app installer check the per-file receipt again.
+
+[Lerd's S3 service](https://github.com/lerd-env/lerd/blob/5b42cb29d7ed2723d37d2d65d033dc73620cda2b/internal/serviceops/s3.go)
+uses one shared instance and a built-in S3 client for bucket operations. Jerd
+uses that arrangement with a native Swift client. It does not need a client
+container. Jerd creates random credentials, defaults to private buckets, and
+limits optional anonymous access to object reads. It does not adopt Lerd's
+anonymous write policy or forced bucket deletion.
+
+StorageManager serializes lifecycle and bucket changes. Save validates the S3
+name, starts the owned service when needed, then records an incomplete setup
+before sending bucket operations. The client creates the bucket, applies and
+reads back its access policy, and checks it with HeadBucket. Only then does
+the record become complete. A failure leaves the intent available for retry.
+Saved complete buckets that disappear from the server are reported missing.
+They are not recreated automatically. The native list contains Jerd records;
+the full RustFS console manages objects and other server buckets.
+
+StorageS3Client uses path-style S3 requests with AWS Signature Version 4 and
+CryptoKit. It handles UTF-8 object keys with byte-based URI encoding. It uses
+an ephemeral URLSession with no cookies, cache, proxies, or redirects. Requests
+have timeouts and response size bounds. XML parsing disables external entity
+resolution. Credentials are not placed in commands, URLs, or error messages.
+The generated keys use private 0600 files; RustFS reads each key through its
+credential-file flag. The containing data folders use mode 0700.
+
+The process gets a clean environment with telemetry export and upstream update
+checks disabled. Both API and console listeners bind to loopback. Ready needs
+a signed ListBuckets response, an accessible embedded console, and exact PID
+ownership of the two expected listeners with no UDP socket. The real binary
+serves its console at `/rustfs/console/`, not the authenticated root route.
+RustFS splits volume arguments at spaces, so Jerd passes the fixed relative
+`data` directory from its private working directory. This supports the macOS
+Application Support path and Unicode without symlinks or shell escaping.
+
+A file lock and previous-process record prevent competing use. Runtime identity
+and an initialization marker preserve the selected version, RustFS format file,
+and credential digest. Missing initialized data or credentials block startup.
+SIGTERM shutdown has a 30-second grace period and no forced kill. A timeout
+cancels Quit. Storage controls resume if a later service cancels app termination.

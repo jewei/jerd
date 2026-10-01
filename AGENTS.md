@@ -18,6 +18,9 @@ runtimes, private data folders, and per-service controls. Keep existing DBngin
 services and data separate. The user then approved a Mailpit-like feature.
 Add a separate local mail service with an inbox, SMTP capture, service controls,
 and Laravel settings. Keep existing mail services and inboxes separate.
+The user then approved native RustFS storage with an Add bucket form. Use the
+tab order Sites, Databases, Storage, Mail. Saving a bucket must start the owned
+storage service as needed and verify the bucket before reporting it ready.
 
 ## Safety boundaries
 
@@ -46,6 +49,9 @@ and Laravel settings. Keep existing mail services and inboxes separate.
   Database shutdown must be graceful; a timeout must not force-kill the server.
 - Keep captured mail after Stop or Quit. Use loopback-only SMTP and HTTP ports.
   Do not configure external mail relay, forwarding, or inherited mail settings.
+- Keep storage buckets, objects, and credentials after Stop or Quit. Use an
+  owned RustFS runtime with loopback-only S3 and console ports. New buckets are
+  private unless the user selects public read. Never allow anonymous writes.
 
 ## Build and test
 

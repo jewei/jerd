@@ -2,12 +2,13 @@ import AppKit
 import Observation
 import JerdCore
 
-enum AppSection { case sites, databases, mail }
+enum AppSection { case sites, databases, storage, mail }
 
 @MainActor @Observable
 final class AppModel {
     var selectedSection = AppSection.sites
     let databases = DatabaseModel()
+    let storage = StorageModel()
     let mail = MailModel()
     var configuration = AppConfiguration()
     var selectedSiteID: UUID?
@@ -51,6 +52,7 @@ final class AppModel {
             }
             self.startMonitoring()
             self.databases.load()
+            self.storage.load()
             self.mail.load()
             if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
         }
@@ -237,12 +239,19 @@ final class AppModel {
     }
 
     func shutdown() async -> Bool {
+        guard await storage.shutdown() else {
+            selectedSection = .storage
+            errorMessage = "Storage could not stop safely. Jerd will remain open. Retry Stop in Storage."
+            return false
+        }
         guard await mail.shutdown() else {
+            storage.resumeAfterCancelledQuit()
             selectedSection = .mail
             errorMessage = "The mail service could not stop safely. Jerd will remain open. Retry Stop in Mail."
             return false
         }
         guard await databases.shutdown() else {
+            storage.resumeAfterCancelledQuit()
             mail.resumeAfterCancelledQuit()
             errorMessage = "A database service could not stop safely. Jerd will remain open. Check Databases and retry Stop."
             return false

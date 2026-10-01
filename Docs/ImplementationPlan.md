@@ -5,6 +5,11 @@ Milestone 2. The user then confirmed that Jerd must serve all enabled registered
 sites at the same time. Keep the app small and honor each site's PHP selection.
 The user then requested research into DBngin and a first MySQL, PostgreSQL,
 and Redis service version. The user then approved the local Mailpit feature.
+The user then approved RustFS storage with Add bucket and automatic startup on
+Save. The next approved work is a dashboard, appearance settings, binary version
+inventory, and explicit binary update controls. After all features are complete,
+three fresh independent agents must review code, architecture, and performance.
+Assess their findings, fix valid issues, and repeat the required checks.
 
 ## Completed and tested
 
@@ -39,6 +44,11 @@ and Redis service version. The user then approved the local Mailpit feature.
   free-port selection, native controls, Laravel settings, and a local test email.
 - Real SMTP delivery of text, HTML, and attachments; API retrieval, restart
   persistence, host-header rejection, and independent process-exit detection.
+- Native RustFS 1.0.0 with the Storage tab, automatic startup on Add bucket/Save,
+  private buckets, optional public object reads, generated keys, and Laravel settings.
+- Real S3 upload/download with UTF-8 keys and binary data, independent curl
+  authentication, anonymous write rejection, restart persistence, incomplete
+  setup recovery, and missing-data/credential protection.
 
 ## Milestone 2 system checks completed on the development Mac
 

@@ -7,6 +7,7 @@ selected PHP runtime. The bundled versions are PHP 8.5.11 and Caddy 2.11.4.
 The app also includes Composer 2.10.3 and Laravel Installer 5.32.0.
 The Databases tab manages separate MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.3
 services. Each service has its own port, password, and persistent data folder.
+The Storage tab creates S3 buckets with a managed RustFS 1.0.0 service.
 The Mail tab runs Mailpit 1.31.3 for local SMTP capture and a persistent web inbox.
 It has no remote Swift package dependencies.
 
@@ -14,8 +15,8 @@ It has no remote Swift package dependencies.
 `https://games-hk.test` at the same time on the development Mac. Safari, Brave,
 and the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 55 core tests pass, including five real PHP/TLS cases, a real three-engine
-database test, and SMTP capture with MIME content and restart persistence. This is a local
+All 62 core tests pass, including five real PHP/TLS cases, a real three-engine
+database test, SMTP capture, and real S3 access and restart persistence. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -92,6 +93,17 @@ Embedding and app installation check those hashes again. The prepared payload
 is about 26 MB. It does not use an existing Mailpit installation or run a system
 installer. This is a development pin, not a publisher-signed update manifest.
 
+To prepare the storage payload:
+
+```sh
+python3 Scripts/prepare-storage-runtime.py
+```
+
+This downloads the official RustFS 1.0.0 Apple Silicon binary and its license.
+`StorageRuntime/pin.json` fixes the archive size, SHA-256, and license digest.
+Only the named regular executable is extracted. File hashes are checked at
+build and app installation time. The prepared payload is about 225 MB.
+
 ## Database services
 
 1. Open **Databases → Add database**.
@@ -121,6 +133,36 @@ A service's database version is fixed when its data is created. Use a new
 service and the engine's export/import tools to move to another version.
 Jerd does not reuse DBngin runtimes or data. Existing DBngin services can run
 beside Jerd on different ports.
+
+## Local storage
+
+1. Open **Storage → Add bucket**.
+2. Enter the bucket name. Leave public read off for a private bucket, or turn
+   it on to serve local test assets without signed read requests.
+3. Select **Save**. Jerd starts its own RustFS service, creates the bucket,
+   applies its access policy, and checks the bucket before reporting Ready.
+4. Select **Copy Laravel settings** and apply them to your project. The settings
+   include the endpoint, bucket, generated keys, region, and path-style option.
+   Laravel needs its S3 filesystem adapter. Jerd does not edit project files.
+5. Use **Open console** to upload and inspect files. Sign in with the values from
+   **Copy access key** and **Copy secret key**.
+
+The tabs are **Sites, Databases, Storage, Mail**. Buckets share one native RustFS
+process and one generated credential pair. Jerd suggests free S3 and console
+ports, starting at 9000 and 9001. Both listen only on `127.0.0.1`. Connections
+use local HTTP. Public read grants only `s3:GetObject`; anonymous listing,
+uploads, and deletion remain blocked.
+
+The data and credentials stay after Stop or Quit. Start storage after reopening
+Jerd. Use **Storage settings** to change ports while stopped. An incomplete
+bucket setup stays recorded and can be retried. A missing bucket is reported;
+Jerd does not silently recreate it. The native list shows buckets added in Jerd.
+The console can manage other buckets directly. A stopped or failed service
+never reports its buckets as Ready.
+
+Storage uses an app-owned runtime and data folder. It does not use Docker,
+Homebrew, or another application's RustFS instance. Shutdown is graceful;
+a timeout keeps the app open. The runtime version is fixed to its data folder.
 
 ## Local mail
 
@@ -323,6 +365,17 @@ It does not access an existing inbox or configure external mail delivery.
 
 The signed XPC harness is documented in [Verification](Docs/Verification.md).
 It uses an anonymous listener and high ports. It installs no system service.
+
+The storage test uses an explicitly selected RustFS runtime and temporary data:
+
+```sh
+JERD_STORAGE_INTEGRATION=1 \
+JERD_STORAGE_RUNTIME="$PWD/.build/storage-runtime/rustfs-1.0.0-arm64" \
+swift test --package-path Packages/JerdCore --filter StorageIntegrationTests
+```
+
+It checks automatic bucket startup, signed S3 reads and writes, public/private
+access, persistence, port conflicts, credentials, and interrupted setup retry.
 
 ## Data and recovery
 

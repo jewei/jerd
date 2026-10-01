@@ -50,6 +50,7 @@ targets:
           /usr/bin/python3 "$SRCROOT/Scripts/embed-development-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes"
           /usr/bin/python3 "$SRCROOT/Scripts/embed-database-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes"
           /usr/bin/python3 "$SRCROOT/Scripts/embed-mail-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MailRuntime"
+          /usr/bin/python3 "$SRCROOT/Scripts/embed-storage-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/StorageRuntime"
         basedOnDependencyAnalysis: false
   JerdCLI:
     type: tool

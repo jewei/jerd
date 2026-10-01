@@ -4,9 +4,9 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 
 ## Passed
 
-- 55 Swift Testing tests in 14 suites, including five real TLS/PHP cases,
+- 62 Swift Testing tests in 16 suites, including five real TLS/PHP cases,
   the real three-engine database test, the existing wildcard-port check,
-  and the real SMTP/MIME persistence test.
+  the real SMTP/MIME persistence test, and real RustFS S3 storage.
 - PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
 - Caddy 2.11.4, using its official arm64 artifact.
 - Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
@@ -132,6 +132,44 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   restored all three database connections and both trusted HTTPS sites.
   The final unsigned Debug build, signed Release build, and deep strict
   signature verification passed.
+
+## Storage checks
+
+- Official RustFS 1.0.0 Apple Silicon archive and license pinned and verified.
+  Bundle embedding, app installation, and runtime version inspection passed.
+- Real Add bucket/Save startup, S3 creation, policy readback, and HeadBucket.
+  Default private reads reject anonymous clients. Optional public reads permit
+  GetObject and reject anonymous listing, uploads, and deletion.
+- Signed upload/download of binary data with a UTF-8 key containing spaces,
+  plus signs, percent signs, and a question mark. An independent curl SigV4
+  upload was read by the native Swift client. Wrong credentials were rejected.
+- Buckets, bytes, access policy, and credentials survive Stop/Start. Port edits
+  retain data. An incomplete setup resumes across a new manager instance.
+- Occupied S3 and console ports, invalid and duplicate names, corrupt settings,
+  a previous live PID, runtime mismatch, missing format data, and missing
+  credentials preserve existing files. Owned process exit is detected.
+- The real test uses a path with spaces and Unicode. It exposed upstream
+  whitespace splitting of volume arguments; a fixed relative data path solves it.
+  The console check uses its actual `/rustfs/console/` route.
+- The signed installed app passed Storage → Add bucket → Save. An invalid name
+  stayed in the form; `jerd-uploads` became Ready after Save without manual Start.
+- Copy Laravel settings supplied the exact live keys, bucket, endpoint, and
+  path-style option. The clipboard was restored after the check. The console
+  opened in Brave, accepted the generated keys, and showed its bucket browser.
+- The installed service passed independent S3 writes and reads, private access,
+  UID 501 ownership, 0600 credentials, exact loopback listeners, and no UDP.
+- Stop storage left sites, databases, and mail running. An occupied-port edit
+  was rejected without changing saved ports or stopping the other service.
+- Quit released all seven database, storage, and mail listener ports and retained
+  their data. Reopen and Start restored the bucket and its stored test bytes.
+
+Run the real storage test with the explicitly selected runtime:
+
+```sh
+JERD_STORAGE_INTEGRATION=1 \
+JERD_STORAGE_RUNTIME="$PWD/.build/storage-runtime/rustfs-1.0.0-arm64" \
+swift test --package-path Packages/JerdCore --filter StorageIntegrationTests
+```
 
 ## Mail checks
 

@@ -31,6 +31,8 @@ struct JerdApp: App {
                 ContentView(model: model).tabItem { Label("Sites", systemImage: "globe") }.tag(AppSection.sites)
                 DatabaseServicesView(model: model.databases)
                     .tabItem { Label("Databases", systemImage: "externaldrive") }.tag(AppSection.databases)
+                StorageServicesView(model: model.storage)
+                    .tabItem { Label("Storage", systemImage: "externaldrive.badge.icloud") }.tag(AppSection.storage)
                 MailServiceView(model: model.mail)
                     .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
             }
@@ -75,6 +77,11 @@ private struct MenuContent: View {
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Button("Open storage") {
+            model.selectedSection = .storage
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Button("Open mail") {
             model.selectedSection = .mail
             openWindow(id: "main")
@@ -98,6 +105,14 @@ private struct MenuContent: View {
                         if active { model.databases.stop(service) } else { model.databases.start(service) }
                     }.disabled(model.databases.isBusy(service))
                 }
+            }
+        }
+        Menu("Storage") {
+            Button("Open console") { model.storage.openConsole() }.disabled(model.storage.state != .running)
+            if model.storage.processID != nil {
+                Button("Stop storage") { model.storage.stop() }.disabled(!model.storage.canChange)
+            } else {
+                Button("Start storage") { model.storage.start() }.disabled(!model.storage.canAdd)
             }
         }
         Menu("Mail") {

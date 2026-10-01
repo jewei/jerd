@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "rustfs-1.0.0-arm64",
+  "version": "1.0.0",
+  "architecture": "arm64",
+  "url": "https://github.com/rustfs/rustfs/releases/download/1.0.0/rustfs-macos-aarch64-v1.0.0.zip",
+  "size": 87018416,
+  "sha256": "06e32a681c16930fb5414df64c96151fe3370321fab0403a83a83a015874c39a",
+  "licenseURL": "https://raw.githubusercontent.com/rustfs/rustfs/d47f54bfb2f39f48bd1adda334bd27e151fe85b8/LICENSE",
+  "licenseSHA256": "3a9df97065824982b722fc7fac418a73ffd88febe968a3b9874423791581197a"
+}
