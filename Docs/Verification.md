@@ -1,0 +1,159 @@
+# Verification record
+
+Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
+
+## Passed
+
+- 37 Swift Testing tests in 10 suites, including four real TLS/PHP cases.
+- PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
+- Caddy 2.11.4, using its official arm64 artifact.
+- Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
+- Two simultaneous sites with distinct roots and computed PHP output. One
+  case shares a PHP process group; another uses separate runtime IDs and
+  groups. Both run the available PHP 8.5.11 binary.
+- Multiple-host updates, version 1 helper record migration, trust rollback,
+  consent-scope checks, and removal of one hostname while retaining another.
+- CA-verified TLS, computed PHP output and FPM SAPI, static content, sensitive
+  path rejection, unknown hosts, redirects, and cleanup after FPM exit.
+- Host byte/metadata preservation, conflicts, rollback, UID ownership checks,
+  partial certificate-removal rollback, and interrupted-setup preservation.
+- Coordinator rejection of missing setup and failed trust; socket release
+  after engine failure; prompt listener restart without live-port sharing.
+- Signed anonymous XPC transfer of both FileHandles, with the receiver retaining
+  them after the sender closes its copies.
+- Signed XPC rejection of incorrect client and server identifiers.
+- Unsigned Debug build and signed Release build of app and helper.
+- `codesign --verify --deep --strict` and the helper's read-only signing check.
+- App launch, native window inspection, bundled runtime installation, and
+  creation of the app's private configuration.
+- Actual SMAppService registration and launch of the signed root helper.
+- Actual host mapping, System.keychain import, and SSL trust limited to
+  `games-jp.test`, approved through the logged-in app's Security.framework call.
+- Safari loaded the selected Laravel site's home page without a trust warning.
+  The page title was `ホーム | OneOne JP`. HTTPS returned HTTP 200.
+- Normal macOS URLSession trust and hostname resolution; the app reported Ready.
+- HTTP returned 308 to `https://games-jp.test/`.
+- Actual loopback-only ports 80/443, with PHP/Caddy running as UID 501 and the
+  helper as root. FPM used Jerd's private Unix socket.
+- Stop released the listeners. Start and quit/reopen/start each restored HTTPS.
+- Remove system setup restored the exact original hosts bytes, removed the
+  tracked CA and its trust, and unregistered the helper. The project directory,
+  `public/index.php`, site registration, and private installation CA remained.
+- Setup was restored with the same CA. The site again reported Ready and HTTP 200.
+- Composer 2.10.3 and Laravel Installer 5.32.0 were bundled and installed.
+- New zsh sessions resolved `php`, `composer`, and `laravel` to Jerd's launcher.
+  Version commands and `laravel new --help` passed without creating a project.
+- Composer reported Jerd PHP 8.5.11 both outside a site and inside a nested
+  directory of the registered site. Argument forwarding and exit status 23 passed.
+- CLI selection tests cover a different pinned version, nested registrations,
+  path boundaries, symlinks, a disabled web site, and missing-pin rejection.
+- App data, saved runtime paths, generated server settings, and zsh commands
+  use `~/Library/Application Support/Jerd`. After the directory move, site
+  records, runtime IDs, default PHP selection, and CA bytes were unchanged.
+  All three CLI commands passed; the site returned HTTP 200 over trusted HTTPS.
+- The updated signed app loaded the existing single-host setup, then added
+  the user-selected `games-hk` registration through the native folder form.
+  Save opened the HTTPS review with both hostnames and the same CA fingerprint.
+- Both hosts ran at the same time. `games-jp.test` returned 200;
+  `games-hk.test` returned 302 to `/zh-hk`, which returned 200. Requests used
+  normal macOS DNS and trust. The app showed Ready for both sites.
+- System trust contained two SSL trustRoot rules, one per hostname. The owned
+  hosts section contained both names. One unprivileged Caddy process and one
+  shared PHP 8.5.11 process group served both project roots on loopback 80/443.
+- Safari loaded both sites in the same window. The Hong Kong page title was
+  `OneOne HK｜香港遊戲點數儲值平台`; the Japan page title was `ホーム | OneOne JP`.
+- Stop all released ports 80/443. Start all restored both sites. Disabling
+  `games-hk` left `games-jp` available and rejected the disabled HTTP host with
+  421. Enabling it restored both sites without another setup change.
+- The SHA-256 values for both projects' `public/index.php` files were unchanged.
+  Both registrations remain enabled. PHP, Composer, and Laravel CLI version
+  checks also passed after the app update, including Composer inside `games-hk`.
+
+The runtime inspection and real TLS tests use actual executables. Test doubles
+are used only for controlled failure/transaction cases. Root access is not used
+by the test suite. The separate approved system test changed hosts, trust, and
+helper registration through the app. The user approved stopping Herd's web
+service and selected the existing `games-jp.test` project. Other Herd services
+were left running. Both selected sites remain available through Jerd.
+
+The system test found and fixed three integration errors: first registration
+can report SMAppService `notFound`; modern certificate consent needs the GUI
+app; certificate deletion needs a keychain-backed item reference. Failed
+cleanup restored the previous host/trust state before the fix was applied.
+A test double also closed the same numeric descriptor twice during parallel
+tests. Its cleanup is now idempotent. The restart test allows up to one second
+for transient descriptor cleanup during parallel process tests. It separately
+checks that an active listener cannot be shared. No `SO_REUSEPORT` is used.
+The final full run passed all 37 tests.
+
+The host's `/usr/bin/curl` has multiple TLS backends. Its default backend did
+not use the installed macOS CA for this request. This command passed using
+normal macOS trust, without a custom CA, resolver override, or TLS bypass:
+
+```sh
+CURL_SSL_BACKEND=secure-transport /usr/bin/curl --noproxy '*' \
+  --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
+  https://games-jp.test/
+```
+
+## Reproduce the signed XPC check
+
+Use an available Apple signing identity. This harness installs no service and
+writes no host or trust settings. It binds only high loopback ports.
+
+```sh
+swiftc -swift-version 6 \
+  Packages/JerdCore/Sources/JerdCore/Models.swift \
+  Packages/JerdCore/Sources/JerdCore/ListeningSockets.swift \
+  Packages/JerdCore/Sources/JerdCore/SystemIntegration.swift \
+  Scripts/check-xpc.swift -o .build/check-xpc
+codesign --force --sign 'Developer ID Application: Your Name (YOURTEAMID)' \
+  --identifier dev.jerd.app --options runtime .build/check-xpc
+.build/check-xpc
+.build/check-xpc reject-client
+.build/check-xpc reject-server
+```
+
+All three modes must print PASS and exit with status 0. On the tested host,
+wrong client identity returned Cocoa error 4097; wrong server identity returned
+4102. The harness uses the production protocol and signing requirement builder.
+It does not establish that launchd registration or root certificate changes work.
+
+## Manual system acceptance procedure
+
+1. Stop the conflicting service in its own app. Keep a signed Jerd app in a
+   stable location. Record the existing hosts file and relevant certificate state.
+2. Add a trusted plain-PHP fixture. Check the suggested hostname and document root.
+3. Review the enabled hostname list and fingerprint, then approve setup.
+   Complete macOS approval in Login Items & Extensions if required.
+4. Confirm that the helper runs as root and that PHP/Caddy run as the current
+   user. Confirm only loopback ports 80/443 listen; FPM uses a private Unix socket.
+5. Confirm Ready, then open the hostname in Safari. Check the certificate and
+   execute PHP through HTTPS without a warning. Verify HTTP redirects to HTTPS.
+6. Stop and start the environment. Check that the approved hostname still works.
+7. Quit and reopen Jerd. Start again. Check that the same installation CA is used.
+8. Add a second registration and approve the updated list. Check both sites
+   at the same time. Disable and enable one site, then remove its registration.
+   Check that the other site remains available and both project folders remain.
+9. Remove system setup. Verify the recorded host section, exact CA trust/certificate,
+   and helper registration are removed. Check that all project files remain.
+10. Repeat with occupied ports and withheld approval. Check that the app reports
+    the cause and never reports Ready. A port conflict must not change hosts/trust.
+
+The original setup, browser, lifecycle, and full-removal sequence passed using
+the user-selected Japan Laravel project. The concurrent-site check then passed
+with the user's Hong Kong project. Both registrations were retained, so removal
+of one host from a live multiple-host setup has core transaction and coordinator
+coverage but still needs a separate GUI acceptance check. A deliberately withheld
+GUI approval and an occupied-port attempt through the final signed helper also
+need manual checks. Their core failure boundaries have automated coverage.
+No new Laravel application was created as a test of the installer.
+
+## Release limits
+
+Intel execution, macOS 14 execution, notarization, separate-browser trust stores,
+forced-crash recovery, and interrupted privileged transaction recovery are pending.
+Execution with two different PHP binary versions is also pending; the separate
+process-group test uses two runtime IDs for the available PHP 8.5.11 binary.
+The developer signing identity is for local testing, not evidence of a release.
+The development download pins are not publisher-signed manifests.
