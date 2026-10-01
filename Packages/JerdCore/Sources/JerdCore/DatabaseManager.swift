@@ -80,12 +80,8 @@ public actor DatabaseManager {
 
     public func suggestedPort(for engine: DatabaseEngine) async throws -> UInt16 {
         try requireLoaded()
-        let reserved = Set(configuration.services.map(\.port))
-        for value in Int(engine.defaultPort)...min(Int(engine.defaultPort) + 200, 65535) {
-            let port = UInt16(value)
-            if !reserved.contains(port), (try? await requirePortAvailable(port)) != nil { return port }
-        }
-        throw JerdError.unavailable("No free database port was found. Enter a different port.")
+        return try await LocalServicePorts(directory: directory, commands: commands)
+            .suggest(startingAt: engine.defaultPort, excluding: Set(configuration.services.map(\.port)))
     }
 
     public func add(name: String, runtimeID: String, port: UInt16) async throws -> DatabaseService {
@@ -379,43 +375,12 @@ public actor DatabaseManager {
 
     private func verifyListeners(id: UUID, port: UInt16?, paths: DatabasePaths) async throws {
         guard let process = running[id] else { throw JerdError.process("The database process is missing.") }
-        let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-a", "-p", String(process.processID), "-iTCP", "-sTCP:LISTEN", "-Fn"], directory: paths.root), timeout: .seconds(5))
-        let actual = Set(result.output.components(separatedBy: .newlines).filter { $0.hasPrefix("n") }.map { String($0.dropFirst()) })
-        let expected = Set(port.map { ["127.0.0.1:\($0)"] } ?? [])
-        guard (result.status == 0 || (port == nil && result.status == 1)), actual == expected else {
-            throw JerdError.process("The database opened an unexpected network listener. Expected loopback only.")
-        }
-        let udp = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-a", "-p", String(process.processID), "-iUDP", "-Fn"], directory: paths.root), timeout: .seconds(5))
-        guard udp.status == 1, udp.output.isEmpty else { throw JerdError.process("The database opened an unexpected UDP socket.") }
-        if let port {
-            guard try await listeningProcessIDs(on: port) == [process.processID] else {
-                throw JerdError.process("Another process also uses database port \(port). Jerd stopped only its own service.")
-            }
-        }
+        try await LocalServicePorts(directory: paths.root, commands: commands)
+            .verify(processID: process.processID, ports: Set(port.map { [$0] } ?? []))
     }
 
     private func requirePortAvailable(_ port: UInt16) async throws {
-        guard port > 1023 else { throw JerdError.invalid("Use a port from 1024 to 65535.") }
-        // On macOS, SO_REUSEADDR can let a specific address share a port with
-        // an existing wildcard listener. Inspect listeners before binding.
-        guard try await listeningProcessIDs(on: port).isEmpty else {
-            throw JerdError.unavailable("Database port \(port) is occupied. No process was stopped.")
-        }
-        try LoopbackPort.checkAvailable(port)
-    }
-
-    private func listeningProcessIDs(on port: UInt16) async throws -> Set<Int32> {
-        let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-a", "-iTCP:\(port)", "-sTCP:LISTEN", "-Fp"],
-            directory: directory), timeout: .seconds(5))
-        if result.status == 1, result.output.isEmpty { return [] }
-        let pids = Set(result.output.split(separator: "\n").filter { $0.hasPrefix("p") }.compactMap { Int32($0.dropFirst()) })
-        guard result.status == 0, !pids.isEmpty else {
-            throw JerdError.unavailable("Cannot inspect database port \(port). No process was stopped.")
-        }
-        return pids
+        try await LocalServicePorts(directory: directory, commands: commands).requireAvailable(port)
     }
 
     private func stopOwned(_ id: UUID, releaseInstanceLock: Bool = true) async throws {

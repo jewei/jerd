@@ -4,8 +4,9 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 
 ## Passed
 
-- 49 Swift Testing tests in 12 suites, including five real TLS/PHP cases,
-  the real three-engine database test, and the existing wildcard-port check.
+- 55 Swift Testing tests in 14 suites, including five real TLS/PHP cases,
+  the real three-engine database test, the existing wildcard-port check,
+  and the real SMTP/MIME persistence test.
 - PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
 - Caddy 2.11.4, using its official arm64 artifact.
 - Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
@@ -132,6 +133,42 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   The final unsigned Debug build, signed Release build, and deep strict
   signature verification passed.
 
+## Mail checks
+
+- The official Mailpit 1.31.3 arm64 archive passed the fixed size and SHA-256
+  checks. The binary reported its actual version without an online release
+  check. Installed binary and notice files matched their receipts.
+- The real SMTP test captured an encoded UTF-8 subject, plain text, HTML, and
+  an attachment. The API returned the expected content and exact attachment
+  bytes. Both messages remained after Stop, port edits, process restart, and
+  recovery from an owned process exit.
+- The test rejected an unknown HTTP Host with 403. Readiness checked the API
+  version and private database path, an SMTP NOOP, both exact loopback listeners,
+  exclusive port ownership, and absence of UDP sockets.
+- Unit tests preserved corrupt settings, rejected runtime replacement and
+  duplicate/privileged ports, and left occupied SMTP and web ports untouched.
+  A saved live PID blocked startup without a signal. A version in the binary
+  path did not pass an incorrect binary version. Integration checks preserved
+  an initialized inbox when its database was missing or its identity differed.
+- The installed signed app selected SMTP 1026 and web 8026 because the existing
+  Homebrew Mailpit used 1025 and 8025. Its original PID 2115 remained alive.
+  Jerd's Mailpit ran as UID 501, listened only on `127.0.0.1`, had no UDP
+  sockets, and stored its SQLite database with mode 0600 in a private folder.
+- The native Send test email button delivered `Jerd mail test` through SMTP.
+  Open inbox opened `http://127.0.0.1:8026/` in Brave with title `Mailpit - Jerd`.
+  A capture of the inbox content showed the test message in its message list.
+- The native port editor rejected occupied SMTP port 1025 and kept the saved
+  ports 1026/8026. The existing Homebrew Mailpit process remained alive.
+- Stop mail retained the inbox. All three Jerd database queries still passed,
+  both HTTPS sites returned 200, and the original external database and mail
+  processes remained running.
+- The same message ID, sender, recipient, and content remained after Stop/Start.
+  Normal Quit stopped Jerd's mail and all three databases, released their ports,
+  and retained the inbox. Original external services remained running.
+- After reopen, the same message remained in Jerd's inbox. Mail returned to
+  Ready on 1026/8026, all three database queries passed, and both HTTPS sites
+  returned 200. The final signed Release and unsigned Debug builds passed.
+
 The runtime inspection and real TLS tests use actual executables. Test doubles
 are used only for controlled failure/transaction cases. Root access is not used
 by the test suite. The separate approved system test changed hosts, trust, and
@@ -147,7 +184,7 @@ A test double also closed the same numeric descriptor twice during parallel
 tests. Its cleanup is now idempotent. The restart test allows up to one second
 for transient descriptor cleanup during parallel process tests. It separately
 checks that an active listener cannot be shared. No `SO_REUSEPORT` is used.
-The final full run passed all 49 tests.
+The final full run passed all 55 tests.
 
 The host's `/usr/bin/curl` has multiple TLS backends. Its default backend did
 not use the installed macOS CA for this request. This command passed using
@@ -225,4 +262,6 @@ The development download pins are not publisher-signed manifests.
 Database execution was checked on this arm64 Mac. The first database catalog
 has one fixed version per engine and a development payload of about 1.1 GB.
 More versions, release package size, database TLS, export/import UI, automatic
-recovery after app crashes, and Mailpit remain later work.
+recovery after app crashes remain later work.
+Mailpit runtime upgrades, multiple inboxes, and recovery after app crashes
+are also pending. SMTP and HTTP use loopback without authentication or TLS.

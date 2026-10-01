@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "mailpit-1.31.3-arm64",
+  "version": "1.31.3",
+  "architecture": "arm64",
+  "url": "https://github.com/axllent/mailpit/releases/download/v1.31.3/mailpit-darwin-arm64.tar.gz",
+  "releaseURL": "https://github.com/axllent/mailpit/releases/tag/v1.31.3",
+  "metadataURL": "https://api.github.com/repos/axllent/mailpit/releases/tags/v1.31.3",
+  "size": 9848192,
+  "sha256": "f72ac5bae2c8ef6bd719c1aa11237500e9a81e50ba759f92b9b1e80812920a85"
+}

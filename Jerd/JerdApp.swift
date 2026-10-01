@@ -31,6 +31,8 @@ struct JerdApp: App {
                 ContentView(model: model).tabItem { Label("Sites", systemImage: "globe") }.tag(AppSection.sites)
                 DatabaseServicesView(model: model.databases)
                     .tabItem { Label("Databases", systemImage: "externaldrive") }.tag(AppSection.databases)
+                MailServiceView(model: model.mail)
+                    .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
             }
                 .frame(minWidth: 820, minHeight: 540)
                 .task { delegate.model = model; model.load() }
@@ -73,6 +75,11 @@ private struct MenuContent: View {
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Button("Open mail") {
+            model.selectedSection = .mail
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Text(model.stateLabel)
         Divider()
         ForEach(model.configuration.sites.filter(\.isEnabled)) { site in
@@ -91,6 +98,15 @@ private struct MenuContent: View {
                         if active { model.databases.stop(service) } else { model.databases.start(service) }
                     }.disabled(model.databases.isBusy(service))
                 }
+            }
+        }
+        Menu("Mail") {
+            Button("Open inbox") { model.mail.openInbox() }.disabled(model.mail.state != .running)
+            if model.mail.processID != nil {
+                Button("Stop mail") { model.mail.stop() }.disabled(!model.mail.canChange)
+            } else {
+                Button("Start mail") { model.mail.start() }
+                    .disabled(!model.mail.canChange || model.mail.configuration.runtime == nil)
             }
         }
         Divider()

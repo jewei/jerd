@@ -10,7 +10,7 @@ public enum LoopbackPort {
         defer { close(descriptor) }
         // A stopped server can leave TCP connections in TIME_WAIT. Match the
         // real listener's reuse policy, then also listen to reject another
-        // listener on this exact address. DatabaseManager separately checks
+        // listener on this exact address. LocalServicePorts separately checks
         // wildcard listeners. SO_REUSEPORT is deliberately not enabled.
         var reuse: Int32 = 1
         guard setsockopt(descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) == 0 else {

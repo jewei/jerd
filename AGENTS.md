@@ -15,7 +15,9 @@ working directory, with the default used outside registered sites.
 The user also approved a first database-service version after research into
 DBngin. Add independent MySQL, PostgreSQL, and Redis services with native
 runtimes, private data folders, and per-service controls. Keep existing DBngin
-services and data separate. Mailpit is a later step.
+services and data separate. The user then approved a Mailpit-like feature.
+Add a separate local mail service with an inbox, SMTP capture, service controls,
+and Laravel settings. Keep existing mail services and inboxes separate.
 
 ## Safety boundaries
 
@@ -42,6 +44,8 @@ services and data separate. Mailpit is a later step.
 - Preserve database data when stopping or removing a service registration.
   Never reuse an existing database directory with a different runtime version.
   Database shutdown must be graceful; a timeout must not force-kill the server.
+- Keep captured mail after Stop or Quit. Use loopback-only SMTP and HTTP ports.
+  Do not configure external mail relay, forwarding, or inherited mail settings.
 
 ## Build and test
 

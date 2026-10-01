@@ -19,6 +19,8 @@ work runs in actors away from the UI actor.
 | JerdCLI, CLIRuntimeSelection | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
 | DatabaseModel, DatabaseServicesView | Database list, connection details, and independent service controls |
 | DatabaseManager, DatabaseDriver | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
+| MailManager, MailDriver, MailStore | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
+| LocalServicePorts | Shared wildcard-port detection and exact listener ownership checks for databases and mail |
 | DatabaseStore, BundledDatabaseRuntimes | Separate versioned service records and verified native runtime installation |
 
 ## Projects and processes
@@ -282,6 +284,51 @@ It never enables SO_REUSEPORT. See [Apple socket options](https://developer.appl
 The development build embeds the full prepared payload, about 1.1 GB, including
 shared libraries and upstream notices. An on-demand installer, smaller release
 packages, more versions, export/import UI, and crash recovery are later work.
+
+## Local mail
+
 The [Mailpit site](https://mailpit.axllent.org/) describes a standalone SMTP
-capture service with a web UI and API. It fits a later independent-service
-module; no Mailpit process or setting is changed by this milestone.
+capture service with a web UI and API. Jerd manages the upstream binary as a
+separate service. The native Mail tab supplies lifecycle controls, port editing,
+Laravel settings, data/log access, and a local test message. The full inbox opens
+in the user's default browser. No SMTP implementation or HTML mail viewer is
+duplicated in Jerd, and mail is not a database engine entry.
+
+The first runtime is [Mailpit 1.31.3](https://github.com/axllent/mailpit/releases/tag/v1.31.3).
+Its fixed arm64 archive size and SHA-256 match GitHub release metadata. The
+preparation script extracts only the binary, license, and readme as regular
+files. Per-file hashes are checked at build and installation time. The binary's
+`version --no-release-check` output is checked before opening the inbox database;
+a version in the executable path cannot satisfy this check. The payload is
+about 26 MB and does not depend on the installed Homebrew Mailpit service.
+
+MailManager is an actor with serialized operations. It stores settings and a
+backup independently from sites and databases. MailPaths defines a private
+SQLite inbox, runtime identity, initialization marker, log, and active-run record.
+An exclusive file lock and the previous-process check block concurrent use.
+An initialized but missing inbox file is not silently replaced. A different
+runtime identity is rejected before Mailpit opens existing data.
+
+[Runtime options](https://mailpit.axllent.org/docs/configuration/runtime-options/)
+provide an explicit database path, SMTP/web bind addresses, and retention controls.
+Jerd binds both ports to `127.0.0.1`, disables automatic message deletion and
+version checks, and disables reverse DNS lookups. The process receives the
+supervisor's clean environment. External relay, forwarding, webhooks, POP3,
+and metrics listeners are not configured. SMTP and HTTP have no authentication
+or TLS in this local development version. The UI states those connection settings.
+
+The [HTTP host allowlist](https://mailpit.axllent.org/docs/configuration/http/)
+is enabled for local access. Unknown DNS hostnames are rejected before API
+handling. Remote CSS and fonts are blocked by Mailpit. These options do not
+promise that every optional inbox action or remote image works without a network.
+
+Ready requires the expected version and private database path from the
+[information API](https://mailpit.axllent.org/docs/api-v1/), a successful SMTP
+NOOP response, and exact listener/PID checks on both ports with no UDP sockets.
+Send test email uses SMTP, not the send API. The monitor detects process exit.
+Stop sends SIGTERM and waits up to 30 seconds without a forced kill. A timeout
+keeps the owned process and cancels quit. If a later database stop cancels quit,
+the mail controls and monitor resume. Stop and Quit never delete captured mail.
+
+The development Mac already runs Homebrew Mailpit on 1025/8025. Jerd selects
+other free ports and neither imports that inbox nor stops that process.

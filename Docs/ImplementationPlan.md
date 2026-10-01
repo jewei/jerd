@@ -4,7 +4,7 @@ The user approved completion of the real Milestone 1 proof and work on
 Milestone 2. The user then confirmed that Jerd must serve all enabled registered
 sites at the same time. Keep the app small and honor each site's PHP selection.
 The user then requested research into DBngin and a first MySQL, PostgreSQL,
-and Redis service version. Mailpit follows after the database work.
+and Redis service version. The user then approved the local Mailpit feature.
 
 ## Completed and tested
 
@@ -35,6 +35,10 @@ and Redis service version. Mailpit follows after the database work.
   independent stop/removal, and process-exit detection for all three engines.
 - Graceful database shutdown without force-kill escalation; a timeout retains
   the process and prevents app termination.
+- Mailpit 1.31.3 with a separate persistent inbox, loopback SMTP and HTTP,
+  free-port selection, native controls, Laravel settings, and a local test email.
+- Real SMTP delivery of text, HTML, and attachments; API retrieval, restart
+  persistence, host-header rejection, and independent process-exit detection.
 
 ## Milestone 2 system checks completed on the development Mac
 
@@ -73,5 +77,5 @@ export/import and restore-registration controls, and verified recovery of
 database processes after an app crash. The first version keeps database
 versions fixed per data directory and retains data on removal. GUI checks of
 withheld shutdown and interrupted initialization remain separate acceptance work.
-Mailpit can use the same unprivileged process controls with separate SMTP and
-HTTP listeners. It is not implemented in this database milestone.
+Mail uses the same unprivileged process and port checks. Mail follow-up includes
+runtime upgrades, recovery after app crashes, and multiple named inboxes.

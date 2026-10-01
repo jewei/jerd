@@ -7,14 +7,15 @@ selected PHP runtime. The bundled versions are PHP 8.5.11 and Caddy 2.11.4.
 The app also includes Composer 2.10.3 and Laravel Installer 5.32.0.
 The Databases tab manages separate MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.3
 services. Each service has its own port, password, and persistent data folder.
+The Mail tab runs Mailpit 1.31.3 for local SMTP capture and a persistent web inbox.
 It has no remote Swift package dependencies.
 
 **Verification status:** The signed app serves `https://games-jp.test` and
 `https://games-hk.test` at the same time on the development Mac. Safari, Brave,
 and the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 49 core tests pass, including five real PHP/TLS cases and a real three-engine
-database test. This is a local
+All 55 core tests pass, including five real PHP/TLS cases, a real three-engine
+database test, and SMTP capture with MIME content and restart persistence. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -78,6 +79,19 @@ runtime directory. The current development database payload is about 1.1 GB.
 It includes upstream shared libraries and notices. Downloads on demand and
 smaller release packages are later work.
 
+To prepare the mail payload:
+
+```sh
+python3 Scripts/prepare-mail-runtime.py
+```
+
+This downloads the official Mailpit 1.31.3 arm64 archive from its fixed GitHub
+release. `MailRuntime/pin.json` records its size and SHA-256 digest. The script
+checks both, extracts the binary and upstream notices, and records file hashes.
+Embedding and app installation check those hashes again. The prepared payload
+is about 26 MB. It does not use an existing Mailpit installation or run a system
+installer. This is a development pin, not a publisher-signed update manifest.
+
 ## Database services
 
 1. Open **Databases → Add database**.
@@ -106,7 +120,30 @@ Services start manually after the app reopens.
 A service's database version is fixed when its data is created. Use a new
 service and the engine's export/import tools to move to another version.
 Jerd does not reuse DBngin runtimes or data. Existing DBngin services can run
-beside Jerd on different ports. Mailpit remains a later step.
+beside Jerd on different ports.
+
+## Local mail
+
+1. Open **Mail** and select **Start mail**.
+2. Select **Copy Laravel settings** and apply the settings to the project you
+   want to test. Jerd does not edit project files. The copied values select
+   local SMTP, clear an old mail URL, and disable authentication and encryption.
+3. Select **Send test email** to check the local SMTP route, or send mail from
+   your application. External mail delivery is not configured.
+4. Select **Open inbox** to open Mailpit in your default browser. It provides
+   message search, HTML and text views, headers, attachments, and deletion.
+
+Jerd suggests free SMTP and web ports. Both listeners use `127.0.0.1` and run
+as your user. Existing Mailpit or other services keep their own ports and data.
+Use **Edit ports** while stopped to change the ports; the inbox is retained.
+The inbox uses one private SQLite database. Automatic message deletion is
+disabled, so use the inbox to delete messages you no longer need.
+
+Stop and Quit retain captured messages. Mailpit has 30 seconds to stop
+gracefully; a timeout cancels app termination and retains the owned process.
+Start is manual after reopening Jerd. An inbox cannot be opened with a different
+saved runtime version, and a previous live process blocks a second start.
+There is no automatic mail migration or recovery after an app crash.
 
 ## Build and run
 
@@ -270,6 +307,20 @@ check against an existing wildcard TCP listener. It checks that registration
 rejects the port without changing or connecting to that service. This passed
 with DBngin Redis on port 6379.
 
+Run the real SMTP and inbox test with the prepared Mailpit binary:
+
+```sh
+JERD_MAIL_INTEGRATION=1 \
+JERD_MAIL_RUNTIME="$PWD/.build/mail-runtime/mailpit-1.31.3-arm64" \
+swift test --package-path Packages/JerdCore --filter Mail
+```
+
+It uses a temporary inbox and high loopback ports. It sends a MIME message over
+SMTP, reads text, HTML, and attachment bytes through the API, rejects an unknown
+HTTP Host, changes ports, and checks persistence after restart. It also checks
+process-exit detection, missing-database preservation, and runtime identity.
+It does not access an existing inbox or configure external mail delivery.
+
 The signed XPC harness is documented in [Verification](Docs/Verification.md).
 It uses an anonymous listener and high ports. It installs no system service.
 
@@ -294,6 +345,15 @@ It uses an anonymous listener and high ports. It installs no system service.
       initialized.json  successful data initialization record
       active-run.json   present while an owned database process runs
       server.log        current output; previous start retained separately
+  mail-runtimes/        fixed Mailpit binary, receipt, and upstream notices
+  mail/
+    settings.json       runtime and SMTP/web ports; previous copy retained
+    active-run.json     present while the owned mail process runs
+    server.log          current output; previous start retained separately
+    inbox/
+      messages.sqlite   captured mail; WAL and SHM files while open
+      runtime.json      fixed inbox/runtime identity
+      initialized.json successful inbox initialization record
   environment/
     installation-id     stable identity for this installation's CA
     configuration/      generated Caddy/FPM/INI files
