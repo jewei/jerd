@@ -1,0 +1,13 @@
+{
+    "name": "jerd/laravel-installer-tool",
+    "description": "Jerd development payload for the Laravel installer",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "laravel/installer": "5.32.0"
+    },
+    "config": {
+        "allow-plugins": false,
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Explicitly approved development bootstrap, not a release installer",
+  "architecture": "arm64",
+  "artifacts": [
+    {
+      "name": "php",
+      "repository": "lerd-env/php",
+      "tag": "php-8.5.11",
+      "asset": "lerd-php-8.5.11-darwin-arm64.tar.gz",
+      "assetID": 596171229,
+      "sha256": "59761adfe93cf737282843ea1cbc74e2fef3dd86839554efd71c3dddb2b867dc",
+      "size": 66723803,
+      "files": ["php-native-8.5", "php-native-fpm-8.5", "THIRD-PARTY-NOTICES.txt", "BUILD-INFO.txt"]
+    },
+    {
+      "name": "caddy",
+      "repository": "caddyserver/caddy",
+      "tag": "v2.11.4",
+      "asset": "caddy_2.11.4_mac_arm64.tar.gz",
+      "assetID": 436912311,
+      "sha256": "9efb0af2d6cf09cfb5053c0e51721b9b3d4956d346234f39368d943d25a3c9a7",
+      "size": 16448366,
+      "files": ["caddy", "LICENSE", "README.md"]
+    },
+    {
+      "name": "composer",
+      "format": "file",
+      "tag": "2.10.3",
+      "url": "https://getcomposer.org/download/2.10.3/composer.phar",
+      "sha256": "7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6",
+      "size": 3642137,
+      "files": ["composer.phar", "LICENSE"],
+      "licenseURL": "https://raw.githubusercontent.com/composer/composer/2.10.3/LICENSE",
+      "licenseSHA256": "7855ac293067aebe7e51afdd23b9dea54b8be24187dbecc9b9142581c37f596c"
+    },
+    {
+      "name": "laravel-installer",
+      "format": "composer-project",
+      "tag": "5.32.0",
+      "sha256": "2ababca1f9aa06e92c6f6d3690bf06e1d8fd4cfcecfc836f029e2a71eb67d5f0",
+      "files": ["composer.json", "composer.lock"]
+    }
+  ]
+}
