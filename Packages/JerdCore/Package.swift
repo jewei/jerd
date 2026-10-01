@@ -6,7 +6,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [.library(name: "JerdCore", targets: ["JerdCore"])],
     targets: [
-        .target(name: "JerdCore"),
+        .systemLibrary(name: "CArchive"),
+        .target(name: "JerdCore", dependencies: ["CArchive"]),
         .testTarget(name: "JerdCoreTests", dependencies: ["JerdCore"],
                     resources: [.copy("Fixtures")])
     ]

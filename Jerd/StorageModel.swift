@@ -37,15 +37,16 @@ final class StorageModel {
             do {
                 configuration = try await manager.load()
                 isLoaded = true
-                if let resources = Bundle.main.resourceURL {
+                if configuration.runtime == nil, let resources = Bundle.main.resourceURL {
                     do {
                         let runtime = try await BundledStorageRuntime().install(
                             from: resources.appendingPathComponent("StorageRuntime"),
                             into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("storage-runtimes"))
-                        try await manager.registerRuntime(runtime)
-                        runtimeMessage = "RustFS \(runtime.version) is installed."
+                        if configuration.runtime == nil { try await manager.registerRuntime(runtime) }
+                        runtimeMessage = "RustFS is installed."
                     } catch { runtimeMessage = "RustFS setup failed: \(error.localizedDescription)" }
                 }
+                if let runtime = configuration.runtime { runtimeMessage = "RustFS \(runtime.version) is installed." }
                 await refresh()
                 if selectedName == nil { selectedName = configuration.buckets.first?.name }
                 startMonitoring()
@@ -56,6 +57,12 @@ final class StorageModel {
         }
     }
     func start() { perform { try await self.manager.start() } }
+    func updateRuntime(_ runtime: StorageRuntime) async throws {
+        guard canChange else { throw JerdError.unavailable("Wait for the current storage operation to finish.") }
+        isBusy = true; defer { isBusy = false }
+        do { try await manager.updateRuntime(runtime); await refresh() }
+        catch { await refresh(); throw error }
+    }
     func stop() { perform { try await self.manager.stop() } }
     func refreshBuckets() { perform { try await self.manager.refreshBuckets() } }
     func addBucket(name: String, publicRead: Bool, completion: @escaping () -> Void) {

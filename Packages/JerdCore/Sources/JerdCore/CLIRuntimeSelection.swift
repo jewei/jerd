@@ -32,7 +32,10 @@ public struct CLIRuntimeSelection: Sendable {
 public struct CLICompanions: Codable, Sendable {
     public let composerPath: String
     public let laravelPath: String
-    public init(composerPath: String, laravelPath: String) {
+    public let composerVersion: String?
+    public let laravelVersion: String?
+    public init(composerPath: String, laravelPath: String, composerVersion: String? = nil, laravelVersion: String? = nil) {
         self.composerPath = composerPath; self.laravelPath = laravelPath
+        self.composerVersion = composerVersion; self.laravelVersion = laravelVersion
     }
 }

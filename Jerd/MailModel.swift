@@ -29,15 +29,16 @@ final class MailModel {
             do {
                 configuration = try await manager.load()
                 isLoaded = true
-                if let resources = Bundle.main.resourceURL {
+                if configuration.runtime == nil, let resources = Bundle.main.resourceURL {
                     do {
                         let runtime = try await BundledMailRuntime().install(
                             from: resources.appendingPathComponent("MailRuntime"),
                             into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("mail-runtimes"))
-                        try await manager.registerRuntime(runtime)
-                        runtimeMessage = "Mailpit \(runtime.version) is installed."
+                        if configuration.runtime == nil { try await manager.registerRuntime(runtime) }
+                        runtimeMessage = "Mailpit is installed."
                     } catch { runtimeMessage = "Mailpit setup failed: \(error.localizedDescription)" }
                 }
+                if let runtime = configuration.runtime { runtimeMessage = "Mailpit \(runtime.version) is installed." }
                 await refresh()
                 startMonitoring()
             } catch {
@@ -48,6 +49,12 @@ final class MailModel {
     }
 
     func start() { perform { try await self.manager.start() } }
+    func updateRuntime(_ runtime: MailRuntime) async throws {
+        guard canChange else { throw JerdError.unavailable("Wait for the current mail operation to finish.") }
+        isBusy = true; defer { isBusy = false }
+        do { try await manager.updateRuntime(runtime); await refresh() }
+        catch { await refresh(); throw error }
+    }
     func stop() { perform { try await self.manager.stop() } }
     func edit(smtp: UInt16, web: UInt16, completion: @escaping () -> Void) {
         perform { try await self.manager.edit(smtpPort: smtp, webPort: web); completion() }

@@ -12,12 +12,16 @@ public actor StorageStore {
     }
 
     public func save(_ configuration: StorageConfiguration) throws {
+        try save(configuration, replacingRuntime: nil)
+    }
+
+    func save(_ configuration: StorageConfiguration, replacingRuntime expected: StorageRuntime?) throws {
         try configuration.validate()
         try PrivateFiles.directory(directory)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             let previous = try Data(contentsOf: fileURL)
             let old = try decode(previous)
-            if let runtime = old.runtime, runtime != configuration.runtime {
+            if let runtime = old.runtime, runtime != configuration.runtime, runtime != expected {
                 throw JerdError.invalid("The saved RustFS runtime cannot be replaced. Stored objects were preserved.")
             }
             try PrivateFiles.write(previous, to: directory.appendingPathComponent("settings.previous.json"))

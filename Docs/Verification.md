@@ -303,3 +303,70 @@ More versions, release package size, database TLS, export/import UI, automatic
 recovery after app crashes remain later work.
 Mailpit runtime upgrades, multiple inboxes, and recovery after app crashes
 are also pending. SMTP and HTTP use loopback without authentication or TLS.
+
+## Dashboard and runtime updates — 2026-10-02
+
+The Dashboard appears before Sites, Databases, Storage, and Mail. The signed GUI
+shows service counts, running state, service actions, and a separate Settings
+window. General settings contains independent menu bar and Dock switches and
+the original icon plus six existing designs. The GUI checked all four switch
+combinations. NSRunningApplication reported regular/accessory activation as
+expected, and the menu bar entry appeared and disappeared separately. Closing
+both windows with both switches off and opening Jerd from Applications restored
+the main window. The selected icon changed in the running app.
+
+Runtime checks returned stable, matching packages for all nine sources. The
+native installer downloaded and checked PHP 8.4.26, Caddy 2.11.6, Composer 2.10.3,
+Laravel Installer 5.32.0, MySQL 8.4.11, PostgreSQL 18.6 from Postgres.app 2.9.6,
+Redis 8.10.2, Mailpit 1.31.3, and RustFS 1.0.0. MySQL's real publisher signature
+passed; altered archive data failed. Fresh data services made from all three
+installed database packages passed startup, authenticated query, and restart.
+These checks used private temporary data and free local ports.
+
+The signed GUI installed PHP 8.4.26 beside PHP 8.5.11, updated active Caddy from
+2.11.4 to 2.11.6, and added Redis 8.10.2 for new database services. Existing Redis
+8.8.3 data and service selection were retained. Changing the default PHP in the
+GUI changed the selected runtime and restarted the web environment. The current
+user projects returned HTTP 500 with PHP 8.4; restoring their original PHP
+8.5.11 restored HTTP 200 over verified TLS. Runtime readiness does not establish
+application compatibility. Both projects' CLI commands also select PHP 8.5.11.
+No project files or PHP pins were changed. PHP 8.6 had no matching stable macOS
+package from the configured source at this check.
+
+All 73 core tests passed, including the opt-in PHP/TLS, three-database, Mailpit,
+and RustFS tests. The concurrent TLS test used actual PHP 8.5.11 and 8.4.26
+binaries in separate process groups. Mail and storage tests checked successful
+runtime changes and restoration after an invalid candidate, retaining captured
+messages, S3 objects, public/private access, and credentials. Additional tests
+cover interrupted data restore, corrupt bootstrap records, archive traversal,
+unsafe links, version comparison, download URL boundaries, and disk-image
+cleanup after attach cancellation or detach failure. Debug and signed Release
+builds passed.
+
+Three fresh independent agents reviewed code, architecture, and performance.
+The agreed fixes were:
+
+- Require a registered PostgreSQL runtime before reporting it installed, so a
+  downloaded package can retry failed registration.
+- Include attach and final detach in PostgreSQL cleanup, including cancellation.
+- Load independent services even when site configuration fails, and require
+  site configuration only for PHP/Caddy activation.
+- Skip bootstrap checks for configured runtimes and install only missing
+  database engines. A corrupt CLI record remains an error.
+- Hash files in 1 MiB chunks with a separate autorelease pool per chunk. The
+  review's isolated 87 MiB PHP hash used 1 MiB of additional buffer memory with
+  this pool, compared with 87 MiB without it.
+
+The code and architecture reviewers rechecked their fixes with no remaining
+findings. Startup does not hash unused bootstrap payloads. Full checks still
+run on initial installation and on downloaded package reuse.
+
+The final signed app was installed with an atomic bundle replacement. Normal
+Quit released all seven owned data-service ports. The saved hidden-Dock setting
+and Elephant icon survived relaunch, as did Caddy 2.11.6, both PHP versions, and
+the extra Redis version. The controls were then restored to both icons visible
+and the original app icon. All services were started again. Both sites returned
+HTTP 200 with normal certificate verification, all three existing databases
+passed authenticated queries, the mail inbox retained its message, and a
+private S3 test object survived the app replacement. The temporary S3 test
+object was removed after verification. Existing DBngin processes were preserved.

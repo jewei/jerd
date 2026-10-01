@@ -38,17 +38,19 @@ final class DatabaseModel {
                 configuration = try await manager.load()
                 isLoaded = true
                 selectedID = selectedID ?? configuration.services.first?.id
-                if let resources = Bundle.main.resourceURL {
+                let installedEngines = Set(configuration.runtimes.map(\.engine))
+                if installedEngines.count < DatabaseEngine.allCases.count, let resources = Bundle.main.resourceURL {
                     do {
                         let runtimes = try await BundledDatabaseRuntimes().install(
                             from: resources.appendingPathComponent("DatabaseRuntimes"),
-                            into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("database-runtimes"))
+                            into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("database-runtimes"), excluding: installedEngines)
                         try await manager.registerRuntimes(runtimes)
                         runtimeMessage = "MySQL, PostgreSQL, and Redis are installed. Each service has its own data folder."
                     } catch {
                         runtimeMessage = "Database runtime setup failed: \(error.localizedDescription)"
                     }
                 }
+                if runtimeMessage == "Preparing database runtimes…" { runtimeMessage = "Database runtimes are installed. Each service has its own data folder." }
                 await refresh()
                 startMonitoring()
             } catch {
@@ -59,6 +61,13 @@ final class DatabaseModel {
     }
 
     func suggestPort(_ engine: DatabaseEngine) async throws -> UInt16 { try await manager.suggestedPort(for: engine) }
+
+    func registerUpdatedRuntime(_ runtime: DatabaseRuntime) async throws {
+        guard isLoaded, !isLoading, !isSaving, !isShuttingDown else { throw JerdError.unavailable("Wait for database settings to finish loading or saving.") }
+        isSaving = true; defer { isSaving = false }
+        try await manager.registerRuntimes([runtime])
+        await refresh()
+    }
 
     func create(name: String, runtimeID: String, port: UInt16, completion: @escaping () -> Void) {
         guard !isSaving, !isLoading, !isShuttingDown else { return }

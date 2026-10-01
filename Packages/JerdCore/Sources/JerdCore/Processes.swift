@@ -211,23 +211,29 @@ public struct LocalCommandRunner: CommandRunning {
     public init() {}
     public func run(_ request: ProcessRequest, timeout: Duration = .seconds(15)) async throws -> CommandResult {
         // Each invocation owns its supervisor and files, including cancellation cleanup.
-        try await Task.detached {
+        let task = Task.detached {
             let supervisor = ProcessSupervisor()
             let log = request.directory.appendingPathComponent("command-\(UUID().uuidString).log")
             defer { try? FileManager.default.removeItem(at: log) }
             let id = try await supervisor.start(request, log: log)
-            let deadline = ContinuousClock.now + timeout
-            while await supervisor.isRunning(id), ContinuousClock.now < deadline {
-                try await Task.sleep(for: .milliseconds(25))
+            do {
+                let deadline = ContinuousClock.now + timeout
+                while await supervisor.isRunning(id), ContinuousClock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(25))
+                }
+                let timedOut = await supervisor.isRunning(id)
+                let status = await supervisor.exitStatus(id)
+                await supervisor.stopAll()
+                let reader = try FileHandle(forReadingFrom: log)
+                defer { try? reader.close() }
+                let data = try reader.read(upToCount: 1_048_576) ?? Data()
+                guard !timedOut else { throw JerdError.process("Command timed out: \(request.executable.path)") }
+                return CommandResult(status: status ?? -1, output: String(decoding: data, as: UTF8.self))
+            } catch {
+                await supervisor.stopAll()
+                throw error
             }
-            let timedOut = await supervisor.isRunning(id)
-            let status = await supervisor.exitStatus(id)
-            await supervisor.stopAll()
-            let reader = try FileHandle(forReadingFrom: log)
-            defer { try? reader.close() }
-            let data = try reader.read(upToCount: 1_048_576) ?? Data()
-            guard !timedOut else { throw JerdError.process("Command timed out: \(request.executable.path)") }
-            return CommandResult(status: status ?? -1, output: String(decoding: data, as: UTF8.self))
-        }.value
+        }
+        return try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
     }
 }

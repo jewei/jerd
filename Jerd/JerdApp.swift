@@ -4,9 +4,15 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var model: AppModel?
+    var openMainWindow: (() -> Void)?
     private var quitting = false
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let icon = JerdIcon.application { NSApp.applicationIconImage = icon }
+        model?.appearance.apply()
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openMainWindow?()
+        sender.activate(ignoringOtherApps: true)
+        return true
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -27,7 +33,30 @@ struct JerdApp: App {
     @State private var model = AppModel()
     var body: some Scene {
         Window("Jerd", id: "main") {
-            TabView(selection: $model.selectedSection) {
+            MainWindowView(model: model, delegate: delegate)
+        }
+        .defaultSize(width: 980, height: 660)
+        Settings { JerdSettingsView(model: model) }
+        MenuBarExtra(isInserted: Binding(get: { model.appearance.showMenuBar }, set: { model.appearance.showMenuBar = $0 })) {
+            MenuContent(model: model)
+        } label: {
+            if let icon = model.appearance.menuImage {
+                Image(nsImage: icon).renderingMode(.original).accessibilityLabel("Jerd")
+            } else {
+                Image(systemName: "server.rack").accessibilityLabel("Jerd")
+            }
+        }
+    }
+}
+
+private struct MainWindowView: View {
+    @Bindable var model: AppModel
+    let delegate: AppDelegate
+    @Environment(\.openWindow) private var openWindow
+    var body: some View {
+        TabView(selection: $model.selectedSection) {
+                DashboardView(model: model)
+                    .tabItem { Label("Dashboard", systemImage: "square.grid.2x2") }.tag(AppSection.dashboard)
                 ContentView(model: model).tabItem { Label("Sites", systemImage: "globe") }.tag(AppSection.sites)
                 DatabaseServicesView(model: model.databases)
                     .tabItem { Label("Databases", systemImage: "externaldrive") }.tag(AppSection.databases)
@@ -37,31 +66,13 @@ struct JerdApp: App {
                     .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
             }
                 .frame(minWidth: 820, minHeight: 540)
-                .task { delegate.model = model; model.load() }
-        }
-        .defaultSize(width: 980, height: 660)
-        MenuBarExtra {
-            MenuContent(model: model)
-        } label: {
-            if let icon = JerdIcon.menuBar {
-                Image(nsImage: icon).renderingMode(.original).accessibilityLabel("Jerd")
-            } else {
-                Image(systemName: "server.rack").accessibilityLabel("Jerd")
-            }
-        }
+                .task {
+                    delegate.model = model
+                    delegate.openMainWindow = { openWindow(id: "main") }
+                    model.appearance.apply()
+                    model.load()
+                }
     }
-}
-
-@MainActor
-private enum JerdIcon {
-    static let application = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
-        .flatMap { NSImage(contentsOf: $0) }
-    static let menuBar: NSImage? = {
-        guard let icon = application?.copy() as? NSImage else { return nil }
-        icon.size = NSSize(width: 18, height: 18)
-        icon.isTemplate = false
-        return icon
-    }()
 }
 
 private struct MenuContent: View {
@@ -125,6 +136,7 @@ private struct MenuContent: View {
             }
         }
         Divider()
+        SettingsLink { Text("Settings…") }.keyboardShortcut(",")
         Button("Quit Jerd") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }
 }

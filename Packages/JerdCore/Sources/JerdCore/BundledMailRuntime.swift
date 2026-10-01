@@ -59,7 +59,7 @@ public actor BundledMailRuntime {
             guard fileInfo.isRegularFile == true, fileInfo.isSymbolicLink != true, (fileInfo.fileSize ?? Int.max) < 64 * 1024 * 1024 else {
                 throw JerdError.invalid("Invalid Mailpit runtime file: \(name)")
             }
-            let actual = SHA256.hash(data: try Data(contentsOf: file)).map { String(format: "%02x", $0) }.joined()
+            let actual = try RuntimeDownload.digest(file)
             guard actual == expected else { throw JerdError.invalid("Mailpit verification failed for \(name). The file was preserved.") }
         }
         guard FileManager.default.isExecutableFile(atPath: directory.appendingPathComponent("mailpit").path) else {

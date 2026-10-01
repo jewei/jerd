@@ -24,7 +24,7 @@ public actor BundledDatabaseRuntimes {
     }
     public init() {}
 
-    public func install(from source: URL, into directory: URL) throws -> [DatabaseRuntime] {
+    public func install(from source: URL, into directory: URL, excluding engines: Set<DatabaseEngine> = []) throws -> [DatabaseRuntime] {
         let pins = try JSONDecoder().decode(Pins.self, from: Data(contentsOf: source.appendingPathComponent("pins.json")))
         guard pins.schemaVersion == 1, pins.architecture == CPUArchitecture.current.rawValue,
               pins.artifacts.count <= 20, Set(pins.artifacts.map(\.id)).count == pins.artifacts.count else {
@@ -32,7 +32,7 @@ public actor BundledDatabaseRuntimes {
         }
         try PrivateFiles.directory(directory)
         var installed: [DatabaseRuntime] = []
-        for artifact in pins.artifacts {
+        for artifact in pins.artifacts where !engines.contains(artifact.engine) {
             guard DatabaseConfiguration.safeIdentifier(artifact.id), DatabaseConfiguration.safeIdentifier(artifact.version) else {
                 throw JerdError.invalid("The database runtime manifest is invalid.")
             }
@@ -84,11 +84,7 @@ public actor BundledDatabaseRuntimes {
                   (info.fileSize ?? Int.max) < 512_000_000 else {
                 throw JerdError.invalid("Invalid database runtime file: \(name)")
             }
-            let input = try FileHandle(forReadingFrom: file)
-            defer { try? input.close() }
-            var hash = SHA256()
-            while let data = try input.read(upToCount: 1_048_576), !data.isEmpty { hash.update(data: data) }
-            guard hash.finalize().map({ String(format: "%02x", $0) }).joined() == record.sha256 else {
+            guard try RuntimeDownload.digest(file) == record.sha256 else {
                 throw JerdError.invalid("Database runtime verification failed for \(name). The existing file was preserved.")
             }
             if record.executable, !FileManager.default.isExecutableFile(atPath: file.path) {

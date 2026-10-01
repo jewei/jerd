@@ -2,11 +2,14 @@ import AppKit
 import Observation
 import JerdCore
 
-enum AppSection { case sites, databases, storage, mail }
+enum AppSection { case dashboard, sites, databases, storage, mail }
 
 @MainActor @Observable
 final class AppModel {
-    var selectedSection = AppSection.sites
+    var selectedSection = AppSection.dashboard
+    let appearance = AppAppearance()
+    let updates = RuntimeUpdatesModel()
+    var selectedSettings = SettingsSection.general
     let databases = DatabaseModel()
     let storage = StorageModel()
     let mail = MailModel()
@@ -32,18 +35,26 @@ final class AppModel {
 
     func load() {
         guard !isLoaded else { return }
+        if !databases.isLoaded { databases.load() }
+        if !storage.isLoaded { storage.load() }
+        if !mail.isLoaded { mail.load() }
+        updates.load()
         perform {
             self.configuration = try await self.registry.load()
             self.isLoaded = true
             self.selectedSiteID = self.configuration.sites.first?.id
             if let resources = Bundle.main.resourceURL {
                 do {
-                    let (php, caddy) = try await BundledRuntimes().install(
-                        from: resources.appendingPathComponent("DevelopmentRuntimes"),
-                        into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtimes"))
-                    self.configuration = try await self.registry.addRuntime(php)
-                    if self.configuration.caddy == nil {
-                        self.configuration = try await self.registry.setCaddy(caddy)
+                    let bundle = BundledRuntimes()
+                    if try await bundle.needsBootstrap(configuration: self.configuration,
+                        directory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtimes")) {
+                        let (php, caddy) = try await bundle.install(
+                            from: resources.appendingPathComponent("DevelopmentRuntimes"),
+                            into: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtimes"))
+                        self.configuration = try await self.registry.addRuntime(php)
+                        if self.configuration.caddy == nil {
+                            self.configuration = try await self.registry.setCaddy(caddy)
+                        }
                     }
                     self.runtimeMessage = "PHP, Caddy, Composer, and the Laravel installer are installed and managed by Jerd."
                 } catch {
@@ -51,9 +62,7 @@ final class AppModel {
                 }
             }
             self.startMonitoring()
-            self.databases.load()
-            self.storage.load()
-            self.mail.load()
+            await self.updates.refreshInstalled()
             if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
         }
     }
@@ -128,10 +137,66 @@ final class AppModel {
     }
 
     func setDefaultRuntime(_ id: UUID) {
-        perform {
-            let wasRunning = !self.runningSiteIDs.isEmpty
-            self.configuration = try await self.registry.setDefaultRuntime(id)
-            if wasRunning { try await self.startEnvironment() }
+        perform { try await self.changeDefaultRuntime(id) }
+    }
+
+    private func changeDefaultRuntime(_ id: UUID) async throws {
+        let previous = configuration.defaultRuntimeID
+        let wasRunning = !runningSiteIDs.isEmpty
+        configuration = try await registry.setDefaultRuntime(id)
+        do { if wasRunning { try await startEnvironment() } }
+        catch {
+            let failure = error.localizedDescription
+            if let previous {
+                do {
+                    configuration = try await registry.setDefaultRuntime(previous)
+                    if wasRunning { try await startEnvironment() }
+                } catch { throw JerdError.process("PHP activation failed: \(failure) Restore failed: \(error.localizedDescription)") }
+            }
+            throw JerdError.process("PHP activation failed. The previous selection was restored. \(failure)")
+        }
+    }
+
+    func activateRuntime(_ runtime: ManagedRuntime, useAsDefault: Bool) async throws {
+        guard !isBusy else { throw JerdError.unavailable("Wait for the current site operation to finish.") }
+        if runtime.kind == .php || runtime.kind == .caddy {
+            guard isLoaded else { throw JerdError.unavailable("Load valid site settings before changing PHP or Caddy.") }
+        }
+        isBusy = true; defer { isBusy = false }
+        switch runtime.kind {
+        case .php:
+            guard let fpm = runtime.secondaryExecutable else { throw JerdError.invalid("The PHP-FPM executable is missing.") }
+            let inspected = try await DevelopmentRuntimeProvider().inspectPHP(cli: runtime.executable, fpm: fpm,
+                workDirectory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtime-inspection"))
+            configuration = try await registry.addRuntime(inspected)
+            if useAsDefault, let installed = configuration.runtimes.first(where: { $0.cliPath == runtime.executable.path }) {
+                try await changeDefaultRuntime(installed.id)
+            }
+        case .caddy:
+            let previous = configuration.caddy, wasRunning = !runningSiteIDs.isEmpty
+            let inspected = try await DevelopmentRuntimeProvider().inspectCaddy(binary: runtime.executable,
+                workDirectory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtime-inspection"))
+            configuration = try await registry.setCaddy(inspected)
+            do { if wasRunning { try await startEnvironment() } }
+            catch {
+                let failure = error.localizedDescription
+                if let previous {
+                    do {
+                        configuration = try await registry.setCaddy(previous)
+                        if wasRunning { try await startEnvironment() }
+                    } catch { throw JerdError.process("Caddy activation failed: \(failure) Restore failed: \(error.localizedDescription)") }
+                }
+                throw JerdError.process("Caddy activation failed. The previous selection was restored. \(failure)")
+            }
+        case .mysql, .postgresql, .redis:
+            guard let engine = DatabaseEngine(rawValue: runtime.kind.rawValue) else { return }
+            try await databases.registerUpdatedRuntime(DatabaseRuntime(id: runtime.directory.lastPathComponent,
+                engine: engine, version: runtime.version, path: runtime.directory.path))
+        case .mailpit:
+            try await mail.updateRuntime(MailRuntime(id: runtime.directory.lastPathComponent, version: runtime.version, path: runtime.directory.path))
+        case .rustfs:
+            try await storage.updateRuntime(StorageRuntime(id: runtime.directory.lastPathComponent, version: runtime.version, path: runtime.directory.path))
+        case .composer, .laravel: try await updates.installer.activateCompanion(runtime)
         }
     }
 
@@ -239,18 +304,22 @@ final class AppModel {
     }
 
     func shutdown() async -> Bool {
+        await updates.finishBeforeQuit()
         guard await storage.shutdown() else {
+            updates.resumeAfterCancelledQuit()
             selectedSection = .storage
             errorMessage = "Storage could not stop safely. Jerd will remain open. Retry Stop in Storage."
             return false
         }
         guard await mail.shutdown() else {
+            updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             selectedSection = .mail
             errorMessage = "The mail service could not stop safely. Jerd will remain open. Retry Stop in Mail."
             return false
         }
         guard await databases.shutdown() else {
+            updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             mail.resumeAfterCancelledQuit()
             errorMessage = "A database service could not stop safely. Jerd will remain open. Check Databases and retry Stop."

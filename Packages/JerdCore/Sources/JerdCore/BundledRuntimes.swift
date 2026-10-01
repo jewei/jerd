@@ -1,7 +1,7 @@
 import Foundation
 import CryptoKit
 
-/// Development payload only. Release downloads and signed update metadata are separate work.
+/// Installs the initial payload while preserving runtime selections and later updates.
 public actor BundledRuntimes {
     private struct Pins: Decodable {
         let schemaVersion: Int
@@ -21,6 +21,15 @@ public actor BundledRuntimes {
     }
 
     public init() {}
+
+    public func needsBootstrap(configuration: AppConfiguration, directory: URL) throws -> Bool {
+        let file = directory.appendingPathComponent("cli-tools.json")
+        guard FileManager.default.fileExists(atPath: file.path) else { return true }
+        // Decode before deciding on setup. A corrupt record must never be reset.
+        let companions = try JSONDecoder().decode(CLICompanions.self, from: Data(contentsOf: file))
+        return configuration.runtimes.isEmpty || configuration.caddy == nil ||
+            companions.composerVersion == nil || companions.laravelVersion == nil
+    }
 
     public func install(from source: URL, into directory: URL) async throws -> (DevelopmentRuntime, CaddyRuntime) {
         let pins = try JSONDecoder().decode(Pins.self, from: Data(contentsOf: source.appendingPathComponent("pins.json")))
@@ -72,8 +81,20 @@ public actor BundledRuntimes {
         guard let php = installed["php"], let caddy = installed["caddy"], let composer = installed["composer"],
               let laravel = installed["laravel-installer"] else { throw JerdError.invalid("The runtime payload is incomplete.") }
         let companions = CLICompanions(composerPath: composer.appendingPathComponent("composer.phar").path,
-            laravelPath: laravel.appendingPathComponent("vendor/laravel/installer/bin/laravel").path)
-        try PrivateFiles.write(try JSONEncoder().encode(companions), to: directory.appendingPathComponent("cli-tools.json"))
+            laravelPath: laravel.appendingPathComponent("vendor/laravel/installer/bin/laravel").path,
+            composerVersion: pins.artifacts.first { $0.name == "composer" }?.tag,
+            laravelVersion: pins.artifacts.first { $0.name == "laravel-installer" }?.tag)
+        let companionFile = directory.appendingPathComponent("cli-tools.json")
+        if FileManager.default.fileExists(atPath: companionFile.path) {
+            let existing = try JSONDecoder().decode(CLICompanions.self, from: Data(contentsOf: companionFile))
+            // Fill version fields for an existing bootstrap record, without changing selections.
+            let current = CLICompanions(composerPath: existing.composerPath, laravelPath: existing.laravelPath,
+                composerVersion: existing.composerVersion ?? (existing.composerPath == companions.composerPath ? companions.composerVersion : nil),
+                laravelVersion: existing.laravelVersion ?? (existing.laravelPath == companions.laravelPath ? companions.laravelVersion : nil))
+            try PrivateFiles.write(try JSONEncoder().encode(current), to: companionFile)
+        } else {
+            try PrivateFiles.write(try JSONEncoder().encode(companions), to: companionFile)
+        }
         let provider = DevelopmentRuntimeProvider()
         let work = directory.appendingPathComponent("inspection")
         let runtime = try await provider.inspectPHP(cli: php.appendingPathComponent("php-native-8.5"),
@@ -91,7 +112,7 @@ public actor BundledRuntimes {
             let file = directory.appendingPathComponent(name)
             let info = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
             guard info.isRegularFile == true, info.isSymbolicLink != true, (info.fileSize ?? Int.max) < 512_000_000,
-                  InstallationCertificate.fingerprint(try Data(contentsOf: file)) == expected else {
+                  try RuntimeDownload.digest(file) == expected else {
                 throw JerdError.invalid("Runtime verification failed for \(name). The existing file was preserved.")
             }
         }

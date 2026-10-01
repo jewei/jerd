@@ -9,14 +9,18 @@ The Databases tab manages separate MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.
 services. Each service has its own port, password, and persistent data folder.
 The Storage tab creates S3 buckets with a managed RustFS 1.0.0 service.
 The Mail tab runs Mailpit 1.31.3 for local SMTP capture and a persistent web inbox.
+The Dashboard shows the four service areas. Settings controls Dock and menu bar
+visibility, seven app icon choices, installed versions, and runtime updates.
 It has no remote Swift package dependencies.
 
 **Verification status:** The signed app serves `https://games-jp.test` and
 `https://games-hk.test` at the same time on the development Mac. Safari, Brave,
 and the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 62 core tests pass, including five real PHP/TLS cases, a real three-engine
-database test, SMTP capture, and real S3 access and restart persistence. This is a local
+All 73 core tests pass, including five real PHP/TLS cases with PHP 8.5.11 and
+8.4.26, a real three-engine database test, SMTP capture, S3 persistence, and
+mail/storage update recovery. Real download and install tests also pass for all
+nine managed runtimes. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -51,10 +55,9 @@ The prepared dependency files and license notices are retained and hashed.
 Laravel dependency downloads use Composer's lock references and HTTPS;
 these are not publisher-signed or independently digest-pinned archives.
 
-This PHP/Caddy setup is the approved development bootstrap. It does not verify
-a publisher signature and is not the production runtime update system.
-The release installer, signed update metadata, and supported extension
-profiles remain Milestone 4 work.
+This PHP/Caddy setup is the approved development bootstrap. Runtime updates use
+the publisher sources described below. Signed Jerd release metadata, notarized
+distribution, and supported extension profiles remain later work.
 
 The build embeds the verified files. On first launch, Jerd checks their
 file digests, installs them in its own data directory, and inspects the
@@ -63,6 +66,36 @@ runtime selections are retained. If the payload is absent, the app shows
 the error; local executable selection remains available for development.
 Jerd does not use Herd binaries or install Homebrew. Shell commands are an
 explicit, optional setup step described below.
+
+## Dashboard and Settings
+
+The tab order is Dashboard, Sites, Databases, Storage, Mail. Open Settings from
+the Dashboard, menu bar menu, or `Command-,`. General settings has independent
+menu bar and Dock controls. When both are off, open Jerd from Applications to
+return to its window. The original icon and six existing designs are available;
+the chosen icon is used in the Dock and menu bar while the app is open.
+
+In Runtimes, select **Check for updates**, choose an available version, then
+install it. PHP supports **Install & use** and **Install only**. A new default
+restarts running sites, while pinned sites keep their selected PHP version.
+Only stable macOS packages for this Mac are shown. PHP 8.6 will appear when the
+configured PHP source publishes a matching stable package.
+
+Database runtime installation adds a version for new services. Existing database
+services keep their runtime and data directory. MySQL uses 8.4 LTS; PostgreSQL
+uses the 18 series from Postgres.app. Redis needs the local Xcode compiler.
+Mailpit and RustFS updates stop the owned service, copy its data and settings
+to a private `runtime-backups` folder, start and check the new runtime, then
+restore its previous running state. A failed update restores the saved copy.
+Backups remain available in the service folder. Advanced settings contains
+local executable selection and PHP inspection details.
+
+Downloads use HTTPS, host restrictions, byte limits, and a SHA-256 check before
+extraction. MySQL uses Oracle's pinned RSA publisher key and its detached
+signature. Laravel dependencies use Composer in a private folder with scripts
+and plugins disabled. This uses upstream HTTPS and Composer checks; it does not
+add independent publisher signatures to those dependencies. Version folders
+and receipts remain in Jerd's Application Support directory.
 
 To prepare the database payload as well:
 

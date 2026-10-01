@@ -29,11 +29,15 @@ public actor MailManager {
         self.processes = processes
     }
     private var ports: LocalServicePorts { LocalServicePorts(directory: paths.root, commands: commands) }
+    private var updateBackup: ServiceUpdateBackup {
+        ServiceUpdateBackup(root: paths.root, names: ["settings.json", "settings.previous.json", "inbox"])
+    }
 
     public func load() async throws -> MailConfiguration {
         if loaded { return configuration }
-        try begin()
+        try begin(allowUpdateRecovery: true)
         defer { busy = false }
+        try await recoverUpdate()
         configuration = try await store.load()
         try PrivateFiles.directory(paths.root)
         loaded = true
@@ -80,10 +84,15 @@ public actor MailManager {
 
     public func start() async throws {
         try requireLoaded()
+        try begin(allowUpdateRecovery: true)
+        defer { busy = false }
+        try await recoverUpdate()
+        try await startOwned()
+    }
+
+    private func startOwned() async throws {
         guard let runtime = configuration.runtime else { throw JerdError.unavailable("The Mailpit runtime is not installed.") }
         guard running == nil else { throw JerdError.unavailable("The mail service already has a process. Stop it before retrying.") }
-        try begin()
-        defer { busy = false }
         state = .starting
         do {
             try await ports.requireAvailable(configuration.smtpPort)
@@ -124,7 +133,7 @@ public actor MailManager {
 
     public func stop() async throws {
         try requireLoaded()
-        try begin()
+        try begin(allowUpdateRecovery: true)
         defer { busy = false }
         state = .stopping
         do { try await stopOwned(); state = .stopped }
@@ -168,14 +177,64 @@ public actor MailManager {
         guard result.status == 0 else { throw JerdError.process("The test email could not be sent: " + result.output.suffix(2048)) }
     }
 
-    private func begin() throws {
+    public func updateRuntime(_ runtime: MailRuntime) async throws {
+        try requireLoaded(); try begin(); defer { busy = false }
+        guard let previous = configuration.runtime else { throw JerdError.unavailable("The Mailpit runtime is not installed.") }
+        if runtime == previous { return }
+        let wasRunning = running != nil
+        state = .stopping
+        do { try await stopOwned() }
+        catch { state = .failed(error.localizedDescription); throw error }
+        state = .stopped
+        defer { if running == nil { releaseLock() } }
+        do {
+            try acquireLock()
+            try checkPreviousRun()
+            try prepareInbox(runtime: previous)
+            _ = try updateBackup.begin()
+            var next = configuration; next.runtime = runtime
+            try await store.save(next, replacingRuntime: previous)
+            configuration = next
+            try PrivateFiles.write(JSONEncoder().encode(runtime), to: paths.identity)
+            if FileManager.default.fileExists(atPath: paths.initialized.path) {
+                try PrivateFiles.write(JSONEncoder().encode(runtime), to: paths.initialized)
+            }
+            try await startOwned()
+            if !wasRunning { try await stopOwned(keepLock: true); state = .stopped }
+            try updateBackup.commit()
+        } catch {
+            let failure = error.localizedDescription
+            do {
+                try await stopOwned()
+                try await recoverUpdate()
+                if wasRunning { try await startOwned() } else { state = .stopped }
+            } catch {
+                state = .failed("Mail update failed. \(failure) Recovery: \(error.localizedDescription)")
+                throw JerdError.process("Mail update failed. Backup files were preserved. \(error.localizedDescription)")
+            }
+            throw JerdError.process("Mail update failed. The previous runtime and inbox were restored. \(failure)")
+        }
+    }
+
+    private func recoverUpdate() async throws {
+        guard updateBackup.isPending else { return }
+        guard running == nil else { throw JerdError.unavailable("Stop mail before recovering its runtime update.") }
+        try acquireLock(); defer { releaseLock() }
+        try checkPreviousRun()
+        try updateBackup.restoreIfNeeded()
+        configuration = try await store.load()
+    }
+
+    private func begin(allowUpdateRecovery: Bool = false) throws {
         guard !busy else { throw JerdError.unavailable("Wait for the current mail operation to finish.") }
+        guard allowUpdateRecovery || !updateBackup.isPending else { throw JerdError.unavailable("Stop and start mail to recover its unfinished runtime update.") }
         busy = true
     }
     private func requireLoaded() throws {
         guard loaded else { throw JerdError.unavailable("Load mail settings before changing the service.") }
     }
     private func acquireLock() throws {
+        if lock != nil { return }
         let descriptor = Darwin.open(paths.root.appendingPathComponent("service.lock").path,
                                     O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else { throw JerdError.unavailable("Cannot lock the mail inbox.") }
@@ -236,17 +295,17 @@ public actor MailManager {
         }
         throw JerdError.process("Mailpit did not pass its SMTP and web checks. " + logTail())
     }
-    private func stopOwned() async throws {
-        guard let running else { releaseLock(); return }
+    private func stopOwned(keepLock: Bool = false) async throws {
+        guard let running else { if !keepLock { releaseLock() }; return }
         guard await processes.stopGracefully(running.token) else {
             throw JerdError.process("Mailpit did not stop within 30 seconds. Its process is still tracked. Retry Stop; Jerd did not force it to exit.")
         }
-        cleanup()
+        cleanup(keepLock: keepLock)
     }
-    private func cleanup() {
+    private func cleanup(keepLock: Bool = false) {
         running = nil
         try? FileManager.default.removeItem(at: paths.activeRun)
-        releaseLock()
+        if !keepLock { releaseLock() }
     }
     private func logTail() -> String {
         guard let input = try? FileHandle(forReadingFrom: paths.log) else { return "Open the mail log for details." }

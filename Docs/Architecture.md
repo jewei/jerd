@@ -381,3 +381,53 @@ and an initialization marker preserve the selected version, RustFS format file,
 and credential digest. Missing initialized data or credentials block startup.
 SIGTERM shutdown has a 30-second grace period and no forced kill. A timeout
 cancels Quit. Storage controls resume if a later service cancels app termination.
+
+## Dashboard, appearance, and runtime updates
+
+AppAppearance stores independent menu bar and Dock preferences in UserDefaults.
+The app keeps a reopen action for the main window when both entry points are
+hidden. AppIconChoice maps the original asset and six Canvas designs to cached
+AppKit images. Settings has General, Runtimes, and Advanced sections.
+
+RuntimeUpdateCatalog reads stable releases from lerd-env/php, Caddy, Mailpit,
+RustFS, Postgres.app, Composer, Laravel, the Redis checksum index, and Oracle's
+MySQL 8.4 macOS page. RuntimeVersion compares numeric components. GitHub checks
+require a matching platform asset and SHA-256 metadata. The UI limits concurrent
+source requests to three, caches metadata for five minutes, and shows individual
+source failures and check times. It does not check over the network on launch.
+
+RuntimeInstaller runs outside the main actor. It downloads into a private
+staging directory, restricts HTTPS hosts and redirects, limits bytes and time,
+and verifies the checksum or Oracle signature before extraction. A restricted
+OpenPGP v4 parser uses the macOS Security framework for RSA/SHA-256 verification
+with Oracle's pinned build key. RuntimeArchive uses system libarchive, bounds
+expanded size and entry counts, rejects traversal, duplicate paths and special
+files, and materializes safe internal file links. It never extracts a symlink.
+Postgres.app is mounted read-only, signature checked, and detached after copying
+only its runtime tree. Redis uses the installed compiler with four build jobs
+at most. Laravel uses isolated Composer state with plugins and scripts disabled.
+
+Actual version checks precede an atomic move to a new immutable version folder.
+Each installation retains a file digest receipt and licenses. The bundled CLI
+setup preserves later Composer and Laravel selections across app launches.
+PHP/Caddy activation restarts the web environment and restores the prior
+selection on failure. Explicit site pins are unchanged. Database installations
+register additional runtimes, and existing services retain their runtime ID.
+
+Mail and storage runtime changes require a stopped, locked service and a private
+copy of its settings and data. ServiceUpdateBackup writes a recovery record
+before changing runtime identity. The new service must pass normal readiness
+checks; storage must also return all registered, completed buckets. On failure,
+Jerd stops the candidate and restores the saved data and settings. A shutdown
+timeout never forces a data service to exit or restores files under a live
+process. Startup recovers an interrupted update only after the previous-process
+check and file lock succeed. Successful backups and failed candidate files are
+kept. This is distinct from adopting an orphan process after an app crash.
+
+Publisher references:
+- https://github.com/lerd-env/php/releases
+- https://github.com/caddyserver/caddy/releases
+- https://getcomposer.org/doc/06-config.md
+- https://dev.mysql.com/doc/refman/8.4/en/checking-gpg-signature.html
+- https://www.rfc-editor.org/rfc/rfc4880#section-5.2.4
+- https://github.com/libarchive/libarchive/tree/v3.8.2/libarchive

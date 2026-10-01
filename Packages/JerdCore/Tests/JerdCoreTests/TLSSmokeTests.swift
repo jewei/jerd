@@ -87,12 +87,18 @@ struct TLSSmokeTests {
             fpm: URL(fileURLWithPath: try #require(environment["JERD_PHP_FPM"])), workDirectory: root)
         let caddy = try await provider.inspectCaddy(binary: URL(fileURLWithPath: try #require(environment["JERD_CADDY"])), workDirectory: root)
         var secondRuntime = runtime
-        if separatePools { secondRuntime.id = UUID() }
+        if separatePools {
+            if let cli = environment["JERD_SECOND_PHP_CLI"], let fpm = environment["JERD_SECOND_PHP_FPM"] {
+                secondRuntime = try await provider.inspectPHP(cli: URL(fileURLWithPath: cli), fpm: URL(fileURLWithPath: fpm), workDirectory: root)
+                #expect(secondRuntime.version != runtime.version)
+            } else { secondRuntime.id = UUID() }
+        }
         var sites: [Site] = []
         for name in ["first", "second"] {
             let folder = root.appendingPathComponent(name)
             try PrivateFiles.directory(folder)
             try Data("<?php echo '\(name)-php-' . (6 * 7);".utf8).write(to: folder.appendingPathComponent("index.php"))
+            try Data("<?php echo PHP_VERSION;".utf8).write(to: folder.appendingPathComponent("version.php"))
             try Data("\(name)-static".utf8).write(to: folder.appendingPathComponent("hello.txt"))
             sites.append(makeSite(folder, hostname: "\(name).test"))
         }
@@ -117,6 +123,8 @@ struct TLSSmokeTests {
             let responses = try await (first, second)
             #expect(responses.0.status == 0 && responses.0.output == "first-php-42")
             #expect(responses.1.status == 0 && responses.1.output == "second-php-42")
+            #expect(try await request(0, "/version.php").output == runtime.version)
+            #expect(try await request(1, "/version.php").output == secondRuntime.version)
             #expect(try await request(0, "/hello.txt").output == "first-static")
             #expect(try await request(1, "/hello.txt").output == "second-static")
             await engine.stop()

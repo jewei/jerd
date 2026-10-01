@@ -5,8 +5,8 @@ import ServiceManagement
 
 struct ContentView: View {
     @Bindable var model: AppModel
+    @Environment(\.openSettings) private var openSettings
     @State private var editingSite: Site?
-    @State private var showRuntimes = false
     @State private var removingSite: Site?
     @State private var removingSetup = false
 
@@ -82,8 +82,7 @@ struct ContentView: View {
         }
         .toolbar {
             if model.isBusy { ProgressView().controlSize(.small) }
-            Button("PHP and Caddy", systemImage: "gearshape") { showRuntimes = true }
-                .disabled(!model.isLoaded || model.isBusy)
+            Button("Runtimes", systemImage: "gearshape") { model.selectedSettings = .runtimes; openSettings() }
             Menu("System setup", systemImage: "lock.shield") {
                 Button("Login Items & Extensions") { SMAppService.openSystemSettingsLoginItems() }
                 Button("Remove system setup…") { removingSetup = true }
@@ -91,10 +90,9 @@ struct ContentView: View {
             if !model.isLoaded { Button("Retry load") { model.load() }.disabled(model.isBusy) }
         }
         .sheet(item: $editingSite, onDismiss: { model.presentPreparedSetup() }) { site in SiteEditor(model: model, original: site) }
-        .sheet(isPresented: $showRuntimes) { RuntimeView(model: model) }
         .sheet(item: $model.pendingSetup) { setup in HTTPSSetupView(model: model, setup: setup) }
         .alert("Jerd could not complete the operation", isPresented: Binding(
-            get: { model.errorMessage != nil && model.pendingSetup == nil && editingSite == nil && !showRuntimes },
+            get: { model.errorMessage != nil && model.pendingSetup == nil && editingSite == nil },
             set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
@@ -218,71 +216,6 @@ private struct SiteEditor: View {
             suggestion = result.isLaravel ? "Laravel files found. The suggested document root is public." : "Plain PHP project. Select and confirm its document root."
             confirmed = false
         }
-    }
-}
-
-private struct RuntimeView: View {
-    let model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("PHP and Caddy").font(.title2.bold())
-            Text(model.runtimeMessage)
-            if let error = model.errorMessage { Text(error).foregroundStyle(.red) }
-            DisclosureGroup("Development options: select local executables") {
-              HStack {
-                Button("Select PHP CLI and FPM…") {
-                    guard let cli = AppModel.chooseExecutable(message: "Select a trusted, independent PHP CLI executable."),
-                          let fpm = AppModel.chooseExecutable(message: "Select the matching PHP-FPM executable.") else { return }
-                    model.importPHP(cli: cli, fpm: fpm)
-                }
-              }
-                Button("Select Caddy…") {
-                    if let binary = AppModel.chooseExecutable(message: "Select a trusted Caddy 2 executable.") { model.importCaddy(binary) }
-                }
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    ForEach(model.configuration.runtimes) { runtime in
-                        GroupBox {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("PHP \(runtime.version)").font(.headline)
-                                    if model.configuration.defaultRuntimeID == runtime.id { Text("Default PHP").foregroundStyle(.secondary) }
-                                    Spacer()
-                                    Button("Use as default") {
-                                        model.setDefaultRuntime(runtime.id)
-                                    }.disabled(model.configuration.defaultRuntimeID == runtime.id)
-                                    Button("Remove", role: .destructive) {
-                                        model.perform { model.configuration = try await model.registry.removeRuntime(runtime.id) }
-                                    }
-                                }
-                                Text("CLI: \(runtime.cliPath)").textSelection(.enabled)
-                                Text("FPM: \(runtime.fpmPath)").textSelection(.enabled)
-                                Text("Binary architectures: \(runtime.architectures.map(\.rawValue).joined(separator: ", "))")
-                                Text("CLI extensions: \(runtime.cliExtensions.joined(separator: ", "))").textSelection(.enabled)
-                                Text("FPM extensions: \(runtime.fpmExtensions.joined(separator: ", "))").textSelection(.enabled)
-                                Text("Inspected \(runtime.inspectedAt.formatted()). No external extension INI files were loaded.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
-                        }
-                    }
-                    if let caddy = model.configuration.caddy {
-                        Text("Caddy: \(caddy.version)").font(.headline)
-                        Text(caddy.path).textSelection(.enabled)
-                    } else { Text("Caddy has not been selected.").foregroundStyle(.secondary) }
-                }
-            }
-            Text("Jerd CLI commands use the current site’s PHP selection, or the default outside registered sites.")
-                .font(.callout).foregroundStyle(.secondary)
-            HStack {
-                if model.isBusy { ProgressView().controlSize(.small); Text("Inspecting or saving…") }
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24).frame(width: 780, height: 580)
-        .disabled(model.isBusy)
     }
 }
 

@@ -6,8 +6,8 @@ sites at the same time. Keep the app small and honor each site's PHP selection.
 The user then requested research into DBngin and a first MySQL, PostgreSQL,
 and Redis service version. The user then approved the local Mailpit feature.
 The user then approved RustFS storage with Add bucket and automatic startup on
-Save. The next approved work is a dashboard, appearance settings, binary version
-inventory, and explicit binary update controls. After all features are complete,
+Save. Dashboard, appearance settings, binary version inventory, and explicit
+binary update controls are implemented. After all features are complete,
 three fresh independent agents must review code, architecture, and performance.
 Assess their findings, fix valid issues, and repeat the required checks.
 
@@ -72,20 +72,22 @@ point were checked after cleanup. See Verification.md for remaining coverage.
 
 ## Later work
 
-Milestone 3 concurrency is implemented. Remaining work includes testing two
-different PHP binary versions together, editable per-runtime settings,
-restart of only affected processes, and configuration rollback.
+Milestone 3 concurrency is implemented and tested with PHP 8.5.11 and 8.4.26 at
+the same time. PHP/Caddy activation restores the previous selection if a restart
+fails. Remaining work includes editable per-runtime settings and restart of only
+affected processes.
 
 Milestone 4 adds reproducible runtime builds for each supported architecture,
-signed release metadata, updates with rollback, notarized distribution, and
-full uninstall. The current GitHub/HTTPS development bootstrap is not that
-release system. Crash recovery and interrupted helper transaction recovery
+signed Jerd release metadata, notarized distribution, and full uninstall.
+Runtime updates now use upstream release metadata and verified downloads.
+Mail and storage upgrades have data backups and recovery records. General
+process recovery after a crash and interrupted helper transaction recovery
 also need completion before a production release.
 
-Database follow-up includes downloads on demand, a wider tested version catalog,
+Database follow-up includes a wider tested version catalog,
 export/import and restore-registration controls, and verified recovery of
 database processes after an app crash. The first version keeps database
 versions fixed per data directory and retains data on removal. GUI checks of
 withheld shutdown and interrupted initialization remain separate acceptance work.
 Mail uses the same unprivileged process and port checks. Mail follow-up includes
-runtime upgrades, recovery after app crashes, and multiple named inboxes.
+general process recovery after app crashes and multiple named inboxes.

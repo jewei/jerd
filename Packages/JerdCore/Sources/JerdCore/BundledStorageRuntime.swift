@@ -59,7 +59,7 @@ public actor BundledStorageRuntime {
             guard fileInfo.isRegularFile == true, fileInfo.isSymbolicLink != true, (fileInfo.fileSize ?? Int.max) < 320 * 1024 * 1024 else {
                 throw JerdError.invalid("Invalid RustFS runtime file: \(name)")
             }
-            let actual = SHA256.hash(data: try Data(contentsOf: file, options: .mappedIfSafe)).map { String(format: "%02x", $0) }.joined()
+            let actual = try RuntimeDownload.digest(file)
             guard actual == expected else { throw JerdError.invalid("RustFS verification failed for \(name). The file was preserved.") }
         }
         guard FileManager.default.isExecutableFile(atPath: directory.appendingPathComponent("rustfs").path) else {

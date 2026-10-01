@@ -191,6 +191,17 @@ struct MailIntegrationTests {
             let after = try await object("api/v1/info")
             #expect(after["Messages"] as? Int == 2)
 
+            let updated = MailRuntime(id: "mailpit-update-test", version: runtime.version, path: runtime.path)
+            try await manager.updateRuntime(updated)
+            #expect(await manager.snapshot().configuration.runtime == updated)
+            #expect(try await object("api/v1/info")["Messages"] as? Int == 2)
+            let invalidUpdate = MailRuntime(id: "mailpit-invalid-update", version: "99.0.0", path: runtime.path)
+            await #expect(throws: (any Error).self) { try await manager.updateRuntime(invalidUpdate) }
+            #expect(await manager.snapshot().configuration.runtime == updated)
+            #expect(await manager.snapshot().state == .running)
+            #expect(try await object("api/v1/info")["Messages"] as? Int == 2)
+            #expect(try FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("runtime-backups").path).count == 2)
+
             let active = await manager.snapshot()
             let ownedPID = try #require(active.processID)
             #expect(kill(ownedPID, SIGTERM) == 0)

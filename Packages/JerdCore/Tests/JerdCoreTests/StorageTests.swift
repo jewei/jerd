@@ -187,6 +187,19 @@ struct StorageIntegrationTests {
             snapshot = await manager.snapshot()
             #expect(snapshot.availableBuckets == ["private-uploads", "public-assets"])
 
+            let updated = StorageRuntime(id: "rustfs-update-test", version: runtime.version, path: runtime.path)
+            try await manager.updateRuntime(updated)
+            #expect(await manager.snapshot().configuration.runtime == updated)
+            #expect(try await client.request("GET", path: key).data == payload)
+            #expect(try await client.request("GET", path: "/public-assets/hello.txt", authenticated: false).data == payload)
+            let invalidUpdate = StorageRuntime(id: "rustfs-invalid-update", version: "99.0.0", path: runtime.path)
+            await #expect(throws: (any Error).self) { try await manager.updateRuntime(invalidUpdate) }
+            #expect(await manager.snapshot().configuration.runtime == updated)
+            #expect(await manager.snapshot().state == .running)
+            #expect(try await client.request("GET", path: key).data == payload)
+            #expect(try await manager.credentials() == credentials)
+            snapshot = await manager.snapshot()
+
             let pid = try #require(snapshot.processID)
             #expect(kill(pid, SIGTERM) == 0)
             let deadline = ContinuousClock.now + .seconds(10)

@@ -18,9 +18,14 @@ runtimes, private data folders, and per-service controls. Keep existing DBngin
 services and data separate. The user then approved a Mailpit-like feature.
 Add a separate local mail service with an inbox, SMTP capture, service controls,
 and Laravel settings. Keep existing mail services and inboxes separate.
-The user then approved native RustFS storage with an Add bucket form. Use the
-tab order Sites, Databases, Storage, Mail. Saving a bucket must start the owned
+The user then approved native RustFS storage with an Add bucket form. Saving a bucket must start the owned
 storage service as needed and verify the bucket before reporting it ready.
+The user then approved a Dashboard, independent menu bar and Dock controls,
+selection of the existing app icon designs, a managed runtime version list,
+and runtime update checks and installation. This replaces the earlier limit
+on runtime updates. Use the tab order Dashboard, Sites, Databases, Storage, Mail.
+After all features are complete, use three fresh independent agents to review
+code, architecture, and performance. Fix the agreed findings.
 
 ## Safety boundaries
 
