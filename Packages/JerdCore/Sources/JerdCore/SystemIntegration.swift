@@ -36,12 +36,20 @@ public enum SystemService {
     }
 }
 
+public enum CertificateTrustPolicy: String, Codable, Sendable {
+    case hostnames
+    case serverTLS
+}
+
 public struct SystemRegistrationRequest: Codable, Sendable {
     public let installationID: UUID
     public let hostnames: [String]
     public let certificateDER: Data
-    public init(installationID: UUID, hostnames: [String], certificateDER: Data) {
+    public let trustPolicy: CertificateTrustPolicy
+    public init(installationID: UUID, hostnames: [String], certificateDER: Data,
+                trustPolicy: CertificateTrustPolicy = .hostnames) {
         self.installationID = installationID; self.hostnames = hostnames; self.certificateDER = certificateDER
+        self.trustPolicy = trustPolicy
     }
     public init(installationID: UUID, hostname: String, certificateDER: Data) {
         self.init(installationID: installationID, hostnames: [hostname], certificateDER: certificateDER)
@@ -56,25 +64,32 @@ public struct SystemSetupStatus: Codable, Equatable, Sendable {
     public var certificateDER: Data?
     public var hostsConfigured: Bool
     public var trustConfigured: Bool
+    public var trustPolicy: CertificateTrustPolicy
     public init(hostnames: [String], installationID: UUID? = nil, certificateSHA256: String? = nil,
-                certificateDER: Data? = nil, hostsConfigured: Bool = false, trustConfigured: Bool = false) {
+                certificateDER: Data? = nil, hostsConfigured: Bool = false, trustConfigured: Bool = false,
+                trustPolicy: CertificateTrustPolicy = .hostnames) {
         self.hostnames = hostnames; self.installationID = installationID; self.certificateSHA256 = certificateSHA256
         self.certificateDER = certificateDER
         self.hostsConfigured = hostsConfigured; self.trustConfigured = trustConfigured
+        self.trustPolicy = trustPolicy
     }
     public init(hostname: String? = nil, installationID: UUID? = nil, certificateSHA256: String? = nil,
-                certificateDER: Data? = nil, hostsConfigured: Bool = false, trustConfigured: Bool = false) {
+                certificateDER: Data? = nil, hostsConfigured: Bool = false, trustConfigured: Bool = false,
+                trustPolicy: CertificateTrustPolicy = .hostnames) {
         self.init(hostnames: hostname.map { [$0] } ?? [], installationID: installationID,
                   certificateSHA256: certificateSHA256, certificateDER: certificateDER,
-                  hostsConfigured: hostsConfigured, trustConfigured: trustConfigured)
+                  hostsConfigured: hostsConfigured, trustConfigured: trustConfigured, trustPolicy: trustPolicy)
     }
 }
 
 public struct TrustConsentRequest: Codable, Sendable {
     public let certificateDER: Data
-    /// A nonempty list sets constrained policies. Nil removes this certificate's trust.
+    /// A nonempty list identifies the approved setup. Nil removes this certificate's trust.
     public let hostnames: [String]?
-    public init(certificateDER: Data, hostnames: [String]?) { self.certificateDER = certificateDER; self.hostnames = hostnames }
+    public let policy: CertificateTrustPolicy
+    public init(certificateDER: Data, hostnames: [String]?, policy: CertificateTrustPolicy = .hostnames) {
+        self.certificateDER = certificateDER; self.hostnames = hostnames; self.policy = policy
+    }
     public init(certificateDER: Data, hostname: String?) {
         self.init(certificateDER: certificateDER, hostnames: hostname.map { [$0] })
     }

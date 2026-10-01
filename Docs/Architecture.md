@@ -14,8 +14,8 @@ work runs in actors away from the UI actor.
 | HelperClient, SystemIntegration | SMAppService registration and typed authenticated XPC |
 | HelperService, ListeningSockets | Exclusive loopback socket lease per client; descriptor transfer |
 | PrivilegedSetupStore, AtomicHostsFile, HostsDocument | Owned host section, certificate ownership, rollback, and recovery records |
-| SystemCertificateTrust | System keychain and hostname-limited TLS trust through Security.framework |
-| TrustConsentClient, TrustConsentService, TrustConsentScope | App-side macOS consent for the exact approved certificate and hostnames |
+| SystemCertificateTrust, CertificateTrustSettings | System keychain and explicit TLS trust policies through Security.framework |
+| TrustConsentClient, TrustConsentService, TrustConsentScope | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
 | JerdCLI, CLIRuntimeSelection | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
 
 ## Projects and processes
@@ -115,8 +115,9 @@ Swift actor isolation on Foundation reply queues.
 
 The helper uses fixed paths and records the owning UID, installation UUID,
 hostnames, and exact CA DER. Another user cannot replace that registration.
-Version 1 records with one hostname are accepted and become version 2 records
-on the next write. The hostname list must contain 1 to 256 distinct `.test` names.
+Version 1 and 2 records remain under their original hostname trust policy.
+Version 3 records store the approved policy. Loading an old record never
+broadens its trust. The hostname list must contain 1 to 256 distinct `.test` names.
 The CA must have the installation-specific name, matching issuer/subject,
 and a CA basic constraint. A different CA requires cleanup first.
 
@@ -136,10 +137,18 @@ automated recovery is not implemented.
 
 The helper imports the root into System.keychain. A reverse call on the same
 authenticated XPC connection asks the logged-in app to set admin-domain trust:
-one SSL trustRoot rule per approved hostname. The app accepts only the exact
-CA and hostname set approved for the active operation. Its scope includes
-the previous hostnames when rollback can require them. An empty hostname list
-cannot grant unrestricted trust. No password enters Jerd.
+one SSL server trustRoot rule for the installation CA. This trust applies to
+all hostnames; it does not grant code-signing or general X.509 trust. The setup
+screen states that scope. Chromium ignores macOS trust entries that contain
+`kSecTrustSettingsPolicyString`, so the old per-host rule is retained only for
+legacy records and rollback.
+[Chromium macOS trust reader](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/net/cert/internal/trust_store_mac.cc).
+
+The app accepts only the exact CA, setup hostname set, and policy approved
+for the active operation. Its scope includes the previous hostnames and policy
+when rollback can require them. An empty hostname list cannot set trust, and
+a hostname-only approval cannot authorize the server TLS policy. No password
+enters Jerd. No browser certificate database or security bypass is required.
 Interactive trust calls have no arbitrary transport timeout. A lost connection
 during consent leaves a recovery record because the outcome can be unknown.
 
@@ -150,7 +159,9 @@ Certificate deletion retrieves a keychain-backed reference by issuer/serial,
 compares the complete DER, then deletes only that reference. A fresh in-memory
 certificate is not a valid persistent-item reference for this operation.
 The system keychain API is deprecated by Apple and builds with a warning.
-Actual import, constrained trust, removal, and rollback were tested on macOS 27.
+Actual import, original hostname trust, removal, and rollback were tested on
+macOS 27. The approved migration to server TLS trust was also applied on that
+host, and the user confirmed that Brave loads both registered sites.
 
 ## CLI companions
 

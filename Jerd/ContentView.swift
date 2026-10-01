@@ -104,7 +104,7 @@ struct ContentView: View {
                     if let site = removingSite { model.remove(site) }
                     removingSite = nil
                 }
-            } message: { Text("Jerd will remove this site’s registered host and HTTPS trust. Other enabled sites will restart. The project directory and its files will remain on disk.") }
+            } message: { Text("Jerd will remove this site’s registered host. Other enabled sites will restart. The CA remains trusted while other hosts are registered. The project directory and its files will remain on disk.") }
         .confirmationDialog("Remove Jerd system setup?", isPresented: $removingSetup) {
             Button("Remove system setup", role: .destructive) { model.removeSystemSetup() }
         } message: {
@@ -295,7 +295,8 @@ private struct HTTPSSetupView: View {
             Text("Enable HTTPS for \(setup.sites.count) site(s)?").font(.title2.bold())
             ScrollView { Text(setup.request.hostnames.joined(separator: "\n")).frame(maxWidth: .infinity, alignment: .leading) }.frame(maxHeight: 130)
             Text("Jerd will install its signed helper, map these hostnames to 127.0.0.1, and add its local CA to the system keychain. macOS can ask for administrator approval.")
-            Text("Trust is limited to TLS for these hostnames. PHP and Caddy run as your user. The helper supplies ports 80 and 443.")
+            Text("macOS will trust this Jerd CA for TLS server certificates, so Safari, Brave, and Chrome can use it. This CA trust applies to all hostnames, not only the sites listed above.")
+            Text("Jerd only routes registered .test sites on this Mac. PHP and Caddy run as your user. The helper supplies ports 80 and 443.")
             let removed = Set(model.systemStatus.hostnames).subtracting(setup.request.hostnames).sorted()
             if !removed.isEmpty { Text("This removes HTTPS setup for: " + removed.joined(separator: ", ")) }
             Text("CA SHA-256").font(.headline)

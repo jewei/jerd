@@ -95,7 +95,8 @@ public actor LocalEnvironment {
         }
         let der = try InstallationCertificate.decodePEM(Data(contentsOf: paths.rootCertificate))
         _ = try InstallationCertificate.validate(der, installationID: identity)
-        return HTTPSSetup(sites: sites, request: SystemRegistrationRequest(installationID: identity, hostnames: hostnames, certificateDER: der))
+        return HTTPSSetup(sites: sites, request: SystemRegistrationRequest(installationID: identity, hostnames: hostnames,
+            certificateDER: der, trustPolicy: .serverTLS))
     }
 
     public func apply(_ setup: HTTPSSetup) async throws {
@@ -122,7 +123,7 @@ public actor LocalEnvironment {
             let paths = makePaths(identity: identity)
             let status = try await system.status()
             guard status.installationID == identity, Set(hostnames).isSubset(of: Set(status.hostnames)),
-                  status.hostsConfigured, status.trustConfigured else {
+                  status.hostsConfigured, status.trustConfigured, status.trustPolicy == .serverTLS else {
                 throw JerdError.unavailable("Select Enable HTTPS to approve setup for all enabled sites.")
             }
             let der = try InstallationCertificate.decodePEM(Data(contentsOf: paths.rootCertificate))
@@ -180,7 +181,8 @@ public actor LocalEnvironment {
             guard let identity = status.installationID, let der = status.certificateDER else {
                 throw JerdError.unavailable("The approved certificate record is missing.")
             }
-            try await system.configure(SystemRegistrationRequest(installationID: identity, hostnames: remaining, certificateDER: der))
+            try await system.configure(SystemRegistrationRequest(installationID: identity, hostnames: remaining,
+                certificateDER: der, trustPolicy: status.trustPolicy))
         }
     }
 

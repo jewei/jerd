@@ -3,15 +3,15 @@ import Darwin
 
 public protocol CertificateTrustManaging: Sendable {
     func validate(_ der: Data, installationID: UUID) throws
-    func isInstalled(_ der: Data, hostnames: [String]) throws -> Bool
-    func install(_ der: Data, hostnames: [String], replacingOwned: Bool) async throws
+    func isInstalled(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy) throws -> Bool
+    func install(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy, replacingOwned: Bool) async throws
     func remove(_ der: Data) async throws
 }
 
 public extension CertificateTrustManaging {
-    func isInstalled(_ der: Data, hostname: String) throws -> Bool { try isInstalled(der, hostnames: [hostname]) }
+    func isInstalled(_ der: Data, hostname: String) throws -> Bool { try isInstalled(der, hostnames: [hostname], policy: .hostnames) }
     func install(_ der: Data, hostname: String, replacingOwned: Bool) async throws {
-        try await install(der, hostnames: [hostname], replacingOwned: replacingOwned)
+        try await install(der, hostnames: [hostname], policy: .hostnames, replacingOwned: replacingOwned)
     }
 }
 
@@ -19,24 +19,27 @@ public extension CertificateTrustManaging {
 /// All operations are serialized. Other users cannot change this user's setup.
 public actor PrivilegedSetupStore {
     private struct Registration: Codable {
-        var schemaVersion = 2
+        var schemaVersion = 3
         let ownerUID: uid_t
         let installationID: UUID
         let hostnames: [String]
         let certificateDER: Data
-        init(ownerUID: uid_t, installationID: UUID, hostnames: [String], certificateDER: Data) {
+        let trustPolicy: CertificateTrustPolicy
+        init(ownerUID: uid_t, installationID: UUID, hostnames: [String], certificateDER: Data, trustPolicy: CertificateTrustPolicy) {
             self.ownerUID = ownerUID; self.installationID = installationID
             self.hostnames = hostnames; self.certificateDER = certificateDER
+            self.trustPolicy = trustPolicy
         }
-        private enum CodingKeys: String, CodingKey { case schemaVersion, ownerUID, installationID, hostnames, hostname, certificateDER }
+        private enum CodingKeys: String, CodingKey { case schemaVersion, ownerUID, installationID, hostnames, hostname, certificateDER, trustPolicy }
         init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             let version = try values.decode(Int.self, forKey: .schemaVersion)
-            guard version == 1 || version == 2 else { throw JerdError.corruptConfiguration("The helper registration version is unsupported.") }
+            guard (1...3).contains(version) else { throw JerdError.corruptConfiguration("The helper registration version is unsupported.") }
             ownerUID = try values.decode(uid_t.self, forKey: .ownerUID)
             installationID = try values.decode(UUID.self, forKey: .installationID)
             certificateDER = try values.decode(Data.self, forKey: .certificateDER)
             hostnames = try Hostname.validatedSet(version == 1 ? [values.decode(String.self, forKey: .hostname)] : values.decode([String].self, forKey: .hostnames))
+            trustPolicy = version < 3 ? .hostnames : try values.decode(CertificateTrustPolicy.self, forKey: .trustPolicy)
         }
         func encode(to encoder: any Encoder) throws {
             var values = encoder.container(keyedBy: CodingKeys.self)
@@ -45,6 +48,7 @@ public actor PrivilegedSetupStore {
             try values.encode(installationID, forKey: .installationID)
             try values.encode(hostnames, forKey: .hostnames)
             try values.encode(certificateDER, forKey: .certificateDER)
+            try values.encode(trustPolicy, forKey: .trustPolicy)
         }
     }
     private let directory: URL
@@ -65,7 +69,8 @@ public actor PrivilegedSetupStore {
             certificateSHA256: InstallationCertificate.fingerprint(record.certificateDER),
             certificateDER: record.certificateDER,
             hostsConfigured: HostsDocument.containsRegistrations(record.hostnames, in: try hosts.read()),
-            trustConfigured: try certificates.isInstalled(record.certificateDER, hostnames: record.hostnames))
+            trustConfigured: try certificates.isInstalled(record.certificateDER, hostnames: record.hostnames, policy: record.trustPolicy),
+            trustPolicy: record.trustPolicy)
     }
 
     public func configure(_ request: SystemRegistrationRequest, ownerUID: uid_t,
@@ -83,7 +88,7 @@ public actor PrivilegedSetupStore {
         let before = try hosts.read()
         let after = try HostsDocument.replacing(before, hostnames: hostnames, expectedHostnames: previous?.hostnames ?? [])
         let next = Registration(ownerUID: ownerUID, installationID: request.installationID,
-                                hostnames: hostnames, certificateDER: request.certificateDER)
+                                hostnames: hostnames, certificateDER: request.certificateDER, trustPolicy: request.trustPolicy)
         try prepareDirectory()
         // Keep a durable recovery record before crossing the hosts/trust boundary.
         try PrivateFiles.write(before, to: directory.appendingPathComponent("hosts.previous"))
@@ -94,7 +99,7 @@ public actor PrivilegedSetupStore {
         do {
             try hosts.replace(expected: before, with: after)
             changedHosts = true
-            try await certificates.install(request.certificateDER, hostnames: hostnames, replacingOwned: previous != nil)
+            try await certificates.install(request.certificateDER, hostnames: hostnames, policy: request.trustPolicy, replacingOwned: previous != nil)
             changedTrust = true
             try PrivateFiles.write(try JSONEncoder().encode(next), to: recordURL)
             changedRecord = true
@@ -106,7 +111,7 @@ public actor PrivilegedSetupStore {
             }
             if changedTrust {
                 do {
-                    if let previous { try await certificates.install(previous.certificateDER, hostnames: previous.hostnames, replacingOwned: true) }
+                    if let previous { try await certificates.install(previous.certificateDER, hostnames: previous.hostnames, policy: previous.trustPolicy, replacingOwned: true) }
                     else { try await certificates.remove(request.certificateDER) }
                 } catch { recoveryErrors.append(error.localizedDescription) }
             }
@@ -148,7 +153,7 @@ public actor PrivilegedSetupStore {
                 failures.append("Certificate approval was interrupted. Inspect the retained recovery record before retrying.")
             }
             if changedHosts {
-                do { try await certificates.install(record.certificateDER, hostnames: record.hostnames, replacingOwned: true) }
+                do { try await certificates.install(record.certificateDER, hostnames: record.hostnames, policy: record.trustPolicy, replacingOwned: true) }
                 catch { failures.append(error.localizedDescription) }
                 do { try hosts.replace(expected: after, with: before) }
                 catch { failures.append(error.localizedDescription) }
@@ -173,7 +178,7 @@ public actor PrivilegedSetupStore {
             throw JerdError.corruptConfiguration("The helper registration file has an invalid owner, type, or size.")
         }
         let record = try JSONDecoder().decode(Registration.self, from: Data(contentsOf: recordURL))
-        guard record.schemaVersion == 2, record.ownerUID == ownerUID else {
+        guard record.schemaVersion == 3, record.ownerUID == ownerUID else {
             throw JerdError.unavailable("The system setup belongs to another user or uses an unsupported version.")
         }
         return record

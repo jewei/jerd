@@ -1,11 +1,13 @@
 import Foundation
 import Testing
 import Darwin
+import Security
 @testable import JerdCore
 
 private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
     private let lock = NSLock()
-    private var entries: [Data: [String]] = [:]
+    private struct Entry { let hostnames: [String]; let policy: CertificateTrustPolicy }
+    private var entries: [Data: Entry] = [:]
     private var failInstall = false
     private var failRemoval = false
     private var interrupt = false
@@ -13,12 +15,14 @@ private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
     func failNextRemoval() { lock.withLock { failRemoval = true } }
     func interruptNextInstall() { lock.withLock { interrupt = true } }
     func validate(_ der: Data, installationID: UUID) throws {}
-    func isInstalled(_ der: Data, hostnames: [String]) throws -> Bool { lock.withLock { entries[der] == hostnames } }
-    func install(_ der: Data, hostnames: [String], replacingOwned: Bool) throws {
+    func isInstalled(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy = .hostnames) throws -> Bool {
+        lock.withLock { entries[der]?.policy == policy && (policy == .serverTLS || entries[der]?.hostnames == hostnames) }
+    }
+    func install(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy = .hostnames, replacingOwned: Bool) throws {
         try lock.withLock {
             if interrupt { interrupt = false; throw JerdError.approvalInterrupted("Test app disconnect") }
             if failInstall { failInstall = false; throw JerdError.unavailable("Test trust failure") }
-            entries[der] = hostnames
+            entries[der] = Entry(hostnames: hostnames, policy: policy)
         }
     }
     func remove(_ der: Data) throws {
@@ -30,6 +34,72 @@ private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
 }
 
 struct SetupTransactionTests {
+    @Test func serverTrustRequiresItsOwnApprovalAndUsesOnlySSLPolicy() throws {
+        let der = Data("approved CA".utf8), hosts = ["games-hk.test", "games-jp.test"]
+        let change = TrustConsentRequest(certificateDER: der, hostnames: hosts, policy: .serverTLS)
+        let legacyApproval = TrustConsentScope(certificateDER: der, hostnames: Set(hosts), allowRemoval: true)
+        #expect(!legacyApproval.allows(change))
+        let approval = TrustConsentScope(certificateDER: der, hostnames: Set(hosts), allowRemoval: true, policies: [.serverTLS])
+        #expect(approval.allows(change))
+        #expect(!approval.allows(TrustConsentRequest(certificateDER: der, hostnames: ["other.test"], policy: .serverTLS)))
+        #expect(!approval.allows(TrustConsentRequest(certificateDER: Data("another CA".utf8), hostnames: hosts, policy: .serverTLS)))
+        let settings = try CertificateTrustSettings.make(policy: .serverTLS, hostnames: hosts)
+        #expect(settings.count == 1)
+        #expect(settings[0][kSecTrustSettingsPolicyString as String] == nil)
+        #expect(CertificateTrustSettings.matches(settings, policy: .serverTLS, hostnames: hosts))
+        #expect(!CertificateTrustSettings.matches(settings, policy: .hostnames, hostnames: hosts))
+        let legacy = try CertificateTrustSettings.make(policy: .hostnames, hostnames: hosts)
+        #expect(CertificateTrustSettings.matches(legacy, policy: .hostnames, hostnames: hosts))
+        #expect(!CertificateTrustSettings.matches(legacy, policy: .serverTLS, hostnames: hosts))
+        #expect(!CertificateTrustSettings.matches([[:]], policy: .serverTLS, hostnames: hosts))
+        for otherPolicy in [SecPolicyCreateBasicX509(), SecPolicyCreateSSL(false, nil)] {
+            var other = settings
+            other[0][kSecTrustSettingsPolicy as String] = otherPolicy
+            #expect(!CertificateTrustSettings.matches(other, policy: .serverTLS, hostnames: hosts))
+        }
+    }
+
+    @Test(arguments: [1, 2])
+    func legacyTrustUpgradePreservesApprovalAndRollback(version: Int) async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("helper")
+        try PrivateFiles.directory(directory)
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        let hostsURL = root.appendingPathComponent("hosts")
+        try HostsDocument.replacing(original, hostname: "old.test", expectedHostname: nil).write(to: hostsURL)
+        let identity = UUID(), der = Data("test CA".utf8)
+        var legacy: [String: Any] = ["schemaVersion": version, "ownerUID": getuid(), "installationID": identity.uuidString,
+            "certificateDER": der.base64EncodedString()]
+        if version == 1 { legacy["hostname"] = "old.test" } else { legacy["hostnames"] = ["old.test"] }
+        let record = directory.appendingPathComponent("registration.json")
+        let legacyBytes = try JSONSerialization.data(withJSONObject: legacy)
+        try PrivateFiles.write(legacyBytes, to: record)
+        let trust = MemoryTrust()
+        try trust.install(der, hostnames: ["old.test"], replacingOwned: true)
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+            hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: trust)
+        let before = try await store.status(ownerUID: getuid())
+        #expect(before.trustConfigured && before.trustPolicy == .hostnames)
+        let upgrade = SystemRegistrationRequest(installationID: identity, hostnames: ["old.test"], certificateDER: der, trustPolicy: .serverTLS)
+        #expect(try Data(contentsOf: record) == legacyBytes)
+        trust.failNextInstall()
+        await #expect(throws: (any Error).self) { try await store.configure(upgrade, ownerUID: getuid()) }
+        #expect(try await store.status(ownerUID: getuid()) == before)
+        #expect(try Data(contentsOf: record) == legacyBytes)
+        try await store.configure(upgrade, ownerUID: getuid())
+        let approved = try await store.status(ownerUID: getuid())
+        #expect(approved.trustConfigured && approved.trustPolicy == .serverTLS)
+        let saved = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: record)) as? [String: Any])
+        #expect(saved["schemaVersion"] as? Int == 3)
+        #expect(saved["trustPolicy"] as? String == "serverTLS")
+        trust.failNextRemoval()
+        await #expect(throws: (any Error).self) { try await store.remove(ownerUID: getuid()) }
+        #expect(try await store.status(ownerUID: getuid()) == approved)
+        try await store.remove(ownerUID: getuid())
+        #expect(try Data(contentsOf: hostsURL) == original)
+    }
+
     @Test func consentIsLimitedToApprovedCertificateAndHosts() {
         let der = Data("approved CA".utf8)
         let scope = TrustConsentScope(certificateDER: der, hostnames: ["old.test", "new.test"], allowRemoval: true)
@@ -165,7 +235,7 @@ private actor FakeSystem: SystemIntegrating {
     func configure(_ request: SystemRegistrationRequest) {
         snapshot = SystemSetupStatus(hostnames: request.hostnames, installationID: request.installationID,
             certificateSHA256: InstallationCertificate.fingerprint(request.certificateDER), certificateDER: request.certificateDER,
-            hostsConfigured: true, trustConfigured: true)
+            hostsConfigured: true, trustConfigured: true, trustPolicy: request.trustPolicy)
     }
     func acquireListeners() throws -> ListeningSockets {
         acquired += 1
@@ -202,8 +272,8 @@ private struct FakeProbe: TrustProbing {
 }
 
 struct EnvironmentTests {
-    @Test(arguments: [false, true])
-    func allSitesNeedApprovalAndEachHostnameIsChecked(approved: Bool) async throws {
+    @Test(arguments: [false, true], [CertificateTrustPolicy.hostnames, .serverTLS])
+    func allSitesNeedApprovalAndEachHostnameIsChecked(approved: Bool, policy: CertificateTrustPolicy) async throws {
         let root = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let identity = UUID(), der = Data("test CA".utf8)
@@ -214,19 +284,21 @@ struct EnvironmentTests {
             .write(to: caDir.appendingPathComponent("root.crt"))
         let hosts = approved ? ["one.test", "two.test"] : ["one.test"]
         let system = FakeSystem(SystemSetupStatus(hostnames: hosts, installationID: identity,
-            certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der, hostsConfigured: true, trustConfigured: true))
+            certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der, hostsConfigured: true,
+            trustConfigured: true, trustPolicy: policy))
         let engine = FakeEngine(), probe = RecordingProbe()
         let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: probe)
         let runtime = sampleRuntime()
         let one = makeSite(root, hostname: "one.test"), two = makeSite(root, hostname: "two.test")
         let selections = [SiteRuntime(site: one, runtime: runtime), SiteRuntime(site: two, runtime: runtime)]
         let caddy = CaddyRuntime(path: "/unused", version: "v2.11.4", architectures: [.arm64])
-        if approved {
+        if approved && policy == .serverTLS {
             try await environment.start(sites: selections, caddy: caddy)
             #expect(await engine.startedSiteIDs == [one.id, two.id])
             #expect(await probe.checked == ["one.test", "two.test"])
             try await environment.removeHostname("one.test")
             #expect(try await system.status().hostnames == ["two.test"])
+            #expect(try await system.status().trustPolicy == .serverTLS)
             try await environment.start(sites: [selections[1]], caddy: caddy)
             #expect(await engine.startedSiteIDs == [two.id])
             await environment.stop()
@@ -249,7 +321,7 @@ struct EnvironmentTests {
         try Data("-----BEGIN CERTIFICATE-----\n\(der.base64EncodedString())\n-----END CERTIFICATE-----".utf8)
             .write(to: caDir.appendingPathComponent("root.crt"))
         let system = FakeSystem(SystemSetupStatus(hostname: "demo.test", installationID: identity,
-            certificateSHA256: InstallationCertificate.fingerprint(der), hostsConfigured: true, trustConfigured: true))
+            certificateSHA256: InstallationCertificate.fingerprint(der), hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS))
         let engine = FakeEngine()
         let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(fail: fail))
         let site = Site(displayName: "Demo", projectPath: root.path, documentRoot: root.path, hostname: "demo.test")

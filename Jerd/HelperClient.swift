@@ -44,8 +44,12 @@ actor HelperClient: SystemIntegrating {
     func configure(_ request: SystemRegistrationRequest) async throws {
         let previous = try await status()
         var hosts = Set(request.hostnames)
-        if previous.certificateDER == request.certificateDER { hosts.formUnion(previous.hostnames) }
-        try consent.authorize(installationID: request.installationID, certificateDER: request.certificateDER, hostnames: hosts)
+        var policies: Set<CertificateTrustPolicy> = [request.trustPolicy]
+        if previous.certificateDER == request.certificateDER {
+            hosts.formUnion(previous.hostnames)
+            policies.insert(previous.trustPolicy)
+        }
+        try consent.authorize(installationID: request.installationID, certificateDER: request.certificateDER, hostnames: hosts, policies: policies)
         defer { consent.clear() }
         let data = try JSONEncoder().encode(request)
         let _: Bool = try await call(timeout: nil) { proxy, reply in
@@ -73,7 +77,7 @@ actor HelperClient: SystemIntegrating {
     func removeSetup() async throws {
         let previous = try await status()
         if let identity = previous.installationID, let der = previous.certificateDER, !previous.hostnames.isEmpty {
-            try consent.authorize(installationID: identity, certificateDER: der, hostnames: Set(previous.hostnames))
+            try consent.authorize(installationID: identity, certificateDER: der, hostnames: Set(previous.hostnames), policies: [previous.trustPolicy])
         }
         defer { consent.clear() }
         let _: Bool = try await call(timeout: nil) { proxy, reply in

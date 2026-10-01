@@ -8,10 +8,10 @@ The app also includes Composer 2.10.3 and Laravel Installer 5.32.0.
 It has no remote Swift package dependencies.
 
 **Verification status:** The signed app serves `https://games-jp.test` and
-`https://games-hk.test` at the same time on the development Mac. Safari and
-the normal macOS HTTPS trust check pass for both sites. Helper
+`https://games-hk.test` at the same time on the development Mac. Safari, Brave,
+and the normal macOS HTTPS trust check pass for both sites. Helper
 setup, Start/Stop, app restart, system cleanup, and setup restoration pass.
-All 38 core tests pass, including five real PHP/TLS cases. This is a local
+All 40 core tests pass, including five real PHP/TLS cases. This is a local
 development build, not a notarized release. See [the verification record](Docs/Verification.md).
 
 ## Requirements
@@ -105,8 +105,10 @@ first. This build is not notarized or ready for distribution.
    **Open in Browser**.
 
 Setup adds one owned section to `/private/etc/hosts`, imports the installation's
-CA into the system keychain, and adds a separate TLS trust rule for each approved
-hostname. The app displays macOS certificate consent through an authenticated
+CA into the system keychain, and trusts that CA for TLS server certificates.
+This CA trust covers any hostname, not only the registered sites. Jerd still
+routes only registered `.test` hostnames on loopback. The app displays macOS
+certificate consent through an authenticated
 callback from the helper. PHP and Caddy remain unprivileged. The helper binds loopback ports
 80/443 and passes the listening sockets to the app. It receives no project
 paths or executable commands. The CA key remains in the user's data directory.
@@ -123,7 +125,8 @@ Closing the window keeps the
 menu app running; **Quit Jerd** stops its services and releases the sockets.
 
 Disabling a site stops its route but retains its registration and approved
-hostname. Removal deletes that registration and its hostname trust rule.
+hostname. Removal deletes that registration and its host mapping.
+The CA remains trusted until the last approved host or all system setup is removed.
 Other enabled sites restart if the environment was running. Project files remain.
 The toolbar's **System setup → Remove system setup** removes all recorded
 hosts, CA trust/certificate, and helper registration. It retains
@@ -225,8 +228,10 @@ It uses an anonymous listener and high ports. It installs no system service.
 ```
 
 Each run uses a new private temporary directory for the FPM Unix sockets.
-The helper reads its original single-host record and writes the version 2
-hostname-list format on the next setup change.
+The helper reads version 1 and 2 records and retains their old hostname-limited
+trust policy. The updated HTTPS review requests approval for server TLS trust,
+which Chromium browsers can read. Version 3 records store that approved policy
+so failed changes can restore the previous policy exactly.
 Configuration writes are atomic and retain a valid backup. Corrupt documents
 are preserved and block changes. Restore a reviewed backup after inspection;
 there is no destructive automatic reset.

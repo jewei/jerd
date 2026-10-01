@@ -2,35 +2,25 @@ import Foundation
 import Security
 import JerdCore
 
-/// Only the installation's validated root is accepted. Trust is limited to TLS
-/// for the approved registered hostnames. No subprocess or arbitrary keychain path.
+/// Only the installation's validated root and approved trust policy are accepted.
+/// No subprocess or arbitrary keychain path.
 struct SystemCertificateTrust: CertificateTrustManaging {
     var consent: TrustConsentClient? = nil
     func validate(_ der: Data, installationID: UUID) throws {
         _ = try InstallationCertificate.validate(der, installationID: installationID)
     }
 
-    func isInstalled(_ der: Data, hostnames: [String]) throws -> Bool {
+    func isInstalled(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy) throws -> Bool {
         let cert = try certificate(der)
         var settings: CFArray?
         let status = SecTrustSettingsCopyTrustSettings(cert, .admin, &settings)
         if status == errSecItemNotFound { return false }
         try check(status, "read Jerd certificate trust")
-        guard let entries = settings as? [[String: Any]], entries.count == hostnames.count else { return false }
-        var found: Set<String> = []
-        for entry in entries {
-            guard let hostname = entry[kSecTrustSettingsPolicyString as String] as? String,
-                  found.insert(hostname).inserted,
-                  (entry[kSecTrustSettingsResult as String] as? NSNumber)?.uint32Value == SecTrustSettingsResult.trustRoot.rawValue,
-                  let value = entry[kSecTrustSettingsPolicy as String], CFGetTypeID(value as CFTypeRef) == SecPolicyGetTypeID() else { return false }
-            let policy = value as! SecPolicy
-            guard let properties = SecPolicyCopyProperties(policy) as NSDictionary?,
-                  properties[kSecPolicyOid] as? String == kSecPolicyAppleSSL as String else { return false }
-        }
-        return found == Set(hostnames)
+        guard let entries = settings as? [[String: Any]] else { return false }
+        return CertificateTrustSettings.matches(entries, policy: policy, hostnames: hostnames)
     }
 
-    func install(_ der: Data, hostnames: [String], replacingOwned: Bool) async throws {
+    func install(_ der: Data, hostnames: [String], policy: CertificateTrustPolicy, replacingOwned: Bool) async throws {
         guard let consent else { throw JerdError.unavailable("The app must approve certificate changes.") }
         let cert = try certificate(der)
         let keychain = try systemKeychain()
@@ -42,8 +32,8 @@ struct SystemCertificateTrust: CertificateTrustManaging {
             try check(added, "add the Jerd root certificate")
             return
         }
-        if replacingOwned, try isInstalled(der, hostnames: hostnames) { return }
-        let status = try await consent.change(TrustConsentRequest(certificateDER: der, hostnames: hostnames))
+        if replacingOwned, try isInstalled(der, hostnames: hostnames, policy: policy) { return }
+        let status = try await consent.change(TrustConsentRequest(certificateDER: der, hostnames: hostnames, policy: policy))
         if status != errSecSuccess {
             if added == errSecSuccess {
                 try deleteStoredCertificate(der, keychain: keychain)

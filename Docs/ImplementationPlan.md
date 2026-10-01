@@ -23,7 +23,7 @@ sites at the same time. Keep the app small and honor each site's PHP selection.
   project's PHP, with default selection outside projects and no pin fallback.
 - Concurrent sites through one Caddy process, with separate routes and one
   PHP-FPM process group per selected runtime.
-- Hostname-list setup, per-host TLS trust rules, version 1 helper record
+- Hostname-list setup, explicit CA trust policies, version 1/2 helper record
   migration, rollback, and removal of one host while retaining the others.
 - Two-site real PHP/TLS tests with shared and separate PHP process groups.
 
@@ -31,7 +31,7 @@ sites at the same time. Keep the app small and honor each site's PHP selection.
 
 - SMAppService helper with mutual signing requirements and typed XPC.
 - Explicit setup screen with hostname and CA fingerprint.
-- One owned host section and CA trust limited to TLS for approved hostnames.
+- One owned host section and CA trust limited to TLS.
 - Standard loopback sockets supplied to unprivileged Caddy.
 - Start/Stop/Open actions; Ready requires normal system-trusted HTTPS.
 - Removal of recorded host/trust state and helper registration.

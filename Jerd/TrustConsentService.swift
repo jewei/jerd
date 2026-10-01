@@ -9,10 +9,10 @@ final class TrustConsentService: NSObject, JerdTrustConsentProtocol, @unchecked 
     private let lock = NSLock()
     private var scope: TrustConsentScope?
 
-    func authorize(installationID: UUID, certificateDER: Data, hostnames: Set<String>) throws {
+    func authorize(installationID: UUID, certificateDER: Data, hostnames: Set<String>, policies: Set<CertificateTrustPolicy>) throws {
         _ = try InstallationCertificate.validate(certificateDER, installationID: installationID)
         for hostname in hostnames { _ = try Hostname.validate(hostname) }
-        lock.withLock { scope = TrustConsentScope(certificateDER: certificateDER, hostnames: hostnames, allowRemoval: true) }
+        lock.withLock { scope = TrustConsentScope(certificateDER: certificateDER, hostnames: hostnames, allowRemoval: true, policies: policies) }
     }
 
     func clear() { lock.withLock { scope = nil } }
@@ -26,11 +26,10 @@ final class TrustConsentService: NSObject, JerdTrustConsentProtocol, @unchecked 
         }
         DispatchQueue.global(qos: .userInitiated).async { @Sendable in
             if let hostnames = change.hostnames {
-                let settings: [[String: Any]] = hostnames.map { hostname in [
-                    kSecTrustSettingsPolicy as String: SecPolicyCreateSSL(true, nil),
-                    kSecTrustSettingsPolicyString as String: hostname,
-                    kSecTrustSettingsResult as String: NSNumber(value: SecTrustSettingsResult.trustRoot.rawValue)
-                ] }
+                guard let settings = try? CertificateTrustSettings.make(policy: change.policy, hostnames: hostnames) else {
+                    reply(errSecParam)
+                    return
+                }
                 reply(SecTrustSettingsSetTrustSettings(certificate, .admin, settings as CFArray))
             } else {
                 let status = SecTrustSettingsRemoveTrustSettings(certificate, .admin)

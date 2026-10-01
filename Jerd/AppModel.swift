@@ -153,7 +153,7 @@ final class AppModel {
     }
 
     func hasSetup(_ site: Site) -> Bool {
-        systemStatus.hostnames.contains(site.hostname) && systemStatus.hostsConfigured && systemStatus.trustConfigured
+        systemStatus.hostnames.contains(site.hostname) && systemStatus.hostsConfigured && systemStatus.trustConfigured && systemStatus.trustPolicy == .serverTLS
     }
 
     private var enabledSites: [Site] {

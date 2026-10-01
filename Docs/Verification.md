@@ -4,7 +4,7 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
 
 ## Passed
 
-- 38 Swift Testing tests in 10 suites, including five real TLS/PHP cases.
+- 40 Swift Testing tests in 10 suites, including five real TLS/PHP cases.
 - PHP 8.5.11 CLI and FPM, using the fixed `lerd-env/php` arm64 artifact.
 - Caddy 2.11.4, using its official arm64 artifact.
 - Direct high-port listeners and Caddy listeners inherited at descriptors 3/4.
@@ -18,6 +18,10 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   directory URLs that would otherwise execute an uploaded `index.php`.
 - Multiple-host updates, version 1 helper record migration, trust rollback,
   consent-scope checks, and removal of one hostname while retaining another.
+- Version 1/2 trust-policy migration to version 3, preservation after failed
+  approval, and restoration of server TLS trust after failed removal. A
+  hostname-only consent cannot authorize broader server TLS trust. Old setup
+  does not start under the new policy until the user approves the change.
 - CA-verified TLS, computed PHP output and FPM SAPI, static content, sensitive
   path rejection, unknown hosts, redirects, and cleanup after FPM exit.
 - Host byte/metadata preservation, conflicts, rollback, UID ownership checks,
@@ -79,6 +83,13 @@ Date: 2026-10-01. Host: Apple Silicon, macOS 27.0.1, Xcode 27.0, Swift 6.4.
   update, the same URL returned 200, `image/jpeg`, and 14,338 bytes over normal
   macOS-trusted HTTPS. The response SHA-256 matched the source file exactly.
   Both site home pages still returned 200.
+- Brave rejected the old hostname-limited CA trust with
+  `NET::ERR_CERT_AUTHORITY_INVALID`. After the user approved the new scope,
+  the updated app applied one SSL trustRoot rule for the same installation CA,
+  without a hostname policy string. The system trust inspection confirmed
+  that rule, and the app reported Ready. Both home pages returned 200 with
+  normal macOS trust. The user confirmed that both sites now load in Brave.
+  No browser certificate-warning bypass was used.
 
 The runtime inspection and real TLS tests use actual executables. Test doubles
 are used only for controlled failure/transaction cases. Root access is not used
@@ -95,7 +106,7 @@ A test double also closed the same numeric descriptor twice during parallel
 tests. Its cleanup is now idempotent. The restart test allows up to one second
 for transient descriptor cleanup during parallel process tests. It separately
 checks that an active listener cannot be shared. No `SO_REUSEPORT` is used.
-The final full run passed all 38 tests.
+The final full run passed all 40 tests.
 
 The host's `/usr/bin/curl` has multiple TLS backends. Its default backend did
 not use the installed macOS CA for this request. This command passed using
@@ -135,12 +146,14 @@ It does not establish that launchd registration or root certificate changes work
 1. Stop the conflicting service in its own app. Keep a signed Jerd app in a
    stable location. Record the existing hosts file and relevant certificate state.
 2. Add a trusted plain-PHP fixture. Check the suggested hostname and document root.
-3. Review the enabled hostname list and fingerprint, then approve setup.
+3. Review the enabled hostname list, fingerprint, and CA trust scope, then
+   approve setup. The CA trust covers TLS server certificates for all hostnames.
    Complete macOS approval in Login Items & Extensions if required.
 4. Confirm that the helper runs as root and that PHP/Caddy run as the current
    user. Confirm only loopback ports 80/443 listen; FPM uses a private Unix socket.
-5. Confirm Ready, then open the hostname in Safari. Check the certificate and
-   execute PHP through HTTPS without a warning. Verify HTTP redirects to HTTPS.
+5. Confirm Ready, then open the hostname in Safari and Brave or Chrome. Check
+   the certificate and execute PHP through HTTPS without a warning. Verify
+   HTTP redirects to HTTPS.
 6. Stop and start the environment. Check that the approved hostname still works.
 7. Quit and reopen Jerd. Start again. Check that the same installation CA is used.
 8. Add a second registration and approve the updated list. Check both sites
