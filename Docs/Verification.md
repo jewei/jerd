@@ -6,15 +6,78 @@ Earlier detailed records remain in Git history.
 
 ## Core and build checks
 
-The current default suite passed 77 tests in 19 suites. Tests that require real
-runtimes run their service operations only when their opt-in variables are set.
-Before the Sparkle change, the complete 73-test suite also passed with PHP/TLS,
-three database engines, Mailpit, and RustFS enabled.
+The current default suite passed 110 tests in 26 suites. The same suite passed
+with PHP/TLS, MySQL, PostgreSQL, Redis, Mailpit, and RustFS enabled. Those service
+operations run only when their opt-in variables are set. The latest complete
+runtime test took 9.1 seconds. The unsigned Debug build and all ten release-script
+unit tests passed.
 
 Unsigned Debug and signed Release builds passed during Sparkle integration.
 Strict recursive code-signature verification passed for the Release app.
 The project uses Sparkle 2.10.0. The new configuration tests reject missing keys,
 invalid key lengths, insecure feed URLs, URL credentials, and fragments.
+
+## Reliability changes, 2026-10-02
+
+The accepted reliability items 1–11 are implemented. The new tests cover these
+failure and recovery cases:
+
+- An invalid site edit leaves the active sites running. Failed activation restores
+  saved settings and the previous run. A failed restoration is reported.
+- Stop cancels preparation and prevents a restart during rollback, including Stop
+  while listener acquisition is suspended. An unchanged healthy configuration
+  keeps its running processes. A changed executable requires new checks.
+- HTTPS setup and removal can be interrupted at each recorded write step.
+  Approved recovery restores the previous setup or removes the tracked setup.
+  Unrelated host-file changes and recovery evidence remain intact. Stale approval,
+  unknown ownership, and unsafe legacy records are rejected.
+- A separate controller process exits and leaves an owned service. A new recovery
+  store verifies the service identity and stops it gracefully. Reused PIDs,
+  uncertain legacy records, and linked record paths are handled without signalling
+  an unrelated process.
+- A child process can complete delayed cleanup after its parent exits. A graceful
+  shutdown timeout retains the database lock and process record. New starts and
+  registration removal remain blocked until the owned child stops.
+- Different verified builds of one runtime version have separate identities and
+  directories. Tests cover MySQL OS filtering, archive-link output limits, the end
+  of large command output, and retained-backup protection during recovery.
+
+The real PHP tests compare CLI and FPM settings and modules. They also check
+`-n`, `-c`, `-d`, `PHPRC`, and `PHP_INI_SCAN_DIR` overrides. A private FPM socket
+that cannot answer the ping fails readiness before Caddy starts. The isolated
+TLS tests passed with direct listeners and inherited sockets.
+
+The real database test removes a PostgreSQL registration, restores it, and reads
+the saved value with the retained credentials. Wrong runtime identity, incomplete
+initialization, and corrupt metadata remain errors. Mail and storage tests again
+passed persistence, failed-update recovery, and independent service controls.
+
+These checks used verified local runtime files: PHP 8.5.11, Caddy 2.11.4,
+MySQL 8.4.11, PostgreSQL 18.6, Redis 8.8.3, Mailpit 1.31.3, and RustFS 1.0.0.
+Service tests used private data and unprivileged loopback ports. TLS tests used an
+isolated CA with certificate verification. The signed XPC harness again passed
+socket transfer and rejection of incorrect client and server identities.
+These checks did not change system hosts, trust, or installed service settings.
+
+Three fresh independent agents reviewed code, architecture, and performance.
+The agreed fixes retain ownership after a child outlives its server, prevent Stop
+from being lost during rollback, and remove a repeated preparation check. The
+code and architecture reviewers checked the final fixes. No unresolved finding
+remains from these reviews.
+
+The performance review used the Debug core with a small isolated PHP fixture.
+Preparation took 405–517 ms across three samples. Direct engine startup took
+883 ms. The repeated preparation check was then removed; final startup checks
+remain. FPM health checks took 0.30–0.55 ms. During a ten-second idle sample, the
+test harness used 13.28 ms of CPU time and the surviving service processes used
+1.01 ms. Their measured memory use was 10.9 MiB and 48.9 MiB, respectively.
+One FPM worker exited during the sample and is not included in that service total.
+
+All 192 requests returned HTTP 200. The 95th-percentile request times were
+0.72 ms, 7.37 ms, and 12.87 ms at concurrency 1, 8, and 16, with 64 requests per
+case. These measurements exclude the app UI, helper, and system trust setup.
+They are a small-fixture baseline, not a project performance guarantee. No polling
+interval or FPM pool size was changed.
 
 ## App update checks
 
@@ -167,7 +230,10 @@ Manual GUI checks remain for removal of one host from a live multiple-host setup
 withheld setup approval, and an occupied-port attempt through the final helper.
 Core transaction and coordinator tests cover those failure boundaries.
 Database withheld-shutdown and interrupted-initialization GUI checks remain incomplete.
-Forced-crash recovery and interrupted privileged transaction recovery remain incomplete.
+Core tests now cover controller-exit recovery and interrupted privileged
+transactions. Manual GUI checks of the new recovery actions, database registration
+restore, backup cleanup, and shutdown stages remain incomplete. This reliability
+change has no new signed release-candidate or browser-trust acceptance result.
 
 Database TLS, database export/import UI, and multiple mail inboxes are not implemented.
 SMTP and the data-service HTTP interfaces use loopback without TLS.

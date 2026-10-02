@@ -6,7 +6,6 @@ import Darwin
 /// failed request can be retried without deleting data or losing its name.
 public actor StorageManager {
     private struct Running { let token: UUID; let processID: Int32 }
-    private struct ActiveRun: Codable { let processID: Int32; let runtimeID: String }
     private struct Initialized: Codable { let runtime: StorageRuntime; let formatHash: String; let credentialsHash: String }
     public let paths: StoragePaths
     private let store: StorageStore
@@ -118,13 +117,16 @@ public actor StorageManager {
         return try readCredentials()
     }
     public func snapshot() async -> StorageSnapshot {
-        if !busy, let process = running {
+        if !busy, state == .running, let process = running {
             let alive = await processes.isRunning(process.token)
             if !alive, !busy, running?.token == process.token {
                 busy = true
-                _ = await processes.stopGracefully(process.token)
-                cleanup()
-                state = .failed("The RustFS process exited. Open the storage log for details.")
+                if await processes.stopGracefully(process.token) {
+                    cleanup()
+                    state = .failed("The RustFS process exited. Open the storage log for details.")
+                } else {
+                    state = .failed("The service master exited, but a child has not stopped. Its data lock was kept. Retry Stop.")
+                }
                 busy = false
             }
         }
@@ -169,15 +171,16 @@ public actor StorageManager {
             if FileManager.default.fileExists(atPath: paths.log.path) {
                 let previous = paths.root.appendingPathComponent("server.previous.log")
                 if FileManager.default.fileExists(atPath: previous.path) { try FileManager.default.removeItem(at: previous) }
+                try ProcessLog.trim(paths.log)
                 try FileManager.default.moveItem(at: paths.log, to: previous)
             }
             let token = try await processes.start(StorageDriver.server(configuration: configuration, runtime: runtime, paths: paths), log: paths.log)
-            guard let pid = await processes.processIdentifier(token) else {
+            guard let pid = await processes.ownedProcessIdentifier(token) else {
                 _ = await processes.stopGracefully(token)
                 throw JerdError.process("RustFS could not start. Open the storage log for details.")
             }
             running = Running(token: token, processID: pid)
-            try PrivateFiles.write(JSONEncoder().encode(ActiveRun(processID: pid, runtimeID: runtime.id)), to: paths.activeRun)
+            try PreviousProcessRun.record(pid, runtimeID: runtime.id, at: paths.activeRun)
             client = StorageS3Client(port: configuration.apiPort, region: configuration.region, credentials: credentials)
             try await waitUntilReady()
             try await ports.verify(processID: pid, ports: [configuration.apiPort, configuration.consolePort])
@@ -327,13 +330,7 @@ public actor StorageManager {
         if let lock { _ = flock(lock, LOCK_UN); close(lock); self.lock = nil }
     }
     private func checkPreviousRun() throws {
-        guard FileManager.default.fileExists(atPath: paths.activeRun.path) else { return }
-        let previous = try JSONDecoder().decode(ActiveRun.self, from: Data(contentsOf: paths.activeRun))
-        guard previous.processID > 1 else { throw JerdError.corruptConfiguration("The previous storage process record is invalid.") }
-        if kill(previous.processID, 0) == 0 || errno == EPERM {
-            throw JerdError.unavailable("A previous storage process (PID \(previous.processID)) is still present. Stop it safely before restarting. Jerd did not signal it.")
-        }
-        try FileManager.default.removeItem(at: paths.activeRun)
+        try PreviousProcessRun.requireStopped(at: paths.activeRun)
     }
     private func stopOwned(keepLock: Bool = false) async throws {
         guard let running else { if !keepLock { releaseLock() }; return }

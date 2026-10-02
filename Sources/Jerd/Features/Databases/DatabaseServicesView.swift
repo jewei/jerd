@@ -7,6 +7,9 @@ struct DatabaseServicesView: View {
     @State private var editing: DatabaseService?
     @State private var removing: DatabaseService?
     @State private var showRuntimes = false
+    @State private var showRetained = false
+    @State private var restoring: RetainedDatabase?
+    @State private var pendingRestore: RetainedDatabase?
 
     var body: some View {
         NavigationSplitView {
@@ -52,7 +55,32 @@ struct DatabaseServicesView: View {
         }
         .toolbar {
             if model.isLoading || model.isShuttingDown { ProgressView().controlSize(.small) }
+            Button("Restore registration…") { model.inspectRetained(); showRetained = true }.disabled(!model.isLoaded || model.isSaving || model.isShuttingDown)
             Button("Database runtimes", systemImage: "gearshape") { showRuntimes = true }
+        }
+        .sheet(item: $restoring) { item in DatabaseRestoreEditor(model: model, item: item) }
+        .sheet(isPresented: $showRetained, onDismiss: { restoring = pendingRestore; pendingRestore = nil }) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Retained databases").font(.title2.bold())
+                Text("Restore a removed registration with its original runtime and data. Choose a name and an available port.").foregroundStyle(.secondary)
+                if model.isSaving { ProgressView() }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(model.retained) { item in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(item.name).font(.headline)
+                                if let runtime = item.runtime { Text("\(runtime.engine.title) \(runtime.version)") }
+                                Text(item.directory.path).font(.caption).textSelection(.enabled)
+                                if let bytes = item.bytes { Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) }
+                                if let problem = item.problem { Text(problem).foregroundStyle(.red) }
+                                Button("Restore…") { pendingRestore = item; showRetained = false }.disabled(!item.canRestore || model.isSaving)
+                            }
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if let error = model.errorMessage { Text(error).foregroundStyle(.red) }
+                HStack { Button("Inspect again") { model.inspectRetained() }.disabled(model.isSaving); Spacer(); Button("Done") { showRetained = false } }
+            }.padding(24).frame(width: 560, height: 450)
         }
         .sheet(isPresented: $adding) { DatabaseEditor(model: model, original: nil) }
         .sheet(item: $editing) { service in DatabaseEditor(model: model, original: service) }
@@ -214,5 +242,32 @@ private struct DatabaseEditor: View {
             original.name = name.trimmingCharacters(in: .whitespacesAndNewlines); original.port = value
             model.edit(original) { dismiss() }
         } else { model.create(name: name, runtimeID: runtimeID, port: value) { dismiss() } }
+    }
+}
+
+private struct DatabaseRestoreEditor: View {
+    let model: DatabaseModel
+    let item: RetainedDatabase
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var port = ""
+    @State private var localError: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Restore database registration").font(.title2.bold())
+            TextField("Name", text: $name)
+            TextField("Port", text: $port)
+            Text("The original runtime and data folder stay in use. Start the service after you restore it.").foregroundStyle(.secondary)
+            if let error = localError ?? model.errorMessage { Text(error).foregroundStyle(.red) }
+            HStack {
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("Restore") {
+                    guard let value = UInt16(port), value > 1023 else { localError = "Enter a port from 1024 to 65535."; return }
+                    model.restore(item, name: name, port: value) { dismiss() }
+                }.keyboardShortcut(.defaultAction)
+            }
+        }.padding(24).frame(width: 500).disabled(model.isSaving)
+            .onAppear { name = item.name; port = String(item.port ?? item.runtime?.engine.defaultPort ?? 3307) }
     }
 }

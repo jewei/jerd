@@ -4,7 +4,6 @@ import Darwin
 /// Owns one persistent local inbox, independently of sites and databases.
 public actor MailManager {
     private struct Running { let token: UUID; let processID: Int32 }
-    private struct ActiveRun: Codable { let processID: Int32; let runtimeID: String }
     private struct Info: Decodable {
         let version: String
         let database: String
@@ -111,15 +110,16 @@ public actor MailManager {
             if FileManager.default.fileExists(atPath: paths.log.path) {
                 let previous = paths.root.appendingPathComponent("server.previous.log")
                 if FileManager.default.fileExists(atPath: previous.path) { try FileManager.default.removeItem(at: previous) }
+                try ProcessLog.trim(paths.log)
                 try FileManager.default.moveItem(at: paths.log, to: previous)
             }
             let token = try await processes.start(MailDriver.server(configuration: configuration, runtime: runtime, paths: paths), log: paths.log)
-            guard let pid = await processes.processIdentifier(token) else {
+            guard let pid = await processes.ownedProcessIdentifier(token) else {
                 _ = await processes.stopGracefully(token)
                 throw JerdError.process("The mail process could not start. " + logTail())
             }
             running = Running(token: token, processID: pid)
-            try PrivateFiles.write(JSONEncoder().encode(ActiveRun(processID: pid, runtimeID: runtime.id)), to: paths.activeRun)
+            try PreviousProcessRun.record(pid, runtimeID: runtime.id, at: paths.activeRun)
             try await waitUntilReady(runtime: runtime)
             try await ports.verify(processID: pid, ports: [configuration.smtpPort, configuration.webPort])
             guard await processes.isRunning(token) else { throw JerdError.process("Mailpit exited during its readiness check.") }
@@ -144,13 +144,16 @@ public actor MailManager {
     }
 
     public func snapshot() async -> MailSnapshot {
-        if !busy, let process = running {
+        if !busy, state == .running, let process = running {
             let alive = await processes.isRunning(process.token)
             if !alive, !busy, running?.token == process.token {
                 busy = true
-                _ = await processes.stopGracefully(process.token)
-                cleanup()
-                state = .failed("The mail process exited. " + logTail())
+                if await processes.stopGracefully(process.token) {
+                    cleanup()
+                    state = .failed("The mail process exited. " + logTail())
+                } else {
+                    state = .failed("The service master exited, but a child has not stopped. Its data lock was kept. Retry Stop.")
+                }
                 busy = false
             }
         }
@@ -177,7 +180,7 @@ public actor MailManager {
         ].joined(separator: "\r\n")
         try PrivateFiles.write(Data(message.utf8), to: file)
         let result = try await commands.run(MailDriver.send(configuration: configuration, paths: paths, message: file), timeout: .seconds(7))
-        guard result.status == 0 else { throw JerdError.process("The test email could not be sent: " + result.output.suffix(2048)) }
+        guard result.status == 0 else { throw JerdError.process("The test email could not be sent: " + result.diagnosticOutput.suffix(2048)) }
     }
 
     public func updateRuntime(_ runtime: MailRuntime) async throws {
@@ -251,13 +254,7 @@ public actor MailManager {
         if let lock { _ = flock(lock, LOCK_UN); close(lock); self.lock = nil }
     }
     private func checkPreviousRun() throws {
-        guard FileManager.default.fileExists(atPath: paths.activeRun.path) else { return }
-        let previous = try JSONDecoder().decode(ActiveRun.self, from: Data(contentsOf: paths.activeRun))
-        guard previous.processID > 1 else { throw JerdError.corruptConfiguration("The previous mail process record is invalid.") }
-        if kill(previous.processID, 0) == 0 || errno == EPERM {
-            throw JerdError.unavailable("A previous mail process (PID \(previous.processID)) is still present. Stop it safely before restarting. Jerd did not signal it.")
-        }
-        try FileManager.default.removeItem(at: paths.activeRun)
+        try PreviousProcessRun.requireStopped(at: paths.activeRun)
     }
     private func prepareInbox(runtime: MailRuntime) throws {
         try PrivateFiles.directory(paths.inbox)

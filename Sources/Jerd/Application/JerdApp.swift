@@ -92,6 +92,18 @@ private struct MainWindowView: View {
                     .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
             }
                 .frame(minWidth: 820, minHeight: 540)
+                .safeAreaInset(edge: .bottom) {
+                    if let message = model.operationMessage {
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text(message).font(.callout)
+                            Spacer()
+                            if model.isBusy && !model.isShuttingDown {
+                                Button("Stop sites") { model.stop() }.disabled(!model.canStop)
+                            }
+                        }.padding(12).background(.bar)
+                    }
+                }
                 .task {
                     delegate.model = model
                     delegate.openMainWindow = { openWindow(id: "main") }
@@ -126,12 +138,13 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)
         }
         Text(model.stateLabel)
+        if let message = model.operationMessage { Text(message) }
         Divider()
         ForEach(model.configuration.sites.filter(\.isEnabled)) { site in
             Button("Open \(site.displayName)") { model.open(site) }.disabled(model.isBusy || !model.runningSiteIDs.contains(site.id))
         }
-        if !model.runningSiteIDs.isEmpty {
-            Button("Stop environment") { model.stop() }.disabled(model.isBusy)
+        if !model.runningSiteIDs.isEmpty || model.isBusy {
+            Button("Stop environment") { model.stop() }.disabled(!model.canStop)
         } else if model.configuration.sites.contains(where: \.isEnabled) {
             Button("Start all sites") { model.start() }.disabled(model.isBusy)
         }

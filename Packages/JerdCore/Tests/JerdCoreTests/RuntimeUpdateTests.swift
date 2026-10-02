@@ -3,6 +3,36 @@ import Testing
 @testable import JerdCore
 
 @Suite struct RuntimeUpdateTests {
+    @Test func sameVersionBuildsHaveIndependentIdentitiesAndLegacyReceiptsRemainUsable() async throws {
+        let root = try temporaryDirectory(" runtime builds")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        func release(_ hash: String) -> RuntimeRelease {
+            RuntimeRelease(kind: .php, version: "8.5.11", url: URL(string: "https://github.com/lerd-env/php/example.tar.gz")!,
+                           sha256: hash, size: 10, source: URL(string: "https://github.com/lerd-env/php/releases")!)
+        }
+        func fixture(_ hash: String, legacy: Bool) throws -> URL {
+            let name = legacy ? "php-8.5.11-\(CPUArchitecture.current.rawValue)" : RuntimeInstaller.directoryName(kind: .php, version: "8.5.11", digest: hash)
+            let folder = root.appendingPathComponent(name)
+            try PrivateFiles.directory(folder)
+            try PrivateFiles.write(Data(hash.utf8), to: folder.appendingPathComponent("php"))
+            let receipt: [String: Any] = ["schemaVersion": 1, "kind": "php", "version": "8.5.11", "releaseVersion": "8.5.11", "archiveSHA256": hash,
+                "executable": "php", "files": ["php": try RuntimeDownload.digest(folder.appendingPathComponent("php"))]]
+            try PrivateFiles.write(JSONSerialization.data(withJSONObject: receipt), to: folder.appendingPathComponent("update-receipt.json"))
+            return folder
+        }
+        let original = try fixture(a, legacy: true)
+        let installer = RuntimeInstaller(directory: root)
+        #expect(release(a).id != release(b).id)
+        #expect(try await installer.existing(release(a))?.directory.path == original.path)
+        #expect(try await installer.existing(release(b)) == nil)
+        let replacement = try fixture(b, legacy: false)
+        let installed = try await installer.installed()
+        #expect(installed.count == 2 && Set(installed.map(\.id)).count == 2)
+        #expect(try await installer.existing(release(b))?.directory.path == replacement.path)
+        #expect(try String(contentsOf: original.appendingPathComponent("php"), encoding: .utf8) == a)
+        #expect(installed.filter { $0.matches(release(b)) }.count == 1)
+    }
     @Test func versionOrderingAndUnstableVersions() throws {
         #expect(try #require(RuntimeVersion("8.10.2")) > #require(RuntimeVersion("8.8.3")))
         #expect(RuntimeVersion("v8.5.11") == RuntimeVersion("8.5.11.0"))
@@ -47,6 +77,26 @@ import Testing
             try tar(entries).write(to: source)
             #expect(throws: (any Error).self) { try RuntimeArchive.extract(source, to: root.appendingPathComponent("out-\(index)"), stripRoot: true) }
         }
+    }
+    @Test func archiveLinkCopiesCountAgainstOutputLimit() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("jerd-link-budget-\(UUID())")
+        try PrivateFiles.directory(root)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let archive = root.appendingPathComponent("test.tar")
+        try tar([("root/file", "0", "", Data(repeating: 1, count: 10)),
+                 ("root/alias", "2", "file", Data()),
+                 ("root/chain", "2", "alias", Data())]).write(to: archive)
+        #expect(throws: (any Error).self) {
+            try RuntimeArchive.extract(archive, to: root.appendingPathComponent("limited"), stripRoot: true, outputLimit: 29)
+        }
+        try RuntimeArchive.extract(archive, to: root.appendingPathComponent("fits"), stripRoot: true, outputLimit: 30)
+        #expect(try Data(contentsOf: root.appendingPathComponent("fits/chain")).count == 10)
+    }
+    @Test func mysqlFiltersCompatibilityBeforeDeduplicating() throws {
+        let content = "mysql-8.4.11-macos27-arm64.tar.gz mysql-8.4.11-macos15-arm64.tar.gz mysql-8.4.11-macos15-arm64.tar.gz"
+        let releases = try RuntimeUpdateCatalog.mysqlReleases(content, architecture: "arm64", majorOS: 15)
+        #expect(releases.count == 1)
+        #expect(releases.first?.url.lastPathComponent == "mysql-8.4.11-macos15-arm64.tar.gz")
     }
     @Test func rejectsMalformedPublisherSignatures() throws {
         for value in ["", "not a signature", "-----BEGIN PGP SIGNATURE-----\nAAAA\n-----END PGP SIGNATURE-----"] {

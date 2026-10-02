@@ -56,9 +56,9 @@ private struct DashboardOverview: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 18)], spacing: 18) {
                     card("Sites", symbol: "globe", count: "\(model.configuration.sites.count) registered",
                          state: "\(model.runningSiteIDs.count) running", active: !model.runningSiteIDs.isEmpty, section: .sites) {
-                        Button(model.runningSiteIDs.isEmpty ? "Start all sites" : "Stop all sites") {
-                            if model.runningSiteIDs.isEmpty { model.start() } else { model.stop() }
-                          }.disabled(model.isBusy || !model.configuration.sites.contains(where: \.isEnabled))
+                        Button(model.runningSiteIDs.isEmpty && !model.isBusy ? "Start all sites" : "Stop all sites") {
+                            if model.runningSiteIDs.isEmpty && !model.isBusy { model.start() } else { model.stop() }
+                          }.disabled((model.isBusy || !model.runningSiteIDs.isEmpty) ? !model.canStop : !model.configuration.sites.contains(where: \.isEnabled))
                     }
                     card("Databases", symbol: "externaldrive", count: "\(model.databases.configuration.services.count) services",
                          state: "\(model.databases.statuses.values.filter { $0.state == .running }.count) running",

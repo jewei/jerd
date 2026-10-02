@@ -51,6 +51,7 @@ struct ContentView: View {
                             GridRow { Text("Document root").foregroundStyle(.secondary); Text(site.documentRoot).textSelection(.enabled) }
                             GridRow { Text("PHP").foregroundStyle(.secondary); Text(runtimeLabel(site)) }
                             GridRow { Text("HTTPS setup").foregroundStyle(.secondary); Text(model.hasSetup(site) ? "Approved for this hostname" : "Setup required") }
+                            GridRow { Text("PHP-FPM check").foregroundStyle(.secondary); Text(model.runningSiteIDs.contains(site.id) ? "Private ping passed" : "Checked at startup") }
                             GridRow { Text("System HTTPS check").foregroundStyle(.secondary); Text(model.runningSiteIDs.contains(site.id) ? "Passed" : "Checked at startup") }
                         }
                         HStack {
@@ -89,7 +90,7 @@ struct ContentView: View {
             if !model.isLoaded { Button("Retry load") { model.load() }.disabled(model.isBusy) }
         }
         .sheet(item: $editingSite, onDismiss: { model.presentPreparedSetup() }) { site in SiteEditor(model: model, original: site) }
-        .sheet(item: $model.pendingSetup) { setup in HTTPSSetupView(model: model, setup: setup) }
+        .sheet(item: $model.pendingSetup, onDismiss: { model.discardPreparedSetup() }) { setup in HTTPSSetupView(model: model, setup: setup) }
         .alert("Jerd could not complete the operation", isPresented: Binding(
             get: { model.errorMessage != nil && model.pendingSetup == nil && editingSite == nil },
             set: { if !$0 { model.errorMessage = nil } })) {
@@ -115,19 +116,20 @@ struct ContentView: View {
                 Label(!site.isEnabled ? "Disabled" : (model.runningSiteIDs.contains(site.id) ? "Ready" : (model.runningSiteIDs.isEmpty ? model.stateLabel : "Not running")),
                       systemImage: model.runningSiteIDs.contains(site.id) ? "checkmark.circle" : "server.rack").font(.headline)
                 if case .failed(let message) = model.environmentState { Text(message).foregroundStyle(.red) }
-                Text("All enabled sites run together. Each site uses its selected PHP version.").foregroundStyle(.secondary)
+                Text("Ready means PHP-FPM and HTTPS passed their checks. Project code is not checked.").foregroundStyle(.secondary)
+                if let message = model.operationMessage { Text(message).font(.callout) }
                 HStack {
-                    if model.runningSiteIDs.contains(site.id) {
-                        Button("Stop all sites") { model.stop() }
+                    if !model.runningSiteIDs.isEmpty || model.isBusy {
+                        Button("Stop all sites") { model.stop() }.disabled(!model.canStop)
                     } else if model.hasSetup(site) {
-                        Button("Start all sites") { model.start() }.disabled(!site.isEnabled)
+                        Button("Start all sites") { model.start() }.disabled(!site.isEnabled || model.isBusy)
                     } else {
-                        Button("Enable HTTPS…") { model.prepareHTTPS() }.disabled(!site.isEnabled)
+                        Button("Enable HTTPS…") { model.prepareHTTPS() }.disabled(!site.isEnabled || model.isBusy)
                     }
                     if !model.systemStatus.hostnames.isEmpty {
-                        Button("Remove system setup…") { removingSetup = true }
+                        Button("Remove system setup…") { removingSetup = true }.disabled(model.isBusy)
                     }
-                }.disabled(model.isBusy)
+                }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
         }
     }
@@ -190,19 +192,20 @@ private struct SiteEditor: View {
                 }
                 Toggle("Enabled", isOn: $site.isEnabled)
             }
-            .formStyle(.grouped)
+            .formStyle(.grouped).disabled(model.isBusy)
             Text("Detection reads files only. It does not execute artisan or project scripts.")
                 .font(.callout).foregroundStyle(.secondary)
             if let error = model.errorMessage { Text(error).foregroundStyle(.red) }
             HStack {
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(model.isBusy ? "Cancel operation and stop sites" : "Cancel") {
+                    if model.isBusy { model.stop() } else { dismiss() }
+                }.keyboardShortcut(.cancelAction).disabled(model.stopInProgress)
                 Spacer()
                 Button("Save registration") { model.save(site, confirmed: confirmed) { dismiss() } }
-                    .keyboardShortcut(.defaultAction).disabled(!confirmed)
+                    .keyboardShortcut(.defaultAction).disabled(!confirmed || model.isBusy)
             }
         }
         .padding(24).frame(width: 650)
-        .disabled(model.isBusy)
         .onChange(of: site.documentRoot) { confirmed = false }
         .onChange(of: site.projectPath) { confirmed = false }
     }
@@ -241,7 +244,7 @@ private struct HTTPSSetupView: View {
                 Spacer()
                 Button("Approve and start") { model.approveHTTPS(setup) }.keyboardShortcut(.defaultAction)
             }
-            if model.isBusy { ProgressView("Setting up HTTPS…") }
+            if model.isBusy { ProgressView(model.operationMessage ?? "Setting up HTTPS…") }
         }.padding(24).frame(width: 590).disabled(model.isBusy)
     }
 }

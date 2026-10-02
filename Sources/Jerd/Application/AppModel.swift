@@ -23,6 +23,15 @@ final class AppModel {
     var environmentState: EnvironmentState = .stopped
     var runningSiteIDs: Set<UUID> = []
     private var preparedAfterEdit: HTTPSSetup?
+    private var preparedSiteChange: PreparedSiteChange?
+    private var preparedSelection: UUID?
+    private var canCancelWork = true
+    private(set) var stopInProgress = false
+    private(set) var operationMessage: String?
+    var processFindings: [ProcessRecoveryFinding] = []
+    var retainedBackups: [RetainedBackup] = []
+    @ObservationIgnored private let processRecovery = ProcessRecoveryStore(directory: JSONConfigurationStore.applicationDirectory)
+    @ObservationIgnored private let backupRetention = BackupRetentionStore(directory: JSONConfigurationStore.applicationDirectory)
     var systemStatus = SystemSetupStatus()
     var pendingSetup: HTTPSSetup?
     var runtimeMessage = "Preparing PHP and Caddy…"
@@ -36,6 +45,9 @@ final class AppModel {
         directory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment"), system: helper)
     let registry = SiteRegistry(store: JSONConfigurationStore(directory: JSONConfigurationStore.applicationDirectory))
 
+    @ObservationIgnored private lazy var siteChanges = SiteConfigurationOperation(registry: registry, environment: environment)
+
+    var canStop: Bool { !isShuttingDown && !stopInProgress }
     var selectedSite: Site? { configuration.sites.first { $0.id == selectedSiteID } }
 
     func showDashboard(_ section: DashboardSection) {
@@ -91,21 +103,26 @@ final class AppModel {
         }
     }
 
-    func perform(_ action: @escaping @MainActor () async throws -> Void) {
+    func perform(cancellable: Bool = true, message: String = "Checking settings…", _ action: @escaping @MainActor () async throws -> Void) {
         guard !isBusy, !isShuttingDown else { return }
         workGeneration += 1
         let generation = workGeneration
         isBusy = true
+        canCancelWork = cancellable
+        operationMessage = message
         errorMessage = nil
         work = Task {
             defer { finishWork(generation) }
             do { try await action() }
+            catch is CancellationError { }
             catch { errorMessage = error.localizedDescription }
+            if isLoaded, let latest = try? await registry.snapshot() { configuration = latest }
+            await refreshEnvironment()
         }
     }
 
     private func finishWork(_ generation: Int) {
-        if workGeneration == generation { isBusy = false }
+        if workGeneration == generation { isBusy = false; operationMessage = nil }
     }
 
     func beginBackgroundWork() throws -> Int {
@@ -115,6 +132,7 @@ final class AppModel {
         workGeneration += 1
         isBusy = true
         errorMessage = nil
+        canCancelWork = true
         backgroundGeneration = workGeneration
         return workGeneration
     }
@@ -135,16 +153,24 @@ final class AppModel {
 
     func save(_ site: Site, confirmed: Bool, completion: @escaping () -> Void) {
         perform {
-            let wasRunning = !self.runningSiteIDs.isEmpty
             let isNew = !self.configuration.sites.contains(where: { $0.id == site.id })
-            if self.runningSiteIDs.contains(site.id) { await self.stopEnvironment() }
-            self.configuration = try await self.registry.saveSite(site, documentRootConfirmed: confirmed)
-            self.selectedSiteID = site.id
-            if (wasRunning || isNew), !self.enabledSites.isEmpty {
-                if self.enabledSites.allSatisfy(self.hasSetup) { try await self.startEnvironment() }
-                else { self.preparedAfterEdit = try await self.prepareSetup() }
-            }
+            let result = try await self.siteChanges.apply(.save(site, confirmed: confirmed), startIfStopped: isNew)
+            self.accept(result, selection: site.id, afterEditor: true)
             completion()
+        }
+    }
+
+    private func accept(_ result: SiteChangeResult, selection: UUID? = nil, afterEditor: Bool = false) {
+        switch result {
+        case .committed(let configuration):
+            self.configuration = configuration
+            if let selection { selectedSiteID = selection }
+            if !configuration.sites.contains(where: { $0.id == selectedSiteID }) { selectedSiteID = configuration.sites.first?.id }
+        case .needsApproval(let change):
+            preparedSiteChange = change
+            preparedSelection = selection
+            if afterEditor { preparedAfterEdit = change.setup }
+            else { pendingSetup = change.setup; selectedSection = .sites }
         }
     }
 
@@ -152,29 +178,20 @@ final class AppModel {
         if let preparedAfterEdit { pendingSetup = preparedAfterEdit; self.preparedAfterEdit = nil }
     }
 
+    func discardPreparedSetup() {
+        guard !isBusy else { return }
+        preparedSiteChange = nil; preparedSelection = nil; preparedAfterEdit = nil
+    }
+
     func remove(_ site: Site) {
-        perform {
-            let wasRunning = !self.runningSiteIDs.isEmpty
-            if self.runningSiteIDs.contains(site.id) || self.systemStatus.hostnames.contains(site.hostname) {
-                await self.stopEnvironment()
-            }
-            if self.systemStatus.hostnames.contains(site.hostname) {
-                try await self.environment.removeHostname(site.hostname)
-                self.systemStatus = try await self.helper.status()
-            }
-            self.configuration = try await self.registry.removeSite(site.id)
-            self.selectedSiteID = self.configuration.sites.first?.id
-            if wasRunning, !self.enabledSites.isEmpty { try await self.startEnvironment() }
+        perform(cancellable: false, message: "Removing the site registration. Complete or cancel any macOS approval prompt…") {
+            self.accept(try await self.siteChanges.apply(.remove(site.id)))
+            self.systemStatus = try await self.helper.status()
         }
     }
 
     func toggleEnabled(_ site: Site) {
-        perform {
-            let wasRunning = !self.runningSiteIDs.isEmpty
-            if self.runningSiteIDs.contains(site.id) { await self.stopEnvironment() }
-            self.configuration = try await self.registry.setEnabled(site.id, enabled: !site.isEnabled)
-            if wasRunning, !self.enabledSites.isEmpty { try await self.startEnvironment() }
-        }
+        perform { self.accept(try await self.siteChanges.apply(.enabled(site.id, !site.isEnabled))) }
     }
 
     func setDefaultRuntime(_ id: UUID) {
@@ -182,20 +199,7 @@ final class AppModel {
     }
 
     private func changeDefaultRuntime(_ id: UUID) async throws {
-        let previous = configuration.defaultRuntimeID
-        let wasRunning = !runningSiteIDs.isEmpty
-        configuration = try await registry.setDefaultRuntime(id)
-        do { if wasRunning { try await startEnvironment() } }
-        catch {
-            let failure = error.localizedDescription
-            if let previous {
-                do {
-                    configuration = try await registry.setDefaultRuntime(previous)
-                    if wasRunning { try await startEnvironment() }
-                } catch { throw JerdError.process("PHP activation failed: \(failure) Restore failed: \(error.localizedDescription)") }
-            }
-            throw JerdError.process("PHP activation failed. The previous selection was restored. \(failure)")
-        }
+        accept(try await siteChanges.apply(.defaultRuntime(id)))
     }
 
     func activateRuntime(_ runtime: ManagedRuntime, useAsDefault: Bool) async throws {
@@ -213,21 +217,9 @@ final class AppModel {
                 try await changeDefaultRuntime(installed.id)
             }
         case .caddy:
-            let previous = configuration.caddy, wasRunning = !runningSiteIDs.isEmpty
             let inspected = try await DevelopmentRuntimeProvider().inspectCaddy(binary: runtime.executable,
                 workDirectory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtime-inspection"))
-            configuration = try await registry.setCaddy(inspected)
-            do { if wasRunning { try await startEnvironment() } }
-            catch {
-                let failure = error.localizedDescription
-                if let previous {
-                    do {
-                        configuration = try await registry.setCaddy(previous)
-                        if wasRunning { try await startEnvironment() }
-                    } catch { throw JerdError.process("Caddy activation failed: \(failure) Restore failed: \(error.localizedDescription)") }
-                }
-                throw JerdError.process("Caddy activation failed. The previous selection was restored. \(failure)")
-            }
+            accept(try await siteChanges.apply(.caddy(inspected)))
         case .mysql, .postgresql, .redis:
             guard let engine = DatabaseEngine(rawValue: runtime.kind.rawValue) else { return }
             try await databases.registerUpdatedRuntime(DatabaseRuntime(id: runtime.directory.lastPathComponent,
@@ -252,7 +244,7 @@ final class AppModel {
         perform {
             let runtime = try await DevelopmentRuntimeProvider().inspectCaddy(binary: binary,
                 workDirectory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("runtime-inspection"))
-            self.configuration = try await self.registry.setCaddy(runtime)
+            self.accept(try await self.siteChanges.apply(.caddy(runtime)))
         }
     }
 
@@ -281,45 +273,74 @@ final class AppModel {
     }
 
     func prepareHTTPS() {
-        perform { self.pendingSetup = try await self.prepareSetup() }
+        perform { self.preparedSiteChange = nil; self.pendingSetup = try await self.prepareSetup() }
     }
 
     func approveHTTPS(_ setup: HTTPSSetup) {
-        perform {
-            guard Set(setup.request.hostnames) == Set(self.enabledSites.map(\.hostname)) else {
-                throw JerdError.invalid("The enabled sites changed. Review HTTPS setup again.")
-            }
+        perform(cancellable: false, message: "Applying HTTPS setup. Complete or cancel the macOS approval prompt…") {
             try await self.helper.registerAfterApproval()
-            try await self.environment.apply(setup)
-            self.runningSiteIDs.removeAll()
+            if let change = self.preparedSiteChange {
+                self.configuration = try await self.siteChanges.approve(change)
+                if let selection = self.preparedSelection { self.selectedSiteID = selection }
+                self.preparedSiteChange = nil; self.preparedSelection = nil
+            } else {
+                guard Set(setup.request.hostnames) == Set(self.enabledSites.map(\.hostname)) else {
+                    throw JerdError.invalid("The enabled sites changed. Review HTTPS setup again.")
+                }
+                try await self.environment.apply(setup)
+                self.systemStatus = try await self.helper.status()
+                try await self.startEnvironment()
+            }
             self.systemStatus = try await self.helper.status()
             self.pendingSetup = nil
-            try await self.startEnvironment()
         }
     }
 
-    func start() { perform { try await self.startEnvironment() } }
+    func start() { perform(message: "Checking PHP-FPM and HTTPS…") { try await self.startEnvironment() } }
     func stop() {
-        guard !isShuttingDown else { return }
+        guard canStop else { return }
         let previous = work
+        if canCancelWork { previous?.cancel() }
+        updates.cancelInstall()
         workGeneration += 1
         let generation = workGeneration
-        isBusy = true
+        isBusy = true; stopInProgress = true
+        operationMessage = canCancelWork ? "Stopping sites…" : "Waiting for system setup. Complete or cancel the macOS approval prompt…"
         errorMessage = nil
         work = Task {
-            defer { finishWork(generation) }
+            defer { stopInProgress = false; finishWork(generation) }
+            await siteChanges.requestStop()
             await previous?.value
             await waitForBackgroundWork()
+            operationMessage = "Stopping PHP-FPM and Caddy…"
             await stopEnvironment()
         }
     }
 
     func removeSystemSetup() {
-        perform {
+        perform(cancellable: false, message: "Removing HTTPS setup. Complete or cancel the macOS approval prompt…") {
             await self.stopEnvironment()
             try await self.environment.removeSetup()
             self.systemStatus = SystemSetupStatus()
             try await self.helper.unregisterAfterCleanup()
+        }
+    }
+
+    func inspectSystemRecovery() {
+        perform {
+            if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
+        }
+    }
+
+    func recoverSystemSetup(_ report: SystemRecoveryStatus, action: SystemRecoveryAction) {
+        perform(cancellable: false, message: "Recovering HTTPS setup. Complete or cancel the macOS approval prompt…") {
+            await self.stopEnvironment()
+            do { try await self.helper.recover(report, action: action) }
+            catch {
+                self.systemStatus = (try? await self.helper.status()) ?? self.systemStatus
+                throw error
+            }
+            self.systemStatus = try await self.helper.status()
         }
     }
 
@@ -332,15 +353,43 @@ final class AppModel {
             pendingSetup = try await prepareSetup()
             return
         }
-        await stopEnvironment()
         environmentState = .starting
         do {
-            try await environment.start(sites: selections, caddy: caddy)
+            try await environment.ensure(WebConfiguration(sites: selections, caddy: caddy))
             environmentState = await environment.state
             runningSiteIDs = Set(sites.map(\.id))
         } catch {
             environmentState = await environment.state
             throw error
+        }
+    }
+
+    private func refreshEnvironment() async {
+        let snapshot = await environment.snapshot()
+        environmentState = snapshot.state
+        runningSiteIDs = snapshot.state == .running ? snapshot.siteIDs : []
+    }
+
+    func inspectRecovery() {
+        perform(message: "Inspecting saved service records and backups…") {
+            if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
+            self.processFindings = try await self.processRecovery.inspect()
+            self.retainedBackups = try await self.backupRetention.inspect()
+        }
+    }
+
+    func recoverProcess(_ id: String) {
+        perform(cancellable: false, message: "Waiting for the saved service to stop safely…") {
+            do { try await self.processRecovery.recover(id) }
+            catch { self.processFindings = try await self.processRecovery.inspect(); throw error }
+            self.processFindings = try await self.processRecovery.inspect()
+        }
+    }
+
+    func removeBackup(_ id: String) {
+        perform(message: "Removing the selected backup…") {
+            try await self.backupRetention.remove(id)
+            self.retainedBackups = try await self.backupRetention.inspect()
         }
     }
 
@@ -358,31 +407,42 @@ final class AppModel {
 
     func shutdown() async -> Bool {
         isShuttingDown = true
+        operationMessage = canCancelWork ? "Cancelling preparation…" : "Waiting for system setup. Complete or cancel the macOS approval prompt…"
+        if canCancelWork { work?.cancel() }
+        await siteChanges.requestStop()
+        await work?.value
+        operationMessage = "Finishing runtime changes…"
         await updates.finishBeforeQuit()
+        operationMessage = "Stopping storage…"
         guard await storage.shutdown() else {
             isShuttingDown = false
+            operationMessage = nil
             updates.resumeAfterCancelledQuit()
             selectedSection = .storage
             errorMessage = "Storage could not stop safely. Jerd will remain open. Retry Stop in Storage."
             return false
         }
+        operationMessage = "Stopping mail…"
         guard await mail.shutdown() else {
             isShuttingDown = false
+            operationMessage = nil
             updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             selectedSection = .mail
             errorMessage = "The mail service could not stop safely. Jerd will remain open. Retry Stop in Mail."
             return false
         }
+        operationMessage = "Stopping databases safely…"
         guard await databases.shutdown() else {
             isShuttingDown = false
+            operationMessage = nil
             updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             mail.resumeAfterCancelledQuit()
             errorMessage = "A database service could not stop safely. Jerd will remain open. Check Databases and retry Stop."
             return false
         }
-        await work?.value
+        operationMessage = "Stopping PHP-FPM and Caddy…"
         monitor?.cancel()
         await stopEnvironment()
         await helper.invalidate()

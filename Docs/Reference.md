@@ -20,6 +20,7 @@ are separate from these repository paths.
 | `Models`, `Sites`, `SiteRegistry`, `Persistence` | Validation, hostname suggestions, runtime selections, serialized atomic storage |
 | `Runtimes`, `BundledRuntimes` | Actual binary inspection; verified app-owned development payload installation |
 | `Configuration`, `Processes`, `ServingEngine` | Caddy/FPM configuration; owned process groups; startup, TLS checks, and cleanup |
+| `SiteConfigurationOperation` | Candidate preparation, approval, persistence, activation, and rollback |
 | `LocalEnvironment` | All enabled sites; stable CA identity; normal macOS HTTPS trust check for every hostname |
 | `HelperClient`, `SystemIntegration` | SMAppService registration and typed authenticated XPC |
 | `HelperService`, `ListeningSockets` | Exclusive loopback socket lease per client; descriptor transfer |
@@ -56,7 +57,10 @@ an absolute path is shown. This table lists the main persisted records.
 | `environment/installation-id` | Stable identity for the installation CA |
 | `environment/configuration/` | Generated Caddy, FPM, and PHP settings |
 | `environment/certificates/` | Private CA keys and issued certificates |
-| `environment/logs/` | Web environment output |
+| `environment/logs/` | Bounded web environment output |
+| `environment/processes/` | Verified process identities for web recovery |
+| `runtimes/configuration/` | Generated CLI INI and empty INI scan directory |
+| `runtime-updates/<kind>-<version>-<architecture>-<SHA256>/` | Separate verified runtime builds |
 | `/Library/Application Support/JerdHelper/registration.json` | Owner UID, hostnames, installation ID, CA certificate, and trust policy |
 | `/Library/Application Support/JerdHelper/hosts.previous` | Host-file backup for a system transaction |
 | `/Library/Application Support/JerdHelper/pending.json` | Incomplete system transaction record |
@@ -70,19 +74,34 @@ The repository contains only its public key.
 
 Configuration writes are atomic and retain a valid backup. Corrupt records block
 changes and remain available for inspection. Jerd does not reset them to empty records.
-Database removal retains the instance directory and credentials.
+Database removal retains the instance directory, credentials, and removed registration metadata.
+The Databases restore action requires the original runtime identity.
 Stop and Quit retain database, mail, and storage data.
 
 Database startup rejects a different runtime identity, incomplete initialization,
 missing credentials, and an instance already in use. Mail and storage enforce
 corresponding checks for their initialized data and saved credentials.
-A previous live process blocks startup. Jerd does not signal saved PIDs that it
-did not create in the current session. Automatic process recovery is incomplete.
+A surviving process blocks startup until it stops safely. Advanced can inspect and
+recover saved processes with verified boot/start identity, executable, UID, and
+kernel audit token. PID reuse clears a stale record without signalling its new
+owner. Missing audit support, legacy records, and uncertain child ownership need
+manual inspection. Normal Quit still stops owned services.
 
-A remaining helper `pending.json` blocks further system changes.
-The hosts backup may precede later external edits, so replacing the whole current
-hosts file with that backup can discard unrelated changes.
-Automated helper transaction recovery and a database restore-registration action
-are not implemented. Logs do not rotate automatically.
+The helper's `pending.json` records an interrupted operation and its last known
+stage. Advanced offers approved restore or removal when the evidence permits it.
+Recovery modifies only the tracked host section and preserves unrelated current
+entries. It retains the original journal and host backup for inspection.
+
+While Jerd runs, process output above 8 MiB is trimmed once per second to the
+latest 4 MiB. A write burst can exceed the threshold between checks. Command
+logs also retain the first 1 MiB for parsers. Live trimming keeps the same file
+inode; a concurrent write can be lost or reordered at that boundary. These are
+diagnostic logs, not service data. Stopping a process also trims its log. An
+orphan process can keep writing while Jerd is closed; inspect it in Advanced.
+
+Mail and storage runtime backups remain until explicit deletion. Advanced shows
+size and purpose. A pending recovery journal, including a corrupt journal,
+protects every backup for that service. Cleanup takes the service lock and
+rejects a saved live process. It never deletes current service data.
 
 For the reasons behind these limits, see [Architecture](Architecture.md).

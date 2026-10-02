@@ -6,7 +6,7 @@ struct ServiceUpdateBackup {
     let root: URL
     let names: [String]
     private var journalURL: URL { root.appendingPathComponent("runtime-update.json") }
-    var isPending: Bool { FileManager.default.fileExists(atPath: journalURL.path) }
+    var isPending: Bool { PrivateFiles.exists(journalURL) }
 
     func begin() throws -> URL {
         guard !isPending else { throw JerdError.unavailable("Recover the previous runtime update before starting another update.") }
@@ -31,7 +31,7 @@ struct ServiceUpdateBackup {
 
     func restoreIfNeeded() throws {
         guard isPending else { return }
-        let data = try Data(contentsOf: journalURL)
+        let data = try PrivateFiles.read(journalURL, limit: 65_536)
         guard data.count < 65_536 else { throw JerdError.corruptConfiguration("The runtime update record is too large.") }
         let journal = try JSONDecoder().decode(Journal.self, from: data)
         guard journal.names == names, journal.present.isSubset(of: Set(names)) else {

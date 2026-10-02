@@ -22,18 +22,37 @@ One Caddy process routes all enabled hostnames. The engine groups sites by
 runtime ID and starts one PHP-FPM master per runtime, each with its own Unix
 socket and generated settings. Sites that select the same runtime share that
 group. All roots, runtimes, and generated settings are checked before startup.
-Changing the active site list rebuilds and restarts the whole environment.
+SiteConfigurationOperation prepares a candidate before it changes saved settings
+or stops live sites. A changed serving plan restarts the whole environment.
+Failed activation restores the previous configuration and attempts to restore its
+run. A failed restore is reported. Unchanged effective settings keep healthy
+processes and listeners. A consumed preparation result avoids a duplicate
+preflight; executable stamps and fresh path checks protect its reuse. Approval
+waits invalidate that result. Startup still validates the final generated files.
 
 The supervisor retains an exited group leader unreaped until group cleanup.
-This prevents PID reuse while it signals the owned group. It never loads a
-PID from disk or selects a process by name. Existing socket directories are
+This prevents PID reuse while it signals the owned group. It does not select a process by name. It gives live descendants their shutdown
+period after the leader exits. Data-service shutdown never escalates to SIGKILL;
+a timeout retains the process, record, and data lock, including after a master
+crash or an early launch failure. Existing socket directories are
 rejected. A new short private path is used for each FPM Unix socket.
 
 The engine checks readiness before reporting running, then watches the owned
 services. If Caddy or any PHP-FPM master exits, all are stopped. The coordinator releases
 the socket lease on failure or stop. A normal app quit waits for cleanup.
-SIGKILL or an app crash can leave runtimes alive. New instances report port
-conflicts; verified recovery across an app crash is still pending.
+SIGKILL or an app crash can leave runtimes alive. Saved records include UID,
+boot/start identity, executable, controller identity, and a kernel audit token.
+Advanced classifies stale, managed, recoverable, and uncertain records. Recovery
+locks the service, verifies that its old controller ended, and sends a graceful
+signal through the audit token. It never falls back to signalling a saved PID.
+Unknown child ownership and legacy records require manual inspection. A recovery
+timeout preserves evidence and never force-kills a data service.
+
+Stop cancels ordinary site preparation and startup. Rollback finishes required
+settings restoration but checks the live Stop request before any restart.
+System changes and runtime activation finish safely; an active macOS consent
+prompt must be completed or cancelled. Quit shows each shutdown stage and
+cancels termination if a data service cannot stop safely.
 
 ## HTTP and TLS
 
@@ -55,8 +74,10 @@ PHP under `/storage` is rejected before FastCGI, including path-info requests
 and directory URLs rewritten to `index.php`.
 [Laravel public storage](https://laravel.com/docs/12.x/filesystem#the-public-disk).
 
-`/.jerd/ready` is a reserved static health response. Readiness checks do not
-execute project code or require a working project home page.
+Each FPM pool must answer a bounded FastCGI request to its private ping endpoint.
+The request has a three-second timeout and a 16 KiB response limit. It runs no
+project file. `/.jerd/ready` is a separate static HTTPS response. The UI reports
+FPM and HTTPS checks separately; neither establishes project health.
 
 Caddy's internal issuer always has `install_trust: false`. The app creates a
 stable installation UUID and a CA named `Jerd Local CA <UUID>`. CA preparation
@@ -83,7 +104,8 @@ connection code-signing requirement APIs. Caller ownership comes from the
 XPC connection's effective UID, not a claimed UID or PID supplied by a client.
 
 XPC offers status, configure a validated hostname list and CA, acquire/release sockets, and
-remove setup. It accepts no command, arbitrary file path, executable, project
+remove setup. Recovery accepts an approved record digest and a restore/remove action.
+It accepts no command, arbitrary file path, executable, project
 root, or network destination. The helper does not spawn processes. Root never
 runs PHP or Caddy.
 
@@ -122,8 +144,11 @@ ignores advisory locks can still race after the last check.
 A durable pending record and hosts backup precede system writes. Normal
 failures restore prior hosts, trust, and registration. Removal also restores
 state if certificate deletion fails. Tests inject partial failures. A crash
-with a pending record blocks further mutation and preserves recovery evidence;
-automated recovery is not implemented.
+with a pending record blocks ordinary mutation. Read-only status reports the
+operation, last known phase, and available recovery actions. Approved recovery
+uses the exact saved CA and changes only the tracked host section, preserving
+unrelated edits. The helper validates the approved journal digest again and keeps
+the original journal and hosts backup. Unknown or corrupt evidence blocks writes.
 
 The helper imports the root into System.keychain. A reverse call on the same authenticated XPC connection requests admin-domain
 trust from the logged-in app. That trust uses one SSL server trustRoot rule
@@ -171,6 +196,10 @@ The launcher replaces itself with the selected PHP through `execv`. It adds the
 companion script path before the user's arguments and places Jerd's bin directory
 first for child commands. It preserves terminal input, output, and exit status.
 It neither starts web services nor changes a project during selection.
+PHPConfigurationPolicy supplies shared UTC, error logging, and version-header
+settings. CLI memory and execution time are unlimited by default; FPM retains
+web limits. Explicit `-n`, `-c`, `-d`, `PHPRC`, and scan-directory settings remain
+available to CLI users. Companion arguments stay after their script path.
 
 ## Runtime supply and release scope
 
@@ -237,8 +266,10 @@ and all record mutations, while different instances can start independently.
 An exclusive file lock prevents two Jerd processes from using the same instance.
 The saved runtime identity must match before existing data can start. A failed
 or interrupted initialization preserves partial data and blocks reinitialization.
-A saved live PID from a previous app session blocks a second server.
-Jerd does not automatically attach to or signal that old process.
+A saved process identity from a previous app session blocks a second server
+until safe recovery. Removing a registration saves its exact runtime metadata.
+Restore registration reuses the original UUID, data, and credentials only after
+identity, initialization, runtime, port, and lock checks succeed.
 
 MySQL uses `--no-defaults`, a private data directory, no X Protocol listener,
 and an initial socket-only bootstrap. That bootstrap sets passwords and creates
@@ -270,7 +301,8 @@ It never enables SO_REUSEPORT. See [Apple socket options](https://developer.appl
 
 The development build embeds the full prepared payload, about 1.1 GB, including
 shared libraries and upstream notices. Runtime installation on demand is available. Smaller release packages, a wider
-tested version range, export/import UI, and crash recovery remain incomplete.
+tested version range and export/import UI remain incomplete. Process recovery is
+available when saved ownership can be verified.
 
 ## Local mail
 
@@ -401,11 +433,15 @@ Postgres.app is mounted read-only, signature checked, and detached after copying
 only its runtime tree. Redis uses the installed compiler with four build jobs
 at most. Laravel uses isolated Composer state with plugins and scripts disabled.
 
-Actual version checks precede an atomic move to a new immutable version folder.
-Each installation retains a file digest receipt and licenses. The bundled CLI
+Actual version checks precede an atomic move to a new immutable build folder.
+The path includes kind, version, architecture, and verified archive SHA-256.
+Two builds of the same version remain distinct. Legacy folders remain usable
+when their receipts match the selected build. Architecture and minimum OS are
+compatibility requirements. Each installation retains a file digest receipt
+and licenses. The bundled CLI
 setup preserves later Composer and Laravel selections across app launches.
-PHP/Caddy activation restarts the web environment and restores the prior
-selection on failure. Explicit site pins are unchanged. Database installations
+PHP/Caddy activation uses the site transaction and changes the web environment
+only when its effective configuration changes. Failure restores the prior selection. Explicit site pins are unchanged. Database installations
 register additional runtimes, and existing services retain their runtime ID.
 
 Mail and storage runtime changes require a stopped, locked service and a private
@@ -416,7 +452,16 @@ Jerd stops the candidate and restores the saved data and settings. A shutdown
 timeout never forces a data service to exit or restores files under a live
 process. Startup recovers an interrupted update only after the previous-process
 check and file lock succeed. Successful backups and failed candidate files are
-kept. This is distinct from adopting an orphan process after an app crash.
+kept. Advanced shows their size and purpose. Explicit deletion takes the service
+lock, rejects surviving processes, and protects all backups while any recovery
+journal remains. Current data is outside the deletion target.
+
+Process logs use append descriptors so a crashed app does not break runtime
+output pipes. The supervisor trims logs on the same inode once per second above
+8 MiB, retaining 4 MiB of recent output. Command logs also keep the first 1 MiB
+for parsers. A write burst can exceed the threshold between checks; concurrent
+output at the trim boundary is diagnostic and can be lost or reordered.
+Orphans can keep writing while the app is absent. See [recovery limits](Reference.md#data-preservation-and-recovery-limits).
 
 The runtime checks follow these publisher and format references.
 

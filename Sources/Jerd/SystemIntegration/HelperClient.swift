@@ -32,6 +32,7 @@ actor HelperClient: SystemIntegrating {
     func isEnabled() -> Bool { SMAppService.daemon(plistName: SystemService.plistName).status == .enabled }
 
     func status() async throws -> SystemSetupStatus {
+        guard isEnabled() else { return SystemSetupStatus() }
         let data: Data = try await call { proxy, reply in
             proxy.status { data, error in
                 if let data { reply.resolve(.success(data)) }
@@ -92,6 +93,19 @@ actor HelperClient: SystemIntegrating {
         connection?.invalidate()
         connection = nil
         try await SMAppService.daemon(plistName: SystemService.plistName).unregister()
+    }
+
+    func recover(_ report: SystemRecoveryStatus, action: SystemRecoveryAction) async throws {
+        try consent.authorize(installationID: report.installationID, certificateDER: report.certificateDER,
+            hostnames: Set(report.previousHostnames + report.intendedHostnames), policies: Set(report.policies))
+        defer { consent.clear() }
+        let data = try JSONEncoder().encode(SystemRecoveryApproval(recordID: report.id, action: action))
+        let _: Bool = try await call(timeout: nil) { proxy, reply in
+            proxy.recoverSetup(data) { error in
+                if let error { reply.resolve(.failure(JerdError.unavailable(error))) }
+                else { reply.resolve(.success(true)) }
+            }
+        }
     }
 
     func invalidate() { connection?.invalidate(); connection = nil; connectionID = nil }

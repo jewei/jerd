@@ -20,6 +20,10 @@ public struct ProcessRequest: Sendable {
 public struct CommandResult: Sendable {
     public let status: Int32
     public let output: String
+    public let diagnosticOutput: String
+    public init(status: Int32, output: String, diagnosticOutput: String? = nil) {
+        self.status = status; self.output = output; self.diagnosticOutput = diagnosticOutput ?? output
+    }
 }
 
 public protocol CommandRunning: Sendable {
@@ -39,7 +43,13 @@ public protocol ProcessControlling: Sendable {
 public actor ProcessSupervisor: ProcessControlling {
     private var children: [UUID: pid_t] = [:]
     private var stopping: Set<UUID> = []
-    public init() {}
+    private var logs: [UUID: URL] = [:]
+    private var logMaintenance: Task<Void, Never>?
+    private let logPrefixBytes: Int
+    private let gracefulTimeout: Duration
+    public init() { logPrefixBytes = 0; gracefulTimeout = .seconds(30) }
+    init(logPrefixBytes: Int) { self.logPrefixBytes = logPrefixBytes; gracefulTimeout = .seconds(30) }
+    init(gracefulTimeout: Duration) { self.gracefulTimeout = gracefulTimeout; logPrefixBytes = 0 }
 
     public func start(_ request: ProcessRequest, log: URL) throws -> UUID {
         guard geteuid() != 0 else { throw JerdError.process("Jerd cannot run runtime processes as root.") }
@@ -104,6 +114,16 @@ public actor ProcessSupervisor: ProcessControlling {
         try checked(result)
         let id = UUID()
         children[id] = pid
+        logs[id] = log
+        if logMaintenance == nil {
+            logMaintenance = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    guard !Task.isCancelled, let self else { return }
+                    await self.trimLogs()
+                }
+            }
+        }
         return id
     }
 
@@ -115,6 +135,15 @@ public actor ProcessSupervisor: ProcessControlling {
     public func processIdentifier(_ id: UUID) -> Int32? {
         guard let pid = children[id], status(pid) == nil else { return nil }
         return pid
+    }
+
+    /// An exited, unreaped master still reserves its process group. Managers
+    /// must retain that ownership until every child has stopped safely.
+    func ownedProcessIdentifier(_ id: UUID) -> Int32? {
+        guard let pid = children[id] else { return nil }
+        var info = siginfo_t(), result: Int32
+        repeat { result = waitid(P_PID, id_t(pid), &info, WEXITED | WNOHANG | WNOWAIT) } while result < 0 && errno == EINTR
+        return result == 0 ? pid : nil
     }
 
     public func exitStatus(_ id: UUID) -> Int32? {
@@ -135,6 +164,7 @@ public actor ProcessSupervisor: ProcessControlling {
         repeat { ownershipResult = waitid(P_PID, id_t(pid), &ownership, WEXITED | WNOHANG | WNOWAIT) } while ownershipResult < 0 && errno == EINTR
         guard ownershipResult == 0 else {
             children[id] = nil
+            finishLog(id)
             stopping.remove(id)
             return
         }
@@ -143,18 +173,19 @@ public actor ProcessSupervisor: ProcessControlling {
         // Signal only the group created by this supervisor. The unreaped leader
         // reserves the group ID, including after an unexpected master exit.
         _ = kill(-pid, SIGTERM)
-        await waitForExit(pid, seconds: 2)
+        await waitForGroup(pid, seconds: 2)
         _ = kill(-pid, SIGKILL)
         await waitForExit(pid)
         var rawStatus: Int32 = 0
         while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
         children[id] = nil
+        finishLog(id)
         stopping.remove(id)
     }
 
     /// Database shutdown must not escalate to SIGKILL. A timeout retains the
     /// owned child so the caller can report it and retry without losing data.
-    public func stopGracefully(_ id: UUID, signal: Int32 = SIGTERM, timeout: Duration = .seconds(30)) async -> Bool {
+    public func stopGracefully(_ id: UUID, signal: Int32 = SIGTERM, timeout: Duration? = nil) async -> Bool {
         guard let pid = children[id] else { return true }
         if stopping.contains(id) {
             await waitUntilStopped(id)
@@ -167,16 +198,56 @@ public actor ProcessSupervisor: ProcessControlling {
         repeat { result = waitid(P_PID, id_t(pid), &ownership, WEXITED | WNOHANG | WNOWAIT) } while result < 0 && errno == EINTR
         guard result == 0 else {
             children[id] = nil
+            finishLog(id)
             return false
         }
         if status(pid) == nil { _ = kill(pid, signal) }
-        let deadline = ContinuousClock.now + timeout
+        let deadline = ContinuousClock.now + (timeout ?? gracefulTimeout)
         await waitForExit(pid, deadline: deadline)
         guard status(pid) != nil else { return false }
+        if Self.hasLiveDescendants(of: pid) { _ = kill(-pid, SIGTERM) }
+        while Self.hasLiveDescendants(of: pid), ContinuousClock.now < deadline {
+            await Task.detached { try? await Task.sleep(for: .milliseconds(25)) }.value
+        }
+        guard !Self.hasLiveDescendants(of: pid) else { return false }
         var rawStatus: Int32 = 0
         while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
         children[id] = nil
+        finishLog(id)
         return true
+    }
+
+    private func waitForGroup(_ pid: pid_t, seconds: Int) async {
+        let deadline = ContinuousClock.now + .seconds(seconds)
+        await Task.detached { [self] in
+            while ContinuousClock.now < deadline {
+                if await status(pid) != nil, Self.hasLiveDescendants(of: pid) == false { return }
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+        }.value
+    }
+
+    private static func hasLiveDescendants(of leader: pid_t) -> Bool {
+        var pids = [pid_t](repeating: 0, count: 4096)
+        let size = pids.count * MemoryLayout<pid_t>.size
+        let count = proc_listpgrppids(leader, &pids, Int32(size))
+        guard count >= 0, count < pids.count else { return true }
+        for pid in pids.prefix(Int(count)) where pid > 1 && pid != leader {
+            var info = proc_bsdinfo()
+            let read = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout.size(ofValue: info)))
+            if read == MemoryLayout.size(ofValue: info), info.pbi_status != SZOMB { return true }
+            if read == 0, errno != ESRCH { return true }
+        }
+        return false
+    }
+
+    private func trimLogs() {
+        for file in logs.values { try? ProcessLog.trim(file, prefixBytes: logPrefixBytes) }
+    }
+
+    private func finishLog(_ id: UUID) {
+        if let file = logs.removeValue(forKey: id) { try? ProcessLog.trim(file, prefixBytes: logPrefixBytes) }
+        if logs.isEmpty { logMaintenance?.cancel(); logMaintenance = nil }
     }
 
     private func waitForExit(_ pid: pid_t, seconds: Int) async {
@@ -223,7 +294,7 @@ public struct LocalCommandRunner: CommandRunning {
     public func run(_ request: ProcessRequest, timeout: Duration = .seconds(15)) async throws -> CommandResult {
         // Each invocation owns its supervisor and files, including cancellation cleanup.
         let task = Task.detached {
-            let supervisor = ProcessSupervisor()
+            let supervisor = ProcessSupervisor(logPrefixBytes: 1_048_576)
             let log = request.directory.appendingPathComponent("command-\(UUID().uuidString).log")
             defer { try? FileManager.default.removeItem(at: log) }
             let id = try await supervisor.start(request, log: log)
@@ -235,11 +306,10 @@ public struct LocalCommandRunner: CommandRunning {
                 let timedOut = await supervisor.isRunning(id)
                 let status = await supervisor.exitStatus(id)
                 await supervisor.stopAll()
-                let reader = try FileHandle(forReadingFrom: log)
-                defer { try? reader.close() }
-                let data = try reader.read(upToCount: 1_048_576) ?? Data()
-                guard !timedOut else { throw JerdError.process("Command timed out: \(request.executable.path)") }
-                return CommandResult(status: status ?? -1, output: String(decoding: data, as: UTF8.self))
+                let output = try ProcessLog.read(log)
+                let tail = try ProcessLog.read(log, limit: 65_536, tail: true)
+                guard !timedOut else { throw JerdError.process("Command timed out: \(request.executable.path)\n\(tail.suffix(4096))") }
+                return CommandResult(status: status ?? -1, output: output, diagnosticOutput: tail)
             } catch {
                 await supervisor.stopAll()
                 throw error

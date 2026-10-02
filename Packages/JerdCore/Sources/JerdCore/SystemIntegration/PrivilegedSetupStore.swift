@@ -18,7 +18,7 @@ public extension CertificateTrustManaging {
 /// One installation owns a set of registered hostnames. The helper supplies fixed paths.
 /// All operations are serialized. Other users cannot change this user's setup.
 public actor PrivilegedSetupStore {
-    private struct Registration: Codable {
+    private struct Registration: Codable, Equatable {
         var schemaVersion = 3
         let ownerUID: uid_t
         let installationID: UUID
@@ -51,11 +51,30 @@ public actor PrivilegedSetupStore {
             try values.encode(trustPolicy, forKey: .trustPolicy)
         }
     }
+    private struct Journal: Codable {
+        var schemaVersion = 1
+        let operation: String
+        let previous: Registration?
+        let previousBytes: Data?
+        let intended: Registration?
+        let hostsSHA256: String
+        var phase: String
+    }
+    private struct Pending {
+        let bytes: Data
+        let journal: Journal?
+        let reference: Registration
+        let previous: Registration?
+        let intended: Registration?
+        var id: String { InstallationCertificate.fingerprint(bytes) }
+    }
     private let directory: URL
     private let expectedFileOwner: uid_t
     private let hosts: AtomicHostsFile
     private let certificates: any CertificateTrustManaging
     private var recordURL: URL { directory.appendingPathComponent("registration.json") }
+    private var pendingURL: URL { directory.appendingPathComponent("pending.json") }
+    private var mutation = false
 
     public init(directory: URL, expectedFileOwner: uid_t, hosts: AtomicHostsFile,
                 certificates: any CertificateTrustManaging) {
@@ -64,6 +83,14 @@ public actor PrivilegedSetupStore {
     }
 
     public func status(ownerUID: uid_t) throws -> SystemSetupStatus {
+        if FileManager.default.fileExists(atPath: pendingURL.path) {
+            let pending = try readPending(ownerUID)
+            var result = SystemSetupStatus(hostnames: pending.reference.hostnames,
+                installationID: pending.reference.installationID, certificateSHA256: InstallationCertificate.fingerprint(pending.reference.certificateDER),
+                certificateDER: pending.reference.certificateDER, trustPolicy: pending.reference.trustPolicy)
+            result.recovery = try recoveryStatus(pending, ownerUID: ownerUID)
+            return result
+        }
         guard let record = try ownedRecord(ownerUID) else { return SystemSetupStatus() }
         return SystemSetupStatus(hostnames: record.hostnames, installationID: record.installationID,
             certificateSHA256: InstallationCertificate.fingerprint(record.certificateDER),
@@ -75,6 +102,7 @@ public actor PrivilegedSetupStore {
 
     public func configure(_ request: SystemRegistrationRequest, ownerUID: uid_t,
                           trustManager: (any CertificateTrustManaging)? = nil) async throws {
+        try beginMutation(); defer { mutation = false }
         let certificates = trustManager ?? self.certificates
         guard ownerUID != 0 else { throw JerdError.invalid("Root cannot own a Jerd project environment.") }
         let hostnames = try Hostname.validatedSet(request.hostnames)
@@ -92,23 +120,30 @@ public actor PrivilegedSetupStore {
         try prepareDirectory()
         // Keep a durable recovery record before crossing the hosts/trust boundary.
         try PrivateFiles.write(before, to: directory.appendingPathComponent("hosts.previous"))
-        try PrivateFiles.write(try JSONEncoder().encode(next), to: directory.appendingPathComponent("pending.json"))
+        var journal = Journal(operation: "Configure HTTPS", previous: previous,
+            previousBytes: previous == nil ? nil : try PrivateFiles.read(recordURL, limit: 131_072, owner: expectedFileOwner),
+            intended: next, hostsSHA256: InstallationCertificate.fingerprint(before), phase: "Prepared; system writes have not started")
+        try writeJournal(journal)
         var changedHosts = false
         var changedTrust = false
         var changedRecord = false
         do {
             try hosts.replace(expected: before, with: after)
             changedHosts = true
+            journal.phase = "Host entries were written"; try writeJournal(journal)
             do {
+                journal.phase = "Certificate approval started; its result may be unknown"; try writeJournal(journal)
                 try await certificates.install(request.certificateDER, hostnames: hostnames,
                                                policy: request.trustPolicy, replacingOwned: previous != nil)
                 changedTrust = true
+                journal.phase = "Certificate trust was written"; try writeJournal(journal)
             } catch {
                 if case JerdError.partialChange = error { changedTrust = true }
                 throw error
             }
             try PrivateFiles.write(try JSONEncoder().encode(next), to: recordURL)
             changedRecord = true
+            journal.phase = "Registration was written"; try writeJournal(journal)
             try FileManager.default.removeItem(at: directory.appendingPathComponent("pending.json"))
         } catch {
             var recoveryErrors: [String] = []
@@ -140,18 +175,26 @@ public actor PrivilegedSetupStore {
     }
 
     public func remove(ownerUID: uid_t, trustManager: (any CertificateTrustManaging)? = nil) async throws {
+        try beginMutation(); defer { mutation = false }
         let certificates = trustManager ?? self.certificates
         guard let record = try ownedRecord(ownerUID) else { return }
         let before = try hosts.read()
         let after = try HostsDocument.replacing(before, hostnames: [], expectedHostnames: record.hostnames)
         try PrivateFiles.write(before, to: directory.appendingPathComponent("hosts.previous"))
-        try PrivateFiles.write(try JSONEncoder().encode(record), to: directory.appendingPathComponent("pending.json"))
+        var journal = Journal(operation: "Remove HTTPS", previous: record,
+            previousBytes: try PrivateFiles.read(recordURL, limit: 131_072, owner: expectedFileOwner),
+            intended: nil, hostsSHA256: InstallationCertificate.fingerprint(before), phase: "Prepared; system writes have not started")
+        try writeJournal(journal)
         var changedHosts = false
         do {
             try hosts.replace(expected: before, with: after)
             changedHosts = true
+            journal.phase = "Host entries were removed"; try writeJournal(journal)
+            journal.phase = "Certificate removal started; its result may be unknown"; try writeJournal(journal)
             try await certificates.remove(record.certificateDER)
+            journal.phase = "Certificate was removed"; try writeJournal(journal)
             try FileManager.default.removeItem(at: recordURL)
+            journal.phase = "Registration was removed"; try writeJournal(journal)
             try FileManager.default.removeItem(at: directory.appendingPathComponent("pending.json"))
         } catch {
             var failures: [String] = []
@@ -173,21 +216,139 @@ public actor PrivilegedSetupStore {
         try? FileManager.default.removeItem(at: directory.appendingPathComponent("hosts.previous"))
     }
 
-    private func ownedRecord(_ ownerUID: uid_t) throws -> Registration? {
-        guard !FileManager.default.fileExists(atPath: directory.appendingPathComponent("pending.json").path) else {
+    private func ownedRecord(_ ownerUID: uid_t, allowPending: Bool = false) throws -> Registration? {
+        guard allowPending || !FileManager.default.fileExists(atPath: pendingURL.path) else {
             throw JerdError.unavailable("A previous system setup was interrupted. A recovery record is retained in the helper directory. Do not overwrite it.")
         }
         guard FileManager.default.fileExists(atPath: recordURL.path) else { return nil }
-        var info = stat()
-        guard lstat(recordURL.path, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
-              info.st_uid == expectedFileOwner, info.st_size <= 131_072 else {
-            throw JerdError.corruptConfiguration("The helper registration file has an invalid owner, type, or size.")
-        }
-        let record = try JSONDecoder().decode(Registration.self, from: Data(contentsOf: recordURL))
+        let record = try JSONDecoder().decode(Registration.self, from: PrivateFiles.read(recordURL, limit: 131_072, owner: expectedFileOwner))
         guard record.schemaVersion == 3, record.ownerUID == ownerUID else {
             throw JerdError.unavailable("The system setup belongs to another user or uses an unsupported version.")
         }
         return record
+    }
+
+    public func recover(_ approval: SystemRecoveryApproval, ownerUID: uid_t,
+                        trustManager: (any CertificateTrustManaging)? = nil) async throws {
+        try beginMutation(); defer { mutation = false }
+        let certificates = trustManager ?? self.certificates
+        let pending = try readPending(ownerUID)
+        let report = try recoveryStatus(pending, ownerUID: ownerUID)
+        guard approval.recordID == report.id else { throw JerdError.unavailable("The recovery record changed. Inspect it and approve recovery again.") }
+        guard approval.action == .restorePrevious ? report.canRestore : report.canRemove else {
+            throw JerdError.unavailable("The recorded system state needs manual inspection. No recovery change was made.")
+        }
+        let target = approval.action == .restorePrevious ? pending.previous : nil
+        let current = try hosts.read()
+        let after = try restoredHosts(current, pending: pending, target: target?.hostnames ?? [])
+        // Keep the original journal and backup even if another recovery step fails.
+        try PrivateFiles.write(pending.bytes, to: directory.appendingPathComponent("recovery.previous.json"))
+        var journal = pending.journal
+        journal?.phase = "Approved recovery started; inspect current state before retrying"
+        if let journal { try writeJournal(journal) }
+        try hosts.replace(expected: current, with: after)
+        journal?.phase = "Recovery host entries were written; certificate change is pending"
+        if let journal { try writeJournal(journal) }
+        if let target {
+            try await certificates.install(target.certificateDER, hostnames: target.hostnames,
+                                           policy: target.trustPolicy, replacingOwned: true)
+            journal?.phase = "Recovery certificate trust was written"
+            if let journal { try writeJournal(journal) }
+            if let bytes = pending.journal?.previousBytes { try PrivateFiles.write(bytes, to: recordURL) }
+            else { try PrivateFiles.write(JSONEncoder().encode(target), to: recordURL) }
+        } else {
+            try await certificates.remove(pending.reference.certificateDER)
+            journal?.phase = "Recovery certificate was removed"
+            if let journal { try writeJournal(journal) }
+            if FileManager.default.fileExists(atPath: recordURL.path) { try FileManager.default.removeItem(at: recordURL) }
+        }
+        try FileManager.default.removeItem(at: pendingURL)
+    }
+
+    private func recoveryStatus(_ pending: Pending, ownerUID: uid_t) throws -> SystemRecoveryStatus {
+        var details = [String]()
+        let current = try hosts.read()
+        var recordKnown = true
+        do {
+            if let actual = try ownedRecord(ownerUID, allowPending: true), actual != pending.previous && actual != pending.intended {
+                recordKnown = false
+                details.append("The saved registration differs from this transaction. Inspect it manually.")
+            }
+        } catch { recordKnown = false; details.append(error.localizedDescription) }
+        var backupValid = false
+        if let journal = pending.journal {
+            do {
+                let backup = try PrivateFiles.read(directory.appendingPathComponent("hosts.previous"), limit: 1_048_576, owner: expectedFileOwner)
+                backupValid = InstallationCertificate.fingerprint(backup) == journal.hostsSHA256
+            } catch { details.append(error.localizedDescription) }
+            details.append(backupValid ? "The original host-file backup is present and matches its record." : "The original host-file backup is missing or changed. Automatic restoration is blocked.")
+        } else {
+            details.append("This legacy record does not identify the interrupted operation. You can remove the recorded setup after approval, then enable HTTPS again.")
+        }
+        let canRemoveHosts = (try? restoredHosts(current, pending: pending, target: [])) != nil
+        let canRestoreHosts = (try? restoredHosts(current, pending: pending, target: pending.previous?.hostnames ?? [])) != nil
+        details.append(canRemoveHosts ? "The current Jerd host section matches a recorded state. Unrelated host entries will be retained." : "The Jerd host section changed outside this transaction. Inspect the host file manually.")
+        let trusted = try? certificates.isInstalled(pending.reference.certificateDER, hostnames: pending.reference.hostnames, policy: pending.reference.trustPolicy)
+        details.append(trusted == true ? "The recorded certificate trust is currently present." : "The recorded certificate trust is absent or could not be confirmed.")
+        details.append("Recovery changes only the recorded Jerd host section, certificate, and registration. The operation can request macOS approval.")
+        return SystemRecoveryStatus(id: pending.id, operation: pending.journal?.operation ?? "Interrupted legacy HTTPS setup",
+            phase: pending.journal?.phase ?? "Unknown", details: details,
+            canRestore: pending.journal != nil && backupValid && recordKnown && canRestoreHosts,
+            canRemove: recordKnown && canRemoveHosts, installationID: pending.reference.installationID,
+            certificateDER: pending.reference.certificateDER, previousHostnames: pending.previous?.hostnames ?? [],
+            intendedHostnames: pending.intended?.hostnames ?? [],
+            policies: Array(Set([pending.reference.trustPolicy] + (pending.previous.map { [$0.trustPolicy] } ?? []))))
+    }
+
+    private func restoredHosts(_ current: Data, pending: Pending, target: [String]) throws -> Data {
+        for expected in [pending.previous?.hostnames ?? [], pending.intended?.hostnames ?? [], []] {
+            if HostsDocument.containsRegistrations(expected, in: current) {
+                return try HostsDocument.replacing(current, hostnames: target, expectedHostnames: expected)
+            }
+        }
+        throw JerdError.unavailable("The current Jerd host section does not match the recovery record.")
+    }
+
+    private func readPending(_ owner: uid_t) throws -> Pending {
+        let bytes = try PrivateFiles.read(pendingURL, limit: 262_144, owner: expectedFileOwner)
+        let decoder = JSONDecoder()
+        if let journal = try? decoder.decode(Journal.self, from: bytes) {
+            guard journal.schemaVersion == 1, ["Configure HTTPS", "Remove HTTPS"].contains(journal.operation),
+                  let reference = journal.intended ?? journal.previous else { throw JerdError.corruptConfiguration("The helper recovery record is invalid. It was preserved.") }
+            try validateRecoveryOwner(reference, owner)
+            for record in [journal.previous, journal.intended].compactMap({ $0 }) {
+                try validateRecoveryOwner(record, owner)
+                guard record.installationID == reference.installationID, record.certificateDER == reference.certificateDER else {
+                    throw JerdError.corruptConfiguration("The recovery certificates do not match. Inspect the records manually.")
+                }
+            }
+            if let previous = journal.previous {
+                guard let data = journal.previousBytes, try decoder.decode(Registration.self, from: data) == previous else {
+                    throw JerdError.corruptConfiguration("The previous registration does not match the recovery record.")
+                }
+            } else if journal.previousBytes != nil { throw JerdError.corruptConfiguration("The previous registration is invalid.") }
+            return Pending(bytes: bytes, journal: journal, reference: reference, previous: journal.previous, intended: journal.intended)
+        }
+        let legacy = try decoder.decode(Registration.self, from: bytes)
+        try validateRecoveryOwner(legacy, owner)
+        let current = try ownedRecord(owner, allowPending: true)
+        if let current {
+            guard current.installationID == legacy.installationID, current.certificateDER == legacy.certificateDER else {
+                throw JerdError.corruptConfiguration("The legacy recovery record differs from the registration. Inspect both records manually.")
+            }
+        }
+        return Pending(bytes: bytes, journal: nil, reference: legacy, previous: current, intended: legacy)
+    }
+
+    private func validateRecoveryOwner(_ record: Registration, _ owner: uid_t) throws {
+        guard owner != 0, record.ownerUID == owner else { throw JerdError.unavailable("This recovery record belongs to another user.") }
+        try certificates.validate(record.certificateDER, installationID: record.installationID)
+    }
+
+    private func writeJournal(_ journal: Journal) throws { try PrivateFiles.write(JSONEncoder().encode(journal), to: pendingURL) }
+    private func beginMutation() throws {
+        guard !mutation else { throw JerdError.unavailable("Wait for the current system operation to finish.") }
+        mutation = true
     }
 
     private func prepareDirectory() throws {

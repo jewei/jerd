@@ -15,7 +15,10 @@ do {
     guard FileManager.default.isExecutableFile(atPath: executable) else {
         throw JerdError.unavailable("PHP \(selection.runtime.version) selected for \(selection.site?.hostname ?? "the default") is unavailable: \(executable)")
     }
-    var arguments = [executable]
+    let policy = try PHPConfigurationPolicy.cli(arguments: Array(CommandLine.arguments.dropFirst()), command: command,
+        directory: directory.appendingPathComponent("runtimes/configuration"), environment: ProcessInfo.processInfo.environment)
+    var arguments = [executable] + policy.arguments
+    for (key, value) in policy.environment { setenv(key, value, 1) }
     if command != "php" {
         let tools = try JSONDecoder().decode(CLICompanions.self,
             from: Data(contentsOf: directory.appendingPathComponent("runtimes/cli-tools.json")))

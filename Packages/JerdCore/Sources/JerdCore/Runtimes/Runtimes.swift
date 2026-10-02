@@ -84,7 +84,7 @@ public struct DevelopmentRuntimeProvider: Sendable {
         let result = try await runner.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/lipo"),
                                                         arguments: ["-archs", executable.path], directory: directory),
                                           timeout: .seconds(10))
-        guard result.status == 0 else { throw JerdError.invalid("Cannot inspect Mach-O architecture: \(executable.path). \(result.output)") }
+        guard result.status == 0 else { throw JerdError.invalid("Cannot inspect Mach-O architecture: \(executable.path). \(result.diagnosticOutput)") }
         return Set(result.output.split(whereSeparator: \.isWhitespace)
             .compactMap { CPUArchitecture(rawValue: String($0)) }).sorted { $0.rawValue < $1.rawValue }
     }
@@ -94,7 +94,7 @@ public struct DevelopmentRuntimeProvider: Sendable {
                                                         directory: directory,
                                                         environment: ["PHP_INI_SCAN_DIR": directory.appendingPathComponent("empty-ini").path]),
                                           timeout: .seconds(15))
-        guard result.status == 0 else { throw JerdError.process("Runtime inspection failed: \(result.output)") }
+        guard result.status == 0 else { throw JerdError.process("Runtime inspection failed: \(result.diagnosticOutput)") }
         return result.output
     }
 }

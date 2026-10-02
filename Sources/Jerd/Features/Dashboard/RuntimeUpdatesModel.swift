@@ -68,7 +68,7 @@ final class RuntimeUpdatesModel {
         catch { errors[release.kind] = error.localizedDescription; return }
         installing = release.kind; errors[release.kind] = nil; messages[release.kind] = nil
         let php = model.configuration.runtimes.first { $0.id == model.configuration.defaultRuntimeID }
-        work = Task {
+        work = Task { [self] in
             defer {
                 model.endBackgroundWork(generation)
                 installing = nil; progress = nil; isActivating = false; work = nil
@@ -115,14 +115,15 @@ final class RuntimeUpdatesModel {
         return Set(values).sorted { (RuntimeVersion($0) ?? RuntimeVersion("0.0")!) > (RuntimeVersion($1) ?? RuntimeVersion("0.0")!) }
     }
     func isInstalled(_ release: RuntimeRelease, model: AppModel) -> Bool {
-        if release.kind == .postgresql {
-            // The bootstrap is Postgres.app 2.9.6, which provides PostgreSQL 18.6.
-            // Later downloads retain both the package and engine versions in their receipt.
-            return installed.contains { downloaded in
-                downloaded.id == release.id && model.databases.configuration.runtimes.contains { $0.path == downloaded.directory.path }
-            } ||
-                (release.version == "2.9.6" && installedVersions(.postgresql, model: model).contains("18.6"))
+        guard let build = installed.first(where: { $0.matches(release) }) else { return false }
+        switch release.kind {
+        case .php: return model.configuration.runtimes.contains { $0.cliPath == build.executable.path }
+        case .caddy: return model.configuration.caddy?.path == build.executable.path
+        case .composer: return companions?.composerPath == build.executable.path
+        case .laravel: return companions?.laravelPath == build.executable.path
+        case .mysql, .postgresql, .redis: return model.databases.configuration.runtimes.contains { $0.path == build.directory.path }
+        case .mailpit: return model.mail.configuration.runtime?.path == build.directory.path
+        case .rustfs: return model.storage.configuration.runtime?.path == build.directory.path
         }
-        return installedVersions(release.kind, model: model).contains(release.version)
     }
 }

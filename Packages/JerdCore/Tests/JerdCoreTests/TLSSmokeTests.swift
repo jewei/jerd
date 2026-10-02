@@ -215,6 +215,50 @@ struct TLSSmokeTests {
             #expect(redirect.output.contains("308"))
             #expect(redirect.output.lowercased().contains("location: https://\(site.hostname):\(httpsPort)/hello.txt"))
 
+            let policyCode = """
+            $keys = ['date.timezone', 'expose_php', 'log_errors', 'memory_limit', 'max_execution_time', 'display_errors', 'opcache.enable_cli'];
+            $settings = []; foreach ($keys as $key) { $settings[$key] = ini_get($key); }
+            $modules = get_loaded_extensions(); sort($modules);
+            echo json_encode(['settings' => $settings, 'modules' => $modules, 'ini' => php_ini_loaded_file()]);
+            """
+            try Data(("<?php " + policyCode).utf8).write(to: project.appendingPathComponent("policy.php"))
+            let fpmPolicy = try #require(JSONSerialization.jsonObject(with: Data(try await curl("/policy.php").output.utf8)) as? [String: Any])
+            func cliPolicy(_ options: [String] = [], environment: [String: String] = [:]) async throws -> [String: Any] {
+                let arguments = options + ["-r", policyCode]
+                let policy = try PHPConfigurationPolicy.cli(arguments: arguments,
+                    directory: root.appendingPathComponent("cli-policy"), environment: environment)
+                let result = try await LocalCommandRunner().run(ProcessRequest(executable: cli,
+                    arguments: policy.arguments + arguments, directory: root,
+                    environment: environment.merging(policy.environment) { _, value in value }), timeout: .seconds(5))
+                #expect(result.status == 0, "\(result.diagnosticOutput)")
+                return try #require(JSONSerialization.jsonObject(with: Data(result.output.utf8)) as? [String: Any])
+            }
+            let cliPolicyResult = try await cliPolicy()
+            let fpmSettings = try #require(fpmPolicy["settings"] as? [String: String])
+            let cliSettings = try #require(cliPolicyResult["settings"] as? [String: String])
+            for key in ["date.timezone", "expose_php", "log_errors"] { #expect(cliSettings[key] == fpmSettings[key]) }
+            #expect(cliSettings["date.timezone"] == "UTC")
+            #expect(cliSettings["memory_limit"] == "-1" && fpmSettings["memory_limit"] == "256M")
+            #expect(cliSettings["max_execution_time"] == "0" && fpmSettings["max_execution_time"] == "30")
+            #expect(cliPolicyResult["modules"] as? [String] == runtime.cliExtensions.sorted())
+            #expect(fpmPolicy["modules"] as? [String] == runtime.fpmExtensions.sorted())
+            let overrides = try await cliPolicy(["-d", "date.timezone=Asia/Tokyo", "-d", "memory_limit=64M"])
+            #expect((overrides["settings"] as? [String: String])?["date.timezone"] == "Asia/Tokyo")
+            #expect((overrides["settings"] as? [String: String])?["memory_limit"] == "64M")
+            #expect(try await cliPolicy(["-n"])["ini"] as? Bool == false)
+            let customINI = root.appendingPathComponent("custom.ini")
+            try Data("date.timezone=Pacific/Auckland\nmemory_limit=96M\n".utf8).write(to: customINI)
+            for result in [try await cliPolicy(["-c", customINI.path]), try await cliPolicy(environment: ["PHPRC": customINI.path])] {
+                #expect((result["settings"] as? [String: String])?["date.timezone"] == "Pacific/Auckland")
+                #expect((result["settings"] as? [String: String])?["memory_limit"] == "96M")
+            }
+
+            let scan = root.appendingPathComponent("custom-scan")
+            try PrivateFiles.directory(scan)
+            try Data("date.timezone=Europe/Paris\n".utf8).write(to: scan.appendingPathComponent("90-user.ini"))
+            let scanned = try await cliPolicy(environment: ["PHP_INI_SCAN_DIR": scan.path])
+            #expect((scanned["settings"] as? [String: String])?["date.timezone"] == "Europe/Paris")
+
             // Verify failure is closed after the real FPM master is stopped.
             await processes.stopPHP()
             let unavailable = try await curl("/index.php", extra: ["--fail"])

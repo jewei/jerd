@@ -3,7 +3,7 @@ import CArchive
 
 /// Extracts only regular files. Internal archive links become regular copies.
 enum RuntimeArchive {
-    static func extract(_ source: URL, to destination: URL, stripRoot: Bool = false,
+    static func extract(_ source: URL, to destination: URL, stripRoot: Bool = false, outputLimit: Int64 = 2_000_000_000,
                         selected: (String) -> Bool = { _ in true }) throws {
         guard let reader = archive_read_new() else { throw JerdError.unavailable("Cannot open the runtime archive.") }
         defer { archive_read_free(reader) }
@@ -17,6 +17,7 @@ enum RuntimeArchive {
         var entry: OpaquePointer?
         var files = Set<String>(), names = Set<String>()
         var links: [String: String] = [:]
+        var fileSizes: [String: Int64] = [:]
         var archiveRoot: String?
         var count = 0, total: Int64 = 0
         var buffer = [UInt8](repeating: 0, count: 1_048_576)
@@ -55,7 +56,7 @@ enum RuntimeArchive {
             let size = archive_entry_size(entry)
             guard size >= 0, size <= 512_000_000 else { throw JerdError.invalid("An archive file exceeds its size limit.") }
             total += size
-            guard total <= 2_000_000_000 else { throw JerdError.invalid("The runtime archive exceeds its size limit.") }
+            guard total <= outputLimit else { throw JerdError.invalid("The runtime archive exceeds its size limit.") }
             guard selected(name), type != 0o040000 else { continue }
             let key = name.precomposedStringWithCanonicalMapping.lowercased()
             guard names.insert(key).inserted else { throw JerdError.invalid("The archive contains duplicate file paths.") }
@@ -82,14 +83,19 @@ enum RuntimeArchive {
             } catch { try? handle.close(); throw error }
             guard written == size else { throw JerdError.invalid("An archive file is incomplete.") }
             files.insert(name)
+            fileSizes[name] = written
         }
         for (name, initial) in links {
+            try Task.checkCancellation()
             var target = initial, visited: Set<String> = [name]
             while let next = links[target] {
                 guard visited.insert(target).inserted else { throw JerdError.invalid("The archive has a link cycle.") }
                 target = next
             }
             guard files.contains(target) else { throw JerdError.invalid("An archive link does not refer to an included file.") }
+            let size = fileSizes[target]!
+            guard size <= outputLimit - total else { throw JerdError.invalid("The runtime archive exceeds its size limit after copying links.") }
+            total += size
             let output = destination.appendingPathComponent(name)
             try PrivateFiles.directory(output.deletingLastPathComponent())
             try FileManager.default.copyItem(at: destination.appendingPathComponent(target), to: output)

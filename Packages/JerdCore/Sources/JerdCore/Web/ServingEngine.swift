@@ -36,9 +36,13 @@ public protocol EngineServing: Sendable {
                httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets?) async throws
     func requestStop() async
     func stop() async
+    func preflight(_ configuration: WebConfiguration, paths: EnginePaths) async throws
+    func isHealthy() async -> Bool
 }
 
 public extension EngineServing {
+    func preflight(_ configuration: WebConfiguration, paths: EnginePaths) async throws {}
+    func isHealthy() async -> Bool { await state == .running }
     func start(site: Site, runtime: DevelopmentRuntime, caddy: CaddyRuntime, paths: EnginePaths,
                httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets? = nil) async throws {
         try await start(sites: [SiteRuntime(site: site, runtime: runtime)], caddy: caddy, paths: paths,
@@ -53,6 +57,7 @@ public actor ServingEngine: EngineServing {
     public let trust: TrustState = .setupRequired
     private let processes: any ProcessControlling
     private let commands: any CommandRunning
+    private let fpmProbe: any FPMProbing
     private var fpmIDs: [UUID] = []
     private var caddyID: UUID?
     private var activePaths: EnginePaths?
@@ -60,16 +65,68 @@ public actor ServingEngine: EngineServing {
     private var operation = false
     private var stopRequested = false
     private var monitor: Task<Void, Never>?
+    private var recoveryFiles: [UUID: URL] = [:]
+    private var activeSockets: [URL] = []
+    private var recoveryLock: Int32?
 
     public init(processes: any ProcessControlling = ProcessSupervisor(),
-                commands: any CommandRunning = LocalCommandRunner()) {
+                commands: any CommandRunning = LocalCommandRunner(), fpmProbe: any FPMProbing = FPMProbe()) {
         self.processes = processes
         self.commands = commands
+        self.fpmProbe = fpmProbe
+    }
+
+    public func preflight(_ configuration: WebConfiguration, paths: EnginePaths) async throws {
+        // This directory is separate from the active environment. Caddy validation
+        // opens no listeners and never installs system trust.
+        try PrivateFiles.directory(paths.configuration)
+        try PrivateFiles.directory(paths.logs)
+        try PrivateFiles.directory(paths.storage)
+        let scan = paths.configuration.appendingPathComponent("empty-ini")
+        try PrivateFiles.directory(scan)
+        var sites: [Site] = [], sockets: [UUID: URL] = [:], seen: [UUID: DevelopmentRuntime] = [:]
+        let provider = DevelopmentRuntimeProvider(runner: commands)
+        for entry in configuration.sites {
+            try Task.checkCancellation()
+            sites.append(try SiteValidator().validate(entry.site, existing: sites, documentRootConfirmed: true))
+            sockets[entry.site.id] = paths.socket
+            if let previous = seen[entry.runtime.id] {
+                guard previous == entry.runtime else { throw JerdError.invalid("A PHP runtime ID has conflicting settings.") }
+            } else {
+                seen[entry.runtime.id] = entry.runtime
+                let runtime = entry.runtime
+                let actual = try await provider.inspectPHP(cli: URL(fileURLWithPath: runtime.cliPath), fpm: URL(fileURLWithPath: runtime.fpmPath), workDirectory: paths.configuration)
+                guard actual.version == runtime.version, actual.cliExtensions == runtime.cliExtensions, actual.fpmExtensions == runtime.fpmExtensions else {
+                    throw JerdError.unavailable("PHP changed since inspection. Inspect and select the runtime again.")
+                }
+                try PrivateFiles.write(Data(ConfigurationGenerator.fpm(paths: paths).utf8), to: paths.fpmConfig)
+                try PrivateFiles.write(Data(ConfigurationGenerator.developmentINI.utf8), to: paths.phpINI)
+                try await validate(ProcessRequest(executable: URL(fileURLWithPath: runtime.fpmPath),
+                    arguments: ["-c", paths.phpINI.path, "-y", paths.fpmConfig.path, "-t"], directory: paths.root,
+                    environment: ["PHP_INI_SCAN_DIR": scan.path]))
+            }
+        }
+        let caddy = configuration.caddy
+        guard try await provider.inspectCaddy(binary: URL(fileURLWithPath: caddy.path), workDirectory: paths.configuration).version == caddy.version else {
+            throw JerdError.unavailable("Caddy changed since inspection. Select it again.")
+        }
+        try PrivateFiles.write(ConfigurationGenerator.caddy(sites: sites, sockets: sockets, paths: paths, httpsPort: 18443, httpPort: 18080), to: paths.caddyConfig)
+        try await validate(ProcessRequest(executable: URL(fileURLWithPath: caddy.path), arguments: ["validate", "--config", paths.caddyConfig.path],
+            directory: paths.root, environment: ["XDG_DATA_HOME": paths.storage.path, "XDG_CONFIG_HOME": paths.configuration.path]))
+    }
+
+    public func isHealthy() async -> Bool {
+        guard !operation, state == .running, await servicesAreRunning() else { return false }
+        for socket in activeSockets {
+            do { try await fpmProbe.check(socket: socket) } catch { return false }
+        }
+        return !operation && state == .running
     }
 
     public func start(sites: [SiteRuntime], caddy: CaddyRuntime,
                       paths: EnginePaths, httpsPort: UInt16, httpPort: UInt16,
                       listeningSockets: ListeningSockets? = nil) async throws {
+        try Task.checkCancellation()
         guard !operation, fpmIDs.isEmpty, caddyID == nil else { throw JerdError.process("The engine is already active.") }
         guard !sites.isEmpty, sites.allSatisfy({ $0.site.isEnabled }) else { throw JerdError.invalid("Enable the sites before starting them.") }
         guard Set(sites.map { $0.site.id }).count == sites.count else { throw JerdError.invalid("The serving plan contains a duplicate site ID.") }
@@ -96,6 +153,15 @@ public actor ServingEngine: EngineServing {
                 throw JerdError.process("The socket directory already exists. Use a new private run directory; do not remove an unknown socket.")
             }
             try PrivateFiles.directory(paths.root)
+            let records = paths.root.appendingPathComponent("processes")
+            try PrivateFiles.directory(records)
+            let lock = open(records.appendingPathComponent("recovery.lock").path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
+            guard lock >= 0 else { throw JerdError.unavailable("Cannot lock the web environment.") }
+            guard flock(lock, LOCK_EX | LOCK_NB) == 0 else { close(lock); throw JerdError.unavailable("Another Jerd session is using this web environment.") }
+            recoveryLock = lock
+            for file in try FileManager.default.contentsOfDirectory(at: records, includingPropertiesForKeys: nil) where file.pathExtension == "json" {
+                try PreviousProcessRun.requireStopped(at: file)
+            }
             for directory in [paths.configuration, paths.logs, paths.storage, paths.socketDirectory,
                               paths.configuration.appendingPathComponent("empty-ini")] {
                 try PrivateFiles.directory(directory)
@@ -149,14 +215,18 @@ public actor ServingEngine: EngineServing {
                     arguments: ["-c", poolPaths.phpINI.path, "-y", poolPaths.fpmConfig.path, "-F"], directory: paths.root, environment: environment),
                     log: poolPaths.logs.appendingPathComponent("fpm.log"))
                 fpmIDs.append(id)
+                try await recordProcess(id, runtimeID: "PHP \(runtime.version)", paths: paths, signal: SIGQUIT)
                 try checkStart()
                 try await waitForSocket(poolPaths.socket, processID: id)
+                try await fpmProbe.check(socket: poolPaths.socket)
+                activeSockets.append(poolPaths.socket)
             }
             try checkStart()
             caddyID = try await processes.start(ProcessRequest(executable: URL(fileURLWithPath: caddy.path),
                                                               arguments: ["run", "--config", paths.caddyConfig.path], directory: paths.root, environment: environment,
                                                               listeningSockets: listeningSockets),
                                                 log: paths.logs.appendingPathComponent("caddy.log"))
+            if let caddyID { try await recordProcess(caddyID, runtimeID: "Caddy \(caddy.version)", paths: paths, signal: SIGTERM) }
             try checkStart()
             try await waitForTLS(sites: validated, paths: paths, port: httpsPort)
             try await verifyListeners(paths: paths, httpsPort: httpsPort, httpPort: httpPort,
@@ -202,7 +272,7 @@ public actor ServingEngine: EngineServing {
 
     private func validate(_ request: ProcessRequest) async throws {
         let result = try await commands.run(request, timeout: .seconds(15))
-        guard result.status == 0 else { throw JerdError.process("Configuration validation failed: \(result.output)") }
+        guard result.status == 0 else { throw JerdError.process("Configuration validation failed: \(result.diagnosticOutput)") }
     }
 
     private func waitForSocket(_ socket: URL, processID: UUID) async throws {
@@ -238,7 +308,7 @@ public actor ServingEngine: EngineServing {
                         ready = true
                         break
                     }
-                    detail = result.output
+                    detail = result.diagnosticOutput
                 }
                 try await Task.sleep(for: .milliseconds(150))
             }
@@ -286,10 +356,23 @@ public actor ServingEngine: EngineServing {
         self.fpmIDs.removeAll()
         self.activePaths = nil
         self.ownsSocketDirectory = false
+        activeSockets.removeAll()
         if let caddyID { await processes.stop(caddyID, gracefulSignal: SIGTERM) }
         for id in fpmIDs { await processes.stop(id, gracefulSignal: SIGQUIT) }
+        for (id, file) in recoveryFiles {
+            if (try? PreviousProcessRun.read(file).isStale) == true { try? FileManager.default.removeItem(at: file) }
+            recoveryFiles[id] = nil
+        }
+        if let lock = recoveryLock { _ = flock(lock, LOCK_UN); close(lock); recoveryLock = nil }
         if ownsSocketDirectory, let paths = activePaths {
             try? FileManager.default.removeItem(at: paths.socketDirectory)
         }
+    }
+
+    private func recordProcess(_ id: UUID, runtimeID: String, paths: EnginePaths, signal: Int32) async throws {
+        guard let pid = await processes.processIdentifier(id) else { return }
+        let file = paths.root.appendingPathComponent("processes/\(id.uuidString).json")
+        try PreviousProcessRun.record(pid, runtimeID: runtimeID, at: file, signal: signal)
+        recoveryFiles[id] = file
     }
 }

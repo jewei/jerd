@@ -22,6 +22,7 @@ private final class ProbeService: NSObject, JerdHelperProtocol, NSXPCListenerDel
         reply(sockets.http, sockets.https, nil)
     }
     func releaseListeners(reply: @escaping @Sendable () -> Void) { sockets.close(); reply() }
+    func recoverSetup(_ approval: Data, reply: @escaping @Sendable (String?) -> Void) { reply("Not used by this test") }
     func removeSetup(reply: @escaping @Sendable (String?) -> Void) { reply("Not used by this test") }
 }
 

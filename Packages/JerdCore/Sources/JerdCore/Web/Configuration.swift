@@ -22,35 +22,23 @@ public struct EnginePaths: Sendable {
 public enum ConfigurationGenerator {
     public static let healthPath = "/.jerd/ready"
     public static let healthResponse = "Jerd is ready."
-    public static let developmentINI = """
-    [PHP]
-    memory_limit = 256M
-    upload_max_filesize = 32M
-    post_max_size = 40M
-    max_execution_time = 30
-    date.timezone = UTC
-    expose_php = Off
-    display_errors = Off
-    log_errors = On
-    cgi.fix_pathinfo = 0
-    [opcache]
-    opcache.enable = 1
-    opcache.validate_timestamps = 1
-    opcache.revalidate_freq = 0
-
-    """
+    public static let fpmHealthPath = "/.jerd/fpm-ping"
+    public static let fpmHealthResponse = "Jerd FPM is ready."
+    public static let developmentINI = PHPConfigurationPolicy.fpmINI
 
     public static func fpm(paths: EnginePaths) throws -> String {
         guard paths.socket.path.utf8.count < 104 else { throw JerdError.invalid("PHP socket path is too long.") }
         return """
         [global]
         daemonize = no
-        error_log = \(try iniQuote(paths.logs.appendingPathComponent("fpm-error.log").path))
+        error_log = /dev/stderr
         log_level = notice
         process_control_timeout = 2s
         [jerd]
         listen = \(try iniQuote(paths.socket.path))
         listen.mode = 0600
+        ping.path = \(fpmHealthPath)
+        ping.response = \(fpmHealthResponse)
         pm = ondemand
         pm.max_children = 8
         pm.process_idle_timeout = 5s

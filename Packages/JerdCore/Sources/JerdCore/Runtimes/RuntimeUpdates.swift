@@ -31,11 +31,15 @@ public struct RuntimeRelease: Identifiable, Equatable, Sendable {
     public let sha256: String?
     public let size: Int64
     public let source: URL
-    public var id: String { "\(kind.rawValue)-\(version)" }
+    public let architecture: CPUArchitecture
+    public let minimumOSMajor: Int?
+    public var id: String { "\(kind.rawValue)-\(version)" + (sha256.map { "-\($0)" } ?? "") }
     /// PostgreSQL uses the Postgres.app release number until its engine is inspected.
     public var versionLabel: String { kind == .postgresql ? "Postgres.app \(version)" : version }
-    public init(kind: RuntimeKind, version: String, url: URL, sha256: String?, size: Int64, source: URL) {
+    public init(kind: RuntimeKind, version: String, url: URL, sha256: String?, size: Int64, source: URL,
+                architecture: CPUArchitecture = .current, minimumOSMajor: Int? = nil) {
         self.kind = kind; self.version = version; self.url = url; self.sha256 = sha256; self.size = size; self.source = source
+        self.architecture = architecture; self.minimumOSMajor = minimumOSMajor
     }
     func validate() throws {
         guard RuntimeVersion(version) != nil, size > 0, size <= 800_000_000,
@@ -44,6 +48,9 @@ public struct RuntimeRelease: Identifiable, Equatable, Sendable {
         }
         try RuntimeDownload.validate(url)
         try RuntimeDownload.validate(source)
+        guard architecture == .current, minimumOSMajor.map({ ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= $0 }) ?? true else {
+            throw JerdError.unavailable("This runtime package is not compatible with this Mac.")
+        }
     }
 }
 
@@ -144,19 +151,23 @@ public actor RuntimeUpdateCatalog {
         case .mysql:
             let source = URL(string: "https://dev.mysql.com/downloads/mysql/8.4.html?os=33")!
             let content = try await metadata.text(source)
-            let architecture = arm ? "arm64" : "x86_64"
+            return try Self.mysqlReleases(content, architecture: arm ? "arm64" : "x86_64",
+                                          majorOS: ProcessInfo.processInfo.operatingSystemVersion.majorVersion)
+        }
+    }
+
+    static func mysqlReleases(_ content: String, architecture: String, majorOS: Int) throws -> [RuntimeRelease] {
+            let source = URL(string: "https://dev.mysql.com/downloads/mysql/8.4.html?os=33")!
             let regex = try NSRegularExpression(pattern: "mysql-(8\\.4\\.[0-9]+)-macos(1[5-9]|[2-9][0-9])-\(architecture)\\.tar\\.gz")
             let ns = content as NSString
             let matches = regex.matches(in: content, range: NSRange(location: 0, length: ns.length))
             var seen = Set<String>()
             return matches.compactMap { match in
                 let name = ns.substring(with: match.range), version = ns.substring(with: match.range(at: 1))
-                guard seen.insert(version).inserted,
-                      let minimumOS = Int(ns.substring(with: match.range(at: 2))),
-                      ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= minimumOS else { return nil }
-                return RuntimeRelease(kind: kind, version: version, url: URL(string: "https://cdn.mysql.com/Downloads/MySQL-8.4/\(name)")!,
-                    sha256: nil, size: 500_000_000, source: source)
+                guard let minimumOS = Int(ns.substring(with: match.range(at: 2))), majorOS >= minimumOS,
+                      seen.insert(version).inserted else { return nil }
+                return RuntimeRelease(kind: .mysql, version: version, url: URL(string: "https://cdn.mysql.com/Downloads/MySQL-8.4/\(name)")!,
+                    sha256: nil, size: 500_000_000, source: source, minimumOSMajor: minimumOS)
             }
-        }
     }
 }

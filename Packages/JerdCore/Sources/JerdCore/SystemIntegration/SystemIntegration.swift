@@ -65,6 +65,7 @@ public struct SystemSetupStatus: Codable, Equatable, Sendable {
     public var hostsConfigured: Bool
     public var trustConfigured: Bool
     public var trustPolicy: CertificateTrustPolicy
+    public var recovery: SystemRecoveryStatus?
     public init(hostnames: [String], installationID: UUID? = nil, certificateSHA256: String? = nil,
                 certificateDER: Data? = nil, hostsConfigured: Bool = false, trustConfigured: Bool = false,
                 trustPolicy: CertificateTrustPolicy = .hostnames) {
@@ -80,6 +81,31 @@ public struct SystemSetupStatus: Codable, Equatable, Sendable {
                   certificateSHA256: certificateSHA256, certificateDER: certificateDER,
                   hostsConfigured: hostsConfigured, trustConfigured: trustConfigured, trustPolicy: trustPolicy)
     }
+}
+
+public enum SystemRecoveryAction: String, Codable, Sendable {
+    case restorePrevious, removeSetup
+}
+
+public struct SystemRecoveryApproval: Codable, Sendable {
+    public let recordID: String
+    public let action: SystemRecoveryAction
+    public init(recordID: String, action: SystemRecoveryAction) { self.recordID = recordID; self.action = action }
+}
+
+public struct SystemRecoveryStatus: Codable, Equatable, Identifiable, Sendable {
+    public let id: String
+    public let operation: String
+    public let phase: String
+    public let details: [String]
+    public let canRestore: Bool
+    public let canRemove: Bool
+    public let installationID: UUID
+    public let certificateDER: Data
+    public let previousHostnames: [String]
+    public let intendedHostnames: [String]
+    public let policies: [CertificateTrustPolicy]
+    public var fingerprint: String { InstallationCertificate.fingerprint(certificateDER) }
 }
 
 public struct TrustConsentRequest: Codable, Sendable {
@@ -105,6 +131,7 @@ public struct TrustConsentRequest: Codable, Sendable {
     func acquireListeners(reply: @escaping @Sendable (FileHandle?, FileHandle?, String?) -> Void)
     func releaseListeners(reply: @escaping @Sendable () -> Void)
     func removeSetup(reply: @escaping @Sendable (String?) -> Void)
+    func recoverSetup(_ approval: Data, reply: @escaping @Sendable (String?) -> Void)
 }
 
 public protocol SystemIntegrating: Sendable {

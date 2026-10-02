@@ -5,6 +5,7 @@ import JerdCore
 @MainActor @Observable
 final class DatabaseModel {
     var configuration = DatabaseConfiguration()
+    var retained: [RetainedDatabase] = []
     var statuses: [UUID: DatabaseStatus] = [:]
     var selectedID: UUID?
     var errorMessage: String?
@@ -107,6 +108,31 @@ final class DatabaseModel {
             do { try await action() }
             catch { errorMessage = error.localizedDescription }
             await refresh()
+        }
+    }
+
+    func inspectRetained() {
+        guard !isLoading, !isSaving, !isShuttingDown else { return }
+        isSaving = true
+        settingsTask = Task {
+            defer { isSaving = false }
+            do { retained = try await manager.retainedDatabases() }
+            catch { errorMessage = error.localizedDescription }
+        }
+    }
+
+    func restore(_ item: RetainedDatabase, name: String, port: UInt16, completion: @escaping () -> Void) {
+        guard !isLoading, !isSaving, !isShuttingDown else { return }
+        isSaving = true; errorMessage = nil
+        settingsTask = Task {
+            defer { isSaving = false }
+            do {
+                let service = try await manager.restoreRegistration(item.id, name: name, port: port)
+                await refresh()
+                selectedID = service.id
+                retained = try await manager.retainedDatabases()
+                completion()
+            } catch { errorMessage = error.localizedDescription }
         }
     }
 

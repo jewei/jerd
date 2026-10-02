@@ -28,9 +28,20 @@ For the permission boundary, see [Hosts and certificates](Architecture.md#hosts-
 - To remove a registration and its host mapping, remove that site.
 - To remove all host mappings, CA trust, and helper registration, select **System setup > Remove system setup**.
 
-These actions retain project files. A change to a running site's settings
-restarts the web environment and briefly affects all enabled sites.
-A new hostname requires HTTPS approval for the updated list.
+These actions retain project files. Jerd validates a changed configuration before
+it stops working sites. Activation then restarts the enabled sites together.
+If activation fails, Jerd restores the previous settings and attempts to restart
+them. A failed restore appears as an error. A display-name change or an unchanged
+configuration keeps healthy processes running. A new hostname requires HTTPS
+approval before Jerd saves and activates the change.
+
+**Ready** means that each PHP-FPM pool answered its private ping and HTTPS passed
+its checks. It does not mean that the project's code works.
+
+**Stop all sites** cancels site preparation and startup, then stops PHP-FPM and
+Caddy. A runtime activation or a system change must finish safely first.
+Complete or cancel an active macOS approval prompt. The status bar shows the
+current stage. Quit also waits for graceful database, mail, and storage shutdown.
 
 For PHP inspection and local executable selection, open **Dashboard > Advanced**.
 A missing pinned PHP version causes an error. Jerd does not select another version automatically.
@@ -48,6 +59,12 @@ A missing pinned PHP version causes an error. Jerd does not select another versi
 Each service has its own data directory and generated password.
 To change an engine version, create a new service and use the engine's export/import tools.
 Removal deletes the registration after shutdown. It retains data and credentials.
+
+To restore a removed registration, select **Databases > Restore registration**.
+Choose the retained instance, enter its name and an available port, then select
+**Restore**. Start it when needed. Jerd requires the exact original runtime and
+valid data identity, initialization marker, and credentials. It does not change
+or migrate the database files.
 
 ## Add a storage bucket
 
@@ -101,10 +118,33 @@ Start data services manually after you reopen the app.
 3. Select an available stable version for this Mac.
 4. Select the install action. For PHP, choose **Install & use** or **Install only**.
 
-A new default PHP version restarts running sites. Pinned sites retain their selection.
+A new default PHP version restarts running sites when their effective PHP selection
+changes. Pinned sites retain their selection. Different verified builds of the
+same version have separate folders and build hashes. Installing a new build
+keeps the previous build available.
 Database installation adds a version for new services. Existing database services retain their versions.
 Mail and storage updates save a private backup before they change the runtime.
 A failed update restores the saved data and settings when the candidate has stopped.
+
+## Recover interrupted work
+
+Open **Dashboard > Advanced > Inspect recovery and retained backups**.
+
+- For interrupted HTTPS setup, inspect the recorded operation, stage, and CA.
+  Select **Restore previous setup** or **Remove tracked setup**, then approve
+  the displayed change. Jerd preserves unrelated host entries and its recovery
+  evidence. An unknown or corrupt state can require manual inspection.
+- For a saved process, **Recover service** requests a graceful stop only when
+  Jerd can verify its identity and the previous Jerd session has ended.
+  **Clear stale record** removes a record for a process that no longer exists.
+  Legacy or uncertain identities require manual inspection. Jerd does not signal
+  a process from a saved PID alone.
+- For a retained mail or storage runtime backup, inspect its path, size, and
+  purpose. Stop the service before you select **Delete backup**. Confirm the
+  specific copy. A pending or corrupt runtime recovery record blocks deletion.
+
+Recovery retains current database, inbox, bucket, object, and credential files.
+Backup deletion removes only the selected saved copy and cannot be undone.
 
 ## Check for an app update
 
@@ -141,6 +181,13 @@ Before you run Composer, use `cd` to enter the intended project.
 The launcher selects PHP from the current directory's most specific registered project.
 Outside registered projects, it uses the default PHP version.
 `composer --working-dir` does not change this selection.
+
+CLI and FPM share UTC time, hidden PHP version headers, and error logging.
+CLI commands have no memory or execution-time limit by default. FPM keeps its
+web request limits and hides error display. CLI errors go to standard error.
+Explicit PHP `-n`, `-c`, and `-d` options remain available. `PHPRC` selects a
+custom INI file; `PHP_INI_SCAN_DIR` selects additional INI files. With neither
+input, the launcher uses Jerd's CLI INI and an empty scan directory.
 
 After a CLI launcher update, rerun the setup script.
 To remove shell integration, remove the marked Jerd block from both shell files.

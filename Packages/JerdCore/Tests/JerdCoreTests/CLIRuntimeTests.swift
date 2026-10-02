@@ -3,6 +3,26 @@ import Testing
 @testable import JerdCore
 
 struct CLIRuntimeTests {
+    @Test func sharedPolicyPreservesExplicitPHPOverrides() throws {
+        let root = try temporaryDirectory(" CLI INI")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let defaultPolicy = try PHPConfigurationPolicy.cli(arguments: ["-d", "memory_limit=123M", "script.php"], directory: root, environment: [:])
+        #expect(defaultPolicy.arguments == ["-c", root.appendingPathComponent("cli.ini").path])
+        #expect(defaultPolicy.environment["PHP_INI_SCAN_DIR"] == root.appendingPathComponent("empty-ini").path)
+        let ini = try String(contentsOf: root.appendingPathComponent("cli.ini"), encoding: .utf8)
+        #expect(ini.contains("max_execution_time = 0"))
+        #expect(ini.contains("date.timezone = UTC"))
+        for arguments in [["-n"], ["--no-php-ini"], ["-c", "/custom/php.ini"], ["-c/custom/php.ini"], ["--php-ini=/custom/php.ini"]] {
+            #expect(try PHPConfigurationPolicy.cli(arguments: arguments, directory: root, environment: [:]).arguments.isEmpty)
+        }
+        for arguments in [["-r", "-n"], ["script.php", "-n"], ["--", "-c"]] {
+            #expect(!PHPConfigurationPolicy.hasINISelection(arguments))
+        }
+        let explicit = try PHPConfigurationPolicy.cli(arguments: [], directory: root, environment: ["PHPRC": "/custom", "PHP_INI_SCAN_DIR": "/fragments"])
+        #expect(explicit.arguments.isEmpty && explicit.environment.isEmpty)
+        let composer = try PHPConfigurationPolicy.cli(arguments: ["-n"], command: "composer", directory: root, environment: [:])
+        #expect(!composer.arguments.isEmpty)
+    }
     private func runtime(_ version: String) -> DevelopmentRuntime {
         DevelopmentRuntime(cliPath: "/php/\(version)", fpmPath: "/fpm/\(version)", version: version,
                            architectures: [.arm64], cliExtensions: [], fpmExtensions: [])

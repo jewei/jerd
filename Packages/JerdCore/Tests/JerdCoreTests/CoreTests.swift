@@ -249,7 +249,7 @@ struct ConfigurationTests {
 }
 
 struct ProcessTests {
-    @Test func groupCleanupAfterLeaderExit() async throws {
+    @Test(arguments: [false, true]) func groupCleanupAfterLeaderExit(graceful: Bool) async throws {
         let root = try temporaryDirectory(" process café")
         defer { try? FileManager.default.removeItem(at: root) }
         let source = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil)).appendingPathComponent("process-tree.c")
@@ -259,17 +259,57 @@ struct ProcessTests {
         #expect(compile.status == 0, "\(compile.output)")
         let supervisor = ProcessSupervisor()
         let log = root.appendingPathComponent("tree.log")
-        let id = try await supervisor.start(ProcessRequest(executable: executable, arguments: [], directory: root), log: log)
+        let marker = root.appendingPathComponent("clean-exit")
+        let id = try await supervisor.start(ProcessRequest(executable: executable, arguments: graceful ? [marker.path] : [], directory: root), log: log)
+        let record = root.appendingPathComponent("active-run.json")
+        let pid = try #require(await supervisor.processIdentifier(id))
+        try PreviousProcessRun.record(pid, runtimeID: "owned-tree", at: record)
         let deadline = ContinuousClock.now + .seconds(3)
         while await supervisor.isRunning(id), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(25)) }
         let output = try String(contentsOf: log, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
         let childPID = try #require(Int32(output))
         #expect(kill(childPID, 0) == 0)
+        #expect(try !PreviousProcessRun.read(record).isStale)
+        #expect(throws: (any Error).self) { try PreviousProcessRun.requireStopped(at: record) }
+        if graceful { #expect(await supervisor.stopGracefully(id, timeout: .seconds(3))) }
         await supervisor.stopAll()
+        try PreviousProcessRun.requireStopped(at: record)
         let cleanupDeadline = ContinuousClock.now + .seconds(3)
         while kill(childPID, 0) == 0, ContinuousClock.now < cleanupDeadline { try await Task.sleep(for: .milliseconds(25)) }
         #expect(kill(childPID, 0) == -1)
         #expect(errno == ESRCH)
+        if graceful { #expect(try String(contentsOf: marker, encoding: .utf8) == "clean") }
+    }
+
+    @Test func largeFailureRetainsTheActualTail() async throws {
+        let root = try temporaryDirectory(" command tail")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil)).appendingPathComponent("large-output.c")
+        let binary = root.appendingPathComponent("large-output")
+        let runner = LocalCommandRunner()
+        let compile = try await runner.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/clang"),
+            arguments: [source.path, "-o", binary.path], directory: root), timeout: .seconds(20))
+        #expect(compile.status == 0)
+        let result = try await runner.run(ProcessRequest(executable: binary, arguments: [], directory: root), timeout: .seconds(5))
+        #expect(result.status == 7)
+        #expect(result.output.hasPrefix("first-output"))
+        #expect(!result.output.contains("last-failure-detail"))
+        #expect(result.diagnosticOutput.hasSuffix("last-failure-detail\n"))
+    }
+
+    @Test func logLimitRetainsTheTailOnTheSameInode() throws {
+        let root = try temporaryDirectory(" bounded log")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = root.appendingPathComponent("server.log")
+        try PrivateFiles.write(Data(repeating: 65, count: 2000) + Data("end".utf8), to: log)
+        let writer = try FileHandle(forWritingTo: log)
+        defer { try? writer.close() }
+        try ProcessLog.trim(log, limit: 1000)
+        try writer.seekToEnd()
+        try writer.write(contentsOf: Data("-new".utf8))
+        let data = try Data(contentsOf: log)
+        #expect(data.count < 1000)
+        #expect(String(decoding: data, as: UTF8.self).hasSuffix("end-new"))
     }
 
     @Test func occupiedPortIsPreserved() throws {
@@ -319,13 +359,15 @@ struct ProcessTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
     }
 
-    @Test func engineCleansFPMWhenCaddyFails() async throws {
+    @Test(arguments: [false, true]) func engineCleansFPMWhenCaddyFailsOrTheSocketDoesNotAnswer(silentFPM: Bool) async throws {
         let root = try temporaryDirectory()
         let socketDirectory = URL(fileURLWithPath: "/tmp/jerd-unit-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: socketDirectory) }
         let paths = EnginePaths(root: root.appendingPathComponent("run"), socketDirectory: socketDirectory)
         let processes = FailingCaddyProcesses(socket: paths.socket)
-        let engine = ServingEngine(processes: processes, commands: InspectionRunner())
+        struct ReadyFPM: FPMProbing { func check(socket: URL) {} }
+        let probe: any FPMProbing = silentFPM ? FPMProbe(timeout: .milliseconds(150)) : ReadyFPM()
+        let engine = ServingEngine(processes: processes, commands: InspectionRunner(), fpmProbe: probe)
         let httpsPort = try freePort()
         var httpPort = try freePort()
         while httpPort == httpsPort { httpPort = try freePort() }
@@ -334,7 +376,7 @@ struct ProcessTests {
                                    caddy: CaddyRuntime(path: "/local/caddy", version: "v2.9.0", architectures: [.current]),
                                    paths: paths, httpsPort: httpsPort, httpPort: httpPort)
         }
-        #expect(await processes.startCount == 2)
+        #expect(await processes.startCount == (silentFPM ? 1 : 2))
         #expect(await processes.stopped)
         #expect(!FileManager.default.fileExists(atPath: socketDirectory.path))
         if case .failed = await engine.state {} else { Issue.record("Expected a failed engine state") }
@@ -385,7 +427,7 @@ actor FailingCaddyProcesses: ProcessControlling {
         let result = withUnsafePointer(to: &address) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
         }
-        guard result == 0 else { throw JerdError.process("Cannot create unit test socket") }
+        guard result == 0, listen(descriptor, 8) == 0 else { throw JerdError.process("Cannot create unit test socket") }
         return UUID()
     }
     func isRunning(_ id: UUID) -> Bool { !stopped }

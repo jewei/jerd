@@ -29,14 +29,15 @@ public actor DatabaseManager {
         let engine: DatabaseEngine
         let version: String
     }
-    private struct ActiveRun: Codable {
-        let processID: Int32
-        let runtimeID: String
-    }
     private struct Running {
         let token: UUID
         let processID: Int32
         let sockets: URL
+    }
+    private struct RemovedRegistration: Codable {
+        let schemaVersion: Int
+        let service: DatabaseService
+        let runtime: DatabaseRuntime
     }
     public let directory: URL
     private let store: DatabaseStore
@@ -110,16 +111,106 @@ public actor DatabaseManager {
     }
 
     public func remove(_ id: UUID) async throws {
-        _ = try lookup(id)
+        let service = try lookup(id)
+        let runtime = try configuration.runtime(for: service)
         try begin(id)
         defer { operations.remove(id) }
         if running[id] == nil { try checkPreviousRun(DatabasePaths(directory: directory, serviceID: id)) }
         try await stopOwned(id)
+        let paths = DatabasePaths(directory: directory, serviceID: id)
+        try prepareRoot(paths)
+        try acquireLock(id, paths: paths)
+        defer { releaseLock(id) }
+        try checkPreviousRun(paths)
+        let removedFile = paths.root.appendingPathComponent("removed-registration.json")
+        if PrivateFiles.exists(removedFile) { _ = try retainedRecord(id) }
+        try PrivateFiles.write(JSONEncoder().encode(RemovedRegistration(schemaVersion: 1, service: service, runtime: runtime)),
+                               to: paths.root.appendingPathComponent("removed-registration.json"))
         var next = configuration
         next.services.removeAll { $0.id == id }
         try await save(next)
         statuses[id] = nil
         // Database files and credentials are deliberately retained.
+    }
+
+    public func retainedDatabases() throws -> [RetainedDatabase] {
+        try requireLoaded()
+        let parent = directory.appendingPathComponent("instances")
+        guard FileManager.default.fileExists(atPath: parent.path) else { return [] }
+        try PrivateFiles.requireDirectory(parent, within: directory)
+        var retained: [RetainedDatabase] = []
+        for folder in try FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil) {
+            guard let id = UUID(uuidString: folder.lastPathComponent), !configuration.services.contains(where: { $0.id == id }) else { continue }
+            var name = "Retained database \(id.uuidString.prefix(8))", runtime: DatabaseRuntime?, port: UInt16?, problem: String?
+            do {
+                let record = try retainedRecord(id)
+                name = record.service.name; runtime = record.runtime; port = record.service.port
+                try validateRetained(record)
+            } catch { problem = error.localizedDescription }
+            retained.append(.init(id: id, name: name, runtime: runtime, port: port, directory: folder,
+                                  bytes: problem == nil ? try? DataSize.bytes(in: folder) : nil, problem: problem))
+        }
+        return retained.sorted { $0.name < $1.name }
+    }
+
+    public func restoreRegistration(_ id: UUID, name: String, port: UInt16) async throws -> DatabaseService {
+        try requireLoaded()
+        guard !configuration.services.contains(where: { $0.id == id }), !operations.contains(id) else {
+            throw JerdError.unavailable("This database is already registered or busy.")
+        }
+        operations.insert(id); defer { operations.remove(id) }
+        let paths = DatabasePaths(directory: directory, serviceID: id)
+        try PrivateFiles.requireDirectory(paths.root, within: directory)
+        try acquireLock(id, paths: paths); defer { releaseLock(id) }
+        try checkPreviousRun(paths)
+        let record = try retainedRecord(id)
+        try validateRetained(record)
+        try await requirePortAvailable(port)
+        let service = DatabaseService(id: id, name: name.trimmingCharacters(in: .whitespacesAndNewlines), runtimeID: record.runtime.id, port: port)
+        var next = configuration
+        next.services.append(service)
+        try await save(next)
+        statuses[id] = DatabaseStatus()
+        return service
+    }
+
+    private func retainedRecord(_ id: UUID) throws -> RemovedRegistration {
+        let paths = DatabasePaths(directory: directory, serviceID: id)
+        try PrivateFiles.requireDirectory(paths.root, within: directory)
+        let info = try paths.root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard info.isDirectory == true, info.isSymbolicLink != true else { throw JerdError.invalid("The retained database folder is invalid.") }
+        let file = paths.root.appendingPathComponent("removed-registration.json")
+        if PrivateFiles.exists(file) {
+            let record = try JSONDecoder().decode(RemovedRegistration.self, from: PrivateFiles.read(file, limit: 65_536))
+            guard record.schemaVersion == 1, record.service.id == id, record.service.runtimeID == record.runtime.id else {
+                throw JerdError.corruptConfiguration("The removed registration is invalid. It was preserved.")
+            }
+            return record
+        }
+        // Older removals retained an exact data identity, but not the display name or port.
+        let identity = try JSONDecoder().decode(Identity.self, from: PrivateFiles.read(paths.identity, limit: 65_536))
+        guard identity.serviceID == id, let runtime = configuration.runtimes.first(where: { $0.id == identity.runtimeID }),
+              runtime.engine == identity.engine, runtime.version == identity.version else {
+            throw JerdError.unavailable("The exact runtime for this retained database is unavailable.")
+        }
+        return RemovedRegistration(schemaVersion: 1,
+            service: DatabaseService(id: id, name: "Recovered \(runtime.engine.title) \(id.uuidString.prefix(6))", runtimeID: runtime.id, port: runtime.engine.defaultPort), runtime: runtime)
+    }
+
+    private func validateRetained(_ record: RemovedRegistration) throws {
+        guard configuration.runtimes.contains(record.runtime) else { throw JerdError.unavailable("Restore the exact original runtime registration before using this data.") }
+        let paths = DatabasePaths(directory: directory, serviceID: record.service.id)
+        let expected = Identity(serviceID: record.service.id, runtimeID: record.runtime.id, engine: record.runtime.engine, version: record.runtime.version)
+        if FileManager.default.fileExists(atPath: paths.data.path) || FileManager.default.fileExists(atPath: paths.initialized.path) {
+            for file in [paths.identity, paths.initialized] {
+                guard try JSONDecoder().decode(Identity.self, from: PrivateFiles.read(file, limit: 65_536)) == expected else {
+                    throw JerdError.corruptConfiguration("The retained database is incomplete or belongs to another runtime. Its files were preserved.")
+                }
+            }
+            let info = try paths.data.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+            guard info.isDirectory == true, info.isSymbolicLink != true else { throw JerdError.corruptConfiguration("The database data directory is missing or invalid.") }
+            try JSONDecoder().decode(DatabaseCredentials.self, from: PrivateFiles.read(paths.credentials, limit: 4096)).validate()
+        }
     }
 
     public func start(_ id: UUID) async throws {
@@ -182,15 +273,18 @@ public actor DatabaseManager {
     }
 
     public func snapshot() async -> DatabaseSnapshot {
-        for (id, process) in running where !operations.contains(id) {
+        for (id, process) in running where !operations.contains(id) && statuses[id]?.state == .running {
             let alive = await processes.isRunning(process.token)
             if !alive, !operations.contains(id), running[id]?.token == process.token {
                 operations.insert(id)
                 let paths = DatabasePaths(directory: directory, serviceID: id)
                 let detail = "The database process exited. " + logTail(paths)
-                _ = await processes.stopGracefully(process.token)
-                cleanup(id, process: process, paths: paths)
-                statuses[id] = DatabaseStatus(state: .failed(detail))
+                if await processes.stopGracefully(process.token) {
+                    cleanup(id, process: process, paths: paths)
+                    statuses[id] = DatabaseStatus(state: .failed(detail))
+                } else {
+                    statuses[id] = DatabaseStatus(state: .failed(detail + " A service child has not stopped. Its data lock was kept. Retry Stop."), processID: process.processID)
+                }
                 operations.remove(id)
             }
         }
@@ -247,14 +341,7 @@ public actor DatabaseManager {
     }
     private func activeRunURL(_ paths: DatabasePaths) -> URL { paths.root.appendingPathComponent("active-run.json") }
     private func checkPreviousRun(_ paths: DatabasePaths) throws {
-        let url = activeRunURL(paths)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        let previous = try JSONDecoder().decode(ActiveRun.self, from: Data(contentsOf: url))
-        guard previous.processID > 1 else { throw JerdError.corruptConfiguration("The previous database process record is invalid.") }
-        if kill(previous.processID, 0) == 0 || errno == EPERM {
-            throw JerdError.unavailable("A previous database process (PID \(previous.processID)) is still present. Stop it safely before restarting this instance. Jerd did not signal it.")
-        }
-        try FileManager.default.removeItem(at: url)
+        try PreviousProcessRun.requireStopped(at: activeRunURL(paths))
     }
     private func checkIdentity(_ expected: Identity, paths: DatabasePaths) throws {
         if FileManager.default.fileExists(atPath: paths.identity.path) {
@@ -310,7 +397,7 @@ public actor DatabaseManager {
         if let request = DatabaseDriver.initialization(runtime: runtime, paths: paths) {
             let result = try await commands.run(request, timeout: .seconds(120))
             guard result.status == 0 else {
-                throw JerdError.process("Database initialization failed: " + result.output.suffix(4096).replacingOccurrences(of: credentials.password, with: "[redacted]"))
+                throw JerdError.process("Database initialization failed: " + result.diagnosticOutput.suffix(4096).replacingOccurrences(of: credentials.password, with: "[redacted]"))
             }
         } else { try PrivateFiles.directory(paths.data) }
         if runtime.engine == .mysql {
@@ -340,18 +427,20 @@ public actor DatabaseManager {
         if FileManager.default.fileExists(atPath: paths.log.path) {
             let previous = paths.root.appendingPathComponent("server.previous.log")
             if FileManager.default.fileExists(atPath: previous.path) { try FileManager.default.removeItem(at: previous) }
+            try ProcessLog.trim(paths.log)
             try FileManager.default.moveItem(at: paths.log, to: previous)
         }
         let token = try await processes.start(DatabaseDriver.server(runtime: runtime, service: service, paths: paths,
                                                                     sockets: sockets, bootstrap: bootstrap), log: paths.log)
-        guard let pid = await processes.processIdentifier(token) else {
+        guard let pid = await processes.ownedProcessIdentifier(token) else {
             _ = await processes.stopGracefully(token)
             throw JerdError.process("The database process could not start. " + logTail(paths))
         }
         running[service.id] = Running(token: token, processID: pid, sockets: sockets)
         ownsProcess = true
         statuses[service.id]?.processID = pid
-        try PrivateFiles.write(JSONEncoder().encode(ActiveRun(processID: pid, runtimeID: runtime.id)), to: activeRunURL(paths))
+        try PreviousProcessRun.record(pid, runtimeID: runtime.id, at: activeRunURL(paths),
+                                      signal: runtime.engine == .postgresql ? SIGINT : SIGTERM)
     }
 
     private func waitUntilReady(runtime: DatabaseRuntime, service: DatabaseService, paths: DatabasePaths,
@@ -367,7 +456,7 @@ public actor DatabaseManager {
                     credentials: credentials, bootstrap: bootstrap), timeout: .seconds(2))
                 let expected = runtime.engine == .redis ? "PONG" : "42"
                 if result.status == 0, result.output.trimmingCharacters(in: .whitespacesAndNewlines) == expected { return }
-                lastFailure = String(result.output.suffix(1024)).replacingOccurrences(of: credentials.password, with: "[redacted]")
+                lastFailure = String(result.diagnosticOutput.suffix(1024)).replacingOccurrences(of: credentials.password, with: "[redacted]")
             } catch { lastFailure = error.localizedDescription }
             try await Task.sleep(for: .milliseconds(100))
         }

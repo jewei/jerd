@@ -44,6 +44,17 @@ public struct DatabaseService: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+public struct RetainedDatabase: Identifiable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let runtime: DatabaseRuntime?
+    public let port: UInt16?
+    public let directory: URL
+    public let bytes: Int64?
+    public let problem: String?
+    public var canRestore: Bool { problem == nil && runtime != nil }
+}
+
 public struct DatabaseConfiguration: Codable, Equatable, Sendable {
     public var schemaVersion = 1
     public var runtimes: [DatabaseRuntime] = []

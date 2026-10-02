@@ -263,6 +263,14 @@ struct DatabaseIntegrationTests {
             #expect(FileManager.default.fileExists(atPath: pgPaths.data.appendingPathComponent("PG_VERSION").path))
             #expect(try Data(contentsOf: pgPaths.credentials) == credentialsBefore)
             #expect(await manager.snapshot().statuses.values.filter { $0.state == .running }.count == 2)
+            let retained = try await manager.retainedDatabases()
+            #expect(retained.count == 1 && retained[0].id == postgres.id && retained[0].canRestore)
+            let restored = try await manager.restoreRegistration(postgres.id, name: "Restored PostgreSQL", port: postgres.port)
+            #expect(restored.id == postgres.id && restored.runtimeID == postgres.runtimeID)
+            try await manager.start(restored.id)
+            #expect(try await request(restored, ["SELECT value FROM jerd_persistence"]).output.trimmingCharacters(in: .whitespacesAndNewlines) == "42")
+            #expect(try Data(contentsOf: pgPaths.credentials) == credentialsBefore)
+            try await manager.remove(restored.id)
             try await manager.stopAll()
             let reloaded = DatabaseManager(directory: root)
             let configuration = try await reloaded.load()
@@ -272,6 +280,126 @@ struct DatabaseIntegrationTests {
         } catch {
             do { try await manager.stopAll(); try FileManager.default.removeItem(at: root) }
             catch { Issue.record("Database test data was retained because cleanup could not complete.") }
+            throw error
+        }
+    }
+}
+
+struct DatabaseRestoreTests {
+    @Test(arguments: ["valid", "missing-marker", "wrong-version", "corrupt-registration", "legacy"])
+    func retainedDataRequiresTheOriginalIdentity(scenario: String) async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let manager = DatabaseManager(directory: root)
+        _ = try await manager.load()
+        let runtime = DatabaseRuntime(id: "redis-original-build", engine: .redis, version: "8.8.3", path: root.path)
+        try await manager.registerRuntimes([runtime])
+        let service = try await manager.add(name: "Retained cache", runtimeID: runtime.id, port: freeDatabasePort())
+        let paths = DatabasePaths(directory: root, serviceID: service.id)
+        try PrivateFiles.directory(paths.data)
+        let data = Data("same stored data".utf8), credentials = try JSONEncoder().encode(DatabaseCredentials())
+        try PrivateFiles.write(data, to: paths.data.appendingPathComponent("data.rdb"))
+        try PrivateFiles.write(credentials, to: paths.credentials)
+        let identity: [String: String] = ["serviceID": service.id.uuidString, "runtimeID": runtime.id,
+                                        "engine": runtime.engine.rawValue, "version": runtime.version]
+        let identityData = try JSONEncoder().encode(identity)
+        try PrivateFiles.write(identityData, to: paths.identity)
+        try PrivateFiles.write(identityData, to: paths.initialized)
+        try await manager.remove(service.id)
+        let removed = paths.root.appendingPathComponent("removed-registration.json")
+        switch scenario {
+        case "missing-marker": try FileManager.default.removeItem(at: paths.initialized)
+        case "wrong-version":
+            var changed = identity; changed["version"] = "9.0.0"
+            try PrivateFiles.write(JSONEncoder().encode(changed), to: paths.identity)
+        case "corrupt-registration": try PrivateFiles.write(Data("corrupt".utf8), to: removed)
+        case "legacy": try FileManager.default.removeItem(at: removed)
+        default: break
+        }
+        let reloaded = DatabaseManager(directory: root)
+        _ = try await reloaded.load()
+        let retained = try #require(try await reloaded.retainedDatabases().first)
+        let valid = scenario == "valid" || scenario == "legacy"
+        #expect(retained.id == service.id && retained.canRestore == valid)
+        if valid {
+            let restored = try await reloaded.restoreRegistration(service.id, name: "Restored cache", port: freeDatabasePort())
+            #expect(restored.id == service.id && restored.runtimeID == runtime.id)
+            #expect(await reloaded.snapshot().statuses[service.id]?.state == .stopped)
+            await #expect(throws: (any Error).self) { try await reloaded.restoreRegistration(service.id, name: "Duplicate", port: freeDatabasePort()) }
+        } else {
+            await #expect(throws: (any Error).self) { try await reloaded.restoreRegistration(service.id, name: "Bad restore", port: freeDatabasePort()) }
+            #expect(await reloaded.snapshot().configuration.services.isEmpty)
+        }
+        #expect(try Data(contentsOf: paths.data.appendingPathComponent("data.rdb")) == data)
+        #expect(try Data(contentsOf: paths.credentials) == credentials)
+        if scenario == "corrupt-registration" { #expect(try Data(contentsOf: removed) == Data("corrupt".utf8)) }
+    }
+}
+
+private actor FixtureDatabaseCommands: CommandRunning {
+    let port: UInt16
+    var pid: String?
+    init(port: UInt16) { self.port = port }
+    func run(_ request: ProcessRequest, timeout: Duration) -> CommandResult {
+        if request.arguments.contains("--version") { return .init(status: 0, output: "Redis 8.8.3") }
+        if request.executable.lastPathComponent == "redis-cli" { return .init(status: 0, output: "PONG") }
+        if request.arguments.contains("-iUDP") { return .init(status: 1, output: "") }
+        if let index = request.arguments.firstIndex(of: "-p") {
+            pid = request.arguments[index + 1]
+            return .init(status: 0, output: "p\(pid!)\nn127.0.0.1:\(port)\n")
+        }
+        return pid.map { .init(status: 0, output: "p\($0)\n") } ?? .init(status: 1, output: "")
+    }
+}
+
+struct DatabaseDescendantTests {
+    @Test func exitedMasterKeepsDataLockedUntilItsChildStops() async throws {
+        let root = try temporaryDirectory(" owned descendants")
+        let source = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil)).appendingPathComponent("orphan-service.c")
+        let runtimeRoot = root.appendingPathComponent("runtime")
+        try PrivateFiles.directory(runtimeRoot.appendingPathComponent("bin"))
+        let binary = runtimeRoot.appendingPathComponent("bin/redis-server")
+        let built = try await LocalCommandRunner().run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/clang"),
+            arguments: [source.path, "-o", binary.path], directory: root), timeout: .seconds(20))
+        #expect(built.status == 0)
+        let port = try freeDatabasePort()
+        let supervisor = ProcessSupervisor(gracefulTimeout: .milliseconds(100))
+        let manager = DatabaseManager(directory: root, commands: FixtureDatabaseCommands(port: port), processes: supervisor)
+        _ = try await manager.load()
+        let runtime = DatabaseRuntime(id: "fixture", engine: .redis, version: "8.8.3", path: runtimeRoot.path)
+        try await manager.registerRuntimes([runtime])
+        let service = try await manager.add(name: "Fixture", runtimeID: runtime.id, port: port)
+        let paths = DatabasePaths(directory: root, serviceID: service.id)
+        do {
+            try await manager.start(service.id)
+            let pid = try #require(await manager.snapshot().statuses[service.id]?.processID)
+            let record = paths.root.appendingPathComponent("active-run.json")
+            let original = try Data(contentsOf: record)
+            try PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("exit-master"))
+            let deadline = ContinuousClock.now + .seconds(3)
+            while (try? ProcessIdentity.capture(pid)) != nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+            let snapshot = await manager.snapshot()
+            #expect(snapshot.statuses[service.id]?.processID == pid)
+            guard case .failed = snapshot.statuses[service.id]?.state else { throw JerdError.invalid("Expected a failed descendant stop") }
+            #expect(try Data(contentsOf: record) == original)
+            let lock = open(paths.root.appendingPathComponent("service.lock").path, O_RDWR)
+            #expect(lock >= 0)
+            #expect(flock(lock, LOCK_EX | LOCK_NB) != 0)
+            close(lock)
+            await #expect(throws: (any Error).self) { try await manager.stopAll() }
+            await #expect(throws: (any Error).self) { try await manager.start(service.id) }
+            await #expect(throws: (any Error).self) { try await manager.remove(service.id) }
+            #expect(try Data(contentsOf: record) == original)
+            try PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("finish-child"))
+            try await Task.sleep(for: .milliseconds(50))
+            try await manager.stop(service.id)
+            #expect(await manager.snapshot().statuses[service.id]?.processID == nil)
+            #expect(!FileManager.default.fileExists(atPath: record.path))
+            try FileManager.default.removeItem(at: root)
+        } catch {
+            try? PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("finish-child"))
+            try? await Task.sleep(for: .milliseconds(50))
+            try? await manager.stopAll()
             throw error
         }
     }

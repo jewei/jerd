@@ -59,6 +59,15 @@ actor HelperService {
         defer { busy = false }
         try await store.remove(ownerUID: owner, trustManager: SystemCertificateTrust(consent: consent))
     }
+
+    func recover(_ data: Data, owner: uid_t, consent: TrustConsentClient) async throws {
+        guard data.count < 4096, !busy, lease == nil else { throw JerdError.invalid("Stop Jerd's environment before recovering system setup.") }
+        busy = true; defer { busy = false }
+        let approval = try JSONDecoder().decode(SystemRecoveryApproval.self, from: data)
+        let reservation = approval.action == .restorePrevious ? try ListeningSockets.bind(httpPort: 80, httpsPort: 443) : nil
+        defer { reservation?.close() }
+        try await store.recover(approval, ownerUID: owner, trustManager: SystemCertificateTrust(consent: consent))
+    }
 }
 
 final class HelperSession: NSObject, JerdHelperProtocol, @unchecked Sendable {
@@ -95,6 +104,12 @@ final class HelperSession: NSObject, JerdHelperProtocol, @unchecked Sendable {
     func removeSetup(reply: @escaping @Sendable (String?) -> Void) {
         Task {
             do { try await service.remove(owner: owner, consent: consent); reply(nil) }
+            catch { reply(error.localizedDescription) }
+        }
+    }
+    func recoverSetup(_ approval: Data, reply: @escaping @Sendable (String?) -> Void) {
+        Task {
+            do { try await service.recover(approval, owner: owner, consent: consent); reply(nil) }
             catch { reply(error.localizedDescription) }
         }
     }

@@ -6,7 +6,11 @@ Run commands from the repository root. First prepare the required runtimes with
 ## Run core and service tests
 
 
-Default tests need no root access and do not change system files or trust:
+Default tests need no root access and do not change system files or trust.
+They cover site edit rollback, stale approval, cancelled preparation, no-op
+starts, helper recovery stages, PID reuse, verified orphan shutdown, silent FPM
+sockets, database registration restore, protected backups, and log limits:
+
 
 ```sh
 swift test --package-path Packages/JerdCore
@@ -24,6 +28,8 @@ swift test --package-path Packages/JerdCore
 
 The test uses separate high loopback ports and an isolated CA. It verifies
 TLS with `curl --cacert --resolve --noproxy '*'`; it never uses `-k`.
+It compares effective CLI/FPM settings and observed modules, including CLI
+`-n`, `-c`, `-d`, `PHPRC`, and `PHP_INI_SCAN_DIR` overrides.
 It checks real PHP output, static files, sensitive paths, unknown hosts,
 redirects, listeners, FPM failure, and cleanup. It runs both direct listeners
 and inherited sockets. Two-site cases check separate roots with one shared
@@ -45,7 +51,7 @@ swift test --package-path Packages/JerdCore --filter Database
 The test creates temporary instances of all three engines on high loopback
 ports. It checks real writes, wrong-password rejection, persistence after
 restart, independent shutdown, process-exit detection, version mismatch,
-and retained data after registration removal. No existing databases are used.
+and retained data and credentials after registration removal and restore. No existing databases are used.
 
 The separate `JERD_OCCUPIED_DATABASE_PORT` option enables a read-only regression
 check against an existing wildcard TCP listener. It checks that registration
@@ -86,9 +92,9 @@ writes no host or trust settings. It binds only high loopback ports.
 
 ```sh
 swiftc -swift-version 6 \
-	Packages/JerdCore/Sources/JerdCore/Models.swift \
-	Packages/JerdCore/Sources/JerdCore/ListeningSockets.swift \
-	Packages/JerdCore/Sources/JerdCore/SystemIntegration.swift \
+	Packages/JerdCore/Sources/JerdCore/Common/Models.swift \
+	Packages/JerdCore/Sources/JerdCore/Web/ListeningSockets.swift \
+	Packages/JerdCore/Sources/JerdCore/SystemIntegration/SystemIntegration.swift \
 	Scripts/Checks/check-xpc.swift -o .build/check-xpc
 codesign --force --sign 'Developer ID Application: Your Name (YOURTEAMID)' \
 	--identifier dev.jerd.app --options runtime .build/check-xpc

@@ -4,10 +4,14 @@ public struct ManagedRuntime: Identifiable, Sendable {
     public let kind: RuntimeKind
     public let version: String
     public let releaseVersion: String
+    public let archiveSHA256: String
     public let directory: URL
     public let executable: URL
     public let secondaryExecutable: URL?
-    public var id: String { "\(kind.rawValue)-\(releaseVersion)" }
+    public var id: String { "\(kind.rawValue)-\(releaseVersion)-\(archiveSHA256)" }
+    public func matches(_ release: RuntimeRelease) -> Bool {
+        kind == release.kind && releaseVersion == release.version && release.sha256 == archiveSHA256
+    }
 }
 
 public struct RuntimeInstallProgress: Sendable {
@@ -64,14 +68,7 @@ public actor RuntimeInstaller {
         busy = true; defer { busy = false }
         try release.validate()
         try PrivateFiles.directory(directory)
-        let target = directory.appendingPathComponent("\(release.id)-\(CPUArchitecture.current.rawValue)")
-        if FileManager.default.fileExists(atPath: target.path) {
-            let receipt = try readReceipt(target)
-            guard receipt.kind == release.kind, receipt.releaseVersion == release.version,
-                  release.sha256 == nil || release.sha256 == receipt.archiveSHA256 else { throw JerdError.invalid("The installed runtime has different release metadata. It was preserved.") }
-            try verify(receipt, at: target)
-            return try record(receipt, at: target)
-        }
+        if let installed = try existing(release) { return installed }
         let staging = directory.appendingPathComponent(".install-\(UUID())")
         try PrivateFiles.directory(staging)
         defer { try? FileManager.default.removeItem(at: staging) }
@@ -102,6 +99,15 @@ public actor RuntimeInstaller {
             progress(.init(release.kind == .redis ? "Building Redis with the local compiler…" : "Preparing runtime files…"))
             try await prepare(release, archive: archive, payload: payload, staging: staging)
         }
+        let target = directory.appendingPathComponent(Self.directoryName(kind: release.kind, version: release.version, digest: hash))
+        if FileManager.default.fileExists(atPath: target.path) {
+            let receipt = try readReceipt(target)
+            guard receipt.kind == release.kind, receipt.releaseVersion == release.version, receipt.archiveSHA256 == hash else {
+                throw JerdError.invalid("The installed build has conflicting metadata. It was preserved.")
+            }
+            try verify(receipt, at: target)
+            return try record(receipt, at: target)
+        }
         progress(.init("Checking the installed version…"))
         let (version, executable, secondary) = try await inspect(release, payload: payload, staging: staging, php: php)
         try applyPrivatePermissions(payload)
@@ -113,6 +119,30 @@ public actor RuntimeInstaller {
         try FileManager.default.moveItem(at: payload, to: target)
         progress(.init("Installed \(release.kind.title) \(version).", 1))
         return try record(receipt, at: target)
+    }
+
+    static func directoryName(kind: RuntimeKind, version: String, digest: String) -> String {
+        "\(kind.rawValue)-\(version)-\(CPUArchitecture.current.rawValue)-\(digest)"
+    }
+
+    /// A legacy directory may be reused only when its verified archive identity matches.
+    /// Different builds remain in separate directories and are never overwritten.
+    func existing(_ release: RuntimeRelease) throws -> ManagedRuntime? {
+        guard let hash = release.sha256 else { return nil }
+        let names = [Self.directoryName(kind: release.kind, version: release.version, digest: hash),
+                     "\(release.kind.rawValue)-\(release.version)-\(CPUArchitecture.current.rawValue)"]
+        for name in names {
+            let target = directory.appendingPathComponent(name)
+            guard FileManager.default.fileExists(atPath: target.path) else { continue }
+            let receipt = try readReceipt(target)
+            guard receipt.kind == release.kind, receipt.releaseVersion == release.version else {
+                throw JerdError.invalid("The installed runtime has conflicting metadata. It was preserved.")
+            }
+            if receipt.archiveSHA256 != hash { continue }
+            try verify(receipt, at: target)
+            return try record(receipt, at: target)
+        }
+        return nil
     }
 
     private func prepare(_ release: RuntimeRelease, archive: URL, payload: URL, staging: URL) async throws {
@@ -248,7 +278,7 @@ public actor RuntimeInstaller {
                                        environment: [String: String] = [:], timeout: Duration = .seconds(60)) async throws -> String {
         let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: executable), arguments: arguments,
             directory: folder, environment: environment), timeout: timeout)
-        guard result.status == 0 else { throw JerdError.process("Runtime preparation failed: \(result.output.suffix(3000))") }
+        guard result.status == 0 else { throw JerdError.process("Runtime preparation failed: \(result.diagnosticOutput.suffix(3000))") }
         return result.output
     }
 
@@ -278,6 +308,7 @@ public actor RuntimeInstaller {
     }
 
     private func hashes(_ payload: URL) throws -> [String: String] {
+        let payload = payload.resolvingSymlinksInPath().standardizedFileURL
         guard let enumerator = FileManager.default.enumerator(at: payload, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .isDirectoryKey]) else {
             throw JerdError.invalid("The runtime files cannot be read.")
         }
@@ -287,7 +318,9 @@ public actor RuntimeInstaller {
             guard info.isSymbolicLink != true else { throw JerdError.invalid("The prepared runtime contains a symbolic link.") }
             if info.isDirectory == true { continue }
             guard info.isRegularFile == true, files.count < 50_000 else { throw JerdError.invalid("The prepared runtime has invalid or too many files.") }
-            let name = file.pathComponents.dropFirst(payload.pathComponents.count).joined(separator: "/")
+            let components = file.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+            guard components.starts(with: payload.pathComponents) else { throw JerdError.invalid("A runtime file leaves its directory.") }
+            let name = components.dropFirst(payload.pathComponents.count).joined(separator: "/")
             files[name] = try RuntimeDownload.digest(file)
         }
         guard !files.isEmpty else { throw JerdError.invalid("The runtime package is empty.") }
@@ -316,6 +349,7 @@ public actor RuntimeInstaller {
         guard try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max < 8_000_000 else { throw JerdError.invalid("The update receipt is too large.") }
         let receipt = try JSONDecoder().decode(Receipt.self, from: Data(contentsOf: file))
         guard receipt.schemaVersion == 1, RuntimeVersion(receipt.version) != nil, RuntimeVersion(receipt.releaseVersion) != nil,
+              RuntimeDownload.validSHA256(receipt.archiveSHA256),
               !receipt.files.isEmpty, receipt.files.count <= 50_000, receipt.files[receipt.executable] != nil,
               receipt.secondaryExecutable.map({ receipt.files[$0] != nil }) ?? true,
               receipt.files.allSatisfy({ safePath($0.key) && RuntimeDownload.validSHA256($0.value) }) else {
@@ -324,15 +358,18 @@ public actor RuntimeInstaller {
         return receipt
     }
     private func record(_ receipt: Receipt, at folder: URL) throws -> ManagedRuntime {
-        guard folder.lastPathComponent == "\(receipt.kind.rawValue)-\(receipt.releaseVersion)-\(CPUArchitecture.current.rawValue)" else {
+        guard ["\(receipt.kind.rawValue)-\(receipt.releaseVersion)-\(CPUArchitecture.current.rawValue)",
+               Self.directoryName(kind: receipt.kind, version: receipt.releaseVersion, digest: receipt.archiveSHA256)].contains(folder.lastPathComponent) else {
             throw JerdError.invalid("The installed runtime directory does not match its receipt.")
         }
-        return ManagedRuntime(kind: receipt.kind, version: receipt.version, releaseVersion: receipt.releaseVersion, directory: folder,
+        return ManagedRuntime(kind: receipt.kind, version: receipt.version, releaseVersion: receipt.releaseVersion, archiveSHA256: receipt.archiveSHA256, directory: folder,
             executable: folder.appendingPathComponent(receipt.executable), secondaryExecutable: receipt.secondaryExecutable.map { folder.appendingPathComponent($0) })
     }
     private func verify(_ receipt: Receipt, at folder: URL) throws {
-        guard try hashes(folder).filter({ $0.key != "update-receipt.json" }) == receipt.files else {
-            throw JerdError.invalid("The installed runtime changed. Existing files were preserved.")
+        let actual = try hashes(folder).filter { $0.key != "update-receipt.json" }
+        guard actual == receipt.files else {
+            let changed = Set(actual.keys).union(receipt.files.keys).filter { actual[$0] != receipt.files[$0] }.sorted().prefix(8)
+            throw JerdError.invalid("The installed runtime changed: \(changed.joined(separator: ", ")). Existing files were preserved.")
         }
     }
     private func safePath(_ name: String) -> Bool {

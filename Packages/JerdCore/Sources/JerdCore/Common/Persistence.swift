@@ -2,6 +2,39 @@ import Foundation
 import Darwin
 
 public enum PrivateFiles {
+    static func exists(_ url: URL) -> Bool {
+        var info = stat()
+        return lstat(url.path, &info) == 0 || errno != ENOENT
+    }
+
+    /// Check every component under an owned root before recovery or deletion.
+    static func requireDirectory(_ url: URL, within root: URL) throws {
+        let base = root.standardizedFileURL.pathComponents, target = url.standardizedFileURL.pathComponents
+        guard target.starts(with: base) else { throw JerdError.invalid("The directory is outside Jerd's data folder.") }
+        var current = root.standardizedFileURL
+        for index in 0...(target.count - base.count) {
+            if index > 0 { current.appendPathComponent(target[base.count + index - 1]) }
+            var info = stat()
+            guard lstat(current.path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR, info.st_uid == geteuid() else {
+                throw JerdError.invalid("The retained directory has an invalid type or owner. It was preserved.")
+            }
+        }
+    }
+
+    static func read(_ url: URL, limit: Int, owner: uid_t = geteuid()) throws -> Data {
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        guard descriptor >= 0 else { throw JerdError.invalid("Cannot read private file: \(url.path)") }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var info = stat()
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
+              info.st_uid == owner, info.st_nlink == 1, info.st_size >= 0, info.st_size <= limit else {
+            throw JerdError.corruptConfiguration("The private file has an invalid owner, type, or size. It was preserved.")
+        }
+        let data = try handle.read(upToCount: limit + 1) ?? Data()
+        guard data.count <= limit else { throw JerdError.corruptConfiguration("The private file exceeds its size limit.") }
+        return data
+    }
     public static func directory(_ url: URL) throws {
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true,
                                                 attributes: [.posixPermissions: 0o700])

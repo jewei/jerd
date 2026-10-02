@@ -173,7 +173,12 @@ struct SetupTransactionTests {
         }
         #expect(try Data(contentsOf: url) == original)
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("pending.json").path))
-        await #expect(throws: (any Error).self) { try await store.status(ownerUID: getuid()) }
+        let recovery = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(recovery.canRestore && recovery.canRemove)
+        #expect(recovery.phase.contains("unknown"))
+        try await store.recover(SystemRecoveryApproval(recordID: recovery.id, action: .restorePrevious), ownerUID: getuid())
+        #expect(try await store.status(ownerUID: getuid()).recovery == nil)
+        #expect(try Data(contentsOf: url) == original)
     }
 
     @Test func failedTrustCleanupRetainsRecoveryRecord() async throws {
@@ -194,6 +199,105 @@ struct SetupTransactionTests {
         }
         #expect(try Data(contentsOf: hostsURL) == original)
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("pending.json").path))
+    }
+
+    @Test(arguments: ["prepared", "hosts", "trust", "registration"])
+    func interruptedSetupRecoveryPreservesExternalHostEdits(stage: String) async throws {
+        let root = try temporaryDirectory(" helper recovery")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("helper")
+        try PrivateFiles.directory(directory)
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        let hostsURL = root.appendingPathComponent("hosts")
+        let identity = UUID(), der = Data("CA".utf8)
+        let record: [String: Any] = ["schemaVersion": 3, "ownerUID": getuid(), "installationID": identity.uuidString,
+            "hostnames": ["demo.test"], "certificateDER": der.base64EncodedString(), "trustPolicy": "serverTLS"]
+        let journal: [String: Any] = ["schemaVersion": 1, "operation": "Configure HTTPS", "intended": record,
+            "hostsSHA256": InstallationCertificate.fingerprint(original), "phase": stage]
+        try PrivateFiles.write(JSONSerialization.data(withJSONObject: journal), to: directory.appendingPathComponent("pending.json"))
+        try PrivateFiles.write(original, to: directory.appendingPathComponent("hosts.previous"))
+        let changed = stage == "prepared" ? original : try HostsDocument.replacing(original, hostnames: ["demo.test"], expectedHostnames: [])
+        let external = Data("10.0.0.1 another.test\n".utf8)
+        try (changed + external).write(to: hostsURL)
+        let trust = MemoryTrust()
+        if stage == "trust" || stage == "registration" { try trust.install(der, hostnames: ["demo.test"], policy: .serverTLS, replacingOwned: false) }
+        if stage == "registration" { try PrivateFiles.write(JSONSerialization.data(withJSONObject: record), to: directory.appendingPathComponent("registration.json")) }
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+            hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: trust)
+        let report = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(report.canRestore)
+        await #expect(throws: (any Error).self) {
+            try await store.recover(.init(recordID: "stale approval", action: .restorePrevious), ownerUID: getuid())
+        }
+        try await store.recover(.init(recordID: report.id, action: .restorePrevious), ownerUID: getuid())
+        #expect(try Data(contentsOf: hostsURL) == original + external)
+        #expect(try await store.status(ownerUID: getuid()).hostnames.isEmpty)
+        #expect(try !trust.isInstalled(der, hostnames: ["demo.test"], policy: .serverTLS))
+    }
+
+    @Test(arguments: ["prepared", "hosts", "trust", "registration"], [SystemRecoveryAction.restorePrevious, .removeSetup])
+    func interruptedRemovalCanRestoreOrFinishWithoutReplacingExternalHosts(stage: String, action: SystemRecoveryAction) async throws {
+        let root = try temporaryDirectory(" removal recovery")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("helper")
+        try PrivateFiles.directory(directory)
+        let plain = Data("127.0.0.1 localhost\n".utf8), external = Data("10.0.0.9 outside.test\n".utf8)
+        let original = try HostsDocument.replacing(plain, hostnames: ["demo.test"], expectedHostnames: [])
+        let hostsURL = root.appendingPathComponent("hosts")
+        let identity = UUID(), der = Data("CA".utf8)
+        let record: [String: Any] = ["schemaVersion": 3, "ownerUID": getuid(), "installationID": identity.uuidString,
+            "hostnames": ["demo.test"], "certificateDER": der.base64EncodedString(), "trustPolicy": "serverTLS"]
+        let previousBytes = try JSONSerialization.data(withJSONObject: record, options: [.prettyPrinted])
+        let journal: [String: Any] = ["schemaVersion": 1, "operation": "Remove HTTPS", "previous": record,
+            "previousBytes": previousBytes.base64EncodedString(), "hostsSHA256": InstallationCertificate.fingerprint(original), "phase": stage]
+        try PrivateFiles.write(JSONSerialization.data(withJSONObject: journal), to: directory.appendingPathComponent("pending.json"))
+        try PrivateFiles.write(original, to: directory.appendingPathComponent("hosts.previous"))
+        try ((stage == "prepared" ? original : plain) + external).write(to: hostsURL)
+        let trust = MemoryTrust()
+        if stage == "prepared" || stage == "hosts" { try trust.install(der, hostnames: ["demo.test"], policy: .serverTLS, replacingOwned: false) }
+        let registration = directory.appendingPathComponent("registration.json")
+        if stage != "registration" { try PrivateFiles.write(previousBytes, to: registration) }
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+            hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: trust)
+        let report = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(report.canRestore && report.canRemove)
+        await #expect(throws: (any Error).self) { try await store.recover(.init(recordID: report.id, action: action), ownerUID: getuid() + 1) }
+        try await store.recover(.init(recordID: report.id, action: action), ownerUID: getuid())
+        let restored = action == .restorePrevious
+        let result = try Data(contentsOf: hostsURL)
+        #expect(String(decoding: result, as: UTF8.self).contains(String(decoding: external, as: UTF8.self)))
+        #expect(HostsDocument.containsRegistrations(["demo.test"], in: result) == restored)
+        #expect(try trust.isInstalled(der, hostnames: ["demo.test"], policy: .serverTLS) == restored)
+        if restored { #expect(try Data(contentsOf: registration) == previousBytes) }
+        else { #expect(!FileManager.default.fileExists(atPath: registration.path)) }
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("recovery.previous.json").path))
+        #expect(try Data(contentsOf: directory.appendingPathComponent("hosts.previous")) == original)
+    }
+
+    @Test func legacyRecoveryRequiresApprovalAndPreservesChangedSections() async throws {
+        let root = try temporaryDirectory(" legacy recovery")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("helper")
+        try PrivateFiles.directory(directory)
+        let identity = UUID(), der = Data("CA".utf8)
+        let record: [String: Any] = ["schemaVersion": 3, "ownerUID": getuid(), "installationID": identity.uuidString,
+            "hostnames": ["demo.test"], "certificateDER": der.base64EncodedString(), "trustPolicy": "serverTLS"]
+        try PrivateFiles.write(JSONSerialization.data(withJSONObject: record), to: directory.appendingPathComponent("pending.json"))
+        let hostsURL = root.appendingPathComponent("hosts")
+        let changed = Data("# BEGIN JERD\n127.0.0.1 outside.test\n# END JERD\n".utf8)
+        try changed.write(to: hostsURL)
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+            hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: MemoryTrust())
+        var report = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(!report.canRestore && !report.canRemove)
+        await #expect(throws: (any Error).self) { try await store.recover(.init(recordID: report.id, action: .removeSetup), ownerUID: getuid()) }
+        #expect(try Data(contentsOf: hostsURL) == changed)
+        await #expect(throws: (any Error).self) { try await store.status(ownerUID: getuid() + 1) }
+        try HostsDocument.replacing(Data(), hostnames: ["demo.test"], expectedHostnames: []).write(to: hostsURL)
+        report = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(!report.canRestore && report.canRemove)
+        try await store.recover(.init(recordID: report.id, action: .removeSetup), ownerUID: getuid())
+        #expect(try Data(contentsOf: hostsURL).isEmpty)
     }
 
     @Test func setupRollbackOwnerAndRemoval() async throws {
@@ -261,6 +365,11 @@ private actor FakeSystem: SystemIntegrating {
     var snapshot: SystemSetupStatus
     var acquired = 0
     var released = 0
+    var waitingForAcquire = false
+    var pauseAcquire = false
+    var acquireWaiter: CheckedContinuation<Void, Never>?
+    func suspendAcquisition() { pauseAcquire = true }
+    func resumeAcquisition() { acquireWaiter?.resume(); acquireWaiter = nil }
     init(_ snapshot: SystemSetupStatus) { self.snapshot = snapshot }
     func status() -> SystemSetupStatus { snapshot }
     func configure(_ request: SystemRegistrationRequest) {
@@ -268,8 +377,13 @@ private actor FakeSystem: SystemIntegrating {
             certificateSHA256: InstallationCertificate.fingerprint(request.certificateDER), certificateDER: request.certificateDER,
             hostsConfigured: true, trustConfigured: true, trustPolicy: request.trustPolicy)
     }
-    func acquireListeners() throws -> ListeningSockets {
+    func acquireListeners() async throws -> ListeningSockets {
         acquired += 1
+        if pauseAcquire {
+            waitingForAcquire = true
+            await withCheckedContinuation { acquireWaiter = $0 }
+            pauseAcquire = false
+        }
         return try ListeningSockets.bind(httpPort: 0, httpsPort: 0)
     }
     func releaseListeners() { released += 1 }
@@ -280,6 +394,8 @@ private actor FakeEngine: EngineServing {
     var state: EnvironmentState = .stopped
     var starts = 0
     var startedSiteIDs: Set<UUID> = []
+    var preflights = 0
+    func preflight(_ configuration: WebConfiguration, paths: EnginePaths) { preflights += 1 }
     func start(sites: [SiteRuntime], caddy: CaddyRuntime, paths: EnginePaths,
                httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets?) {
         starts += 1
@@ -310,6 +426,70 @@ private struct NoListeners: CommandRunning {
 }
 
 struct EnvironmentTests {
+    @Test func stopDuringRollbackListenerAcquisitionPreventsEngineStartup() async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = UUID(), der = Data("test CA".utf8)
+        try PrivateFiles.write(Data(identity.uuidString.utf8), to: root.appendingPathComponent("installation-id"))
+        let caDir = root.appendingPathComponent("certificates/pki/authorities/jerd")
+        try PrivateFiles.directory(caDir)
+        try Data("-----BEGIN CERTIFICATE-----\n\(der.base64EncodedString())\n-----END CERTIFICATE-----".utf8)
+            .write(to: caDir.appendingPathComponent("root.crt"))
+        let system = FakeSystem(SystemSetupStatus(hostname: "demo.test", installationID: identity,
+            certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der,
+            hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS))
+        await system.suspendAcquisition()
+        let engine = FakeEngine()
+        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(), commands: NoListeners())
+        let runtime = DevelopmentRuntime(cliPath: "/usr/bin/true", fpmPath: "/usr/bin/true", version: "8.5.11", architectures: [.current], cliExtensions: [], fpmExtensions: [])
+        let plan = WebConfiguration(sites: [SiteRuntime(site: makeSite(root), runtime: runtime)],
+            caddy: CaddyRuntime(path: "/usr/bin/true", version: "2.11.4", architectures: [.current]))
+        let restore = Task { try await environment.restoreRun(plan) }
+        while await !system.waitingForAcquire { await Task.yield() }
+        let releasesBeforeAcquisition = await system.released
+        await environment.requestStop()
+        await system.resumeAcquisition()
+        await #expect(throws: CancellationError.self) { try await restore.value }
+        #expect(await engine.starts == 0)
+        #expect(await system.released == releasesBeforeAcquisition + 1)
+        await environment.stop()
+    }
+
+    @Test func unchangedSettingsKeepHealthyProcessesAndChangedExecutablesRestart() async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = UUID(), der = Data("test CA".utf8)
+        try PrivateFiles.write(Data(identity.uuidString.utf8), to: root.appendingPathComponent("installation-id"))
+        let caDir = root.appendingPathComponent("certificates/pki/authorities/jerd")
+        try PrivateFiles.directory(caDir)
+        try Data("-----BEGIN CERTIFICATE-----\n\(der.base64EncodedString())\n-----END CERTIFICATE-----".utf8)
+            .write(to: caDir.appendingPathComponent("root.crt"))
+        let binary = root.appendingPathComponent("binary")
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: binary)
+        let system = FakeSystem(SystemSetupStatus(hostname: "demo.test", installationID: identity,
+            certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der,
+            hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS))
+        let engine = FakeEngine()
+        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(), commands: NoListeners())
+        let runtime = DevelopmentRuntime(cliPath: binary.path, fpmPath: binary.path, version: "8.5.11", architectures: [.current], cliExtensions: [], fpmExtensions: [])
+        let caddy = CaddyRuntime(path: binary.path, version: "2.11.4", architectures: [.current])
+        var site = makeSite(root)
+        let plan = WebConfiguration(sites: [SiteRuntime(site: site, runtime: runtime)], caddy: caddy)
+        let prepared = try await environment.preflight(plan)
+        try await environment.ensure(plan, prepared: prepared)
+        site.displayName = "New display name"
+        try await environment.ensure(WebConfiguration(sites: [SiteRuntime(site: site, runtime: runtime)], caddy: caddy))
+        #expect(await engine.starts == 1)
+        #expect(await engine.preflights == 1)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: 1)], ofItemAtPath: binary.path)
+        try await environment.ensure(WebConfiguration(sites: [SiteRuntime(site: site, runtime: runtime)], caddy: caddy))
+        #expect(await engine.starts == 2)
+        await environment.requestStop()
+        await #expect(throws: CancellationError.self) { try await environment.restoreRun(plan) }
+        #expect(await engine.starts == 2)
+        await environment.stop()
+    }
+
     @Test(arguments: [false, true], [CertificateTrustPolicy.hostnames, .serverTLS])
     func allSitesNeedApprovalAndEachHostnameIsChecked(approved: Bool, policy: CertificateTrustPolicy) async throws {
         let root = try temporaryDirectory()

@@ -48,7 +48,15 @@ struct RuntimeSettingsView: View {
                             Spacer()
                             if let release = updates.selectedRelease(kind) { installControl(release) }
                         }
-                        if let release = updates.selectedRelease(kind) { Link("Release source", destination: release.source).font(.caption) }
+                        if let release = updates.selectedRelease(kind) {
+                            Link("Release source", destination: release.source).font(.caption)
+                            if let hash = release.sha256 {
+                                Text("Package build: \(hash.prefix(12))").font(.caption.monospaced()).foregroundStyle(.secondary)
+                            } else {
+                                Text("Install verifies this package again. Its source does not provide a build digest before download.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     Text("Checked \(check.checkedAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(.caption).foregroundStyle(.secondary)
@@ -74,7 +82,12 @@ struct RuntimeSettingsView: View {
         VStack(spacing: 8) {
             ForEach(model.configuration.runtimes) { runtime in
                 HStack {
-                    Text("PHP \(runtime.version)").font(.callout)
+                    VStack(alignment: .leading) {
+                        Text("PHP \(runtime.version)").font(.callout)
+                        if let build = updates.installed.first(where: { $0.executable.path == runtime.cliPath }) {
+                            Text("Build \(build.archiveSHA256.prefix(12))").font(.caption.monospaced()).foregroundStyle(.secondary)
+                        }
+                    }
                     Spacer()
                     if model.configuration.defaultRuntimeID == runtime.id { Text("Default").font(.callout).foregroundStyle(.secondary) }
                     else { Button("Use as default") { model.setDefaultRuntime(runtime.id) }.disabled(model.isBusy || updates.installing != nil) }
