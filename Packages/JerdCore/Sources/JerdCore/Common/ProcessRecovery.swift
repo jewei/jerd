@@ -90,6 +90,8 @@ struct ProcessIdentity: Codable, Equatable, Sendable {
 }
 
 struct PreviousProcessRun: Codable, Sendable {
+    private static let maximumBytes = 131_072
+    private static let maximumDescendants = 1024
     let processID: Int32
     let runtimeID: String
     let identity: ProcessIdentity?
@@ -118,18 +120,31 @@ struct PreviousProcessRun: Codable, Sendable {
     }
 
     static func read(_ file: URL) throws -> Self {
-        let data = try PrivateFiles.read(file, limit: 131_072)
+        let data = try PrivateFiles.read(file, limit: maximumBytes)
         let record = try JSONDecoder().decode(Self.self, from: data)
         guard record.processID > 1, record.identity == nil || record.identity?.processID == record.processID,
-              record.descendants?.count ?? 0 <= 1024 else { throw JerdError.corruptConfiguration("The saved process record is invalid. It was preserved.") }
+              record.descendants?.count ?? 0 <= maximumDescendants else { throw JerdError.corruptConfiguration("The saved process record is invalid. It was preserved.") }
         return record
     }
 
+    /// Preserve the previous readable record if all verified children cannot fit.
+    /// Recovery must finish this write before it sends any signal.
+    func writeRecovery(to file: URL) throws {
+        guard descendants?.count ?? 0 <= Self.maximumDescendants else {
+            throw JerdError.unavailable("Too many service processes to save for recovery. The previous record was preserved. No process was signalled.")
+        }
+        let data = try JSONEncoder().encode(self)
+        guard data.count <= Self.maximumBytes else {
+            throw JerdError.unavailable("The service recovery record is too large. The previous record was preserved. No process was signalled.")
+        }
+        try PrivateFiles.write(data, to: file)
+    }
+
     /// Called while the service's exclusive lock is held. Legacy live PIDs stay blocked.
-    static func requireStopped(at file: URL) throws {
+    static func requireStopped(at file: URL, processGroups: ProcessGroupInspector = .init()) throws {
         guard PrivateFiles.exists(file) else { return }
         let record = try read(file)
-        if record.isStale {
+        if record.isStale(using: processGroups) {
             try FileManager.default.removeItem(at: file)
             return
         }
@@ -139,33 +154,20 @@ struct PreviousProcessRun: Codable, Sendable {
     /// A reaped leader can still have live group members. Never clear their
     /// record merely because the leader exited. PID replacement proves the old
     /// group ID was released; saved descendants are checked separately.
-    var isStale: Bool {
+    var isStale: Bool { isStale(using: .init()) }
+
+    func isStale(using processGroups: ProcessGroupInspector) -> Bool {
         if let identity {
             let master = identity.match()
             guard [.exited, .replaced].contains(master),
                   (descendants ?? []).allSatisfy({ [.exited, .replaced].contains($0.match()) }) else { return false }
-            return master == .replaced || liveGroupMembers() == []
+            return master == .replaced || processGroups.liveMembers(of: processID) == []
         }
-        return kill(processID, 0) < 0 && errno == ESRCH && liveGroupMembers() == []
+        return kill(processID, 0) < 0 && errno == ESRCH && processGroups.liveMembers(of: processID) == []
     }
 
-    func liveGroupMembers() -> [pid_t]? {
-        var pids = [pid_t](repeating: 0, count: 1024)
-        let capacity = pids.count * MemoryLayout<pid_t>.size
-        let count = proc_listpgrppids(processID, &pids, Int32(capacity))
-        guard count >= 0, count < pids.count else { return nil }
-        var live: [pid_t] = []
-        for pid in pids.prefix(Int(count)) where pid > 1 {
-            var info = proc_bsdinfo()
-            let size = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout.size(ofValue: info)))
-            if size == MemoryLayout.size(ofValue: info) { if info.pbi_status != SZOMB { live.append(pid) } }
-            else if errno != ESRCH { return nil }
-        }
-        return live
-    }
-
-    var hasUnverifiedGroupMembers: Bool {
-        guard identity?.match() != .replaced, let pids = liveGroupMembers() else { return identity?.match() != .replaced }
+    func hasUnverifiedGroupMembers(using processGroups: ProcessGroupInspector) -> Bool {
+        guard identity?.match() != .replaced, let pids = processGroups.liveMembers(of: processID) else { return identity?.match() != .replaced }
         let members = (identity.map { [$0] } ?? []) + (descendants ?? [])
         return pids.contains { pid in !members.contains { $0.processID == pid && $0.match() == .running } }
     }
@@ -185,8 +187,10 @@ public struct ProcessRecoveryFinding: Identifiable, Sendable {
 /// executable, signal, or arbitrary data path.
 public actor ProcessRecoveryStore {
     private let directory: URL
+    private let processGroups: ProcessGroupInspector
     private var busy = false
-    public init(directory: URL) { self.directory = directory }
+    public init(directory: URL) { self.directory = directory; processGroups = .init() }
+    init(directory: URL, processGroups: ProcessGroupInspector) { self.directory = directory; self.processGroups = processGroups }
 
     public func inspect() throws -> [ProcessRecoveryFinding] {
         try records().map { id, file in
@@ -209,13 +213,13 @@ public actor ProcessRecoveryStore {
         var record = try PreviousProcessRun.read(file)
         let status = finding(id: id, record: record)
         guard status.canRecover else { throw JerdError.unavailable(status.detail) }
-        if !record.isStale {
+        if !record.isStale(using: processGroups) {
             guard let identity = record.identity else { throw JerdError.unavailable("The old record has no verified process identity. Use manual recovery.") }
             if identity.match() == .running {
                 // Retain exact descendant identities before signalling the master.
                 // A second recovery attempt can finish if the app exits mid-stop.
                 var members = record.descendants ?? []
-                guard let pids = record.liveGroupMembers() else {
+                guard let pids = processGroups.liveMembers(of: record.processID) else {
                     throw JerdError.unavailable("Cannot inspect all service processes. No process was signalled.")
                 }
                 for pid in pids where pid != record.processID {
@@ -231,7 +235,7 @@ public actor ProcessRecoveryStore {
                     if !members.contains(child) { members.append(child) }
                 }
                 record.descendants = members
-                try PrivateFiles.write(JSONEncoder().encode(record), to: file)
+                try record.writeRecovery(to: file)
                 try identity.signalGracefully(record.gracefulSignal ?? SIGTERM)
             } else {
                 for member in record.descendants ?? [] where member.match() == .running {
@@ -239,11 +243,11 @@ public actor ProcessRecoveryStore {
                 }
             }
             let deadline = ContinuousClock.now + timeout
-            while !record.isStale, ContinuousClock.now < deadline {
+            while !record.isStale(using: processGroups), ContinuousClock.now < deadline {
                 try await Task.sleep(for: .milliseconds(100))
             }
             // Never escalate to SIGKILL, including for data-service descendants.
-            guard record.isStale else {
+            guard record.isStale(using: processGroups) else {
                 throw JerdError.unavailable("The service has not stopped safely. Its process record and data were preserved. Retry recovery after checking its log.")
             }
         }
@@ -251,7 +255,7 @@ public actor ProcessRecoveryStore {
     }
 
     private func finding(id: String, record: PreviousProcessRun) -> ProcessRecoveryFinding {
-        if record.isStale {
+        if record.isStale(using: processGroups) {
             return .init(id: id, title: id, detail: "The saved process has exited or its PID was reused. Clear this stale record to retry Start.", state: .stale)
         }
         guard let controller = record.controller, let identity = record.identity else {
@@ -263,7 +267,7 @@ public actor ProcessRecoveryStore {
         guard [.exited, .replaced].contains(controller.match()), identity.userID == geteuid(),
               ProcessIdentity.supportsAuditedSignals, identity.auditWords != nil, identity.match() != .unknown,
               (record.descendants ?? []).allSatisfy({ $0.match() != .unknown }),
-              identity.match() == .running || !record.hasUnverifiedGroupMembers else {
+              identity.match() == .running || !record.hasUnverifiedGroupMembers(using: processGroups) else {
             return .init(id: id, title: id, detail: "Ownership of PID \(record.processID) is uncertain. The record and data were preserved. Inspect this service manually.", state: .manual)
         }
         return .init(id: id, title: id, detail: "\(record.runtimeID) · PID \(record.processID)\n\(identity.executable)\nThe previous Jerd session ended. Request a graceful stop, then retry Start.", state: .recoverable)

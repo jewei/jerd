@@ -28,6 +28,7 @@ are separate from these repository paths.
 | `SystemCertificateTrust`, `CertificateTrustSettings` | System keychain and explicit TLS trust policies through Security.framework |
 | `TrustConsentClient`, `TrustConsentService`, `TrustConsentScope` | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
 | `JerdCLI`, `CLIRuntimeSelection` | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
+| `PHPConfigurationPolicy`, `PHPTrustBundle` | PHP defaults, explicit CLI overrides, and private CA bundles from approved server-TLS trust |
 | `DatabaseModel`, `DatabaseServicesView` | Database list, connection details, and independent service controls |
 | `DatabaseManager`, `DatabaseDriver` | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
 | `MailManager`, `MailDriver`, `MailStore` | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
@@ -59,7 +60,7 @@ an absolute path is shown. This table lists the main persisted records.
 | `environment/certificates/` | Private CA keys and issued certificates |
 | `environment/logs/` | Bounded web environment output |
 | `environment/processes/` | Verified process identities for web recovery |
-| `runtimes/configuration/` | Generated CLI INI and empty INI scan directory |
+| `runtimes/configuration/` | Generated CLI INI, private PHP CA bundle, and empty INI scan directory |
 | `runtime-updates/<kind>-<version>-<architecture>-<SHA256>/` | Separate verified runtime builds |
 | `/Library/Application Support/JerdHelper/registration.json` | Owner UID, hostnames, installation ID, CA certificate, and trust policy |
 | `/Library/Application Support/JerdHelper/hosts.previous` | Host-file backup for a system transaction |

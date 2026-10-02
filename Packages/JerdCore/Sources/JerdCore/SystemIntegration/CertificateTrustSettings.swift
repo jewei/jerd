@@ -25,6 +25,13 @@ public enum CertificateTrustSettings {
         for entry in entries {
             var expectedKeys = Set([kSecTrustSettingsResult as String, kSecTrustSettingsPolicy as String])
             if policy == .hostnames { expectedKeys.insert(kSecTrustSettingsPolicyString as String) }
+            // macOS adds this name when it stores and reads the policy. It is
+            // absent from the public SDK constants. Accept only the SSL server
+            // name; a stored SSL policy's properties can omit its client flag.
+            if let name = entry["kSecTrustSettingsPolicyName"] {
+                guard name as? String == "sslServer" else { return false }
+                expectedKeys.insert("kSecTrustSettingsPolicyName")
+            }
             guard (entry[kSecTrustSettingsResult as String] as? NSNumber)?.uint32Value == SecTrustSettingsResult.trustRoot.rawValue,
                   Set(entry.keys) == expectedKeys,
                   let value = entry[kSecTrustSettingsPolicy as String], CFGetTypeID(value as CFTypeRef) == SecPolicyGetTypeID() else { return false }

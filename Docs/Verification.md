@@ -220,6 +220,84 @@ registration retries, image cleanup, independent service loading, and bootstrap 
 File hashing now uses a 1 MiB buffer with an autorelease pool per chunk.
 An isolated 87 MiB PHP hash needed 1 MiB of extra buffer memory after that change.
 
+## Herd changelog review, 2026-10-02
+
+The [Herd changelog](https://herd.laravel.com/docs/macos/changelog) prompted these
+checks against Jerd's existing scope. A related Herd fix does not establish a
+Jerd defect. The item numbers match the review list.
+
+| Item | Decision | Reason or change |
+| --- | --- | --- |
+| 1. PHP HTTPS client trust | Fix | PHP's OpenSSL clients need the approved local CA in a file. A private bundle retains public roots and adds only the CA with approved server-TLS trust. A real trust lookup also exposed rejected macOS policy-name metadata; the comparison now accepts only the server-TLS name. CLI and FPM tests cover accepted and rejected trust. |
+| 2. Installed app update | Skip code changes | No new updater defect was found. Signed-feed, archive, and cancelled-quit checks already exist. The real helper update remains a release acceptance gap. |
+| 3. OS and CPU support | Skip code changes | Intel and macOS 14 execution need separate test machines. No support claim was added. |
+| 4. PHP selection | Skip | Existing tests cover nested paths, symlinks, missing pins, and INI overrides. Project compatibility remains separate from runtime readiness. |
+| 5. Service state | Add regression check | The real multiple-pool test now verifies automatic environment cleanup when one PHP group exits. The shared shutdown policy is unchanged. |
+| 6. Paths | Skip | Real web tests already use spaces and Unicode. Root validation rejects missing paths and escaping links. |
+| 7. Shell setup | Fix | Version metadata was mistaken for companion file paths. Setup also rejected updated PHP runtimes. It now verifies either managed receipt type and preserves repeated setup through canonical paths. |
+| 8. Static files | Add regression checks | Verify favicon bytes, robots.txt, and JavaScript module MIME types through the real server. |
+| 9. Mail input | Add regression checks | Capture plain mail without Date or Message-ID, preserve multiple To/CC addresses, and read the message after restart. |
+| 10. Runtime selections after updates | Fix setup compatibility | The item 7 fix permits setup with an updated PHP selection. Existing bootstrap checks already preserve later Composer and Laravel selections. |
+| 11. Log and UI load | Skip | Process output is bounded and handled off the UI actor. Logs open in an external app. No new performance defect was found. |
+| 12. Missing credentials | Skip | Existing service tests preserve missing or corrupt credentials and data. Release commands report signing failures. |
+| 13. Database settings | Skip | Private configuration, explicit arguments, authenticated queries, and port-conflict tests already cover the relevant risks. |
+| 14. International hostnames | Skip | ASCII hostname validation and clear errors are intentional. Full international hostname support adds scope. |
+| 15. Dock and window behavior | Skip | The verification record already covers all visibility combinations, reopening, navigation, and minimum window size. |
+
+The core suite, 13 Python checks, real PHP/TLS checks, real Mailpit checks, and
+the unsigned Debug app build passed. Mail checks covered restart and
+runtime-update rollback. Tests used private data, high loopback ports, and an
+isolated CA. No test changed hosts, system trust, or the user's shell files.
+
+A separate read-only check used a temporary copy of the existing installation
+CA and identity with the real macOS trust lookup. It reproduced rejection of
+the stored policy-name field before the fix and accepted the approved CA after
+the fix. Twenty repeated checks left the private bundle unchanged.
+
+Three fresh independent agents reviewed code, architecture, and performance.
+The code and architecture reviewers also checked the final policy-name fix.
+No unresolved finding remains from these reviews. This is source and local
+build verification; no new app release was installed or published.
+
+## Process and helper re-review, 2026-10-02
+
+The external review was checked against the current source and local tools.
+Only the confirmed code gaps were changed.
+
+- Native process enumeration returned zero for both an empty group and an error.
+  A local C probe returned `(count: 0, errno: 0)` for an absent group and
+  `(count: 0, errno: EFAULT)` for an invalid output buffer. This matches
+  [Apple's libproc wrapper](https://github.com/apple-oss-distributions/xnu/blob/main/libsyscall/wrappers/libproc/libproc.c).
+  Both shutdown and recovery now use the same conservative inspector. Tests
+  cover empty groups, errors, bounded interruption retries, full buffers, and
+  members that exit during inspection. Real child fixtures verify that an
+  inspection error preserves data locks and records until safe cleanup.
+- A cancelled status request previously waited for the helper reply or timeout.
+  Tests now hold a fake reply, cancel the caller, and check prompt completion
+  and rejection of late replies. Mutating calls still await their replies,
+  including when cancellation occurs before sending. A capture-lifetime test
+  proves that completion releases the watchdog before its deadline.
+- The certificate capture warning did not occur with local Swift 6.4. A strict
+  local check accepted `SecCertificate` as `Sendable`. The actual
+  [CI run for the reviewed commit](https://github.com/jewei/jerd/actions/runs/36989600143)
+  did report the warning. Certificate creation now occurs inside the background
+  closure. Scope approval and failure handling are unchanged.
+
+Three fresh independent agents reviewed code, architecture, and performance.
+They found that the shared inspection buffer could exceed recovery's saved-record
+limits. Recovery now checks both descendant count and encoded byte size before
+writing or signalling. Tests verify that an oversized candidate preserves the
+previous readable record. All reviewers accepted the follow-up fixes.
+
+The final default core run passed 123 tests; opt-in service tests were skipped.
+The unsigned Debug app build passed. Two earlier core runs failed in existing
+socket tests: closed-connection restart and mocked FPM/Caddy startup. The restart
+test passed alone, and the final full run passed. Their cause was not established;
+no additional product or test change was made for those failures.
+No test changed system hosts, trust, or helper registration. Signed installed-app
+acceptance and representative workload measurements remain separate test gaps.
+No speculative performance or update-label changes were made.
+
 ## Remaining test gaps
 
 Intel execution, macOS 14 execution, and a published Jerd archive remain

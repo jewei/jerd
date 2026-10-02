@@ -58,6 +58,7 @@ public actor ServingEngine: EngineServing {
     private let processes: any ProcessControlling
     private let commands: any CommandRunning
     private let fpmProbe: any FPMProbing
+    private let phpTrust: PHPTrustBundle
     private var fpmIDs: [UUID] = []
     private var caddyID: UUID?
     private var activePaths: EnginePaths?
@@ -70,10 +71,12 @@ public actor ServingEngine: EngineServing {
     private var recoveryLock: Int32?
 
     public init(processes: any ProcessControlling = ProcessSupervisor(),
-                commands: any CommandRunning = LocalCommandRunner(), fpmProbe: any FPMProbing = FPMProbe()) {
+                commands: any CommandRunning = LocalCommandRunner(), fpmProbe: any FPMProbing = FPMProbe(),
+                phpTrust: PHPTrustBundle = PHPTrustBundle()) {
         self.processes = processes
         self.commands = commands
         self.fpmProbe = fpmProbe
+        self.phpTrust = phpTrust
     }
 
     public func preflight(_ configuration: WebConfiguration, paths: EnginePaths) async throws {
@@ -209,6 +212,11 @@ public actor ServingEngine: EngineServing {
             try await validate(ProcessRequest(executable: URL(fileURLWithPath: caddy.path),
                                               arguments: ["validate", "--config", paths.caddyConfig.path], directory: paths.root, environment: environment,
                                               listeningSockets: listeningSockets))
+            let caBundle = try phpTrust.prepare(paths: paths, directory: paths.configuration)
+            if let caBundle {
+                let ini = ConfigurationGenerator.developmentINI + (try PHPConfigurationPolicy.trustINI(caBundle))
+                for (_, poolPaths) in pools { try PrivateFiles.write(Data(ini.utf8), to: poolPaths.phpINI) }
+            }
             try checkStart()
             for (runtime, poolPaths) in pools {
                 let id = try await processes.start(ProcessRequest(executable: URL(fileURLWithPath: runtime.fpmPath),

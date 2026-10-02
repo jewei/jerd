@@ -37,7 +37,7 @@ public enum PHPConfigurationPolicy {
     }
 
     public static func cli(arguments: [String], command: String = "php", directory: URL,
-                           environment: [String: String]) throws -> CLIConfiguration {
+                           environment: [String: String], caBundle: URL? = nil) throws -> CLIConfiguration {
         let scan = directory.appendingPathComponent("empty-ini")
         try PrivateFiles.directory(directory)
         try PrivateFiles.directory(scan)
@@ -48,15 +48,24 @@ public enum PHPConfigurationPolicy {
         if environment["PHPRC"] != nil || (command == "php" && hasINISelection(arguments)) {
             return CLIConfiguration(arguments: [], environment: additions)
         }
-        let file = directory.appendingPathComponent("cli.ini")
-        let data = Data(cliINI.utf8)
+        let explicitTrust = ["SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE"].contains { environment[$0] != nil }
+        let localCA = explicitTrust ? nil : caBundle
+        // Explicit trust overrides must not rewrite a concurrent default command's INI.
+        let file = directory.appendingPathComponent(localCA == nil ? "cli.ini" : "cli-local-tls.ini")
+        let data = Data((cliINI + (try trustINI(localCA))).utf8)
         if try !FileManager.default.fileExists(atPath: file.path) || PrivateFiles.read(file, limit: 65_536) != data {
             try PrivateFiles.write(data, to: file)
         }
         return CLIConfiguration(arguments: ["-c", file.path], environment: additions)
     }
 
-    static func hasINISelection(_ arguments: [String]) -> Bool {
+    static func trustINI(_ caBundle: URL?) throws -> String {
+        guard let caBundle else { return "" }
+        let path = try ConfigurationGenerator.iniQuote(caBundle.path)
+        return "\n[curl]\ncurl.cainfo = \(path)\n[openssl]\nopenssl.cafile = \(path)\n"
+    }
+
+    public static func hasINISelection(_ arguments: [String]) -> Bool {
         var index = 0
         while index < arguments.count {
             let value = arguments[index]

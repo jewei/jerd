@@ -9,7 +9,10 @@ Run commands from the repository root. First prepare the required runtimes with
 Default tests need no root access and do not change system files or trust.
 They cover site edit rollback, stale approval, cancelled preparation, no-op
 starts, helper recovery stages, PID reuse, verified orphan shutdown, silent FPM
-sockets, database registration restore, protected backups, and log limits:
+sockets, database registration restore, protected backups, and log limits.
+Failure injection checks that uncertain process enumeration retains live-child
+ownership, data locks, and recovery records. Helper reply tests cover status
+cancellation, late replies, mutation completion, and timeout-task release:
 
 
 ```sh
@@ -37,6 +40,11 @@ PHP group and with two separate PHP groups. To use a second PHP version, set `JE
 `JERD_SECOND_PHP_FPM` to its trusted executables.
 The public storage case verifies linked asset bytes and rejects private storage,
 hidden files, PHP source, and PHP execution under the storage URL.
+PHP client tests check cURL and OpenSSL stream requests between two isolated
+HTTPS sites from both CLI and FPM. The trust decision is injected for the test CA;
+no trust store is changed. Both clients reject an unapproved CA. Static-file
+checks include favicon bytes, `robots.txt`, and JavaScript module content types.
+The multiple-PHP-group test checks automatic cleanup after one group exits.
 Set `JERD_KEEP_TEST_FILES=1` to retain diagnostic files.
 Never install a test CA in a system trust store.
 
@@ -70,6 +78,8 @@ It uses a temporary inbox and high loopback ports. It sends a MIME message over 
 through the API. It also rejects an unknown HTTP Host, changes ports, and
 checks persistence after restart. It also checks
 process-exit detection, missing-database preservation, and runtime identity.
+Plain messages without Date or Message-ID headers, multiple To/CC addresses,
+and retained messages after restart are also checked.
 It does not access an existing inbox or configure external mail delivery.
 
 The storage test uses an explicitly selected RustFS runtime and temporary data:
@@ -160,11 +170,15 @@ For completed checks and remaining gaps, see the [verification record](Verificat
 
 ## Release preparation checks
 
-Run the release failure checks without signing or network access:
+Run the release failure and CLI setup checks without signing or network access:
 
 ```sh
 /usr/bin/python3 -m unittest discover -s Scripts/Tests -v
 ```
+
+CLI setup tests use a temporary home directory. They check version metadata,
+bundled and updated PHP receipts, repeated setup, and shell symlink preservation.
+They do not write to the user's shell files.
 
 `Scripts/release.sh prepare VERSION BUILD` also runs the full core suite with
 explicit paths to the signed candidate runtimes. These tests use private data,

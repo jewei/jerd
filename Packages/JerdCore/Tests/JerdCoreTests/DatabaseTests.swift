@@ -353,7 +353,8 @@ private actor FixtureDatabaseCommands: CommandRunning {
 }
 
 struct DatabaseDescendantTests {
-    @Test func exitedMasterKeepsDataLockedUntilItsChildStops() async throws {
+    @Test(arguments: [false, true])
+    func exitedMasterKeepsDataLockedUntilItsChildStops(inspectionFails: Bool) async throws {
         let root = try temporaryDirectory(" owned descendants")
         let source = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil)).appendingPathComponent("orphan-service.c")
         let runtimeRoot = root.appendingPathComponent("runtime")
@@ -363,7 +364,12 @@ struct DatabaseDescendantTests {
             arguments: [source.path, "-o", binary.path], directory: root), timeout: .seconds(20))
         #expect(built.status == 0)
         let port = try freeDatabasePort()
-        let supervisor = ProcessSupervisor(gracefulTimeout: .milliseconds(100))
+        let inspectionError = root.appendingPathComponent("inspection-error")
+        let groups = ProcessGroupInspector { group, pids in
+            if FileManager.default.fileExists(atPath: inspectionError.path) { return (0, EIO) }
+            return ProcessGroupInspector.nativeList(group, pids)
+        }
+        let supervisor = ProcessSupervisor(gracefulTimeout: .milliseconds(100), processGroups: groups)
         let manager = DatabaseManager(directory: root, commands: FixtureDatabaseCommands(port: port), processes: supervisor)
         _ = try await manager.load()
         let runtime = DatabaseRuntime(id: "fixture", engine: .redis, version: "8.8.3", path: runtimeRoot.path)
@@ -375,6 +381,7 @@ struct DatabaseDescendantTests {
             let pid = try #require(await manager.snapshot().statuses[service.id]?.processID)
             let record = paths.root.appendingPathComponent("active-run.json")
             let original = try Data(contentsOf: record)
+            if inspectionFails { try PrivateFiles.write(Data(), to: inspectionError) }
             try PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("exit-master"))
             let deadline = ContinuousClock.now + .seconds(3)
             while (try? ProcessIdentity.capture(pid)) != nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
@@ -391,12 +398,14 @@ struct DatabaseDescendantTests {
             await #expect(throws: (any Error).self) { try await manager.remove(service.id) }
             #expect(try Data(contentsOf: record) == original)
             try PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("finish-child"))
+            if inspectionFails { try FileManager.default.removeItem(at: inspectionError) }
             try await Task.sleep(for: .milliseconds(50))
             try await manager.stop(service.id)
             #expect(await manager.snapshot().statuses[service.id]?.processID == nil)
             #expect(!FileManager.default.fileExists(atPath: record.path))
             try FileManager.default.removeItem(at: root)
         } catch {
+            try? FileManager.default.removeItem(at: inspectionError)
             try? PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("finish-child"))
             try? await Task.sleep(for: .milliseconds(50))
             try? await manager.stopAll()

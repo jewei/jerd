@@ -16,36 +16,59 @@ export PATH="$HOME/Library/Application Support/Jerd/bin:$PATH"
 '''
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--app", type=pathlib.Path, default=pathlib.Path("/Applications/Jerd.app"))
-    args = parser.parse_args()
-    home = pathlib.Path.home()
+def verify_php(executable, app):
+    executable = executable.resolve(strict=True)
+    for name, receipt_name, hash_key in [
+        ("runtimes", "jerd-receipt.json", "fileSHA256"),
+        ("runtime-updates", "update-receipt.json", "files"),
+    ]:
+        root = (app / name).resolve()
+        if not executable.is_relative_to(root):
+            continue
+        relative = executable.relative_to(root)
+        if len(relative.parts) < 2:
+            break
+        build = root / relative.parts[0]
+        receipt = json.loads((build / receipt_name).read_text())
+        entry = executable.relative_to(build).as_posix()
+        if receipt.get("schemaVersion") != 1:
+            raise RuntimeError("The installed PHP receipt is not supported")
+        if name == "runtime-updates" and (receipt.get("kind") != "php" or receipt.get("executable") != entry):
+            raise RuntimeError("The installed PHP receipt does not match the selected executable")
+        digest = hashlib.sha256()
+        with executable.open("rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if digest.hexdigest() != receipt.get(hash_key, {}).get(entry):
+            raise RuntimeError("The installed PHP executable failed verification")
+        return
+    raise RuntimeError("Select a managed Jerd PHP runtime before setting up its CLI command")
+
+
+def setup(app_bundle, home):
     app = home / "Library/Application Support/Jerd"
     config = json.loads((app / "configuration.json").read_text())
     runtime = next(r for r in config["runtimes"] if r["id"] == config["defaultRuntimeID"])
     executable = pathlib.Path(runtime["cliPath"])
-    if not executable.resolve().is_relative_to((app / "runtimes").resolve()):
-        raise RuntimeError("Select a bundled Jerd PHP runtime before setting up its CLI command")
-    receipt = json.loads((executable.parent / "jerd-receipt.json").read_text())
-    if hashlib.sha256(executable.read_bytes()).hexdigest() != receipt["fileSHA256"][executable.name]:
-        raise RuntimeError("The installed PHP executable failed verification")
+    verify_php(executable, app)
     directory = app / "bin"
     if directory.is_symlink():
         raise RuntimeError("The CLI directory must not be a symbolic link")
     directory.mkdir(mode=0o700, exist_ok=True)
-    source = args.app / "Contents/MacOS/JerdCLI"
+    source = app_bundle / "Contents/MacOS/JerdCLI"
     if not source.is_file():
         raise RuntimeError("Build or install a Jerd app with its CLI companion first")
     companions = json.loads((app / "runtimes/cli-tools.json").read_text())
-    for path in companions.values():
-        if not pathlib.Path(path).is_file():
+    for key in ("composerPath", "laravelPath"):
+        path = companions.get(key)
+        if not isinstance(path, str) or not path or not pathlib.Path(path).is_file():
             raise RuntimeError("Open Jerd to install Composer and the Laravel installer first")
     commands = [directory / name for name in ("php", "composer", "laravel")]
     for command in commands:
         if command.exists() or command.is_symlink():
-            if not command.is_symlink() or not (command.resolve().is_relative_to((app / "runtimes").resolve())
-                    or command.resolve() == directory / "JerdCLI"):
+            owned_runtime = any(command.resolve().is_relative_to((app / name).resolve())
+                                for name in ("runtimes", "runtime-updates"))
+            if not command.is_symlink() or not (owned_runtime or command.resolve() == (directory / "JerdCLI").resolve()):
                 raise RuntimeError(f"An unrelated {command.name} command already exists; it was not changed")
 
     # Check both files before changing either. Keep their exact prior bytes.
@@ -92,6 +115,13 @@ def main():
     print("php, composer, and laravel now select the registered site's PHP, or the Jerd default outside a site.")
     print(f"Shell backups: {backup}")
     print("Run exec zsh -l in an existing terminal to load the PATH change.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--app", type=pathlib.Path, default=pathlib.Path("/Applications/Jerd.app"))
+    args = parser.parse_args()
+    setup(args.app, pathlib.Path.home())
 
 
 if __name__ == "__main__":

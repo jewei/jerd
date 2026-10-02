@@ -19,12 +19,15 @@ final class TrustConsentService: NSObject, JerdTrustConsentProtocol, @unchecked 
 
     func changeTrust(_ request: Data, reply: @escaping @Sendable (Int32) -> Void) {
         guard request.count < 131_072, let change = try? JSONDecoder().decode(TrustConsentRequest.self, from: request),
-              lock.withLock({ scope?.allows(change) == true }),
-              let certificate = SecCertificateCreateWithData(nil, change.certificateDER as CFData) else {
+              lock.withLock({ scope?.allows(change) == true }) else {
             reply(errSecAuthFailed)
             return
         }
         DispatchQueue.global(qos: .userInitiated).async { @Sendable in
+            guard let certificate = SecCertificateCreateWithData(nil, change.certificateDER as CFData) else {
+                reply(errSecAuthFailed)
+                return
+            }
             if let hostnames = change.hostnames {
                 guard let settings = try? CertificateTrustSettings.make(policy: change.policy, hostnames: hostnames) else {
                     reply(errSecParam)

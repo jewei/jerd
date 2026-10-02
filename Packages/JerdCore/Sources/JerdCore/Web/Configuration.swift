@@ -52,7 +52,7 @@ public enum ConfigurationGenerator {
         """
     }
 
-    private static func iniQuote(_ value: String) throws -> String {
+    static func iniQuote(_ value: String) throws -> String {
         guard !value.contains("${"), !value.unicodeScalars.contains(where: { $0.value < 32 }) else {
             throw JerdError.invalid("Configuration paths cannot contain control characters or environment substitutions.")
         }

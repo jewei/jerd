@@ -33,7 +33,7 @@ actor HelperClient: SystemIntegrating {
 
     func status() async throws -> SystemSetupStatus {
         guard isEnabled() else { return SystemSetupStatus() }
-        let data: Data = try await call { proxy, reply in
+        let data: Data = try await call(cancellation: .readOnly) { proxy, reply in
             proxy.status { data, error in
                 if let data { reply.resolve(.success(data)) }
                 else { reply.resolve(.failure(JerdError.unavailable(error ?? "No helper status was returned."))) }
@@ -133,38 +133,18 @@ actor HelperClient: SystemIntegrating {
     }
 
     private func call<Value: Sendable>(timeout: Duration? = .seconds(20),
-                                     _ send: (any JerdHelperProtocol, XPCReply<Value>) -> Void) async throws -> Value {
+                                     cancellation: HelperReply<Value>.CancellationPolicy = .awaitReply,
+                                     _ send: (any JerdHelperProtocol, HelperReply<Value>) -> Void) async throws -> Value {
         let connection = try connect()
-        return try await withCheckedThrowingContinuation { continuation in
-            let reply = XPCReply(continuation)
+        return try await HelperReply<Value>.wait(cancellation: cancellation, timeout: timeout, onTimeout: { [weak self, id = connectionID] in
+            if let id { await self?.didInvalidate(id) }
+        }) { reply in
             let remote = connection.remoteObjectProxyWithErrorHandler { @Sendable error in reply.resolve(.failure(error)) }
             guard let proxy = remote as? any JerdHelperProtocol else {
                 reply.resolve(.failure(JerdError.unavailable("The helper interface is unavailable.")))
                 return
             }
             send(proxy, reply)
-            guard let timeout else { return } // The macOS authentication panel has its own Cancel action.
-            Task { [weak self, id = self.connectionID] in
-                try? await Task.sleep(for: timeout)
-                if reply.resolve(.failure(JerdError.unavailable("The helper did not reply. Check macOS approval and try again."))) {
-                    if let id { await self?.didInvalidate(id) }
-                }
-            }
         }
-    }
-}
-
-/// An XPC failure and a reply may race. Resume each continuation once.
-private final class XPCReply<Value: Sendable>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<Value, any Error>?
-    init(_ continuation: CheckedContinuation<Value, any Error>) { self.continuation = continuation }
-    @discardableResult func resolve(_ result: Result<Value, any Error>) -> Bool {
-        lock.lock()
-        let current = continuation
-        continuation = nil
-        lock.unlock()
-        current?.resume(with: result)
-        return current != nil
     }
 }

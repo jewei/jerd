@@ -173,9 +173,27 @@ struct MailIntegrationTests {
             #expect(permissions?.intValue == 0o600)
 
             await #expect(throws: (any Error).self) { try await manager.edit(smtpPort: config.smtpPort, webPort: config.webPort) }
+            // A plain SMTP message need not provide Date or Message-ID headers.
+            let plain = [
+                "From: Sender <hello@jerd.test>",
+                "To: First <first@jerd.test>, Second <second@jerd.test>",
+                "Cc: Third <third@jerd.test>, Fourth <fourth@jerd.test>",
+                "Subject: Plain message without generated headers", "", "Plain message body.", ""
+            ].joined(separator: "\r\n")
+            try PrivateFiles.write(Data(plain.utf8), to: message)
+            let plainSent = try await LocalCommandRunner().run(MailDriver.send(configuration: config, paths: paths, message: message), timeout: .seconds(7))
+            #expect(plainSent.status == 0, "\(plainSent.output)")
+            let plainCaptured = try await object("api/v1/message/latest")
+            let plainID = try #require(plainCaptured["ID"] as? String)
+            #expect(!plainID.isEmpty && plainID != id)
+            #expect((plainCaptured["Text"] as? String)?.contains("Plain message body.") == true)
+            let to = try #require(plainCaptured["To"] as? [[String: Any]])
+            let cc = try #require(plainCaptured["Cc"] as? [[String: Any]])
+            #expect(to.compactMap { $0["Address"] as? String } == ["first@jerd.test", "second@jerd.test"])
+            #expect(cc.compactMap { $0["Address"] as? String } == ["third@jerd.test", "fourth@jerd.test"])
             try await manager.sendTestEmail()
             let totals = try await object("api/v1/info")
-            #expect(totals["Messages"] as? Int == 2)
+            #expect(totals["Messages"] as? Int == 3)
             try await manager.stop()
             #expect(await manager.snapshot().state == .stopped)
             #expect(FileManager.default.fileExists(atPath: paths.database.path))
@@ -189,17 +207,18 @@ struct MailIntegrationTests {
             let restored = try await object("api/v1/message/\(id)")
             #expect(restored["Subject"] as? String == subject)
             let after = try await object("api/v1/info")
-            #expect(after["Messages"] as? Int == 2)
+            #expect(after["Messages"] as? Int == 3)
+            #expect((try await object("api/v1/message/\(plainID)")["Text"] as? String)?.contains("Plain message body.") == true)
 
             let updated = MailRuntime(id: "mailpit-update-test", version: runtime.version, path: runtime.path)
             try await manager.updateRuntime(updated)
             #expect(await manager.snapshot().configuration.runtime == updated)
-            #expect(try await object("api/v1/info")["Messages"] as? Int == 2)
+            #expect(try await object("api/v1/info")["Messages"] as? Int == 3)
             let invalidUpdate = MailRuntime(id: "mailpit-invalid-update", version: "99.0.0", path: runtime.path)
             await #expect(throws: (any Error).self) { try await manager.updateRuntime(invalidUpdate) }
             #expect(await manager.snapshot().configuration.runtime == updated)
             #expect(await manager.snapshot().state == .running)
-            #expect(try await object("api/v1/info")["Messages"] as? Int == 2)
+            #expect(try await object("api/v1/info")["Messages"] as? Int == 3)
             #expect(try FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("runtime-backups").path).count == 2)
 
             let active = await manager.snapshot()
@@ -224,7 +243,7 @@ struct MailIntegrationTests {
             try PrivateFiles.write(originalIdentity, to: paths.identity)
             try await manager.start()
             let final = try await object("api/v1/info")
-            #expect(final["Messages"] as? Int == 2)
+            #expect(final["Messages"] as? Int == 3)
             try await manager.stop()
         } catch { try? await manager.stop(); throw error }
     }

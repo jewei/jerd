@@ -15,8 +15,13 @@ do {
     guard FileManager.default.isExecutableFile(atPath: executable) else {
         throw JerdError.unavailable("PHP \(selection.runtime.version) selected for \(selection.site?.hostname ?? "the default") is unavailable: \(executable)")
     }
-    let policy = try PHPConfigurationPolicy.cli(arguments: Array(CommandLine.arguments.dropFirst()), command: command,
-        directory: directory.appendingPathComponent("runtimes/configuration"), environment: ProcessInfo.processInfo.environment)
+    let userArguments = Array(CommandLine.arguments.dropFirst())
+    let userEnvironment = ProcessInfo.processInfo.environment
+    let explicitTrust = ["PHPRC", "SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE"].contains { userEnvironment[$0] != nil }
+    let usesOwnINI = command == "php" && PHPConfigurationPolicy.hasINISelection(userArguments)
+    let caBundle = explicitTrust || usesOwnINI ? nil : try PHPTrustBundle().forCLI(applicationDirectory: directory)
+    let policy = try PHPConfigurationPolicy.cli(arguments: userArguments, command: command,
+        directory: directory.appendingPathComponent("runtimes/configuration"), environment: userEnvironment, caBundle: caBundle)
     var arguments = [executable] + policy.arguments
     for (key, value) in policy.environment { setenv(key, value, 1) }
     if command != "php" {

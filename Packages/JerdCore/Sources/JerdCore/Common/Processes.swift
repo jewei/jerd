@@ -47,9 +47,12 @@ public actor ProcessSupervisor: ProcessControlling {
     private var logMaintenance: Task<Void, Never>?
     private let logPrefixBytes: Int
     private let gracefulTimeout: Duration
-    public init() { logPrefixBytes = 0; gracefulTimeout = .seconds(30) }
-    init(logPrefixBytes: Int) { self.logPrefixBytes = logPrefixBytes; gracefulTimeout = .seconds(30) }
-    init(gracefulTimeout: Duration) { self.gracefulTimeout = gracefulTimeout; logPrefixBytes = 0 }
+    private let processGroups: ProcessGroupInspector
+    public init() { logPrefixBytes = 0; gracefulTimeout = .seconds(30); processGroups = .init() }
+    init(logPrefixBytes: Int) { self.logPrefixBytes = logPrefixBytes; gracefulTimeout = .seconds(30); processGroups = .init() }
+    init(gracefulTimeout: Duration, processGroups: ProcessGroupInspector = .init()) {
+        self.gracefulTimeout = gracefulTimeout; logPrefixBytes = 0; self.processGroups = processGroups
+    }
 
     public func start(_ request: ProcessRequest, log: URL) throws -> UUID {
         guard geteuid() != 0 else { throw JerdError.process("Jerd cannot run runtime processes as root.") }
@@ -205,11 +208,11 @@ public actor ProcessSupervisor: ProcessControlling {
         let deadline = ContinuousClock.now + (timeout ?? gracefulTimeout)
         await waitForExit(pid, deadline: deadline)
         guard status(pid) != nil else { return false }
-        if Self.hasLiveDescendants(of: pid) { _ = kill(-pid, SIGTERM) }
-        while Self.hasLiveDescendants(of: pid), ContinuousClock.now < deadline {
+        if hasLiveDescendants(of: pid) { _ = kill(-pid, SIGTERM) }
+        while hasLiveDescendants(of: pid), ContinuousClock.now < deadline {
             await Task.detached { try? await Task.sleep(for: .milliseconds(25)) }.value
         }
-        guard !Self.hasLiveDescendants(of: pid) else { return false }
+        guard !hasLiveDescendants(of: pid) else { return false }
         var rawStatus: Int32 = 0
         while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
         children[id] = nil
@@ -221,24 +224,15 @@ public actor ProcessSupervisor: ProcessControlling {
         let deadline = ContinuousClock.now + .seconds(seconds)
         await Task.detached { [self] in
             while ContinuousClock.now < deadline {
-                if await status(pid) != nil, Self.hasLiveDescendants(of: pid) == false { return }
+                if await status(pid) != nil, await hasLiveDescendants(of: pid) == false { return }
                 try? await Task.sleep(for: .milliseconds(25))
             }
         }.value
     }
 
-    private static func hasLiveDescendants(of leader: pid_t) -> Bool {
-        var pids = [pid_t](repeating: 0, count: 4096)
-        let size = pids.count * MemoryLayout<pid_t>.size
-        let count = proc_listpgrppids(leader, &pids, Int32(size))
-        guard count >= 0, count < pids.count else { return true }
-        for pid in pids.prefix(Int(count)) where pid > 1 && pid != leader {
-            var info = proc_bsdinfo()
-            let read = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout.size(ofValue: info)))
-            if read == MemoryLayout.size(ofValue: info), info.pbi_status != SZOMB { return true }
-            if read == 0, errno != ESRCH { return true }
-        }
-        return false
+    private func hasLiveDescendants(of leader: pid_t) -> Bool {
+        guard let pids = processGroups.liveMembers(of: leader) else { return true }
+        return pids.contains { $0 != leader }
     }
 
     private func trimLogs() {

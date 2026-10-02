@@ -34,7 +34,11 @@ The supervisor retains an exited group leader unreaped until group cleanup.
 This prevents PID reuse while it signals the owned group. It does not select a process by name. It gives live descendants their shutdown
 period after the leader exits. Data-service shutdown never escalates to SIGKILL;
 a timeout retains the process, record, and data lock, including after a master
-crash or an early launch failure. Existing socket directories are
+crash or an early launch failure. Shared native group inspection distinguishes
+an empty group from a failed or incomplete check. It clears and captures `errno`,
+limits interruption retries, and treats a full result buffer as unknown.
+Recovery checks saved-record count and byte limits before it writes descendant
+identities or sends a signal. Existing socket directories are
 rejected. A new short private path is used for each FPM Unix socket.
 
 The engine checks readiness before reporting running, then watches the owned
@@ -90,6 +94,16 @@ with default macOS trust.
 The URLSession probe rejects redirects and uses no custom CA or TLS bypass.
 Browsers with separate trust stores still require their own acceptance check.
 
+Managed PHP uses OpenSSL CA files. Before FPM starts, and before a default CLI
+invocation, Jerd checks the installation CA's macOS trust settings. Only the
+approved server-TLS policy can enter PHP's private CA bundle. User trust settings
+take precedence; denied, hostname-restricted, and unapproved roots are excluded.
+The trust comparison accepts macOS's stored `sslServer` policy name. It still
+rejects client-policy names, unknown settings, and certificate-error exceptions.
+The bundle retains `/etc/ssl/cert.pem` and adds the installation CA. Jerd changes
+no system CA file. PHP cURL and OpenSSL streams use this bundle for peer verification.
+Trust changes take effect on the next CLI invocation or web start.
+
 ## Privileged boundary
 
 The helper uses SMAppService. The setup screen explains host/trust changes
@@ -108,6 +122,12 @@ remove setup. Recovery accepts an approved record digest and a restore/remove ac
 It accepts no command, arbitrary file path, executable, project
 root, or network destination. The helper does not spawn processes. Root never
 runs PHP or Caddy.
+
+Read-only status requests finish promptly on cancellation without invalidating
+the shared XPC connection. Requests that change state still await completion or
+a transport failure. Configure, remove, and recovery have no app timeout while
+macOS approval is open. Every completed request cancels its timeout task, and
+late replies cannot complete the same continuation again.
 
 The app checks existing listeners before XPC configure and acquire calls. The
 helper then binds only 127.0.0.1:80 and :443; this bind is the authoritative
@@ -200,6 +220,9 @@ PHPConfigurationPolicy supplies shared UTC, error logging, and version-header
 settings. CLI memory and execution time are unlimited by default; FPM retains
 web limits. Explicit `-n`, `-c`, `-d`, `PHPRC`, and scan-directory settings remain
 available to CLI users. Companion arguments stay after their script path.
+Explicit CA environment settings also retain their existing behavior. Default
+local-TLS commands use a separate INI file so a concurrent command with explicit
+trust settings cannot replace their configuration.
 
 ## Runtime supply and release scope
 

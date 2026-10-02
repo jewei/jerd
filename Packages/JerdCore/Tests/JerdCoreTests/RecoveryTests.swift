@@ -81,6 +81,71 @@ struct ProcessRecoveryTests {
         let store = ProcessRecoveryStore(directory: root)
         await #expect(throws: (any Error).self) { try await store.inspect() }
     }
+
+    @Test func oversizedRecoveryPreservesThePreviousReadableRecord() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("active-run.json")
+        let identity = try ProcessIdentity.capture(getpid())
+        let original = PreviousProcessRun(processID: getpid(), runtimeID: "fixture", identity: identity,
+            controller: identity, gracefulSignal: SIGTERM)
+        try original.writeRecovery(to: file)
+        let bytes = try Data(contentsOf: file)
+        let largeIdentity = ProcessIdentity(processID: identity.processID, userID: identity.userID,
+            startedSeconds: identity.startedSeconds, startedMicroseconds: identity.startedMicroseconds,
+            bootSeconds: identity.bootSeconds, executable: String(repeating: "x", count: 131_072), auditWords: identity.auditWords)
+        for children in [Array(repeating: identity, count: 1025), [largeIdentity]] {
+            var oversized = original
+            oversized.descendants = children
+            #expect(throws: (any Error).self) { try oversized.writeRecovery(to: file) }
+            #expect(try Data(contentsOf: file) == bytes)
+            #expect(try PreviousProcessRun.read(file).identity == identity)
+        }
+    }
+
+    @Test func failedEnumerationPreservesAnExitedMastersRecordAndLiveChild() async throws {
+        let root = try temporaryDirectory(" failed process inspection")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = root.appendingPathComponent("mail")
+        try PrivateFiles.directory(folder)
+        let source = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil)).appendingPathComponent("orphan-service.c")
+        let binary = root.appendingPathComponent("service")
+        let built = try await LocalCommandRunner().run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/clang"),
+            arguments: [source.path, "-o", binary.path], directory: root), timeout: .seconds(20))
+        #expect(built.status == 0)
+        let supervisor = ProcessSupervisor()
+        let token = try await supervisor.start(ProcessRequest(executable: binary, arguments: [], directory: root), log: root.appendingPathComponent("service.log"))
+        do {
+            let identity = try ProcessIdentity.capture(#require(await supervisor.processIdentifier(token)))
+            let record = PreviousProcessRun(processID: identity.processID, runtimeID: "fixture", identity: identity,
+                controller: differentStart(try ProcessIdentity.capture(getpid())), gracefulSignal: SIGTERM)
+            let file = folder.appendingPathComponent("active-run.json")
+            let bytes = try JSONEncoder().encode(record)
+            try PrivateFiles.write(bytes, to: file)
+            try PrivateFiles.write(Data(), to: root.appendingPathComponent("exit-master"))
+            let deadline = ContinuousClock.now + .seconds(3)
+            while await supervisor.isRunning(token), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+            #expect(identity.match() == .exited)
+            let childPID = try #require(Int32(String(contentsOf: root.appendingPathComponent("child.pid"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+            let child = try ProcessIdentity.capture(childPID)
+            let failed = ProcessGroupInspector { _, _ in (0, EIO) }
+            let store = ProcessRecoveryStore(directory: root, processGroups: failed)
+            #expect(try await store.inspect().first?.state == .manual)
+            await #expect(throws: (any Error).self) { try await store.recover("Mail") }
+            #expect(throws: (any Error).self) { try PreviousProcessRun.requireStopped(at: file, processGroups: failed) }
+            #expect(try Data(contentsOf: file) == bytes)
+            #expect(child.match() == .running)
+            try PrivateFiles.write(Data(), to: root.appendingPathComponent("finish-child"))
+            #expect(await supervisor.stopGracefully(token, timeout: .seconds(3)))
+            #expect(try await ProcessRecoveryStore(directory: root).inspect().first?.state == .stale)
+            try await ProcessRecoveryStore(directory: root).recover("Mail")
+            #expect(!FileManager.default.fileExists(atPath: file.path))
+        } catch {
+            try? PrivateFiles.write(Data(), to: root.appendingPathComponent("finish-child"))
+            _ = await supervisor.stopGracefully(token, timeout: .seconds(3))
+            throw error
+        }
+    }
 }
 
 struct BackupRetentionTests {

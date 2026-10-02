@@ -58,6 +58,13 @@ struct SetupTransactionTests {
         #expect(CertificateTrustSettings.matches(legacy, policy: .hostnames, hostnames: hosts))
         #expect(!CertificateTrustSettings.matches(legacy, policy: .serverTLS, hostnames: hosts))
         #expect(!CertificateTrustSettings.matches([[:]], policy: .serverTLS, hostnames: hosts))
+        var stored = settings
+        stored[0]["kSecTrustSettingsPolicyName"] = "sslServer"
+        #expect(CertificateTrustSettings.matches(stored, policy: .serverTLS, hostnames: hosts))
+        for name in ["sslClient", "basicX509", ""] {
+            stored[0]["kSecTrustSettingsPolicyName"] = name
+            #expect(!CertificateTrustSettings.matches(stored, policy: .serverTLS, hostnames: hosts))
+        }
         for extraKey in [kSecTrustSettingsAllowedError as String, "UnexpectedTrustSetting"] {
             var widened = settings
             widened[0][extraKey] = NSNumber(value: 1)

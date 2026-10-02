@@ -127,6 +127,13 @@ struct TLSSmokeTests {
             #expect(try await request(1, "/version.php").output == secondRuntime.version)
             #expect(try await request(0, "/hello.txt").output == "first-static")
             #expect(try await request(1, "/hello.txt").output == "second-static")
+            // One failed PHP group must clear the state of the entire environment.
+            await processes.stopPHP()
+            let deadline = ContinuousClock.now + .seconds(5)
+            while await engine.state == .running, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
+            if case .failed = await engine.state {} else { Issue.record("A failed PHP group left the environment marked running") }
+            while await !processes.allStopped(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
+            #expect(await processes.allStopped())
             await engine.stop()
             #expect(await processes.allStopped())
         } catch { await engine.stop(); throw error }
@@ -168,6 +175,12 @@ struct TLSSmokeTests {
                 try Data("<?php echo 'source-must-not-leak';".utf8).write(to: project.appendingPathComponent(name))
             }
             try Data("static-ok".utf8).write(to: project.appendingPathComponent("hello.txt"))
+            let staticAssets: [(String, Data, [String])] = [
+                ("favicon.ico", Data([0, 0, 1, 0, 0, 0]), ["image/x-icon", "image/vnd.microsoft.icon"]),
+                ("robots.txt", Data("User-agent: *\nDisallow: /private\n".utf8), ["text/plain"]),
+                ("app.mjs", Data("export const answer = 42;\n".utf8), ["text/javascript", "application/javascript"])
+            ]
+            for (name, bytes, _) in staticAssets { try bytes.write(to: project.appendingPathComponent(name)) }
             let provider = DevelopmentRuntimeProvider()
             let runtime = try await provider.inspectPHP(cli: cli, fpm: fpm, workDirectory: root.appendingPathComponent("inspection"))
             let caddy = try await provider.inspectCaddy(binary: caddyBinary, workDirectory: root.appendingPathComponent("inspection"))
@@ -201,6 +214,13 @@ struct TLSSmokeTests {
             #expect(body["version"] as? String == runtime.version)
             #expect(body["answer"] as? Int == 42)
             #expect(try await curl("/hello.txt", extra: ["--fail"]).output == "static-ok")
+            for (name, bytes, types) in staticAssets {
+                let output = root.appendingPathComponent("asset-response")
+                let asset = try await curl("/\(name)", extra: ["--output", output.path, "--write-out", "%{http_code} %{content_type}"])
+                #expect(asset.status == 0 && asset.output.hasPrefix("200 "), "\(name): \(asset.output)")
+                #expect(types.contains { asset.output == "200 \($0)" || asset.output.hasPrefix("200 \($0);") })
+                #expect(try Data(contentsOf: output) == bytes)
+            }
             for path in ["/.env", "/.git/config", "/%2eenv", "/source.PHP", "/index.php.bak", "/source.phtml"] {
                 let denied = try await curl(path, extra: ["--write-out", "%{http_code}"])
                 #expect(denied.status == 0)
