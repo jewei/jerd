@@ -99,8 +99,14 @@ public actor PrivilegedSetupStore {
         do {
             try hosts.replace(expected: before, with: after)
             changedHosts = true
-            changedTrust = true
-            try await certificates.install(request.certificateDER, hostnames: hostnames, policy: request.trustPolicy, replacingOwned: previous != nil)
+            do {
+                try await certificates.install(request.certificateDER, hostnames: hostnames,
+                                               policy: request.trustPolicy, replacingOwned: previous != nil)
+                changedTrust = true
+            } catch {
+                if case JerdError.partialChange = error { changedTrust = true }
+                throw error
+            }
             try PrivateFiles.write(try JSONEncoder().encode(next), to: recordURL)
             changedRecord = true
             try FileManager.default.removeItem(at: directory.appendingPathComponent("pending.json"))

@@ -38,7 +38,7 @@ struct SystemCertificateTrust: CertificateTrustManaging {
             if added == errSecSuccess {
                 do { try deleteStoredCertificate(der, keychain: keychain) }
                 catch {
-                    throw JerdError.invalid("Certificate trust approval failed, and the Jerd certificate may remain in the system keychain. \(error.localizedDescription)")
+                    throw JerdError.partialChange("Certificate trust approval failed, and the Jerd certificate may remain in the system keychain. \(error.localizedDescription)")
                 }
             }
             try check(status, "set Jerd certificate trust")

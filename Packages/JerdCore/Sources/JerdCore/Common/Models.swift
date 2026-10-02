@@ -6,11 +6,13 @@ public enum JerdError: Error, LocalizedError, Equatable, Sendable {
     case corruptConfiguration(String)
     case process(String)
     case approvalInterrupted(String)
+    case partialChange(String)
 
     public var errorDescription: String? {
         switch self {
         case .invalid(let message), .unavailable(let message),
-             .corruptConfiguration(let message), .process(let message), .approvalInterrupted(let message): message
+             .corruptConfiguration(let message), .process(let message), .approvalInterrupted(let message),
+             .partialChange(let message): message
         }
     }
 }

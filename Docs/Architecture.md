@@ -84,10 +84,12 @@ XPC connection's effective UID, not a claimed UID or PID supplied by a client.
 
 XPC offers status, configure a validated hostname list and CA, acquire/release sockets, and
 remove setup. It accepts no command, arbitrary file path, executable, project
-root, or network destination. Root never runs PHP or Caddy.
+root, or network destination. The helper does not spawn processes. Root never
+runs PHP or Caddy.
 
-The helper binds only 127.0.0.1:80 and :443. It reserves both before changing
-hosts or trust. A conflict changes neither. On start, it passes both listening
+The app checks existing listeners before XPC configure and acquire calls. The
+helper then binds only 127.0.0.1:80 and :443; this bind is the authoritative
+reservation. A conflict changes neither hosts nor trust. On start, it passes both listening
 file descriptors to the app. Caddy 2.11.4 accepts `fd/3` and `fd/4` directly;
 there is no proxy process or wildcard bind. `SO_REUSEADDR` permits prompt
 restart; `SO_REUSEPORT` is not used. A live listener cannot be shared.

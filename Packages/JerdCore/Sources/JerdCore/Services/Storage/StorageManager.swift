@@ -160,8 +160,9 @@ public actor StorageManager {
             let version = try await commands.run(ProcessRequest(executable: runtime.executable,
                 arguments: ["--version"], directory: paths.root), timeout: .seconds(10))
             let escaped = NSRegularExpression.escapedPattern(for: runtime.version)
-            let pattern = "(?m)^rustfs\\s+v?" + escaped + "(?![0-9.])"
-            guard version.status == 0, version.output.range(of: pattern, options: .regularExpression) != nil else {
+            let pattern = "^rustfs\\s+v?" + escaped + "(?![0-9.])"
+            let firstLine = version.output.split(separator: "\n", omittingEmptySubsequences: false).first.map(String.init) ?? ""
+            guard version.status == 0, firstLine.range(of: pattern, options: .regularExpression) != nil else {
                 throw JerdError.unavailable("The RustFS executable does not match the saved version.")
             }
             let credentials = try prepareData(runtime: runtime)

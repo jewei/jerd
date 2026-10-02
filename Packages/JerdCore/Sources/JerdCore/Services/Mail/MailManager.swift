@@ -102,7 +102,8 @@ public actor MailManager {
             let version = try await commands.run(ProcessRequest(executable: runtime.executable,
                 arguments: ["version", "--no-release-check"], directory: paths.root), timeout: .seconds(10))
             let escaped = NSRegularExpression.escapedPattern(for: runtime.version)
-            let pattern = "(?m)^(?:.*[/])?mailpit\\s+v?" + escaped + "(?![0-9.])"
+            let path = NSRegularExpression.escapedPattern(for: runtime.executable.path)
+            let pattern = "(?m)^" + path + "\\s+v?" + escaped + "(?![0-9.])"
             guard version.status == 0, version.output.range(of: pattern, options: .regularExpression) != nil else {
                 throw JerdError.unavailable("The Mailpit executable does not match the saved version.")
             }

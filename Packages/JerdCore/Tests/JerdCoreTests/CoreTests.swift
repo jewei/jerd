@@ -224,7 +224,7 @@ struct ConfigurationTests {
         #expect(text.contains("fastcgi"))
         #expect(text.contains(".env"))
         #expect(text.contains(".git"))
-        #expect(text.contains("php[0-9]*|phtml|phar|inc)(/|$)"))
+        #expect(text.contains("php[0-9]*|phtml|phar|inc)(\\\\.|/|$)"))
         let routes = try #require(servers["https"]?["routes"] as? [[String: Any]])
         let handlers = try #require(routes[0]["handle"] as? [[String: Any]])
         let applicationRoutes = try #require(handlers[0]["routes"] as? [[String: Any]])
@@ -232,7 +232,7 @@ struct ConfigurationTests {
         let regexp = try #require(firstMatcher[0]["path_regexp"] as? [String: String])
         let pattern = try NSRegularExpression(pattern: #require(regexp["pattern"]))
         for path in ["/.env", "/.git/config", "/index.php.bak", "/private.PHP.txt", "/file.phar",
-                     "/packages/foo/auth.json"] {
+                     "/config.inc.bak", "/lib.phar.txt", "/packages/foo/auth.json"] {
             #expect(pattern.firstMatch(in: path, range: NSRange(path.startIndex..., in: path)) != nil)
         }
         for path in ["/index.php", "/index.php/route", "/js/app.include.js", "/hello.txt"] {

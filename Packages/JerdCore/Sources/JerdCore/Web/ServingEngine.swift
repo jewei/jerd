@@ -34,6 +34,7 @@ public protocol EngineServing: Sendable {
     var state: EnvironmentState { get async }
     func start(sites: [SiteRuntime], caddy: CaddyRuntime, paths: EnginePaths,
                httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets?) async throws
+    func requestStop() async
     func stop() async
 }
 
@@ -179,13 +180,19 @@ public actor ServingEngine: EngineServing {
 
     public func stop() async {
         stopRequested = true
-        while operation { try? await Task.sleep(for: .milliseconds(25)) }
+        while operation {
+            await Task.detached { try? await Task.sleep(for: .milliseconds(25)) }.value
+        }
         operation = true
         defer { operation = false }
         monitor?.cancel()
         monitor = nil
         await stopOwned()
         state = .stopped
+    }
+
+    public func requestStop() {
+        stopRequested = true
     }
 
     private func checkStart() throws {
@@ -213,9 +220,9 @@ public actor ServingEngine: EngineServing {
     private func waitForTLS(sites: [Site], paths: EnginePaths, port: UInt16) async throws {
         // Force 127.0.0.1 with curl --resolve so readiness works before hosts cache updates
         // and in isolated tests that never write /etc/hosts. Never use curl -k.
-        let deadline = ContinuousClock.now + .seconds(20)
-        var detail = "No certificate is available."
         for site in sites {
+            let deadline = ContinuousClock.now + .seconds(20)
+            var detail = "No certificate is available."
             var ready = false
             while ContinuousClock.now < deadline {
                 try checkStart()
@@ -247,12 +254,14 @@ public actor ServingEngine: EngineServing {
                                requireExclusiveOwnership: requireExclusiveOwnership)
         for id in fpmIDs {
             guard let pid = await processes.processIdentifier(id) else { throw JerdError.process("PHP-FPM exited before listener checks.") }
-            try await ports.verify(processID: pid, ports: [])
+            try await ports.verify(processID: pid, ports: [], rejectUDP: false)
         }
     }
 
     private func checkHealth() async {
-        guard state == .running else { return }
+        guard state == .running, !operation else { return }
+        operation = true
+        defer { operation = false }
         let alive = await servicesAreRunning()
         guard state == .running, !stopRequested else { return }
         if !alive {
@@ -271,13 +280,16 @@ public actor ServingEngine: EngineServing {
     private func stopOwned() async {
         let caddyID = self.caddyID
         let fpmIDs = self.fpmIDs
+        let activePaths = self.activePaths
+        let ownsSocketDirectory = self.ownsSocketDirectory
         self.caddyID = nil
         self.fpmIDs.removeAll()
+        self.activePaths = nil
+        self.ownsSocketDirectory = false
         if let caddyID { await processes.stop(caddyID, gracefulSignal: SIGTERM) }
         for id in fpmIDs { await processes.stop(id, gracefulSignal: SIGQUIT) }
         if ownsSocketDirectory, let paths = activePaths {
             try? FileManager.default.removeItem(at: paths.socketDirectory)
-            ownsSocketDirectory = false
         }
     }
 }

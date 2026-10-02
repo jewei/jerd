@@ -60,7 +60,8 @@ struct DatabaseTests {
         #expect(throws: (any Error).self) { try configuration.validate() }
         configuration.services[0].port = 3307
         configuration.services.append(DatabaseService(name: " First ", runtimeID: runtime.id, port: 3308))
-        #expect(throws: (any Error).self) { try configuration.validate() }
+        try configuration.validate()
+        #expect(throws: (any Error).self) { try configuration.validateForSave() }
     }
 
     @Test func occupiedPortDoesNotStartOrStopAnyDatabase() async throws {
