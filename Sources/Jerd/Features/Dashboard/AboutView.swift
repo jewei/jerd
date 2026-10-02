@@ -75,7 +75,7 @@ struct AboutView: View {
                 }
 
                 GroupBox("Disclaimer") {
-                    Text("Jerd is intended for local development. It does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project and is not affiliated with Laravel Herd or the projects listed above.")
+                    Text("Jerd is intended for local development. It does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project and is not affiliated with Laravel or the projects listed above.")
                         .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(12)
                 }
                 Text(Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? "Copyright © 2026 Jerd contributors")

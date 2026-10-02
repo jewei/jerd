@@ -38,12 +38,6 @@ architecture, and performance. Fix the agreed findings.
 - Default tests must not change `/etc/hosts`, trust stores, shell files,
   system services, or privileged helpers. Product setup must use explicit
   user approval and narrowly scoped, authenticated system integration.
-- Do not stop another application's service to obtain a port.
-  Exception: on 2026-10-01 the user explicitly approved stopping Herd's
-  confirmed web service to free ports 80/443 for the Jerd system test.
-  Use Herd's own service control. This does not permit using its runtimes
-  or assets in Jerd.
-- Do not use Herd binaries or assets. Do not install Homebrew.
 - Use explicit executable URLs and argument arrays. Do not use a shell for
   runtime execution. Do not run project code for project detection.
 - Remove site records only. Never delete a registered project.
