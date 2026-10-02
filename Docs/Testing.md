@@ -89,7 +89,7 @@ swiftc -swift-version 6 \
 	Packages/JerdCore/Sources/JerdCore/Models.swift \
 	Packages/JerdCore/Sources/JerdCore/ListeningSockets.swift \
 	Packages/JerdCore/Sources/JerdCore/SystemIntegration.swift \
-	Scripts/check-xpc.swift -o .build/check-xpc
+	Scripts/Checks/check-xpc.swift -o .build/check-xpc
 codesign --force --sign 'Developer ID Application: Your Name (YOURTEAMID)' \
 	--identifier dev.jerd.app --options runtime .build/check-xpc
 .build/check-xpc
@@ -106,7 +106,7 @@ Resolve Sparkle into `.build/SourcePackages` with the build command in [Build Je
 Then run the isolated updater test with an available Apple signing identity:
 
 ```sh
-python3 Scripts/check-app-updates.py \
+python3 Scripts/Checks/check-app-updates.py \
 	--identity 'Developer ID Application: Your Name (YOURTEAMID)'
 ```
 
@@ -157,7 +157,7 @@ For completed checks and remaining gaps, see the [verification record](Verificat
 Run the release failure checks without signing or network access:
 
 ```sh
-/usr/bin/python3 -m unittest discover -s Scripts/tests -v
+/usr/bin/python3 -m unittest discover -s Scripts/Tests -v
 ```
 
 `Scripts/release.sh prepare VERSION BUILD` also runs the full core suite with

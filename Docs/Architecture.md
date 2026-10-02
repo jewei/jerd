@@ -1,8 +1,8 @@
 # Architecture and security boundaries
 
-`Jerd/` contains SwiftUI views, the main-actor model, file dialogs, Finder and
+`Sources/Jerd/` contains SwiftUI views, the main-actor model, file dialogs, Finder and
 browser access, and app lifecycle handling. `Packages/JerdCore` contains core
-logic. `JerdHelper/` contains the narrow privileged service. File and process
+logic. `Sources/JerdHelper/` contains the narrow privileged service. File and process
 work runs in actors away from the UI actor.
 
 For source responsibilities and data paths, see [Data and components](Reference.md).
@@ -221,7 +221,7 @@ a SQL editor, automatic data migration, Homebrew service control, or login start
 Runtime sources are [Oracle MySQL 8.4](https://dev.mysql.com/downloads/mysql/8.4.html),
 [Postgres.app](https://postgresapp.com/downloads.html), and
 [Redis source](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-from-source/).
-The exact selected versions and SHA-256 values are in `DatabaseRuntimes/pins.json`.
+The exact selected versions and SHA-256 values are in `Runtimes/Database/pins.json`.
 MySQL 8.4.11 also passes the upstream GPG signature check with the pinned
 Oracle key. PostgreSQL 18.6 comes from the digest-pinned Postgres.app 2.9.6
 image; its app signature is checked before runtime extraction. Redis 8.8.3

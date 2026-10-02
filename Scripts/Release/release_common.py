@@ -7,7 +7,7 @@ import re
 import subprocess
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 SPARKLE = ROOT / ".build/SourcePackages/artifacts/sparkle/Sparkle/bin"
 FEED_URL = "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml"
 REPOSITORY = "jewei/jerd"

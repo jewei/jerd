@@ -16,7 +16,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Test release checks
-        run: /usr/bin/python3 -m unittest discover -s Scripts/tests -v
+        run: /usr/bin/python3 -m unittest discover -s Scripts/Tests -v
       - name: Test core
         run: swift test --package-path Packages/JerdCore
       - name: Build app

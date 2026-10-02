@@ -56,7 +56,7 @@ def payloads(resources):
 
 def add_xz(folder, receipt, support):
     record = json.loads((support / "receipt.json").read_text())
-    if record["source"] != json.loads((ROOT / "Release/xz.json").read_text()):
+    if record["source"] != json.loads((ROOT / "Runtimes/Support/xz.json").read_text()):
         raise ValueError("The XZ source pin differs from the release pin")
     for name in ["liblzma.5.dylib", "XZ-LICENSE.txt"]:
         source = regular_file(support, name)

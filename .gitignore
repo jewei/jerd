@@ -6,4 +6,4 @@ xcuserdata/
 *.xcuserstate
 .swiftpm/
 __pycache__/
-DevelopmentRuntimes/laravel-installer/vendor/
+Runtimes/Development/laravel-installer/vendor/

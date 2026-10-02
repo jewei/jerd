@@ -6,8 +6,8 @@ import pathlib
 import shutil
 import sys
 
-root = pathlib.Path(__file__).resolve().parent.parent
-pin = json.loads((root / "StorageRuntime/pin.json").read_text())
+root = pathlib.Path(__file__).resolve().parents[2]
+pin = json.loads((root / "Runtimes/Storage/pin.json").read_text())
 source = root / ".build/storage-runtime" / pin["id"]
 destination = pathlib.Path(sys.argv[1])
 if not (source / "receipt.json").is_file():
@@ -26,5 +26,5 @@ if destination.exists():
     shutil.rmtree(destination)
 destination.mkdir(parents=True)
 shutil.copytree(source, destination / pin["id"])
-shutil.copyfile(root / "StorageRuntime/pin.json", destination / "pin.json")
+shutil.copyfile(root / "Runtimes/Storage/pin.json", destination / "pin.json")
 print("Embedded verified RustFS development runtime.")

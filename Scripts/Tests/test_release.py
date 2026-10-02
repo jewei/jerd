@@ -7,7 +7,7 @@ import unittest
 import os
 from unittest.mock import patch
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "Release"))
 import release
 from release_common import local_dependency, parallel_each, regular_file, run
 

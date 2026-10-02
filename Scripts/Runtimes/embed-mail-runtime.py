@@ -6,8 +6,8 @@ import pathlib
 import shutil
 import sys
 
-root = pathlib.Path(__file__).resolve().parent.parent
-pin = json.loads((root / "MailRuntime/pin.json").read_text())
+root = pathlib.Path(__file__).resolve().parents[2]
+pin = json.loads((root / "Runtimes/Mail/pin.json").read_text())
 source = root / ".build/mail-runtime" / pin["id"]
 destination = pathlib.Path(sys.argv[1])
 if not (source / "receipt.json").is_file():
@@ -26,5 +26,5 @@ if destination.exists():
     shutil.rmtree(destination)
 destination.mkdir(parents=True)
 shutil.copytree(source, destination / pin["id"])
-shutil.copyfile(root / "MailRuntime/pin.json", destination / "pin.json")
+shutil.copyfile(root / "Runtimes/Mail/pin.json", destination / "pin.json")
 print("Embedded verified Mailpit development runtime.")

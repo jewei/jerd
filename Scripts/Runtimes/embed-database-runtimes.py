@@ -6,10 +6,10 @@ import pathlib
 import shutil
 import sys
 
-root = pathlib.Path(__file__).resolve().parent.parent
+root = pathlib.Path(__file__).resolve().parents[2]
 source = root / ".build/database-runtimes"
 destination = pathlib.Path(sys.argv[1])
-pins = json.loads((root / "DatabaseRuntimes/pins.json").read_text())
+pins = json.loads((root / "Runtimes/Database/pins.json").read_text())
 if not all((source / entry["id"] / "jerd-receipt.json").is_file() for entry in pins["artifacts"]):
     if destination.exists():
         shutil.rmtree(destination)
@@ -36,5 +36,5 @@ for entry in pins["artifacts"]:
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(source / entry["id"], target)
-shutil.copyfile(root / "DatabaseRuntimes/pins.json", destination / "pins.json")
+shutil.copyfile(root / "Runtimes/Database/pins.json", destination / "pins.json")
 print("Embedded verified MySQL, PostgreSQL, and Redis development runtimes.")

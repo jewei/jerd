@@ -15,7 +15,7 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 SPARKLE = ROOT / ".build/SourcePackages/artifacts/sparkle/Sparkle"
 FRAMEWORK = SPARKLE / "Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 NS = "http://www.andymatuschak.org/xml-namespaces/sparkle"
@@ -159,7 +159,7 @@ def main():
         binary = root / "UpdaterTest"
         run("/usr/bin/xcrun", "swiftc", "-swift-version", "6", "-F", str(FRAMEWORK.parent), "-framework", "Sparkle",
             "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks",
-            str(ROOT / "Scripts/Fixtures/AppUpdateTest.swift"), "-o", str(binary))
+            str(ROOT / "Scripts/Checks/Fixtures/AppUpdateTest.swift"), "-o", str(binary))
         key = root / "test-key"
         public_key = run(str(binary), "generate-test-key", str(key), env={**os.environ, "DYLD_FRAMEWORK_PATH": str(FRAMEWORK.parent)})
         for mode in ["no-update", "altered-feed", "altered-archive", "success", "refused-quit"]:

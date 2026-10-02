@@ -12,7 +12,7 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOWNLOADS = ROOT / ".build/database-downloads"
 DESTINATION = ROOT / ".build/database-runtimes"
 HOSTS = {"cdn.mysql.com", "repo.mysql.com", "github.com", "api.github.com",
@@ -171,7 +171,7 @@ def prepare(pin, archive, scratch, payload):
 
 
 def main():
-    pins = json.loads((ROOT / "DatabaseRuntimes/pins.json").read_text())
+    pins = json.loads((ROOT / "Runtimes/Database/pins.json").read_text())
     if platform.system() != "Darwin" or platform.machine() != pins["architecture"]:
         raise RuntimeError("This development bootstrap requires an arm64 Mac")
     DOWNLOADS.mkdir(parents=True, exist_ok=True)
@@ -206,7 +206,7 @@ def main():
             (payload / "jerd-receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
             os.rename(payload, target)
         print("Prepared " + pin["id"], flush=True)
-    shutil.copyfile(ROOT / "DatabaseRuntimes/pins.json", DESTINATION / "pins.json")
+    shutil.copyfile(ROOT / "Runtimes/Database/pins.json", DESTINATION / "pins.json")
 
 
 if __name__ == "__main__":

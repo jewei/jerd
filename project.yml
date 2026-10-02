@@ -18,13 +18,13 @@ targets:
   Jerd:
     type: application
     platform: macOS
-    sources: [Jerd]
+    sources: [Sources/Jerd]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.jerd.app
         PRODUCT_NAME: Jerd
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: Jerd/Info.plist
+        INFOPLIST_FILE: Sources/Jerd/Resources/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Jerd
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Jerd contributors"
@@ -53,16 +53,16 @@ targets:
           mkdir -p "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons"
           cp "$BUILT_PRODUCTS_DIR/JerdHelper" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices/JerdHelper"
           cp "$BUILT_PRODUCTS_DIR/JerdCLI" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI"
-          cp "$SRCROOT/JerdHelper/dev.jerd.helper.plist" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist"
-          /usr/bin/python3 "$SRCROOT/Scripts/embed-development-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes"
-          /usr/bin/python3 "$SRCROOT/Scripts/embed-database-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes"
-          /usr/bin/python3 "$SRCROOT/Scripts/embed-mail-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MailRuntime"
-          /usr/bin/python3 "$SRCROOT/Scripts/embed-storage-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/StorageRuntime"
+          cp "$SRCROOT/Sources/JerdHelper/dev.jerd.helper.plist" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist"
+          /usr/bin/python3 "$SRCROOT/Scripts/Runtimes/embed-development-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes"
+          /usr/bin/python3 "$SRCROOT/Scripts/Runtimes/embed-database-runtimes.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes"
+          /usr/bin/python3 "$SRCROOT/Scripts/Runtimes/embed-mail-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MailRuntime"
+          /usr/bin/python3 "$SRCROOT/Scripts/Runtimes/embed-storage-runtime.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/StorageRuntime"
         basedOnDependencyAnalysis: false
   JerdCLI:
     type: tool
     platform: macOS
-    sources: [JerdCLI]
+    sources: [Sources/JerdCLI]
     dependencies:
       - package: JerdCore
     settings:
@@ -76,7 +76,7 @@ targets:
     type: tool
     platform: macOS
     sources:
-      - path: JerdHelper
+      - path: Sources/JerdHelper
         excludes: ["*.plist"]
     dependencies:
       - package: JerdCore

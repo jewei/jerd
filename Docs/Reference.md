@@ -4,6 +4,17 @@
 
 The source separates the SwiftUI app, shared core logic, and privileged helper.
 
+`Sources/Jerd/` contains `Application`, `Features`, `SystemIntegration`, and
+`Resources`. `Sources/JerdCLI/` and `Sources/JerdHelper/` contain the other app
+targets. The Swift package keeps its normal `Sources` and `Tests` layout.
+Within `Packages/JerdCore/Sources/JerdCore/`, code is grouped into `Common`,
+`Web`, `Runtimes`, `Services`, and `SystemIntegration`.
+
+`Runtimes/` stores repository inputs for Development, Database, Mail, Storage,
+and Support. `Scripts/` groups tools under `Runtimes`, `Release`, `Checks`,
+`Development`, and `Tests`. App bundle resource names and installed data paths
+are separate from these repository paths.
+
 | Component | Responsibility |
 | --- | --- |
 | `Models`, `Sites`, `SiteRegistry`, `Persistence` | Validation, hostname suggestions, runtime selections, serialized atomic storage |

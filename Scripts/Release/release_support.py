@@ -27,7 +27,7 @@ class ReleaseHTTPS(urllib.request.HTTPRedirectHandler):
 
 
 def prepare(destination):
-    pin = json.loads((ROOT / "Release/xz.json").read_text())
+    pin = json.loads((ROOT / "Runtimes/Support/xz.json").read_text())
     destination = pathlib.Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
     archive = destination / "source.tar.gz"

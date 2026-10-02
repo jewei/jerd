@@ -127,7 +127,7 @@ check reports that no new update is available.
 After the signed app installs its tools, run this optional setup from the repository:
 
 ```sh
-python3 Scripts/setup-php-cli.py
+python3 Scripts/Development/setup-php-cli.py
 exec zsh -l
 php --version
 composer --version

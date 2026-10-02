@@ -8,13 +8,13 @@ Apple Silicon. For supported and tested systems, see the [verification record](V
 1. From the repository root, prepare PHP, Caddy, Composer, and Laravel:
 
    ```sh
-   python3 Scripts/prepare-development-runtimes.py
+   python3 Scripts/Runtimes/prepare-development-runtimes.py
    ```
 
 2. To include database services, prepare their runtimes:
 
    ```sh
-   python3 Scripts/prepare-database-runtimes.py
+   python3 Scripts/Runtimes/prepare-database-runtimes.py
    ```
 
    This step requires the Xcode compiler and GnuPG. It does not install them.
@@ -22,13 +22,13 @@ Apple Silicon. For supported and tested systems, see the [verification record](V
 3. To include local mail, prepare Mailpit:
 
    ```sh
-   python3 Scripts/prepare-mail-runtime.py
+   python3 Scripts/Runtimes/prepare-mail-runtime.py
    ```
 
 4. To include S3 storage, prepare RustFS:
 
    ```sh
-   python3 Scripts/prepare-storage-runtime.py
+   python3 Scripts/Runtimes/prepare-storage-runtime.py
    ```
 
 The scripts verify the pinned downloads and retain license notices.

@@ -6,10 +6,10 @@ import pathlib
 import shutil
 import sys
 
-root = pathlib.Path(__file__).resolve().parent.parent
+root = pathlib.Path(__file__).resolve().parents[2]
 source = root / ".build/development-runtimes"
 destination = pathlib.Path(sys.argv[1])
-pins = json.loads((root / "DevelopmentRuntimes/pins.json").read_text())
+pins = json.loads((root / "Runtimes/Development/pins.json").read_text())
 if not all((source / entry["name"] / "jerd-receipt.json").is_file() for entry in pins["artifacts"]):
     if destination.exists():
         shutil.rmtree(destination)
@@ -36,5 +36,5 @@ for entry in pins["artifacts"]:
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(source / entry["name"], target)
-shutil.copyfile(root / "DevelopmentRuntimes/pins.json", destination / "pins.json")
+shutil.copyfile(root / "Runtimes/Development/pins.json", destination / "pins.json")
 print("Embedded the verified arm64 development payload and license notices.")

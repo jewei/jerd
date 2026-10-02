@@ -5,7 +5,7 @@ import JerdCore
 do {
     let command = URL(fileURLWithPath: CommandLine.arguments[0]).lastPathComponent
     guard ["php", "composer", "laravel"].contains(command) else {
-        throw JerdError.invalid("Install Jerd's php, composer, and laravel commands with Scripts/setup-php-cli.py.")
+        throw JerdError.invalid("Install Jerd's php, composer, and laravel commands with Scripts/Development/setup-php-cli.py.")
     }
     let directory = JSONConfigurationStore.applicationDirectory
     let config = try JSONDecoder().decode(AppConfiguration.self,

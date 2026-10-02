@@ -19,7 +19,7 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / ".build" / "development-runtimes"
 TLS = ssl.create_default_context()
 
@@ -79,7 +79,7 @@ def prepare_composer(pin):
 
 
 def prepare_laravel(pin):
-    specification = ROOT / "DevelopmentRuntimes/laravel-installer"
+    specification = ROOT / "Runtimes/Development/laravel-installer"
     lock = (specification / "composer.lock").read_bytes()
     if hashlib.sha256(lock).hexdigest() != pin["sha256"]:
         raise RuntimeError("The Laravel installer lock file changed; review and repin it")
@@ -120,7 +120,7 @@ def prepare_laravel(pin):
 
 
 def main():
-    pins = json.loads((ROOT / "DevelopmentRuntimes/pins.json").read_text())
+    pins = json.loads((ROOT / "Runtimes/Development/pins.json").read_text())
     if platform.system() != "Darwin" or platform.machine() != pins["architecture"]:
         raise RuntimeError("These development pins are for native arm64 macOS only")
     DESTINATION.mkdir(parents=True, exist_ok=True, mode=0o700)

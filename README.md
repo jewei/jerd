@@ -17,6 +17,21 @@ Xcode 27.0, and Swift 6.4. Intel and macOS 14 execution remain unverified.
 HTTPS setup requires an Apple signing identity and approval from the user.
 Ports 80 and 443 must be available on `127.0.0.1`.
 
+## Repository layout
+
+| Folder | Contents |
+| --- | --- |
+| `Sources/` | App, CLI, and helper targets; app code is grouped by feature |
+| `Packages/JerdCore/` | Shared Swift code and tests; code is grouped by service and responsibility |
+| `Runtimes/` | Runtime version pins, the Laravel installer lock file, and release support pins |
+| `Scripts/` | Runtime preparation, release tools, development tools, checks, and script tests |
+| `Design/` | App icon designs |
+| `Docs/` | Build, use, test, and release instructions |
+
+`project.yml` defines the Xcode project. Generated builds and private release
+candidates are in the ignored `.build/` folder. `Scripts/release.sh` is the
+release entry point. The published feed remains at `appcast.xml`.
+
 ## Documentation
 
 The documentation covers these tasks and reference topics.
