@@ -125,7 +125,7 @@ public actor ProcessSupervisor: ProcessControlling {
     public func stop(_ id: UUID, gracefulSignal: Int32 = SIGTERM) async {
         guard let pid = children[id] else { return }
         if stopping.contains(id) {
-            while children[id] != nil { await pause() }
+            await waitUntilStopped(id)
             return
         }
         stopping.insert(id)
@@ -145,7 +145,7 @@ public actor ProcessSupervisor: ProcessControlling {
         _ = kill(-pid, SIGTERM)
         await waitForExit(pid, seconds: 2)
         _ = kill(-pid, SIGKILL)
-        while status(pid) == nil { await pause() }
+        await waitForExit(pid)
         var rawStatus: Int32 = 0
         while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
         children[id] = nil
@@ -157,7 +157,7 @@ public actor ProcessSupervisor: ProcessControlling {
     public func stopGracefully(_ id: UUID, signal: Int32 = SIGTERM, timeout: Duration = .seconds(30)) async -> Bool {
         guard let pid = children[id] else { return true }
         if stopping.contains(id) {
-            while stopping.contains(id) { await pause() }
+            await waitUntilStopped(id)
             return children[id] == nil
         }
         stopping.insert(id)
@@ -171,7 +171,7 @@ public actor ProcessSupervisor: ProcessControlling {
         }
         if status(pid) == nil { _ = kill(pid, signal) }
         let deadline = ContinuousClock.now + timeout
-        while status(pid) == nil, ContinuousClock.now < deadline { await pause() }
+        await waitForExit(pid, deadline: deadline)
         guard status(pid) != nil else { return false }
         var rawStatus: Int32 = 0
         while waitpid(pid, &rawStatus, 0) < 0 && errno == EINTR {}
@@ -180,13 +180,24 @@ public actor ProcessSupervisor: ProcessControlling {
     }
 
     private func waitForExit(_ pid: pid_t, seconds: Int) async {
-        let deadline = ContinuousClock.now + .seconds(seconds)
-        while status(pid) == nil && ContinuousClock.now < deadline { await pause() }
+        await waitForExit(pid, deadline: ContinuousClock.now + .seconds(seconds))
     }
 
-    private func pause() async {
-        // Cleanup must finish even when its caller was cancelled.
-        await Task.detached { try? await Task.sleep(for: .milliseconds(25)) }.value
+    private func waitForExit(_ pid: pid_t, deadline: ContinuousClock.Instant? = nil) async {
+        await Task.detached { [self] in
+            while await status(pid) == nil {
+                if let deadline, ContinuousClock.now >= deadline { return }
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+        }.value
+    }
+
+    private func waitUntilStopped(_ id: UUID) async {
+        await Task.detached { [self] in
+            while await stopping.contains(id) {
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+        }.value
     }
 
     private func status(_ pid: pid_t) -> Int32? {

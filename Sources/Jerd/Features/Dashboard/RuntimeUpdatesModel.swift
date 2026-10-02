@@ -63,10 +63,16 @@ final class RuntimeUpdatesModel {
 
     func install(_ release: RuntimeRelease, model: AppModel, useAsDefault: Bool = true) {
         guard installing == nil, !isShuttingDown, !model.isBusy else { return }
+        let generation: Int
+        do { generation = try model.beginBackgroundWork() }
+        catch { errors[release.kind] = error.localizedDescription; return }
         installing = release.kind; errors[release.kind] = nil; messages[release.kind] = nil
         let php = model.configuration.runtimes.first { $0.id == model.configuration.defaultRuntimeID }
         work = Task {
-            defer { installing = nil; progress = nil; isActivating = false; work = nil }
+            defer {
+                model.endBackgroundWork(generation)
+                installing = nil; progress = nil; isActivating = false; work = nil
+            }
             do {
                 let runtime = try await installer.install(release, php: php, companions: companions) { [weak self] value in
                     Task { @MainActor in self?.progress = value }

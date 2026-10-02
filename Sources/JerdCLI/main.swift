@@ -8,8 +8,7 @@ do {
         throw JerdError.invalid("Install Jerd's php, composer, and laravel commands with Scripts/Development/setup-php-cli.py.")
     }
     let directory = JSONConfigurationStore.applicationDirectory
-    let config = try JSONDecoder().decode(AppConfiguration.self,
-        from: Data(contentsOf: directory.appendingPathComponent("configuration.json")))
+    let config = try JSONConfigurationStore.loadConfiguration(from: directory)
     let selection = try CLIRuntimeSelection.resolve(configuration: config,
         workingDirectory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
     let executable = selection.runtime.cliPath

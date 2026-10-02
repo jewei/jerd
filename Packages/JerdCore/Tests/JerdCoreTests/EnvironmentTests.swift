@@ -52,6 +52,11 @@ struct SetupTransactionTests {
         #expect(CertificateTrustSettings.matches(legacy, policy: .hostnames, hostnames: hosts))
         #expect(!CertificateTrustSettings.matches(legacy, policy: .serverTLS, hostnames: hosts))
         #expect(!CertificateTrustSettings.matches([[:]], policy: .serverTLS, hostnames: hosts))
+        for extraKey in [kSecTrustSettingsAllowedError as String, "UnexpectedTrustSetting"] {
+            var widened = settings
+            widened[0][extraKey] = NSNumber(value: 1)
+            #expect(!CertificateTrustSettings.matches(widened, policy: .serverTLS, hostnames: hosts))
+        }
         for otherPolicy in [SecPolicyCreateBasicX509(), SecPolicyCreateSSL(false, nil)] {
             var other = settings
             other[0][kSecTrustSettingsPolicy as String] = otherPolicy
@@ -163,6 +168,26 @@ struct SetupTransactionTests {
         #expect(try Data(contentsOf: url) == original)
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("pending.json").path))
         await #expect(throws: (any Error).self) { try await store.status(ownerUID: getuid()) }
+    }
+
+    @Test func failedTrustCleanupRetainsRecoveryRecord() async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let hostsURL = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        try original.write(to: hostsURL)
+        let trust = MemoryTrust()
+        let directory = root.appendingPathComponent("helper")
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+            hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: trust)
+        trust.failNextInstall()
+        trust.failNextRemoval()
+        await #expect(throws: (any Error).self) {
+            try await store.configure(SystemRegistrationRequest(installationID: UUID(), hostname: "demo.test",
+                certificateDER: Data("CA".utf8)), ownerUID: getuid())
+        }
+        #expect(try Data(contentsOf: hostsURL) == original)
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("pending.json").path))
     }
 
     @Test func setupRollbackOwnerAndRemoval() async throws {

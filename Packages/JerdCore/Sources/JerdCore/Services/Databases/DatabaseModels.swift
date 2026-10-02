@@ -59,8 +59,9 @@ public struct DatabaseConfiguration: Codable, Equatable, Sendable {
         guard schemaVersion == 1, runtimes.count <= 100, services.count <= 100,
               Set(runtimes.map(\.id)).count == runtimes.count,
               Set(services.map(\.id)).count == services.count,
+              Set(services.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }).count == services.count,
               Set(services.map(\.port)).count == services.count else {
-            throw JerdError.corruptConfiguration("Database settings contain an unsupported version or duplicate records or ports.")
+            throw JerdError.corruptConfiguration("Database settings contain an unsupported version or duplicate records, names, or ports.")
         }
         for runtime in runtimes {
             guard Self.safeIdentifier(runtime.id), Self.safeIdentifier(runtime.version),

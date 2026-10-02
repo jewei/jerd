@@ -14,10 +14,15 @@ public struct LocalServicePorts: Sendable {
         guard port > 1023 else { throw JerdError.invalid("Use a port from 1024 to 65535.") }
         // SO_REUSEADDR alone permits a loopback bind beside a wildcard listener
         // on macOS. Inspect existing listeners before attempting the bind.
+        try await requireExclusive(port)
+        try LoopbackPort.checkAvailable(port)
+    }
+
+    /// Privileged and unprivileged ports. Call before any SO_REUSEADDR bind.
+    public func requireExclusive(_ port: UInt16) async throws {
         guard try await listeningProcessIDs(on: port).isEmpty else {
             throw JerdError.unavailable("Local port \(port) is occupied. No process was stopped.")
         }
-        try LoopbackPort.checkAvailable(port)
     }
 
     public func suggest(startingAt first: UInt16, excluding reserved: Set<UInt16> = []) async throws -> UInt16 {
@@ -29,7 +34,7 @@ public struct LocalServicePorts: Sendable {
         throw JerdError.unavailable("No free service port was found. Enter a different port.")
     }
 
-    public func verify(processID: Int32, ports: Set<UInt16>) async throws {
+    public func verify(processID: Int32, ports: Set<UInt16>, requireExclusiveOwnership: Bool = true) async throws {
         let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
             arguments: ["-nP", "-a", "-p", String(processID), "-iTCP", "-sTCP:LISTEN", "-Fn"], directory: directory), timeout: .seconds(5))
         let actual = Set(result.output.split(separator: "\n").filter { $0.hasPrefix("n") }.map { String($0.dropFirst()) })
@@ -40,6 +45,7 @@ public struct LocalServicePorts: Sendable {
         let udp = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
             arguments: ["-nP", "-a", "-p", String(processID), "-iUDP", "-Fn"], directory: directory), timeout: .seconds(5))
         guard udp.status == 1, udp.output.isEmpty else { throw JerdError.process("The service opened an unexpected UDP socket.") }
+        guard requireExclusiveOwnership else { return }
         for port in ports {
             guard try await listeningProcessIDs(on: port) == [processID] else {
                 throw JerdError.process("Another process also uses port \(port). Each service needs its own port.")

@@ -51,8 +51,13 @@ public actor JSONConfigurationStore: ConfigurationStore {
     }
 
     public func load() throws -> AppConfiguration {
+        try Self.loadConfiguration(from: directory)
+    }
+
+    public static func loadConfiguration(from directory: URL) throws -> AppConfiguration {
+        let fileURL = directory.appendingPathComponent("configuration.json")
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return AppConfiguration() }
-        do { return try Self.decode(Data(contentsOf: fileURL)) }
+        do { return try decode(Data(contentsOf: fileURL)) }
         catch {
             throw JerdError.corruptConfiguration("Cannot read \(fileURL.path). The file was preserved. \(error.localizedDescription)")
         }

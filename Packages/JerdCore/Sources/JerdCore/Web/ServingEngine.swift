@@ -56,7 +56,7 @@ public actor ServingEngine: EngineServing {
     private var caddyID: UUID?
     private var activePaths: EnginePaths?
     private var ownsSocketDirectory = false
-    private var isStarting = false
+    private var operation = false
     private var stopRequested = false
     private var monitor: Task<Void, Never>?
 
@@ -69,15 +69,15 @@ public actor ServingEngine: EngineServing {
     public func start(sites: [SiteRuntime], caddy: CaddyRuntime,
                       paths: EnginePaths, httpsPort: UInt16, httpPort: UInt16,
                       listeningSockets: ListeningSockets? = nil) async throws {
-        guard !isStarting, fpmIDs.isEmpty, caddyID == nil else { throw JerdError.process("The engine is already active.") }
+        guard !operation, fpmIDs.isEmpty, caddyID == nil else { throw JerdError.process("The engine is already active.") }
         guard !sites.isEmpty, sites.allSatisfy({ $0.site.isEnabled }) else { throw JerdError.invalid("Enable the sites before starting them.") }
         guard Set(sites.map { $0.site.id }).count == sites.count else { throw JerdError.invalid("The serving plan contains a duplicate site ID.") }
-        isStarting = true
+        operation = true
         stopRequested = false
         state = .starting
         certificate = .notIssued
         activePaths = paths
-        defer { isStarting = false }
+        defer { operation = false }
         do {
             guard geteuid() != 0 else { throw JerdError.process("The serving engine cannot run as root.") }
             var validated: [Site] = []
@@ -111,7 +111,7 @@ public actor ServingEngine: EngineServing {
                 }
                 let runtime = entry.runtime
                 let poolPaths = pools.isEmpty ? paths : EnginePaths(root: paths.root.appendingPathComponent("php/\(runtime.id.uuidString)"),
-                    socketDirectory: paths.socketDirectory, socketName: "php-\(pools.count).sock")
+                    socketDirectory: paths.socketDirectory, installationID: paths.installationID, socketName: "php-\(pools.count).sock")
                 for folder in [poolPaths.root, poolPaths.configuration, poolPaths.logs] { try PrivateFiles.directory(folder) }
                 let actual = try await provider.inspectPHP(cli: URL(fileURLWithPath: runtime.cliPath),
                                                       fpm: URL(fileURLWithPath: runtime.fpmPath), workDirectory: paths.configuration)
@@ -157,8 +157,9 @@ public actor ServingEngine: EngineServing {
                                                               listeningSockets: listeningSockets),
                                                 log: paths.logs.appendingPathComponent("caddy.log"))
             try checkStart()
-            for site in validated { try await waitForTLS(site: site, paths: paths, port: httpsPort) }
-            try await verifyListeners(paths: paths, httpsPort: httpsPort, httpPort: httpPort)
+            try await waitForTLS(sites: validated, paths: paths, port: httpsPort)
+            try await verifyListeners(paths: paths, httpsPort: httpsPort, httpPort: httpPort,
+                                      requireExclusiveOwnership: listeningSockets == nil)
             try checkStart()
             certificate = .issued
             state = .running
@@ -178,7 +179,9 @@ public actor ServingEngine: EngineServing {
 
     public func stop() async {
         stopRequested = true
-        while isStarting { await Task.detached { try? await Task.sleep(for: .milliseconds(25)) }.value }
+        while operation { try? await Task.sleep(for: .milliseconds(25)) }
+        operation = true
+        defer { operation = false }
         monitor?.cancel()
         monitor = nil
         await stopOwned()
@@ -207,45 +210,45 @@ public actor ServingEngine: EngineServing {
         throw JerdError.process("PHP-FPM did not create its socket. See fpm.log.")
     }
 
-    private func waitForTLS(site: Site, paths: EnginePaths, port: UInt16) async throws {
+    private func waitForTLS(sites: [Site], paths: EnginePaths, port: UInt16) async throws {
+        // Force 127.0.0.1 with curl --resolve so readiness works before hosts cache updates
+        // and in isolated tests that never write /etc/hosts. Never use curl -k.
         let deadline = ContinuousClock.now + .seconds(20)
         var detail = "No certificate is available."
-        while ContinuousClock.now < deadline {
-            try checkStart()
-            guard await servicesAreRunning() else {
-                throw JerdError.process("A runtime exited during startup. See the run logs.")
+        for site in sites {
+            var ready = false
+            while ContinuousClock.now < deadline {
+                try checkStart()
+                guard await servicesAreRunning() else {
+                    throw JerdError.process("A runtime exited during startup. See the run logs.")
+                }
+                if FileManager.default.fileExists(atPath: paths.rootCertificate.path) {
+                    let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/curl"),
+                        arguments: ["--noproxy", "*", "--silent", "--show-error", "--fail", "--max-time", "2",
+                                    "--cacert", paths.rootCertificate.path, "--resolve", "\(site.hostname):\(port):127.0.0.1",
+                                    "https://\(site.hostname):\(port)\(ConfigurationGenerator.healthPath)"], directory: paths.root), timeout: .seconds(4))
+                    if result.status == 0, result.output == ConfigurationGenerator.healthResponse {
+                        ready = true
+                        break
+                    }
+                    detail = result.output
+                }
+                try await Task.sleep(for: .milliseconds(150))
             }
-            if FileManager.default.fileExists(atPath: paths.rootCertificate.path) {
-                let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/curl"),
-                    arguments: ["--noproxy", "*", "--silent", "--show-error", "--fail", "--max-time", "2",
-                                "--cacert", paths.rootCertificate.path, "--resolve", "\(site.hostname):\(port):127.0.0.1",
-                                "https://\(site.hostname):\(port)\(ConfigurationGenerator.healthPath)"], directory: paths.root), timeout: .seconds(4))
-                if result.status == 0, result.output == ConfigurationGenerator.healthResponse { return }
-                detail = result.output
-            }
-            try await Task.sleep(for: .milliseconds(150))
+            guard ready else { throw JerdError.process("TLS readiness failed: \(detail)") }
         }
-        throw JerdError.process("TLS readiness failed: \(detail)")
     }
 
-    private func verifyListeners(paths: EnginePaths, httpsPort: UInt16, httpPort: UInt16) async throws {
+    private func verifyListeners(paths: EnginePaths, httpsPort: UInt16, httpPort: UInt16,
+                                 requireExclusiveOwnership: Bool) async throws {
         guard let caddyID, let caddyPID = await processes.processIdentifier(caddyID) else { throw JerdError.process("Caddy exited before listener checks.") }
-        var checks = [(caddyPID, Set(["127.0.0.1:\(httpsPort)", "127.0.0.1:\(httpPort)"]))]
+        let ports = LocalServicePorts(directory: paths.root, commands: commands)
+        try await ports.verify(processID: caddyPID, ports: [httpsPort, httpPort],
+                               requireExclusiveOwnership: requireExclusiveOwnership)
         for id in fpmIDs {
             guard let pid = await processes.processIdentifier(id) else { throw JerdError.process("PHP-FPM exited before listener checks.") }
-            checks.append((pid, Set<String>()))
+            try await ports.verify(processID: pid, ports: [])
         }
-        for (pid, expected) in checks {
-            let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-                arguments: ["-nP", "-a", "-p", String(pid), "-iTCP", "-sTCP:LISTEN", "-Fn"], directory: paths.root), timeout: .seconds(5))
-            let listeners = Set(result.output.components(separatedBy: .newlines).filter { $0.hasPrefix("n") }.map { String($0.dropFirst()) })
-            guard (result.status == 0 || (expected.isEmpty && result.status == 1)), listeners == expected else {
-                throw JerdError.process("Unexpected runtime network sockets: \(result.output)")
-            }
-        }
-        let udp = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-a", "-p", String(caddyPID), "-iUDP", "-Fn"], directory: paths.root), timeout: .seconds(5))
-        guard udp.status == 1, udp.output.isEmpty else { throw JerdError.process("Caddy opened an unexpected UDP socket: \(udp.output)") }
     }
 
     private func checkHealth() async {
@@ -266,9 +269,12 @@ public actor ServingEngine: EngineServing {
     }
 
     private func stopOwned() async {
-        if let id = caddyID { await processes.stop(id, gracefulSignal: SIGTERM); caddyID = nil }
+        let caddyID = self.caddyID
+        let fpmIDs = self.fpmIDs
+        self.caddyID = nil
+        self.fpmIDs.removeAll()
+        if let caddyID { await processes.stop(caddyID, gracefulSignal: SIGTERM) }
         for id in fpmIDs { await processes.stop(id, gracefulSignal: SIGQUIT) }
-        fpmIDs.removeAll()
         if ownsSocketDirectory, let paths = activePaths {
             try? FileManager.default.removeItem(at: paths.socketDirectory)
             ownsSocketDirectory = false

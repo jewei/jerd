@@ -23,9 +23,10 @@ public enum CertificateTrustSettings {
               entries.count == (policy == .serverTLS ? 1 : hosts.count) else { return false }
         var found: Set<String> = []
         for entry in entries {
+            var expectedKeys = Set([kSecTrustSettingsResult as String, kSecTrustSettingsPolicy as String])
+            if policy == .hostnames { expectedKeys.insert(kSecTrustSettingsPolicyString as String) }
             guard (entry[kSecTrustSettingsResult as String] as? NSNumber)?.uint32Value == SecTrustSettingsResult.trustRoot.rawValue,
-                  entry[kSecTrustSettingsApplication as String] == nil,
-                  entry[kSecTrustSettingsKeyUsage as String] == nil,
+                  Set(entry.keys) == expectedKeys,
                   let value = entry[kSecTrustSettingsPolicy as String], CFGetTypeID(value as CFTypeRef) == SecPolicyGetTypeID() else { return false }
             let ssl = value as! SecPolicy
             guard let properties = SecPolicyCopyProperties(ssl) as NSDictionary?,

@@ -58,6 +58,9 @@ struct DatabaseTests {
         configuration.services.removeLast()
         configuration.services[0].port = 443
         #expect(throws: (any Error).self) { try configuration.validate() }
+        configuration.services[0].port = 3307
+        configuration.services.append(DatabaseService(name: " First ", runtimeID: runtime.id, port: 3308))
+        #expect(throws: (any Error).self) { try configuration.validate() }
     }
 
     @Test func occupiedPortDoesNotStartOrStopAnyDatabase() async throws {
