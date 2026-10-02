@@ -63,10 +63,9 @@ stable installation UUID and a CA named `Jerd Local CA <UUID>`. CA preparation
 uses Caddy validation with only the PKI app, without opening network listeners.
 Each isolated test gets separate storage and never installs trust.
 
-Engine readiness uses a CA-verified request. Product readiness also requires
-actual helper host/trust status, a matching CA fingerprint, and a check for
-each enabled hostname: resolution to 127.0.0.1 and a URLSession request using
-default macOS trust.
+Engine readiness uses a CA-verified request. Product readiness also requires valid helper host/trust status and a matching CA fingerprint.
+Each enabled hostname must resolve to 127.0.0.1 and pass a URLSession request
+with default macOS trust.
 The URLSession probe rejects redirects and uses no custom CA or TLS bypass.
 Browsers with separate trust stores still require their own acceptance check.
 
@@ -77,9 +76,9 @@ and shows the certificate fingerprint before registration. macOS handles
 administrator and background-item approval. Jerd collects no password.
 [Apple SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice).
 
-The listener and each XPC connection require an Apple signing chain, the exact
-app/helper identifier, the same team as the running binary, and absence of
-`get-task-allow`. The app verifies the helper too. These checks use Foundation's
+The listener and each XPC connection require an Apple signing chain and the
+exact app/helper identifier. The signing team must match the running binary.
+The `get-task-allow` entitlement must be absent. The app verifies the helper too. These checks use Foundation's
 connection code-signing requirement APIs. Caller ownership comes from the
 XPC connection's effective UID, not a claimed UID or PID supplied by a client.
 
@@ -124,9 +123,9 @@ state if certificate deletion fails. Tests inject partial failures. A crash
 with a pending record blocks further mutation and preserves recovery evidence;
 automated recovery is not implemented.
 
-The helper imports the root into System.keychain. A reverse call on the same
-authenticated XPC connection asks the logged-in app to set admin-domain trust:
-one SSL server trustRoot rule for the installation CA. This trust applies to
+The helper imports the root into System.keychain. A reverse call on the same authenticated XPC connection requests admin-domain
+trust from the logged-in app. That trust uses one SSL server trustRoot rule
+for the installation CA. This trust applies to
 all hostnames; it does not grant code-signing or general X.509 trust. The setup
 screen states that scope. Chromium ignores macOS trust entries that contain
 `kSecTrustSettingsPolicyString`, so the old per-host rule is retained only for
@@ -236,8 +235,8 @@ and all record mutations, while different instances can start independently.
 An exclusive file lock prevents two Jerd processes from using the same instance.
 The saved runtime identity must match before existing data can start. A failed
 or interrupted initialization preserves partial data and blocks reinitialization.
-A saved live PID from a previous app session blocks a second server; automatic
-attachment to or signalling of that old process is deliberately not implemented.
+A saved live PID from a previous app session blocks a second server.
+Jerd does not automatically attach to or signal that old process.
 
 MySQL uses `--no-defaults`, a private data directory, no X Protocol listener,
 and an initial socket-only bootstrap. That bootstrap sets passwords and creates
@@ -306,9 +305,9 @@ is enabled for local access. Unknown DNS hostnames are rejected before API
 handling. Remote CSS and fonts are blocked by Mailpit. These options do not
 promise that every optional inbox action or remote image works without a network.
 
-Ready requires the expected version and private database path from the
-[information API](https://mailpit.axllent.org/docs/api-v1/), a successful SMTP
-NOOP response, and exact listener/PID checks on both ports with no UDP sockets.
+Readiness requires the expected version and private database path from the
+[information API](https://mailpit.axllent.org/docs/api-v1/). An SMTP NOOP request
+must succeed. The process must own both expected listeners and have no UDP sockets.
 Send test email uses SMTP, not the send API. The monitor detects process exit.
 Stop sends SIGTERM and waits up to 30 seconds without a forced kill. A timeout
 keeps the owned process and cancels quit. If a later database stop cancels quit,

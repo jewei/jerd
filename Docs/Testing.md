@@ -60,9 +60,9 @@ JERD_MAIL_RUNTIME="$PWD/.build/mail-runtime/mailpit-1.31.3-arm64" \
 swift test --package-path Packages/JerdCore --filter Mail
 ```
 
-It uses a temporary inbox and high loopback ports. It sends a MIME message over
-SMTP, reads text, HTML, and attachment bytes through the API, rejects an unknown
-HTTP Host, changes ports, and checks persistence after restart. It also checks
+It uses a temporary inbox and high loopback ports. It sends a MIME message over SMTP and reads text, HTML, and attachment bytes
+through the API. It also rejects an unknown HTTP Host, changes ports, and
+checks persistence after restart. It also checks
 process-exit detection, missing-database preservation, and runtime identity.
 It does not access an existing inbox or configure external mail delivery.
 

@@ -40,6 +40,18 @@ Three independent reviews covered code, architecture, and performance.
 Their fixes strengthened signature assertions, delayed quit refusal, fixture
 process cleanup, and the release-signing instructions. The revised tests passed.
 
+The public GitHub feed downloaded over HTTPS and passed signature verification.
+The installed build 2 checked that feed from both About and the app menu.
+About displayed the completed status and last-check time. The automatic-check
+switch saved both states and was restored to off.
+
+Normal Quit released the owned service ports before atomic app replacement.
+After relaunch, both sites returned HTTP 200 with normal TLS verification.
+PostgreSQL and Redis passed authenticated queries. The mail inbox retained one
+message, and a signed S3 list found the existing bucket.
+DBngin's processes and the saved appearance preferences were unchanged.
+The GitHub Actions core tests and Debug build passed on `macos-15`.
+
 ## Web and system integration
 
 Real PHP/TLS tests passed with direct high-port listeners and inherited sockets.

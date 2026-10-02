@@ -55,11 +55,11 @@ This build cannot complete privileged HTTPS setup.
 
    ```sh
    xcodebuild -project Jerd.xcodeproj -scheme Jerd -configuration Release \
-   	-derivedDataPath .build/signed \
-   	-clonedSourcePackagesDirPath .build/SourcePackages \
-   	DEVELOPMENT_TEAM=YOURTEAMID \
-   	CODE_SIGN_IDENTITY='Developer ID Application: Your Name (YOURTEAMID)' \
-   	CODE_SIGN_STYLE=Manual build
+		-derivedDataPath .build/signed \
+		-clonedSourcePackagesDirPath .build/SourcePackages \
+		DEVELOPMENT_TEAM=YOURTEAMID \
+		CODE_SIGN_IDENTITY='Developer ID Application: Your Name (YOURTEAMID)' \
+		CODE_SIGN_STYLE=Manual build
    ```
 
 2. Verify the app signature:

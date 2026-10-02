@@ -39,15 +39,15 @@ A signing-key change requires a planned migration for installed clients.
    ```sh
    mkdir -p .build/release-0.1.1
    ditto -c -k --sequesterRsrc --keepParent \
-   	.build/signed/Build/Products/Release/Jerd.app \
-   	.build/release-0.1.1/submission.zip
+		.build/signed/Build/Products/Release/Jerd.app \
+		.build/release-0.1.1/submission.zip
    ```
 
 2. Replace `JERD_NOTARY` with your configured Keychain profile, then submit:
 
    ```sh
    xcrun notarytool submit .build/release-0.1.1/submission.zip \
-   	--keychain-profile JERD_NOTARY --wait
+		--keychain-profile JERD_NOTARY --wait
    ```
 
 3. Continue only after Apple reports `Accepted`.
@@ -65,8 +65,8 @@ A signing-key change requires a planned migration for installed clients.
    ```sh
    mkdir -p .build/release-0.1.1/updates
    ditto -c -k --sequesterRsrc --keepParent \
-   	.build/signed/Build/Products/Release/Jerd.app \
-   	.build/release-0.1.1/updates/Jerd-0.1.1.zip
+		.build/signed/Build/Products/Release/Jerd.app \
+		.build/release-0.1.1/updates/Jerd-0.1.1.zip
    ```
 
 Do not change the app or archive after the next signing step.
@@ -84,11 +84,11 @@ Do not change the app or archive after the next signing step.
 
    ```sh
    .build/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast \
-   	--account dev.jerd.sparkle \
-   	--download-url-prefix https://github.com/jewei/jerd/releases/download/v0.1.1/ \
-   	--link https://github.com/jewei/jerd \
-   	--embed-release-notes --maximum-deltas 0 \
-   	.build/release-0.1.1/updates
+		--account dev.jerd.sparkle \
+		--download-url-prefix https://github.com/jewei/jerd/releases/download/v0.1.1/ \
+		--link https://github.com/jewei/jerd \
+		--embed-release-notes --maximum-deltas 0 \
+		.build/release-0.1.1/updates
    ```
 
 4. Check the archive URL, build number, minimum macOS version, and hardware requirements in the generated feed.
@@ -96,14 +96,14 @@ Do not change the app or archive after the next signing step.
 
    ```sh
    .build/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update \
-   	--account dev.jerd.sparkle .build/release-0.1.1/updates/appcast.xml
+		--account dev.jerd.sparkle .build/release-0.1.1/updates/appcast.xml
    ```
 
 6. Verify the feed signature:
 
    ```sh
    .build/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update \
-   	--account dev.jerd.sparkle --verify .build/release-0.1.1/updates/appcast.xml
+		--account dev.jerd.sparkle --verify .build/release-0.1.1/updates/appcast.xml
    ```
 
 Do not infer runtime support from the app's deployment target.

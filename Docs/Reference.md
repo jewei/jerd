@@ -6,24 +6,25 @@ The source separates the SwiftUI app, shared core logic, and privileged helper.
 
 | Component | Responsibility |
 | --- | --- |
-| Models, Sites, SiteRegistry, Persistence | Validation, hostname suggestions, runtime selections, serialized atomic storage |
-| Runtimes, BundledRuntimes | Actual binary inspection; verified app-owned development payload installation |
-| Configuration, Processes, ServingEngine | Caddy/FPM configuration; owned process groups; startup, TLS checks, and cleanup |
-| LocalEnvironment | All enabled sites; stable CA identity; normal macOS HTTPS trust check for every hostname |
-| HelperClient, SystemIntegration | SMAppService registration and typed authenticated XPC |
-| HelperService, ListeningSockets | Exclusive loopback socket lease per client; descriptor transfer |
-| PrivilegedSetupStore, AtomicHostsFile, HostsDocument | Owned host section, certificate ownership, rollback, and recovery records |
-| SystemCertificateTrust, CertificateTrustSettings | System keychain and explicit TLS trust policies through Security.framework |
-| TrustConsentClient, TrustConsentService, TrustConsentScope | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
-| JerdCLI, CLIRuntimeSelection | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
-| DatabaseModel, DatabaseServicesView | Database list, connection details, and independent service controls |
-| DatabaseManager, DatabaseDriver | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
-| MailManager, MailDriver, MailStore | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
-| LocalServicePorts | Shared wildcard-port detection and exact listener ownership checks for data services |
-| DatabaseStore, BundledDatabaseRuntimes | Separate versioned service records and verified native runtime installation |
-| StorageManager, StorageS3Client | RustFS lifecycle, signed S3 requests, and bucket checks |
-| RuntimeUpdateCatalog, RuntimeInstaller | Release lookup, bounded downloads, verification, and runtime installation |
-| AppUpdatesModel, AppUpdateConfiguration | Sparkle lifecycle, app update preferences, and bundled feed validation |
+| `Models`, `Sites`, `SiteRegistry`, `Persistence` | Validation, hostname suggestions, runtime selections, serialized atomic storage |
+| `Runtimes`, `BundledRuntimes` | Actual binary inspection; verified app-owned development payload installation |
+| `Configuration`, `Processes`, `ServingEngine` | Caddy/FPM configuration; owned process groups; startup, TLS checks, and cleanup |
+| `LocalEnvironment` | All enabled sites; stable CA identity; normal macOS HTTPS trust check for every hostname |
+| `HelperClient`, `SystemIntegration` | SMAppService registration and typed authenticated XPC |
+| `HelperService`, `ListeningSockets` | Exclusive loopback socket lease per client; descriptor transfer |
+| `PrivilegedSetupStore`, `AtomicHostsFile`, `HostsDocument` | Owned host section, certificate ownership, rollback, and recovery records |
+| `SystemCertificateTrust`, `CertificateTrustSettings` | System keychain and explicit TLS trust policies through Security.framework |
+| `TrustConsentClient`, `TrustConsentService`, `TrustConsentScope` | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
+| `JerdCLI`, `CLIRuntimeSelection` | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
+| `DatabaseModel`, `DatabaseServicesView` | Database list, connection details, and independent service controls |
+| `DatabaseManager`, `DatabaseDriver` | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
+| `MailManager`, `MailDriver`, `MailStore` | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
+| `LocalServicePorts` | Shared wildcard-port detection and exact listener ownership checks for data services |
+| `DatabaseStore`, `BundledDatabaseRuntimes` | Separate versioned service records and verified native runtime installation |
+| `StorageManager`, `StorageS3Client` | RustFS lifecycle, signed S3 requests, and bucket checks |
+| `RuntimeUpdateCatalog`, `RuntimeInstaller` | Release lookup, bounded downloads, verification, and runtime installation |
+| `AppUpdatesModel`, `AppUpdateConfiguration` | Sparkle lifecycle, app update preferences, and bundled feed validation |
+
 
 ## Data paths
 
