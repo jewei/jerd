@@ -9,7 +9,7 @@ final class AppModel {
     var selectedSection = AppSection.dashboard
     let appearance = AppAppearance()
     let updates = RuntimeUpdatesModel()
-    var selectedSettings = SettingsSection.general
+    var selectedDashboard = DashboardSection.dashboard
     let databases = DatabaseModel()
     let storage = StorageModel()
     let mail = MailModel()
@@ -32,6 +32,11 @@ final class AppModel {
     let registry = SiteRegistry(store: JSONConfigurationStore(directory: JSONConfigurationStore.applicationDirectory))
 
     var selectedSite: Site? { configuration.sites.first { $0.id == selectedSiteID } }
+
+    func showDashboard(_ section: DashboardSection) {
+        selectedDashboard = section
+        selectedSection = .dashboard
+    }
 
     func load() {
         guard !isLoaded else { return }

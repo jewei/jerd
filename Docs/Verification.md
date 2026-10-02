@@ -370,3 +370,32 @@ HTTP 200 with normal certificate verification, all three existing databases
 passed authenticated queries, the mail inbox retained its message, and a
 private S3 test object survived the app replacement. The temporary S3 test
 object was removed after verification. Existing DBngin processes were preserved.
+
+## Dashboard navigation — 2026-10-02
+
+The Dashboard tab now has a native two-pane layout. Its left menu contains
+Dashboard, Appearance, Runtimes, Advanced, and About, in that order. The separate
+Settings window has been removed. About shows the bundle version and build,
+macOS version, app architecture, project credits, and a development disclaimer.
+The app-update button is a disabled placeholder. The user deferred Sparkle
+implementation; no updater dependency or app update request was added.
+
+- The default core suite passed all 73 tests. Debug and signed Release builds
+  passed. The installed app passed strict recursive code-signature verification.
+- GUI checks opened all five pages at the normal 980 × 660 window size and the
+  minimum 820-pixel width. The minimum outer height was 592 pixels, including
+  the toolbar. Dashboard cards changed to one column at the smaller size.
+- Both **Manage runtimes** links opened Runtimes. `Command-,` from Sites opened
+  Appearance. The app menu's **About Jerd** command opened About. Settings and
+  About menu bar commands reopened the closed main window at the correct page.
+  No separate preferences window appeared.
+- The menu bar and Dock switches changed independently. All seven icons were
+  available and icon selection changed. The user's original values were
+  restored: both visibility switches off and the Original icon.
+- Code, architecture, and performance reviews found no remaining code issue.
+  A README sentence was corrected to place runtime controls in Runtimes.
+- The final signed app was installed through an atomic bundle replacement
+  after normal Quit stopped owned services. Both sites returned HTTP 200 over
+  verified TLS. The current PostgreSQL and Redis services passed authenticated
+  queries. The mail inbox retained its message, and a signed S3 bucket read
+  passed. Existing DBngin processes remained running.

@@ -9,8 +9,9 @@ The Databases tab manages separate MySQL 8.4.11, PostgreSQL 18.6, and Redis 8.8.
 services. Each service has its own port, password, and persistent data folder.
 The Storage tab creates S3 buckets with a managed RustFS 1.0.0 service.
 The Mail tab runs Mailpit 1.31.3 for local SMTP capture and a persistent web inbox.
-The Dashboard shows the four service areas. Settings controls Dock and menu bar
-visibility, seven app icon choices, installed versions, and runtime updates.
+The Dashboard shows the four service areas. Appearance controls Dock and menu bar
+visibility and seven app icon choices. Runtimes lists installed versions and
+runtime updates.
 It has no remote Swift package dependencies.
 
 **Verification status:** The signed app serves `https://games-jp.test` and
@@ -67,15 +68,18 @@ the error; local executable selection remains available for development.
 Jerd does not use Herd binaries or install Homebrew. Shell commands are an
 explicit, optional setup step described below.
 
-## Dashboard and Settings
+## Dashboard and preferences
 
-The tab order is Dashboard, Sites, Databases, Storage, Mail. Open Settings from
-the Dashboard, menu bar menu, or `Command-,`. General settings has independent
-menu bar and Dock controls. When both are off, open Jerd from Applications to
+The tab order is Dashboard, Sites, Databases, Storage, Mail. Dashboard has a
+left menu with Dashboard, Appearance, Runtimes, Advanced, and About. Each item
+opens in the right pane. **Settings…** in the app or menu bar menu and
+`Command-,` open Appearance in the main window. **About Jerd** opens About.
+Appearance has independent menu bar and Dock controls. When both are off,
+open Jerd from Applications to
 return to its window. The original icon and six existing designs are available;
 the chosen icon is used in the Dock and menu bar while the app is open.
 
-In Runtimes, select **Check for updates**, choose an available version, then
+In Runtimes, select **Check for runtime updates**, choose an available version, then
 install it. PHP supports **Install & use** and **Install only**. A new default
 restarts running sites, while pinned sites keep their selected PHP version.
 Only stable macOS packages for this Mac are shown. PHP 8.6 will appear when the
@@ -88,7 +92,11 @@ Mailpit and RustFS updates stop the owned service, copy its data and settings
 to a private `runtime-backups` folder, start and check the new runtime, then
 restore its previous running state. A failed update restores the saved copy.
 Backups remain available in the service folder. Advanced settings contains
-local executable selection and PHP inspection details.
+local executable selection and PHP inspection details. About shows the app
+version, build, macOS version, app architecture, project credits, and a local
+development disclaimer. Its app-update control is a disabled placeholder.
+Sparkle integration is planned for a later change. Runtime updates remain
+available in Runtimes.
 
 Downloads use HTTPS, host restrictions, byte limits, and a SHA-256 check before
 extraction. MySQL uses Oracle's pinned RSA publisher key and its detached

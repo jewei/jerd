@@ -387,7 +387,14 @@ cancels Quit. Storage controls resume if a later service cancels app termination
 AppAppearance stores independent menu bar and Dock preferences in UserDefaults.
 The app keeps a reopen action for the main window when both entry points are
 hidden. AppIconChoice maps the original asset and six Canvas designs to cached
-AppKit images. Settings has General, Runtimes, and Advanced sections.
+AppKit images. Dashboard uses the same NavigationSplitView layout as Sites and
+Databases. Its left menu contains Dashboard, Appearance, Runtimes, Advanced,
+and About. AppModel owns both tab and dashboard selections, so links and menu
+commands select the correct tab and page together. Settings and About commands
+open the main window, including when that window was closed. There is no
+separate Settings scene. About reads version information from the app bundle
+and operating system. App updates are an explicit disabled placeholder; no
+Sparkle dependency, feed request, or app installer is present yet.
 
 RuntimeUpdateCatalog reads stable releases from lerd-env/php, Caddy, Mailpit,
 RustFS, Postgres.app, Composer, Laravel, the Redis checksum index, and Oracle's

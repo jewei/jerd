@@ -11,7 +11,7 @@ struct RuntimeSettingsView: View {
                     Text("Runtimes").font(.largeTitle.bold())
                     Spacer()
                     if updates.isChecking { ProgressView().controlSize(.small) }
-                    Button("Check for updates") { updates.check(model: model) }
+                    Button("Check for runtime updates") { updates.check(model: model) }
                         .disabled(updates.isChecking || updates.isShuttingDown)
                 }
                 Text("Choose a version, then install it. PHP versions remain available for sites that use them.")
@@ -21,7 +21,7 @@ struct RuntimeSettingsView: View {
                 ForEach(RuntimeKind.allCases) { kind in runtimeCard(kind) }
                 Text("MySQL uses the 8.4 LTS series. PostgreSQL uses the 18 series from Postgres.app. Redis builds need the Xcode command line tools.")
                     .font(.callout).foregroundStyle(.secondary)
-            }.padding(24)
+            }.frame(maxWidth: 1000, alignment: .leading).padding(30).frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 

@@ -1,14 +1,6 @@
 import AppKit
 import Observation
 
-enum SettingsSection: String, CaseIterable, Identifiable {
-    case general = "General", runtimes = "Runtimes", advanced = "Advanced"
-    var id: String { rawValue }
-    var symbol: String {
-        switch self { case .general: "paintbrush"; case .runtimes: "shippingbox"; case .advanced: "slider.horizontal.3" }
-    }
-}
-
 enum AppIconChoice: String, CaseIterable, Identifiable {
     case original, monogram, rainbow, elephant, dots, stack, lock
     var id: String { rawValue }

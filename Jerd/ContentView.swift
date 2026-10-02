@@ -5,7 +5,6 @@ import ServiceManagement
 
 struct ContentView: View {
     @Bindable var model: AppModel
-    @Environment(\.openSettings) private var openSettings
     @State private var editingSite: Site?
     @State private var removingSite: Site?
     @State private var removingSetup = false
@@ -82,7 +81,7 @@ struct ContentView: View {
         }
         .toolbar {
             if model.isBusy { ProgressView().controlSize(.small) }
-            Button("Runtimes", systemImage: "gearshape") { model.selectedSettings = .runtimes; openSettings() }
+            Button("Runtimes", systemImage: "shippingbox") { model.showDashboard(.runtimes) }
             Menu("System setup", systemImage: "lock.shield") {
                 Button("Login Items & Extensions") { SMAppService.openSystemSettingsLoginItems() }
                 Button("Remove system setup…") { removingSetup = true }

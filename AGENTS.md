@@ -26,6 +26,11 @@ and runtime update checks and installation. This replaces the earlier limit
 on runtime updates. Use the tab order Dashboard, Sites, Databases, Storage, Mail.
 After all features are complete, use three fresh independent agents to review
 code, architecture, and performance. Fix the agreed findings.
+The Dashboard tab now uses a two-pane layout with Dashboard, Appearance,
+Runtimes, Advanced, and About in that order. Settings commands open Appearance
+in the main window. About includes credits, disclaimer, version details, and
+an app-update placeholder. The user explicitly deferred Sparkle implementation
+to a later task; do not add the updater in this layout change.
 
 ## Safety boundaries
 

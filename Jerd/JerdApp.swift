@@ -36,7 +36,7 @@ struct JerdApp: App {
             MainWindowView(model: model, delegate: delegate)
         }
         .defaultSize(width: 980, height: 660)
-        Settings { JerdSettingsView(model: model) }
+        .commands { JerdCommands(model: model) }
         MenuBarExtra(isInserted: Binding(get: { model.appearance.showMenuBar }, set: { model.appearance.showMenuBar = $0 })) {
             MenuContent(model: model)
         } label: {
@@ -46,6 +46,26 @@ struct JerdApp: App {
                 Image(systemName: "server.rack").accessibilityLabel("Jerd")
             }
         }
+    }
+}
+
+private struct JerdCommands: Commands {
+    let model: AppModel
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("About Jerd") { show(.about) }
+        }
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") { show(.appearance) }.keyboardShortcut(",")
+        }
+    }
+
+    private func show(_ section: DashboardSection) {
+        model.showDashboard(section)
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -136,7 +156,16 @@ private struct MenuContent: View {
             }
         }
         Divider()
-        SettingsLink { Text("Settings…") }.keyboardShortcut(",")
+        Button("Settings…") {
+            model.showDashboard(.appearance)
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }.keyboardShortcut(",")
+        Button("About Jerd") {
+            model.showDashboard(.about)
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Button("Quit Jerd") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }
 }
