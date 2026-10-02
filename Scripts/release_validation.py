@@ -17,7 +17,8 @@ from release_runtimes import payloads
 def verify_binary(path, team):
     requirement = ('anchor apple generic and certificate leaf[subject.OU] = "' + team
                    + '" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
-    run("/usr/bin/codesign", "--verify", "--strict", "-R", requirement, path)
+    # A leading '=' makes codesign parse inline text instead of opening a file.
+    run("/usr/bin/codesign", "--verify", "--strict", "-R", "=" + requirement, path)
     result = subprocess.run(["/usr/bin/codesign", "-d", "--verbose=4", str(path)], capture_output=True, text=True)
     if result.returncode or "(runtime)" not in result.stderr or "Timestamp=" not in result.stderr:
         raise ValueError("Missing hardened runtime or secure timestamp: " + str(path))
