@@ -104,6 +104,7 @@ public actor RuntimeInstaller {
         }
         progress(.init("Checking the installed version…"))
         let (version, executable, secondary) = try await inspect(release, payload: payload, staging: staging, php: php)
+        try applyPrivatePermissions(payload)
         let files = try hashes(payload)
         let receipt = Receipt(schemaVersion: 1, kind: release.kind, version: version, releaseVersion: release.version,
             archiveSHA256: hash, executable: executable, secondaryExecutable: secondary, files: files)
@@ -284,15 +285,29 @@ public actor RuntimeInstaller {
         for case let file as URL in enumerator {
             let info = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .isDirectoryKey])
             guard info.isSymbolicLink != true else { throw JerdError.invalid("The prepared runtime contains a symbolic link.") }
-            if info.isDirectory == true { try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: file.path); continue }
+            if info.isDirectory == true { continue }
             guard info.isRegularFile == true, files.count < 50_000 else { throw JerdError.invalid("The prepared runtime has invalid or too many files.") }
             let name = file.pathComponents.dropFirst(payload.pathComponents.count).joined(separator: "/")
             files[name] = try RuntimeDownload.digest(file)
-            let executable = FileManager.default.isExecutableFile(atPath: file.path)
-            try FileManager.default.setAttributes([.posixPermissions: executable ? 0o700 : 0o600], ofItemAtPath: file.path)
         }
         guard !files.isEmpty else { throw JerdError.invalid("The runtime package is empty.") }
         return files
+    }
+    private func applyPrivatePermissions(_ payload: URL) throws {
+        guard let enumerator = FileManager.default.enumerator(at: payload, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .isDirectoryKey]) else {
+            throw JerdError.invalid("The runtime files cannot be read.")
+        }
+        for case let file as URL in enumerator {
+            let info = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .isDirectoryKey])
+            guard info.isSymbolicLink != true else { throw JerdError.invalid("The prepared runtime contains a symbolic link.") }
+            if info.isDirectory == true {
+                try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: file.path)
+            } else {
+                guard info.isRegularFile == true else { throw JerdError.invalid("The prepared runtime contains an invalid file.") }
+                let executable = FileManager.default.isExecutableFile(atPath: file.path)
+                try FileManager.default.setAttributes([.posixPermissions: executable ? 0o700 : 0o600], ofItemAtPath: file.path)
+            }
+        }
     }
     private func readReceipt(_ folder: URL) throws -> Receipt {
         let info = try folder.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])

@@ -246,7 +246,9 @@ configuration, a generated password, and append-only persistence. All final
 listeners are restricted to `127.0.0.1`; runtime processes have no root access.
 Readiness requires an authenticated SQL query or Redis PING and actual per-PID
 TCP/UDP listener inspection. Passwords do not enter process arguments or probe
-results. They are retained in mode-0600 files within mode-0700 instance folders.
+results. Redis passes its password to `redis-cli` in the `REDISCLI_AUTH` child
+environment. A same-user `ps -E` command can show this value. Passwords are
+retained in mode-0600 files within mode-0700 instance folders.
 
 The manager watches process exit. One failed database does not stop other
 databases or the web environment. MySQL and Redis receive SIGTERM for shutdown;

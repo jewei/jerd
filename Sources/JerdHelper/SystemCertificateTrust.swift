@@ -36,7 +36,10 @@ struct SystemCertificateTrust: CertificateTrustManaging {
         let status = try await consent.change(TrustConsentRequest(certificateDER: der, hostnames: hostnames, policy: policy))
         if status != errSecSuccess {
             if added == errSecSuccess {
-                try deleteStoredCertificate(der, keychain: keychain)
+                do { try deleteStoredCertificate(der, keychain: keychain) }
+                catch {
+                    throw JerdError.invalid("Certificate trust approval failed, and the Jerd certificate may remain in the system keychain. \(error.localizedDescription)")
+                }
             }
             try check(status, "set Jerd certificate trust")
         }

@@ -17,7 +17,8 @@ final class AppModel {
     var configuration = AppConfiguration()
     var selectedSiteID: UUID?
     var errorMessage: String?
-    var isBusy = false
+    private(set) var isBusy = false
+    private(set) var isShuttingDown = false
     var isLoaded = false
     var environmentState: EnvironmentState = .stopped
     var runningSiteIDs: Set<UUID> = []
@@ -26,6 +27,9 @@ final class AppModel {
     var pendingSetup: HTTPSSetup?
     var runtimeMessage = "Preparing PHP and Caddy…"
     private var work: Task<Void, Never>?
+    private var workGeneration = 0
+    private var backgroundGeneration: Int?
+    private var backgroundWaiters: [CheckedContinuation<Void, Never>] = []
     private var monitor: Task<Void, Never>?
     private let helper = HelperClient()
     @ObservationIgnored private lazy var environment = LocalEnvironment(
@@ -88,14 +92,45 @@ final class AppModel {
     }
 
     func perform(_ action: @escaping @MainActor () async throws -> Void) {
-        guard !isBusy else { return }
+        guard !isBusy, !isShuttingDown else { return }
+        workGeneration += 1
+        let generation = workGeneration
         isBusy = true
         errorMessage = nil
         work = Task {
-            defer { isBusy = false }
+            defer { finishWork(generation) }
             do { try await action() }
             catch { errorMessage = error.localizedDescription }
         }
+    }
+
+    private func finishWork(_ generation: Int) {
+        if workGeneration == generation { isBusy = false }
+    }
+
+    func beginBackgroundWork() throws -> Int {
+        guard !isBusy, !isShuttingDown else {
+            throw JerdError.unavailable("Wait for the current operation to finish.")
+        }
+        workGeneration += 1
+        isBusy = true
+        errorMessage = nil
+        backgroundGeneration = workGeneration
+        return workGeneration
+    }
+
+    func endBackgroundWork(_ generation: Int) {
+        guard backgroundGeneration == generation else { return }
+        backgroundGeneration = nil
+        let waiters = backgroundWaiters
+        backgroundWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+        finishWork(generation)
+    }
+
+    private func waitForBackgroundWork() async {
+        guard backgroundGeneration != nil else { return }
+        await withCheckedContinuation { backgroundWaiters.append($0) }
     }
 
     func save(_ site: Site, confirmed: Bool, completion: @escaping () -> Void) {
@@ -164,11 +199,10 @@ final class AppModel {
     }
 
     func activateRuntime(_ runtime: ManagedRuntime, useAsDefault: Bool) async throws {
-        guard !isBusy else { throw JerdError.unavailable("Wait for the current site operation to finish.") }
+        guard !isShuttingDown else { throw JerdError.unavailable("Jerd is shutting down.") }
         if runtime.kind == .php || runtime.kind == .caddy {
             guard isLoaded else { throw JerdError.unavailable("Load valid site settings before changing PHP or Caddy.") }
         }
-        isBusy = true; defer { isBusy = false }
         switch runtime.kind {
         case .php:
             guard let fpm = runtime.secondaryExecutable else { throw JerdError.invalid("The PHP-FPM executable is missing.") }
@@ -265,7 +299,20 @@ final class AppModel {
     }
 
     func start() { perform { try await self.startEnvironment() } }
-    func stop() { perform { await self.stopEnvironment() } }
+    func stop() {
+        guard !isShuttingDown else { return }
+        let previous = work
+        workGeneration += 1
+        let generation = workGeneration
+        isBusy = true
+        errorMessage = nil
+        work = Task {
+            defer { finishWork(generation) }
+            await previous?.value
+            await waitForBackgroundWork()
+            await stopEnvironment()
+        }
+    }
 
     func removeSystemSetup() {
         perform {
@@ -310,14 +357,17 @@ final class AppModel {
     }
 
     func shutdown() async -> Bool {
+        isShuttingDown = true
         await updates.finishBeforeQuit()
         guard await storage.shutdown() else {
+            isShuttingDown = false
             updates.resumeAfterCancelledQuit()
             selectedSection = .storage
             errorMessage = "Storage could not stop safely. Jerd will remain open. Retry Stop in Storage."
             return false
         }
         guard await mail.shutdown() else {
+            isShuttingDown = false
             updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             selectedSection = .mail
@@ -325,6 +375,7 @@ final class AppModel {
             return false
         }
         guard await databases.shutdown() else {
+            isShuttingDown = false
             updates.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             mail.resumeAfterCancelledQuit()

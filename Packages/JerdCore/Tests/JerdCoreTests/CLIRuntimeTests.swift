@@ -34,4 +34,35 @@ struct CLIRuntimeTests {
             try CLIRuntimeSelection.resolve(configuration: config, workingDirectory: root.appendingPathComponent("link"))
         }
     }
+
+    @Test func rejectsUnsupportedConfigurationVersion() {
+        var config = AppConfiguration()
+        config.schemaVersion = AppConfiguration.currentVersion + 1
+        #expect(throws: JerdError.self) {
+            try CLIRuntimeSelection.resolve(configuration: config, workingDirectory: URL(fileURLWithPath: "/tmp"))
+        }
+    }
+
+    @Test func rejectsEqualDepthSymlinkMatches() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let project = root.appendingPathComponent("project")
+        let nested = project.appendingPathComponent("nested")
+        let alias = root.appendingPathComponent("alias")
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: project)
+        let normal = runtime("8.5")
+        var config = AppConfiguration()
+        config.runtimes = [normal]
+        config.defaultRuntimeID = normal.id
+        config.sites = [
+            Site(displayName: "Project", projectPath: project.path, documentRoot: project.path,
+                 hostname: "project.test", phpSelection: .followDefault),
+            Site(displayName: "Alias", projectPath: alias.path, documentRoot: alias.path,
+                 hostname: "alias.test", phpSelection: .followDefault)
+        ]
+        #expect(throws: JerdError.self) {
+            try CLIRuntimeSelection.resolve(configuration: config, workingDirectory: nested)
+        }
+    }
 }

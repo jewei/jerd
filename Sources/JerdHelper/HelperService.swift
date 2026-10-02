@@ -11,6 +11,7 @@ final class SessionLifetime: @unchecked Sendable {
 }
 
 actor HelperService {
+    private let supportDirectory = URL(fileURLWithPath: "/Library/Application Support/JerdHelper")
     private let store = PrivilegedSetupStore(
         directory: URL(fileURLWithPath: "/Library/Application Support/JerdHelper"), expectedFileOwner: 0,
         hosts: AtomicHostsFile(url: URL(fileURLWithPath: "/private/etc/hosts"), expectedOwner: 0),
@@ -28,6 +29,9 @@ actor HelperService {
         defer { busy = false }
         let request = try JSONDecoder().decode(SystemRegistrationRequest.self, from: data)
         // Reserve both ports before changing hosts or trust. A conflict changes nothing.
+        let ports = LocalServicePorts(directory: supportDirectory)
+        try await ports.requireExclusive(80)
+        try await ports.requireExclusive(443)
         let reservation = try ListeningSockets.bind(httpPort: 80, httpsPort: 443)
         defer { reservation.close() }
         try await store.configure(request, ownerUID: owner, trustManager: SystemCertificateTrust(consent: consent))
@@ -45,6 +49,9 @@ actor HelperService {
         let status = try await store.status(ownerUID: owner)
         try lifetime.check()
         guard status.hostsConfigured, status.trustConfigured else { throw JerdError.unavailable("Approved host and certificate setup is required.") }
+        let ports = LocalServicePorts(directory: supportDirectory)
+        try await ports.requireExclusive(80)
+        try await ports.requireExclusive(443)
         let sockets = try ListeningSockets.bind(httpPort: 80, httpsPort: 443)
         lease = (connection, owner, sockets)
         return sockets

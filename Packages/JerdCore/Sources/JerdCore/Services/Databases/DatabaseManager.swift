@@ -62,6 +62,7 @@ public actor DatabaseManager {
         guard !changingConfiguration else { throw JerdError.unavailable("Database settings are busy.") }
         changingConfiguration = true
         defer { changingConfiguration = false }
+        try PrivateFiles.directory(directory)
         configuration = try await store.load()
         loaded = true
         return configuration

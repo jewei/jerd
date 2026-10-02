@@ -52,7 +52,7 @@ public enum ConfigurationGenerator {
         listen = \(try iniQuote(paths.socket.path))
         listen.mode = 0600
         pm = ondemand
-        pm.max_children = 2
+        pm.max_children = 8
         pm.process_idle_timeout = 5s
         pm.max_requests = 100
         clear_env = yes
@@ -128,7 +128,7 @@ public enum ConfigurationGenerator {
         // A separate public root can expose Laravel's public/storage link.
         // Keep project-root storage private and never execute uploaded PHP.
         let privateDirectories = site.documentRoot == site.projectPath ? "(vendor|storage)" : "vendor"
-        let deniedPaths = "(?i)(^|/)\\.|^/\(privateDirectories)(/|$)|^/(composer\\.(json|lock)|auth\\.json|artisan)$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)"
+        let deniedPaths = "(?i)(^|/)\\.|^/\(privateDirectories)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(/|$)"
         return [
             ["match": [["path": [healthPath]]],
              "handle": [["handler": "static_response", "status_code": 200, "body": healthResponse]]],
@@ -147,7 +147,7 @@ public enum ConfigurationGenerator {
                                         "split_path": [".php"], "dial_timeout": 3_000_000_000,
                                         "read_timeout": 15_000_000_000]]]],
             // A PHP-like file can never fall through to the static file server.
-            ["match": [["path_regexp": ["pattern": "(?i)\\.(php[0-9]*|phtml|phar|inc)"]]],
+            ["match": [["path_regexp": ["pattern": "(?i)\\.(php[0-9]*|phtml|phar|inc)(/|$)"]]],
              "handle": [response(404)]],
             ["handle": [["handler": "file_server", "hide": [".git", ".env", "*.php", "*.PHP", "*.phtml", "*.phar"]]]]
         ]

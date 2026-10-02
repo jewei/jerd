@@ -224,22 +224,24 @@ struct ConfigurationTests {
         #expect(text.contains("fastcgi"))
         #expect(text.contains(".env"))
         #expect(text.contains(".git"))
-        #expect(text.contains("php[0-9]*|phtml|phar|inc"))
+        #expect(text.contains("php[0-9]*|phtml|phar|inc)(/|$)"))
         let routes = try #require(servers["https"]?["routes"] as? [[String: Any]])
         let handlers = try #require(routes[0]["handle"] as? [[String: Any]])
         let applicationRoutes = try #require(handlers[0]["routes"] as? [[String: Any]])
         let firstMatcher = try #require(applicationRoutes[2]["match"] as? [[String: Any]])
         let regexp = try #require(firstMatcher[0]["path_regexp"] as? [String: String])
         let pattern = try NSRegularExpression(pattern: #require(regexp["pattern"]))
-        for path in ["/.env", "/.git/config", "/index.php.bak", "/private.PHP.txt", "/file.phar"] {
+        for path in ["/.env", "/.git/config", "/index.php.bak", "/private.PHP.txt", "/file.phar",
+                     "/packages/foo/auth.json"] {
             #expect(pattern.firstMatch(in: path, range: NSRange(path.startIndex..., in: path)) != nil)
         }
-        for path in ["/index.php", "/index.php/route", "/hello.txt"] {
+        for path in ["/index.php", "/index.php/route", "/js/app.include.js", "/hello.txt"] {
             #expect(pattern.firstMatch(in: path, range: NSRange(path.startIndex..., in: path)) == nil)
         }
         let fpm = try ConfigurationGenerator.fpm(paths: paths)
         #expect(fpm.contains("listen.mode = 0600"))
         #expect(fpm.contains("daemonize = no"))
+        #expect(fpm.contains("pm.max_children = 8"))
         #expect(!fpm.contains("user = root"))
         #expect(fpm == (try ConfigurationGenerator.fpm(paths: paths)))
         #expect(throws: (any Error).self) { try ConfigurationGenerator.caddy(site: site, paths: paths, httpsPort: 443, httpPort: 80) }

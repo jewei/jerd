@@ -6,10 +6,13 @@ public struct DevelopmentRuntimeProvider: Sendable {
 
     public func inspectPHP(cli: URL, fpm: URL, workDirectory: URL) async throws -> DevelopmentRuntime {
         try await prepare(workDirectory)
-        let cli = cli.resolvingSymlinksInPath()
-        let fpm = fpm.resolvingSymlinksInPath()
-        try rejectHerd(cli)
-        try rejectHerd(fpm)
+        let (cli, fpm) = try await Task.detached {
+            let cli = cli.resolvingSymlinksInPath()
+            let fpm = fpm.resolvingSymlinksInPath()
+            try self.rejectHerd(cli)
+            try self.rejectHerd(fpm)
+            return (cli, fpm)
+        }.value
         let cliArchitectures = try await architectures(cli, directory: workDirectory)
         let fpmArchitectures = try await architectures(fpm, directory: workDirectory)
         let common = cliArchitectures.filter { fpmArchitectures.contains($0) }
@@ -40,8 +43,11 @@ public struct DevelopmentRuntimeProvider: Sendable {
 
     public func inspectCaddy(binary: URL, workDirectory: URL) async throws -> CaddyRuntime {
         try await prepare(workDirectory)
-        let binary = binary.resolvingSymlinksInPath()
-        try rejectHerd(binary)
+        let binary = try await Task.detached {
+            let binary = binary.resolvingSymlinksInPath()
+            try self.rejectHerd(binary)
+            return binary
+        }.value
         let arch = try await architectures(binary, directory: workDirectory)
         guard arch.contains(.current) else { throw JerdError.unavailable("Caddy does not contain the current architecture.") }
         let version = try await command(binary, ["version"], workDirectory).trimmingCharacters(in: .whitespacesAndNewlines)
