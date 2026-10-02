@@ -4,33 +4,30 @@ Report in ASD-STE100 Simplified Technical English.
 
 ## Scope
 
-The user approved the real PHP/TLS engine test, approved host/trust setup, and
-standard-port integration. On 2026-10-01 the user clarified that Jerd must
-serve all enabled registered sites at the same time. Implement that behavior
-with each site's selected PHP runtime. Keep the app small. Do not expand into
-updates or release distribution except for the approved development bootstrap.
-The user also approved PHP, Composer, and Laravel installer CLI companions.
-Composer must use the PHP selection for the registered site containing the
-working directory, with the default used outside registered sites.
-The user also approved a first database-service version after research into
-DBngin. Add independent MySQL, PostgreSQL, and Redis services with native
-runtimes, private data folders, and per-service controls. Keep existing DBngin
-services and data separate. The user then approved a Mailpit-like feature.
-Add a separate local mail service with an inbox, SMTP capture, service controls,
-and Laravel settings. Keep existing mail services and inboxes separate.
-The user then approved native RustFS storage with an Add bucket form. Saving a bucket must start the owned
-storage service as needed and verify the bucket before reporting it ready.
-The user then approved a Dashboard, independent menu bar and Dock controls,
-selection of the existing app icon designs, a managed runtime version list,
-and runtime update checks and installation. This replaces the earlier limit
-on runtime updates. Use the tab order Dashboard, Sites, Databases, Storage, Mail.
-After all features are complete, use three fresh independent agents to review
-code, architecture, and performance. Fix the agreed findings.
-The Dashboard tab now uses a two-pane layout with Dashboard, Appearance,
-Runtimes, Advanced, and About in that order. Settings commands open Appearance
-in the main window. About includes credits, disclaimer, version details, and
-an app-update placeholder. The user explicitly deferred Sparkle implementation
-to a later task; do not add the updater in this layout change.
+Keep Jerd small. Implement only the approved features below.
+
+- Serve all enabled registered sites together with each site's selected PHP runtime.
+- Use approved host/trust setup and standard loopback ports for local HTTPS.
+- Provide PHP, Composer, and Laravel CLI commands. Select PHP from the registered
+  project that contains the working directory, or use the default outside projects.
+- Manage independent MySQL, PostgreSQL, and Redis services with native runtimes,
+  private data, and per-service controls. Keep DBngin services and data separate.
+- Provide a separate local Mailpit service with SMTP capture, an inbox, and Laravel settings.
+- Provide native RustFS storage. On bucket Save, start the owned service as needed
+  and verify the bucket before reporting Ready.
+- Use the tab order Dashboard, Sites, Databases, Storage, Mail.
+- Use Dashboard's two-pane navigation in this order: Dashboard, Appearance,
+  Runtimes, Advanced, About. Settings commands open Appearance in the main window.
+- Provide independent menu bar and Dock controls and the existing icon designs.
+- List managed runtime versions and support runtime checks and installation.
+- Put credits, disclaimer, versions, and app update controls in About.
+- Use Sparkle with the public `jewei/jerd` repository and a published HTTPS feed.
+  Verify signed feeds and archives. Preserve normal graceful service shutdown.
+  Keep private signing keys in the local Keychain, outside the repository.
+
+The approved runtime and Sparkle updates replace the earlier limit on update work.
+After feature work, use three fresh independent agents to review code,
+architecture, and performance. Fix the agreed findings.
 
 ## Safety boundaries
 
@@ -68,7 +65,7 @@ to a later task; do not add the updater in this layout change.
 ```sh
 swift test --package-path Packages/JerdCore
 xcodebuild -project Jerd.xcodeproj -scheme Jerd -configuration Debug \
-  -derivedDataPath .build/xcode CODE_SIGNING_ALLOWED=NO build
+	-derivedDataPath .build/xcode CODE_SIGNING_ALLOWED=NO build
 ```
 
 Run the opt-in test only with explicitly selected, trusted local binaries:
@@ -81,3 +78,5 @@ swift test --package-path Packages/JerdCore --filter TLSSmokeTests
 
 `project.yml` is the XcodeGen source. The generated Xcode project is included.
 Run `xcodegen generate` after project structure changes if XcodeGen is available.
+
+For the complete test procedures, see [Run tests](Docs/Testing.md).

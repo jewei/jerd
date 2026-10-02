@@ -9,6 +9,7 @@ final class AppModel {
     var selectedSection = AppSection.dashboard
     let appearance = AppAppearance()
     let updates = RuntimeUpdatesModel()
+    let appUpdates = AppUpdatesModel()
     var selectedDashboard = DashboardSection.dashboard
     let databases = DatabaseModel()
     let storage = StorageModel()

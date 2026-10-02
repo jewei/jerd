@@ -1,9 +1,10 @@
-These public headers are from libarchive v3.8.2:
+# libarchive headers
 
-- https://github.com/libarchive/libarchive/blob/v3.8.2/libarchive/archive.h
-- https://github.com/libarchive/libarchive/blob/v3.8.2/libarchive/archive_entry.h
+The public headers come from libarchive v3.8.2.
 
-One indentation line is normalized; declarations are unchanged.
+- [archive.h](https://github.com/libarchive/libarchive/blob/v3.8.2/libarchive/archive.h)
+- [archive_entry.h](https://github.com/libarchive/libarchive/blob/v3.8.2/libarchive/archive_entry.h)
 
-Their BSD license notices are in each file. Jerd links to the macOS system
-libarchive library. It does not ship a separate copy of the implementation.
+One indentation line is normalized. The declarations are unchanged.
+Each file retains its BSD license notice. Jerd links to the macOS system library;
+it does not include a separate libarchive implementation.

@@ -12,6 +12,7 @@
 		18C063A2871135AA44078DC1 /* Icon-elephant.png in Resources */ = {isa = PBXBuildFile; fileRef = ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */; };
 		1C93AF63B7CD1D068A4B426D /* DatabaseServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */; };
 		2BDCAF0842E8CA706E19CF32 /* RuntimeUpdatesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DA943F3F0E131AB3099292 /* RuntimeUpdatesModel.swift */; };
+		2E6F168E36EDD6A605BFD223 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = F2183DA64A85F317C55D7145 /* Sparkle */; };
 		33FBA2CF7DA2380659B1D087 /* Icon-monogram.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C2CC4D7EE1FBDB5D3F18651 /* Icon-monogram.png */; };
 		3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13AA2674D69717280670C24F /* JerdCore */; };
 		4478ED35B219193FBAF51EA7 /* Icon-rainbow.png in Resources */ = {isa = PBXBuildFile; fileRef = C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */; };
@@ -21,12 +22,14 @@
 		5D8092F76EC98F74478D1295 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */; };
 		64E24C1FFAD7ED730EF9BB7F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9918AF917D4FFB6EB3496696 /* AppModel.swift */; };
 		6E860BF929B7F467F5012FB9 /* MailModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C32E1845C1C2DE2BDBCAD94 /* MailModel.swift */; };
+		7912CBC072212111542620C5 /* AppUpdatesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6DE0E24FEC83AB1C8133D63 /* AppUpdatesModel.swift */; };
 		7C7531536DBA920CCAACC47A /* Icon-stack.png in Resources */ = {isa = PBXBuildFile; fileRef = 24073687C0540B2D250490FC /* Icon-stack.png */; };
 		7D2BBFCBBBF9ED4BF8EA4953 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90364031B981DFB803ABB5CD /* DashboardView.swift */; };
 		8FEDD47E4C80459AEC15682C /* AppearanceAndAdvancedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958E1957BB6D7B39214D29C6 /* AppearanceAndAdvancedViews.swift */; };
 		92F69703F808681C8F84BC31 /* DatabaseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652EDE0E18121CDA3002E94F /* DatabaseModel.swift */; };
 		934C68A8FF1DF4A46B39FBFB /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93A24644F6D3929463D50F18 /* AppAppearance.swift */; };
 		9F9124D469BD32E0DC58755D /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB8074D9852A3B48218EE66 /* HelperClient.swift */; };
+		A8F4F1F0D04531FC07C02EB7 /* Sparkle-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */; };
 		ACD57C8FB967DB947905D60B /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1EAD8E59C6255FC977CB98B0 /* JerdCore */; };
 		AF8C0E62CEA972166453DA30 /* SystemCertificateTrust.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */; };
 		B49308341EC4D118888113A1 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865CEFB3A891D39F06E5172E /* main.swift */; };
@@ -59,6 +62,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		014FC967495F282EDD7E0544 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseServicesView.swift; sourceTree = "<group>"; };
 		1158F4F6B4D528C105E86D10 /* TrustConsentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentService.swift; sourceTree = "<group>"; };
 		13C74847BEFCD2F127DDA191 /* Icon-lock.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-lock.png"; sourceTree = "<group>"; };
@@ -85,10 +89,12 @@
 		9918AF917D4FFB6EB3496696 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		A1166F2EE5762E02A30C7102 /* JerdCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = JerdCore; path = Packages/JerdCore; sourceTree = SOURCE_ROOT; };
 		A7238CA7315FD25D67A05377 /* StorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModel.swift; sourceTree = "<group>"; };
+		BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Sparkle-LICENSE.txt"; sourceTree = "<group>"; };
 		BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCertificateTrust.swift; sourceTree = "<group>"; };
 		C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-rainbow.png"; sourceTree = "<group>"; };
 		C17F56386FAFD38773B0C208 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D3FCAA0733515A1222E2C1C2 /* Jerd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jerd.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6DE0E24FEC83AB1C8133D63 /* AppUpdatesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdatesModel.swift; sourceTree = "<group>"; };
 		DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DF200AD85D9D8F28F7A7F9B1 /* MailServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailServiceView.swift; sourceTree = "<group>"; };
 		ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-elephant.png"; sourceTree = "<group>"; };
@@ -108,6 +114,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				11F939BA838A0CCB8900BE60 /* JerdCore in Frameworks */,
+				2E6F168E36EDD6A605BFD223 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -161,6 +168,7 @@
 			isa = PBXGroup;
 			children = (
 				27842452671FD902C6C06EB8 /* AppIcons */,
+				B2842AECF1B655E17E607A20 /* Licenses */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -171,6 +179,14 @@
 				3C8346E110A794E2E6A64F8F /* main.swift */,
 			);
 			path = JerdCLI;
+			sourceTree = "<group>";
+		};
+		B2842AECF1B655E17E607A20 /* Licenses */ = {
+			isa = PBXGroup;
+			children = (
+				BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */,
+			);
+			path = Licenses;
 			sourceTree = "<group>";
 		};
 		B6A5065FCAB422B071AFD382 /* Products */ = {
@@ -198,12 +214,14 @@
 				93A24644F6D3929463D50F18 /* AppAppearance.swift */,
 				958E1957BB6D7B39214D29C6 /* AppearanceAndAdvancedViews.swift */,
 				9918AF917D4FFB6EB3496696 /* AppModel.swift */,
+				D6DE0E24FEC83AB1C8133D63 /* AppUpdatesModel.swift */,
 				DD6F4C98A89F4E720E7FA4C3 /* Assets.xcassets */,
 				C17F56386FAFD38773B0C208 /* ContentView.swift */,
 				90364031B981DFB803ABB5CD /* DashboardView.swift */,
 				652EDE0E18121CDA3002E94F /* DatabaseModel.swift */,
 				06BF35D2F3756AE446261E24 /* DatabaseServicesView.swift */,
 				1CB8074D9852A3B48218EE66 /* HelperClient.swift */,
+				014FC967495F282EDD7E0544 /* Info.plist */,
 				40476A491ED7D264F633834E /* JerdApp.swift */,
 				4C32E1845C1C2DE2BDBCAD94 /* MailModel.swift */,
 				DF200AD85D9D8F28F7A7F9B1 /* MailServiceView.swift */,
@@ -257,6 +275,7 @@
 			name = Jerd;
 			packageProductDependencies = (
 				38AE69F26CB31A360537396B /* JerdCore */,
+				F2183DA64A85F317C55D7145 /* Sparkle */,
 			);
 			productName = Jerd;
 			productReference = D3FCAA0733515A1222E2C1C2 /* Jerd.app */;
@@ -308,6 +327,7 @@
 			mainGroup = 31869F0D9834F9EB9C64A502;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				228EAD53163022E2D1D5BE2A /* XCRemoteSwiftPackageReference "Sparkle" */,
 				6FDE9D7470A04AE8429B70D8 /* XCLocalSwiftPackageReference "Packages/JerdCore" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -334,6 +354,7 @@
 				33FBA2CF7DA2380659B1D087 /* Icon-monogram.png in Resources */,
 				4478ED35B219193FBAF51EA7 /* Icon-rainbow.png in Resources */,
 				7C7531536DBA920CCAACC47A /* Icon-stack.png in Resources */,
+				A8F4F1F0D04531FC07C02EB7 /* Sparkle-LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -388,6 +409,7 @@
 				519877139DAFF2E062B37547 /* AboutView.swift in Sources */,
 				934C68A8FF1DF4A46B39FBFB /* AppAppearance.swift in Sources */,
 				64E24C1FFAD7ED730EF9BB7F /* AppModel.swift in Sources */,
+				7912CBC072212111542620C5 /* AppUpdatesModel.swift in Sources */,
 				8FEDD47E4C80459AEC15682C /* AppearanceAndAdvancedViews.swift in Sources */,
 				E88A1F308959A16BEB2C37E9 /* ContentView.swift in Sources */,
 				7D2BBFCBBBF9ED4BF8EA4953 /* DashboardView.swift in Sources */,
@@ -448,13 +470,16 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Jerd/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jerd;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Jerd contributors";
+				JERD_UPDATE_FEED_URL = "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml";
+				JERD_UPDATE_PUBLIC_KEY = "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -583,13 +608,16 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Jerd/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jerd;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Jerd contributors";
+				JERD_UPDATE_FEED_URL = "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml";
+				JERD_UPDATE_PUBLIC_KEY = "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -712,6 +740,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		228EAD53163022E2D1D5BE2A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		13AA2674D69717280670C24F /* JerdCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -724,6 +763,11 @@
 		38AE69F26CB31A360537396B /* JerdCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = JerdCore;
+		};
+		F2183DA64A85F317C55D7145 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 228EAD53163022E2D1D5BE2A /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

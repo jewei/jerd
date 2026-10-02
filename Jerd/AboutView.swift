@@ -24,10 +24,24 @@ struct AboutView: View {
 
                 GroupBox("App updates") {
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Coming soon", systemImage: "arrow.triangle.2.circlepath").font(.headline)
-                        Text("App updates through Sparkle are planned. This build does not check for Jerd updates.")
+                        Label("Jerd updates", systemImage: "arrow.triangle.2.circlepath").font(.headline)
+                        Text(model.appUpdates.message)
                             .foregroundStyle(.secondary)
-                        Button("Check for app updates") {}.disabled(true)
+                        if let error = model.appUpdates.errorMessage {
+                            Text(error).foregroundStyle(.red).textSelection(.enabled)
+                        }
+                        Button("Check for app updates") { model.appUpdates.checkForUpdates() }
+                            .disabled(!model.appUpdates.canCheckForUpdates)
+                        Toggle("Automatically check for app updates", isOn: Binding(
+                            get: { model.appUpdates.automaticallyChecks },
+                            set: { model.appUpdates.setAutomaticChecks($0) }))
+                            .disabled(!model.appUpdates.canChangePreferences)
+                        if let checked = model.appUpdates.lastCheck {
+                            Text("Last check: \(checked.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.callout).foregroundStyle(.secondary)
+                        }
+                        Text("Installation requires your approval. An app update restarts Jerd and stops its local services.")
+                            .font(.callout).foregroundStyle(.secondary)
                         Divider()
                         Text("PHP and other runtime updates are available in Runtimes.")
                             .font(.callout).foregroundStyle(.secondary)
@@ -101,7 +115,8 @@ struct AboutView: View {
             Credit(name: "Redis", role: "In-memory data store", url: URL(string: "https://redis.io/")!),
             Credit(name: "Mailpit", role: "Local mail capture", url: URL(string: "https://mailpit.axllent.org/")!),
             Credit(name: "RustFS", role: "S3-compatible object storage", url: URL(string: "https://rustfs.com/")!),
-            Credit(name: "libarchive", role: "Runtime archive extraction", url: URL(string: "https://www.libarchive.org/")!)
+            Credit(name: "libarchive", role: "Runtime archive extraction", url: URL(string: "https://www.libarchive.org/")!),
+            Credit(name: "Sparkle", role: "Signed app updates", url: URL(string: "https://sparkle-project.org/")!)
         ]
     }
 }

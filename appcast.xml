@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>Jerd updates</title>
+    <link>https://github.com/jewei/jerd</link>
+    <description>Signed updates for Jerd on macOS.</description>
+    <language>en</language>
+  </channel>
+</rss><!-- sparkle-signatures:
+edSignature: 74JGYRhmmNYgDEHLsZgwy4xjiLuRksJ9s9hunH76T9IJlSaFsYX8r16i8CyXbSZSBG4M9kTFQPxP9J0x/PFTDw==
+length: 582
+-->

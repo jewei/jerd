@@ -18,9 +18,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !quitting else { return .terminateLater }
         quitting = true
+        model?.appUpdates.isTerminating = true
         Task {
             let stopped = await model?.shutdown() ?? true
-            if !stopped { quitting = false }
+            if !stopped {
+                quitting = false
+                model?.appUpdates.isTerminating = false
+            }
             sender.reply(toApplicationShouldTerminate: stopped)
         }
         return .terminateLater
@@ -56,6 +60,8 @@ private struct JerdCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button("About Jerd") { show(.about) }
+            Button("Check for Updates…") { model.appUpdates.checkForUpdates() }
+                .disabled(!model.appUpdates.canCheckForUpdates)
         }
         CommandGroup(replacing: .appSettings) {
             Button("Settings…") { show(.appearance) }.keyboardShortcut(",")
@@ -91,6 +97,7 @@ private struct MainWindowView: View {
                     delegate.openMainWindow = { openWindow(id: "main") }
                     model.appearance.apply()
                     model.load()
+                    model.appUpdates.start()
                 }
     }
 }
@@ -166,6 +173,8 @@ private struct MenuContent: View {
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Button("Check for Updates…") { model.appUpdates.checkForUpdates() }
+            .disabled(!model.appUpdates.canCheckForUpdates)
         Button("Quit Jerd") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }
 }

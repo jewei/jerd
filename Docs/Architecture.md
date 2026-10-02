@@ -5,23 +5,7 @@ browser access, and app lifecycle handling. `Packages/JerdCore` contains core
 logic. `JerdHelper/` contains the narrow privileged service. File and process
 work runs in actors away from the UI actor.
 
-| Component | Responsibility |
-| --- | --- |
-| Models, Sites, SiteRegistry, Persistence | Validation, hostname suggestions, runtime selections, serialized atomic storage |
-| Runtimes, BundledRuntimes | Actual binary inspection; verified app-owned development payload installation |
-| Configuration, Processes, ServingEngine | Caddy/FPM configuration; owned process groups; startup, TLS checks, and cleanup |
-| LocalEnvironment | All enabled sites; stable CA identity; normal macOS HTTPS trust check for every hostname |
-| HelperClient, SystemIntegration | SMAppService registration and typed authenticated XPC |
-| HelperService, ListeningSockets | Exclusive loopback socket lease per client; descriptor transfer |
-| PrivilegedSetupStore, AtomicHostsFile, HostsDocument | Owned host section, certificate ownership, rollback, and recovery records |
-| SystemCertificateTrust, CertificateTrustSettings | System keychain and explicit TLS trust policies through Security.framework |
-| TrustConsentClient, TrustConsentService, TrustConsentScope | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
-| JerdCLI, CLIRuntimeSelection | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
-| DatabaseModel, DatabaseServicesView | Database list, connection details, and independent service controls |
-| DatabaseManager, DatabaseDriver | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
-| MailManager, MailDriver, MailStore | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
-| LocalServicePorts | Shared wildcard-port detection and exact listener ownership checks for databases and mail |
-| DatabaseStore, BundledDatabaseRuntimes | Separate versioned service records and verified native runtime installation |
+For source responsibilities and data paths, see [Data and components](Reference.md).
 
 ## Projects and processes
 
@@ -202,8 +186,8 @@ plugins or scripts. Every prepared file is hashed for embedding and installation
 The dependency archives do not have an independent publisher-signature check.
 
 This is an approved development trust basis, not publisher-signed metadata.
-Production artifacts still need authenticated manifests, version/architecture/
-minimum-OS binding, tested capabilities, updates, and rollback. The current
+Runtime distribution still needs Jerd-signed manifests, tested architecture and
+minimum-OS constraints, and reproducible builds. The current
 payload has only been tested on arm64 macOS 27.0.1. Lerd's build-script license
 does not replace the binary and linked-library license notices, which are
 retained with the payload.
@@ -282,8 +266,8 @@ port, then checks after startup that only its own PID listens there.
 It never enables SO_REUSEPORT. See [Apple socket options](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setsockopt.2.html).
 
 The development build embeds the full prepared payload, about 1.1 GB, including
-shared libraries and upstream notices. An on-demand installer, smaller release
-packages, more versions, export/import UI, and crash recovery are later work.
+shared libraries and upstream notices. Runtime installation on demand is available. Smaller release packages, a wider
+tested version range, export/import UI, and crash recovery remain incomplete.
 
 ## Local mail
 
@@ -393,8 +377,8 @@ and About. AppModel owns both tab and dashboard selections, so links and menu
 commands select the correct tab and page together. Settings and About commands
 open the main window, including when that window was closed. There is no
 separate Settings scene. About reads version information from the app bundle
-and operating system. App updates are an explicit disabled placeholder; no
-Sparkle dependency, feed request, or app installer is present yet.
+and operating system. AppUpdatesModel owns Sparkle and shares its state with About and the app menus.
+App update checks use the feed URL and public key from the signed app bundle.
 
 RuntimeUpdateCatalog reads stable releases from lerd-env/php, Caddy, Mailpit,
 RustFS, Postgres.app, Composer, Laravel, the Redis checksum index, and Oracle's
@@ -431,10 +415,35 @@ process. Startup recovers an interrupted update only after the previous-process
 check and file lock succeed. Successful backups and failed candidate files are
 kept. This is distinct from adopting an orphan process after an app crash.
 
-Publisher references:
-- https://github.com/lerd-env/php/releases
-- https://github.com/caddyserver/caddy/releases
-- https://getcomposer.org/doc/06-config.md
-- https://dev.mysql.com/doc/refman/8.4/en/checking-gpg-signature.html
-- https://www.rfc-editor.org/rfc/rfc4880#section-5.2.4
-- https://github.com/libarchive/libarchive/tree/v3.8.2/libarchive
+The runtime checks follow these publisher and format references.
+
+- [PHP releases](https://github.com/lerd-env/php/releases)
+- [Caddy releases](https://github.com/caddyserver/caddy/releases)
+- [Composer configuration](https://getcomposer.org/doc/06-config.md)
+- [MySQL signature verification](https://dev.mysql.com/doc/refman/8.4/en/checking-gpg-signature.html)
+- [OpenPGP signature packets](https://www.rfc-editor.org/rfc/rfc4880#section-5.2.4)
+- [libarchive source](https://github.com/libarchive/libarchive/tree/v3.8.2/libarchive)
+
+## App updates
+
+Sparkle 2.10.0 supplies the app updater and installation UI. Its exact package
+version is fixed in `project.yml` and `Package.resolved`. Jerd validates the
+bundled HTTPS feed URL and Ed25519 public key before it starts Sparkle.
+The updater delegate returns that URL, so an old preference cannot redirect the feed.
+
+Sparkle verifies signed feeds and archive signatures. Signed-feed enforcement
+has no expiry, and archive verification occurs before extraction.
+The private Ed25519 key remains in the local Keychain. GitHub holds the public
+feed and release archives. The signed bundle contains the public key only.
+This separates archive authenticity from the integrity of the download host.
+
+Periodic checks start disabled and can be enabled in About.
+Automatic installation and system profiling are disabled.
+Sparkle uses the normal app termination path before replacement.
+AppDelegate marks the updater as terminating and waits for AppModel.shutdown().
+A service shutdown failure cancels termination and leaves the app available for a retry.
+Sparkle does not need a separate path that stops data services.
+
+The isolated installation test covers signature rejection, replacement, delayed
+termination, and a cancelled quit. Notarization and production release publication
+remain separate steps in [Publish an app update](PublishUpdate.md).
