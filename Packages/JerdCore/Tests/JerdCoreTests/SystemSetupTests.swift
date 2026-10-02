@@ -47,6 +47,8 @@ struct SystemSetupTests {
         let next = try HostsDocument.replacing(original, hostname: "demo.test", expectedHostname: nil)
         try store.replace(expected: original, with: next)
         #expect(try store.read() == next)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path)
+            .allSatisfy { !$0.hasPrefix(".jerd-hosts-") })
         let metadata = try FileManager.default.attributesOfItem(atPath: url.path)
         #expect((metadata[.posixPermissions] as? NSNumber)?.intValue == 0o640)
         var read = [UInt8](repeating: 0, count: 4)
@@ -59,6 +61,25 @@ struct SystemSetupTests {
         let alias = root.appendingPathComponent("alias")
         try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: url)
         #expect(throws: (any Error).self) { try AtomicHostsFile(url: alias, expectedOwner: getuid()).read() }
+    }
+
+    @Test func atomicHostsRestoresRacedDestination() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        let raced = Data("127.0.0.1 raced.test\n".utf8)
+        try original.write(to: url)
+        let store = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            try raced.write(to: url, options: .atomic)
+        })
+
+        #expect(throws: (any Error).self) {
+            try store.replace(expected: original, with: Data("127.0.0.1 replacement.test\n".utf8))
+        }
+        #expect(try Data(contentsOf: url) == raced)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path)
+            .allSatisfy { !$0.hasPrefix(".jerd-hosts-") })
     }
 
     @Test func rejectsNonJerdCertificateAndSigningInput() throws {

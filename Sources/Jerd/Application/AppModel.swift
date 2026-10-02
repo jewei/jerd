@@ -32,11 +32,18 @@ final class AppModel {
     private var backgroundWaiters: [CheckedContinuation<Void, Never>] = []
     private var monitor: Task<Void, Never>?
     private let helper = HelperClient()
+    private let environmentDirectory = JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment")
     @ObservationIgnored private lazy var environment = LocalEnvironment(
-        directory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment"), system: helper)
+        directory: environmentDirectory, system: helper)
     let registry = SiteRegistry(store: JSONConfigurationStore(directory: JSONConfigurationStore.applicationDirectory))
 
     var selectedSite: Site? { configuration.sites.first { $0.id == selectedSiteID } }
+    var environmentLogURL: URL { environmentDirectory.appendingPathComponent("logs") }
+    var isEnvironmentLogAvailable: Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: environmentLogURL.path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
+    }
 
     func showDashboard(_ section: DashboardSection) {
         selectedDashboard = section
@@ -354,6 +361,13 @@ final class AppModel {
         guard runningSiteIDs.contains(site.id), environmentState == .running,
               let url = URL(string: "https://\(site.hostname)") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    func openEnvironmentLog() {
+        guard isEnvironmentLogAvailable, NSWorkspace.shared.open(environmentLogURL) else {
+            errorMessage = "The web environment log is not available yet."
+            return
+        }
     }
 
     func shutdown() async -> Bool {

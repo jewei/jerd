@@ -59,6 +59,8 @@ struct ContentView: View {
                             Button("Reveal in Finder", systemImage: "folder") {
                                 NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: site.projectPath)
                             }
+                            Button("Open log", systemImage: "doc.text") { model.openEnvironmentLog() }
+                                .disabled(model.isBusy || !model.isEnvironmentLogAvailable)
                         }
                         Divider()
                         HStack {
