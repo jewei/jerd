@@ -93,9 +93,10 @@ final class MailModel {
     }
     private func refresh() async {
         let snapshot = await manager.snapshot()
-        configuration = snapshot.configuration
-        state = snapshot.state
-        processID = snapshot.processID
+        // Assign only changed values, so idle polling does not refresh the views.
+        if configuration != snapshot.configuration { configuration = snapshot.configuration }
+        if state != snapshot.state { state = snapshot.state }
+        if processID != snapshot.processID { processID = snapshot.processID }
     }
     private func startMonitoring() {
         monitor?.cancel()

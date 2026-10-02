@@ -172,8 +172,9 @@ final class DatabaseModel {
 
     private func refresh() async {
         let snapshot = await manager.snapshot()
-        configuration = snapshot.configuration
-        statuses = snapshot.statuses
+        // Assign only changed values, so idle polling does not refresh the views.
+        if configuration != snapshot.configuration { configuration = snapshot.configuration }
+        if statuses != snapshot.statuses { statuses = snapshot.statuses }
     }
     private func startMonitoring() {
         monitor?.cancel()

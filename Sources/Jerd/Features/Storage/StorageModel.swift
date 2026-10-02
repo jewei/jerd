@@ -111,8 +111,11 @@ final class StorageModel {
     }
     private func refresh() async {
         let snapshot = await manager.snapshot()
-        configuration = snapshot.configuration; state = snapshot.state
-        processID = snapshot.processID; availableBuckets = snapshot.availableBuckets
+        // Assign only changed values, so idle polling does not refresh the views.
+        if configuration != snapshot.configuration { configuration = snapshot.configuration }
+        if state != snapshot.state { state = snapshot.state }
+        if processID != snapshot.processID { processID = snapshot.processID }
+        if availableBuckets != snapshot.availableBuckets { availableBuckets = snapshot.availableBuckets }
     }
     private func startMonitoring() {
         monitor?.cancel()
