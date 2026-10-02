@@ -97,8 +97,7 @@ final class AppModel {
                 guard !Task.isCancelled, let self else { return }
                 let snapshot = await self.environment.snapshot()
                 guard !self.isBusy else { continue }
-                self.environmentState = snapshot.state
-                self.runningSiteIDs = snapshot.state == .running ? snapshot.siteIDs : []
+                self.applyEnvironment(snapshot.state, siteIDs: snapshot.siteIDs)
             }
         }
     }
@@ -366,8 +365,15 @@ final class AppModel {
 
     private func refreshEnvironment() async {
         let snapshot = await environment.snapshot()
-        environmentState = snapshot.state
-        runningSiteIDs = snapshot.state == .running ? snapshot.siteIDs : []
+        applyEnvironment(snapshot.state, siteIDs: snapshot.siteIDs)
+    }
+
+    // Polling runs every 500 ms. Assign only changed values, because each
+    // assignment to an observed property invalidates the views that read it.
+    private func applyEnvironment(_ state: EnvironmentState, siteIDs: Set<UUID>) {
+        let running = state == .running ? siteIDs : []
+        if environmentState != state { environmentState = state }
+        if runningSiteIDs != running { runningSiteIDs = running }
     }
 
     func inspectRecovery() {

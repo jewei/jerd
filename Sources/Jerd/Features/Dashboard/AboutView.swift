@@ -7,81 +7,68 @@ struct AboutView: View {
     private let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("About").font(.largeTitle.bold())
-                HStack(spacing: 18) {
-                    if let icon = model.appearance.image(for: model.appearance.icon) {
-                        Image(nsImage: icon).resizable().scaledToFit().frame(width: 80, height: 80)
-                            .accessibilityHidden(true)
+        GroupedPane {
+            HStack(spacing: 16) {
+                if let icon = model.appearance.image(for: model.appearance.icon) {
+                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 64, height: 64)
+                        .accessibilityHidden(true)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Jerd").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                    Text("A local PHP development environment for macOS.").foregroundStyle(.secondary)
+                    Text("Version \(version) · Build \(build)").font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 30).padding(.vertical, 16)
+        } content: {
+            Section {
+                ControlRow("Jerd updates", detail: model.appUpdates.message) {
+                    Button("Check for app updates") { model.appUpdates.checkForUpdates() }
+                        .disabled(!model.appUpdates.canCheckForUpdates)
+                }
+                if let error = model.appUpdates.errorMessage { InlineMessage(error) }
+                Toggle("Automatically check for app updates", isOn: Binding(
+                    get: { model.appUpdates.automaticallyChecks },
+                    set: { model.appUpdates.setAutomaticChecks($0) }))
+                    .disabled(!model.appUpdates.canChangePreferences)
+                if let checked = model.appUpdates.lastCheck {
+                    ValueRow("Last check", checked.formatted(date: .abbreviated, time: .shortened))
+                }
+                ControlRow("PHP and other runtimes") {
+                    Button("Manage runtimes") { model.showDashboard(.runtimes) }
+                }
+            } header: { Text("Updates") } footer: {
+                Text("Installation requires your approval. An app update restarts Jerd and stops its local services.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+
+            Section("Versions") {
+                ValueRow("Jerd", "\(version) (\(build))")
+                ValueRow("macOS", ProcessInfo.processInfo.operatingSystemVersionString)
+                ValueRow("App architecture", architecture)
+            }
+
+            Section {
+                ForEach(credits) { credit in
+                    LabeledContent {
+                        Text(credit.role).foregroundStyle(.secondary)
+                    } label: {
+                        Link(credit.name, destination: credit.url)
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Jerd").font(.title.bold())
-                        Text("A local PHP development environment for macOS.").foregroundStyle(.secondary)
-                        Text("Version \(version) · Build \(build)").font(.callout).textSelection(.enabled)
-                    }
                 }
+            } header: { Text("Credits") } footer: {
+                Text("Made by Jerd contributors. These projects belong to their respective authors. Their license terms apply. License notices are included with the managed runtimes.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
 
-                GroupBox("App updates") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Jerd updates", systemImage: "arrow.triangle.2.circlepath").font(.headline)
-                        Text(model.appUpdates.message)
-                            .foregroundStyle(.secondary)
-                        if let error = model.appUpdates.errorMessage {
-                            Text(error).foregroundStyle(.red).textSelection(.enabled)
-                        }
-                        Button("Check for app updates") { model.appUpdates.checkForUpdates() }
-                            .disabled(!model.appUpdates.canCheckForUpdates)
-                        Toggle("Automatically check for app updates", isOn: Binding(
-                            get: { model.appUpdates.automaticallyChecks },
-                            set: { model.appUpdates.setAutomaticChecks($0) }))
-                            .disabled(!model.appUpdates.canChangePreferences)
-                        if let checked = model.appUpdates.lastCheck {
-                            Text("Last check: \(checked.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.callout).foregroundStyle(.secondary)
-                        }
-                        Text("Installation requires your approval. An app update restarts Jerd and stops its local services.")
-                            .font(.callout).foregroundStyle(.secondary)
-                        Divider()
-                        Text("PHP and other runtime updates are available in Runtimes.")
-                            .font(.callout).foregroundStyle(.secondary)
-                        Button("Manage runtimes") { model.showDashboard(.runtimes) }
-                    }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                }
-
-                GroupBox("Versions") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        LabeledContent("Jerd", value: "\(version) (\(build))")
-                        LabeledContent("macOS", value: ProcessInfo.processInfo.operatingSystemVersionString)
-                        LabeledContent("App architecture", value: architecture)
-                    }.frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled).padding(12)
-                }
-
-                GroupBox("Credits") {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Made by Jerd contributors. Jerd uses these open-source projects:")
-                            .foregroundStyle(.secondary)
-                        ForEach(credits) { credit in
-                            HStack(alignment: .firstTextBaseline) {
-                                Link(credit.name, destination: credit.url)
-                                Spacer(minLength: 16)
-                                Text(credit.role).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
-                            }
-                        }
-                        Divider()
-                        Text("These projects belong to their respective authors. Their license terms apply. License notices are included with the managed runtimes.")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }.padding(12)
-                }
-
-                GroupBox("Disclaimer") {
-                    Text("Jerd is intended for local development. It does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project and is not affiliated with Laravel Herd or the projects listed above.")
-                        .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                }
+            Section {
+                Text("Jerd is intended for local development. It does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project and is not affiliated with Laravel or the projects listed above.")
+                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            } header: { Text("Disclaimer") } footer: {
                 Text(Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? "Copyright © 2026 Jerd contributors")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            .frame(maxWidth: 900, alignment: .leading).padding(30).frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 

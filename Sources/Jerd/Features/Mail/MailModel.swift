@@ -13,6 +13,8 @@ final class MailModel {
     var errorMessage: String?
     var runtimeMessage = "Preparing Mailpit…"
     var testMessage: String?
+    var copiedMessage: String?
+    @ObservationIgnored private var copiedReset: Task<Void, Never>?
     let directory = JSONConfigurationStore.applicationDirectory.appendingPathComponent("mail")
     @ObservationIgnored private lazy var manager = MailManager(directory: directory)
     private var work: Task<Void, Never>?
@@ -84,6 +86,16 @@ final class MailModel {
     func copyLaravelSettings() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(configuration.laravelSettings, forType: .string)
+        showCopied("Laravel settings copied.")
+    }
+    func showCopied(_ message: String) {
+        copiedMessage = message
+        copiedReset?.cancel()
+        copiedReset = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.copiedMessage = nil
+        }
     }
     func showData() {
         if !NSWorkspace.shared.open(paths.inbox) { errorMessage = "Start the mail service once to create its inbox." }
@@ -93,9 +105,10 @@ final class MailModel {
     }
     private func refresh() async {
         let snapshot = await manager.snapshot()
-        configuration = snapshot.configuration
-        state = snapshot.state
-        processID = snapshot.processID
+        // Assign only changed values, so idle polling does not refresh the views.
+        if configuration != snapshot.configuration { configuration = snapshot.configuration }
+        if state != snapshot.state { state = snapshot.state }
+        if processID != snapshot.processID { processID = snapshot.processID }
     }
     private func startMonitoring() {
         monitor?.cancel()

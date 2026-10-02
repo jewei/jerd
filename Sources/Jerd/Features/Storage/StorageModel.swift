@@ -8,13 +8,14 @@ final class StorageModel {
     var state = StorageState.stopped
     var processID: Int32?
     var availableBuckets: Set<String> = []
-    var selectedName: String?
+    var selectedName: String? { didSet { if selectedName != oldValue { copiedMessage = nil } } }
     var isLoaded = false
     var isBusy = false
     var isShuttingDown = false
     var errorMessage: String?
     var runtimeMessage = "Preparing RustFS…"
     var copiedMessage: String?
+    @ObservationIgnored private var copiedReset: Task<Void, Never>?
     let directory = JSONConfigurationStore.applicationDirectory.appendingPathComponent("storage")
     @ObservationIgnored private lazy var manager = StorageManager(directory: directory)
     private var work: Task<Void, Never>?
@@ -24,6 +25,11 @@ final class StorageModel {
     var canAdd: Bool { canChange && configuration.runtime != nil }
     var selected: StorageBucket? { configuration.buckets.first { $0.name == selectedName } }
 
+    func bucketTone(_ bucket: StorageBucket) -> StatusTone {
+        if !bucket.setupComplete { return .attention }
+        if state != .running { return state.tone }
+        return availableBuckets.contains(bucket.name) ? .ready : .attention
+    }
     func bucketStatus(_ bucket: StorageBucket) -> String {
         if !bucket.setupComplete { return "Setup incomplete" }
         if state != .running { return "Storage stopped" }
@@ -77,6 +83,15 @@ final class StorageModel {
         perform { try await self.manager.edit(apiPort: api, consolePort: console); completion() }
     }
     func suggestPorts() async throws -> (api: UInt16, console: UInt16) { try await manager.suggestedPorts() }
+    func showCopied(_ message: String) {
+        copiedMessage = message
+        copiedReset?.cancel()
+        copiedReset = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.copiedMessage = nil
+        }
+    }
     func copy(_ part: String, bucket: StorageBucket? = nil) {
         perform {
             let credentials = try await self.manager.credentials()
@@ -87,7 +102,7 @@ final class StorageModel {
             else { return }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(value, forType: .string)
-            self.copiedMessage = "\(part) copied."
+            self.showCopied("\(part) copied.")
         }
     }
     func openConsole() {
@@ -111,8 +126,11 @@ final class StorageModel {
     }
     private func refresh() async {
         let snapshot = await manager.snapshot()
-        configuration = snapshot.configuration; state = snapshot.state
-        processID = snapshot.processID; availableBuckets = snapshot.availableBuckets
+        // Assign only changed values, so idle polling does not refresh the views.
+        if configuration != snapshot.configuration { configuration = snapshot.configuration }
+        if state != snapshot.state { state = snapshot.state }
+        if processID != snapshot.processID { processID = snapshot.processID }
+        if availableBuckets != snapshot.availableBuckets { availableBuckets = snapshot.availableBuckets }
     }
     private func startMonitoring() {
         monitor?.cancel()
