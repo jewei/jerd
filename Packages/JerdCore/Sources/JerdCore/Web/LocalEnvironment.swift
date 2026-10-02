@@ -104,6 +104,7 @@ public actor LocalEnvironment {
         guard !operation else { throw JerdError.invalid("An environment operation is in progress.") }
         operation = true
         defer { operation = false }
+        try await requireStandardPortsAvailable()
         try await system.configure(setup.request)
     }
 
@@ -130,6 +131,7 @@ public actor LocalEnvironment {
             guard status.certificateSHA256 == InstallationCertificate.fingerprint(der) else {
                 throw JerdError.unavailable("The local CA does not match the approved system setup.")
             }
+            try await requireStandardPortsAvailable()
             sockets = try await system.acquireListeners()
             try await engine.start(sites: sites, caddy: caddy, paths: paths,
                                    httpsPort: 443, httpPort: 80, listeningSockets: sockets)
@@ -152,7 +154,10 @@ public actor LocalEnvironment {
     }
 
     public func stop() async {
-        while operation { try? await Task.sleep(for: .milliseconds(30)) }
+        await engine.requestStop()
+        while operation {
+            await Task.detached { try? await Task.sleep(for: .milliseconds(30)) }.value
+        }
         operation = true
         defer { operation = false }
         await cleanup()
@@ -181,6 +186,7 @@ public actor LocalEnvironment {
             guard let identity = status.installationID, let der = status.certificateDER else {
                 throw JerdError.unavailable("The approved certificate record is missing.")
             }
+            try await requireStandardPortsAvailable()
             try await system.configure(SystemRegistrationRequest(installationID: identity, hostnames: remaining,
                 certificateDER: der, trustPolicy: status.trustPolicy))
         }
@@ -203,6 +209,12 @@ public actor LocalEnvironment {
     private func makePaths(identity: UUID) -> EnginePaths {
         EnginePaths(root: directory, socketDirectory: FileManager.default.temporaryDirectory
             .appendingPathComponent("jerd-\(UUID().uuidString.prefix(12))"), installationID: identity)
+    }
+
+    private func requireStandardPortsAvailable() async throws {
+        let ports = LocalServicePorts(directory: directory, commands: commands)
+        try await ports.requireExclusive(80)
+        try await ports.requireExclusive(443)
     }
 
     private func checkHealth() async {

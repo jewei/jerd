@@ -12,7 +12,7 @@ public actor DatabaseStore {
     }
 
     public func save(_ configuration: DatabaseConfiguration) throws {
-        try configuration.validate()
+        try configuration.validateForSave()
         try PrivateFiles.directory(directory)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             let previous = try Data(contentsOf: fileURL)

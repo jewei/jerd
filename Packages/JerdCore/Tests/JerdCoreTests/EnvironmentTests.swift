@@ -9,9 +9,11 @@ private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
     private struct Entry { let hostnames: [String]; let policy: CertificateTrustPolicy }
     private var entries: [Data: Entry] = [:]
     private var failInstall = false
+    private var partiallyFailInstall = false
     private var failRemoval = false
     private var interrupt = false
     func failNextInstall() { lock.withLock { failInstall = true } }
+    func partiallyFailNextInstall() { lock.withLock { partiallyFailInstall = true } }
     func failNextRemoval() { lock.withLock { failRemoval = true } }
     func interruptNextInstall() { lock.withLock { interrupt = true } }
     func validate(_ der: Data, installationID: UUID) throws {}
@@ -23,6 +25,10 @@ private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
             if interrupt { interrupt = false; throw JerdError.approvalInterrupted("Test app disconnect") }
             if failInstall { failInstall = false; throw JerdError.unavailable("Test trust failure") }
             entries[der] = Entry(hostnames: hostnames, policy: policy)
+            if partiallyFailInstall {
+                partiallyFailInstall = false
+                throw JerdError.partialChange("Test partial trust failure")
+            }
         }
     }
     func remove(_ der: Data) throws {
@@ -180,7 +186,7 @@ struct SetupTransactionTests {
         let directory = root.appendingPathComponent("helper")
         let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
             hosts: AtomicHostsFile(url: hostsURL, expectedOwner: getuid()), certificates: trust)
-        trust.failNextInstall()
+        trust.partiallyFailNextInstall()
         trust.failNextRemoval()
         await #expect(throws: (any Error).self) {
             try await store.configure(SystemRegistrationRequest(installationID: UUID(), hostname: "demo.test",
@@ -280,6 +286,7 @@ private actor FakeEngine: EngineServing {
         startedSiteIDs = Set(sites.map { $0.site.id })
         state = .running
     }
+    func requestStop() {}
     func stop() { state = .stopped }
     func crash() { state = .failed("test exit") }
 }
@@ -293,6 +300,12 @@ private struct FakeProbe: TrustProbing {
     var fail = false
     func check(hostname: String) throws {
         if fail { throw JerdError.unavailable("System trust test failed") }
+    }
+}
+
+private struct NoListeners: CommandRunning {
+    func run(_ request: ProcessRequest, timeout: Duration) -> CommandResult {
+        CommandResult(status: 1, output: "")
     }
 }
 
@@ -312,7 +325,7 @@ struct EnvironmentTests {
             certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der, hostsConfigured: true,
             trustConfigured: true, trustPolicy: policy))
         let engine = FakeEngine(), probe = RecordingProbe()
-        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: probe)
+        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: probe, commands: NoListeners())
         let runtime = sampleRuntime()
         let one = makeSite(root, hostname: "one.test"), two = makeSite(root, hostname: "two.test")
         let selections = [SiteRuntime(site: one, runtime: runtime), SiteRuntime(site: two, runtime: runtime)]
@@ -348,7 +361,8 @@ struct EnvironmentTests {
         let system = FakeSystem(SystemSetupStatus(hostname: "demo.test", installationID: identity,
             certificateSHA256: InstallationCertificate.fingerprint(der), hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS))
         let engine = FakeEngine()
-        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(fail: fail))
+        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(fail: fail),
+                                           commands: NoListeners())
         let site = Site(displayName: "Demo", projectPath: root.path, documentRoot: root.path, hostname: "demo.test")
         let runtime = DevelopmentRuntime(cliPath: "/unused", fpmPath: "/unused", version: "8.5.11", architectures: [.arm64], cliExtensions: [], fpmExtensions: [])
         let caddy = CaddyRuntime(path: "/unused", version: "v2.11.4", architectures: [.arm64])

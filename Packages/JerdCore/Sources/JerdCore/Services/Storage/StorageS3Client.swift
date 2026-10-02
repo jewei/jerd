@@ -96,11 +96,29 @@ public struct StorageS3Client: Sendable {
             Self.sign(&request, body: body, canonicalPath: components.percentEncodedPath, canonicalQuery: encodedQuery,
                       region: region, credentials: credentials, date: Date())
         }
-        let (data, response) = try await session.data(for: request)
+        let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw JerdError.process("RustFS returned an invalid response.") }
-        let limit: Int64 = 4 * 1024 * 1024
-        guard (response.expectedContentLength < 0 || response.expectedContentLength <= limit),
-              Int64(data.count) <= limit else { throw JerdError.process("The RustFS response exceeds the size limit.") }
+        let limit = 4 * 1024 * 1024
+        guard response.expectedContentLength <= 0 || response.expectedContentLength <= Int64(limit) else {
+            throw JerdError.process("The RustFS response exceeds the size limit.")
+        }
+        var data = Data()
+        var scratch: [UInt8] = []
+        scratch.reserveCapacity(16_384)
+        for try await byte in bytes {
+            scratch.append(byte)
+            if scratch.count >= 16_384 {
+                guard data.count + scratch.count <= limit else {
+                    throw JerdError.process("The RustFS response exceeds the size limit.")
+                }
+                data.append(contentsOf: scratch)
+                scratch.removeAll(keepingCapacity: true)
+            }
+        }
+        guard data.count + scratch.count <= limit else {
+            throw JerdError.process("The RustFS response exceeds the size limit.")
+        }
+        data.append(contentsOf: scratch)
         return Response(status: http.statusCode, data: data)
     }
 

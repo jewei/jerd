@@ -59,9 +59,8 @@ public struct DatabaseConfiguration: Codable, Equatable, Sendable {
         guard schemaVersion == 1, runtimes.count <= 100, services.count <= 100,
               Set(runtimes.map(\.id)).count == runtimes.count,
               Set(services.map(\.id)).count == services.count,
-              Set(services.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }).count == services.count,
               Set(services.map(\.port)).count == services.count else {
-            throw JerdError.corruptConfiguration("Database settings contain an unsupported version or duplicate records, names, or ports.")
+            throw JerdError.corruptConfiguration("Database settings contain an unsupported version or duplicate records or ports.")
         }
         for runtime in runtimes {
             guard Self.safeIdentifier(runtime.id), Self.safeIdentifier(runtime.version),
@@ -76,6 +75,12 @@ public struct DatabaseConfiguration: Codable, Equatable, Sendable {
                 throw JerdError.invalid("Use a service name of 1 to 80 characters and a port from 1024 to 65535.")
             }
             _ = try runtime(for: service)
+        }
+    }
+    public func validateForSave() throws {
+        try validate()
+        guard Set(services.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }).count == services.count else {
+            throw JerdError.invalid("Each database service needs a unique name.")
         }
     }
     static func safeIdentifier(_ value: String) -> Bool {

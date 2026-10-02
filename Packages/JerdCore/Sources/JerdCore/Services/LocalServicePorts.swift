@@ -34,7 +34,8 @@ public struct LocalServicePorts: Sendable {
         throw JerdError.unavailable("No free service port was found. Enter a different port.")
     }
 
-    public func verify(processID: Int32, ports: Set<UInt16>, requireExclusiveOwnership: Bool = true) async throws {
+    public func verify(processID: Int32, ports: Set<UInt16>, requireExclusiveOwnership: Bool = true,
+                       rejectUDP: Bool = true) async throws {
         let result = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
             arguments: ["-nP", "-a", "-p", String(processID), "-iTCP", "-sTCP:LISTEN", "-Fn"], directory: directory), timeout: .seconds(5))
         let actual = Set(result.output.split(separator: "\n").filter { $0.hasPrefix("n") }.map { String($0.dropFirst()) })
@@ -42,9 +43,11 @@ public struct LocalServicePorts: Sendable {
         guard (result.status == 0 || (ports.isEmpty && result.status == 1)), actual == expected else {
             throw JerdError.process("The service opened an unexpected network listener. Expected loopback only.")
         }
-        let udp = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-a", "-p", String(processID), "-iUDP", "-Fn"], directory: directory), timeout: .seconds(5))
-        guard udp.status == 1, udp.output.isEmpty else { throw JerdError.process("The service opened an unexpected UDP socket.") }
+        if rejectUDP {
+            let udp = try await commands.run(ProcessRequest(executable: URL(fileURLWithPath: "/usr/sbin/lsof"),
+                arguments: ["-nP", "-a", "-p", String(processID), "-iUDP", "-Fn"], directory: directory), timeout: .seconds(5))
+            guard udp.status == 1, udp.output.isEmpty else { throw JerdError.process("The service opened an unexpected UDP socket.") }
+        }
         guard requireExclusiveOwnership else { return }
         for port in ports {
             guard try await listeningProcessIDs(on: port) == [processID] else {
