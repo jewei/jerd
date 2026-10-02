@@ -5,92 +5,91 @@ struct RuntimeSettingsView: View {
     let model: AppModel
     private var updates: RuntimeUpdatesModel { model.updates }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    Text("Runtimes").font(.largeTitle.bold())
-                    Spacer()
-                    if updates.isChecking { ProgressView().controlSize(.small) }
-                    Button("Check for runtime updates") { updates.check(model: model) }
-                        .disabled(updates.isChecking || updates.isShuttingDown)
-                }
-                Text("Choose a version, then install it. PHP versions remain available for sites that use them.")
-                    .foregroundStyle(.secondary)
-                if let error = updates.loadError { Text(error).foregroundStyle(.red) }
-                if let error = model.errorMessage { Text(error).foregroundStyle(.red) }
-                ForEach(RuntimeKind.allCases) { kind in runtimeCard(kind) }
-                Text("MySQL uses the 8.4 LTS series. PostgreSQL uses the 18 series from Postgres.app. Redis builds need the Xcode command line tools.")
-                    .font(.callout).foregroundStyle(.secondary)
-            }.frame(maxWidth: 1000, alignment: .leading).padding(30).frame(maxWidth: .infinity, alignment: .topLeading)
+        GroupedPane {
+            PaneHeader("Runtimes", subtitle: "Choose a version, then install it. PHP versions remain available for sites that use them.") {
+                if updates.isChecking { ProgressView().controlSize(.small) }
+                Button("Check for runtime updates", systemImage: "arrow.clockwise") { updates.check(model: model) }
+                    .disabled(updates.isChecking || updates.isShuttingDown)
+            }
+        } content: {
+            if let error = updates.loadError { Section { InlineMessage(error) } }
+            if let error = model.errorMessage { Section { InlineMessage(error) } }
+            ForEach(RuntimeKind.allCases) { kind in runtimeSection(kind) }
         }
     }
 
-    private func runtimeCard(_ kind: RuntimeKind) -> some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(kind.title).font(.title3.bold())
-                    Spacer()
-                    let versions = updates.installedVersions(kind, model: model)
+    private func runtimeSection(_ kind: RuntimeKind) -> some View {
+        let versions = updates.installedVersions(kind, model: model)
+        let check = updates.checks[kind]
+        return Section {
+            if kind == .php, !model.configuration.runtimes.isEmpty {
+                phpSelections
+            } else {
+                LabeledContent("Installed") {
                     Text(versions.isEmpty ? "Unavailable" : versions.joined(separator: ", "))
-                        .foregroundStyle(.secondary).textSelection(.enabled).id(versions)
+                        .textSelection(.enabled).id(versions)
                 }
-                if kind == .php { phpSelections }
-                if let check = updates.checks[kind] {
-                    if let error = check.error { Text(error).font(.callout).foregroundStyle(.red) }
-                    if !check.releases.isEmpty {
-                        HStack {
+            }
+            if let check {
+                if let error = check.error { InlineMessage(error) }
+                if !check.releases.isEmpty {
+                    ControlRow("Available") {
+                        HStack(spacing: 10) {
                             Picker("Available", selection: Binding(get: { updates.selections[kind] ?? "" }, set: { updates.selections[kind] = $0 })) {
                                 ForEach(check.releases) { release in
                                     Text(release.versionLabel + (updates.isInstalled(release, model: model) ? " · Installed" : "")).tag(release.id)
                                 }
-                            }.labelsHidden().accessibilityLabel("\(kind.title) version").frame(maxWidth: 280)
-                            Spacer()
+                            }.labelsHidden().accessibilityLabel("\(kind.title) version").frame(maxWidth: 260)
                             if let release = updates.selectedRelease(kind) { installControl(release) }
                         }
-                        if let release = updates.selectedRelease(kind) {
-                            Link("Release source", destination: release.source).font(.caption)
-                            if let hash = release.sha256 {
-                                Text("Package build: \(hash.prefix(12))").font(.caption.monospaced()).foregroundStyle(.secondary)
-                            } else {
-                                Text("Install verifies this package again. Its source does not provide a build digest before download.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
+                    }
+                    if let release = updates.selectedRelease(kind) {
+                        ControlRow("Release", detail: release.sha256.map { "Package build \($0.prefix(12))" } ??
+                                   "Install verifies this package again. Its source does not provide a build digest before download.") {
+                            Link("Release source", destination: release.source)
                         }
                     }
-                    Text("Checked \(check.checkedAt.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption).foregroundStyle(.secondary)
-                } else { Text("Updates have not been checked.").font(.callout).foregroundStyle(.secondary) }
-                if updates.installing == kind, let progress = updates.progress {
-                    HStack {
-                        if let fraction = progress.fraction { ProgressView(value: fraction).frame(width: 120) }
-                        else { ProgressView().controlSize(.small) }
-                        Text(progress.message).font(.callout)
-                        Spacer()
-                        if updates.canCancel { Button("Cancel") { updates.cancelInstall() } }
-                    }
                 }
-                if let message = updates.messages[kind] { Text(message).font(.callout).foregroundStyle(.secondary) }
-                if let error = updates.errors[kind] { Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled) }
-                if kind == .mailpit || kind == .rustfs {
-                    Text("An update restarts this service. Jerd keeps a local data backup for recovery.").font(.caption).foregroundStyle(.secondary)
+            }
+            if updates.installing == kind, let progress = updates.progress {
+                HStack {
+                    if let fraction = progress.fraction { ProgressView(value: fraction).frame(width: 120) }
+                    else { ProgressView().controlSize(.small) }
+                    Text(progress.message).font(.callout)
+                    Spacer()
+                    if updates.canCancel { Button("Cancel") { updates.cancelInstall() } }
                 }
-            }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let message = updates.messages[kind] { InlineMessage(message, kind: .info) }
+            if let error = updates.errors[kind] { InlineMessage(error) }
+        } header: {
+            Text(kind.title)
+        } footer: {
+            Text(footer(kind, checked: check?.checkedAt)).font(.callout).foregroundStyle(.secondary)
         }
     }
-    private var phpSelections: some View {
-        VStack(spacing: 8) {
-            ForEach(model.configuration.runtimes) { runtime in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("PHP \(runtime.version)").font(.callout)
-                        if let build = updates.installed.first(where: { $0.executable.path == runtime.cliPath }) {
-                            Text("Build \(build.archiveSHA256.prefix(12))").font(.caption.monospaced()).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    if model.configuration.defaultRuntimeID == runtime.id { Text("Default").font(.callout).foregroundStyle(.secondary) }
-                    else { Button("Use as default") { model.setDefaultRuntime(runtime.id) }.disabled(model.isBusy || updates.installing != nil) }
+
+    private func footer(_ kind: RuntimeKind, checked: Date?) -> String {
+        var parts = [checked.map { "Checked \($0.formatted(date: .abbreviated, time: .shortened))." } ?? "Updates have not been checked."]
+        switch kind {
+        case .mysql: parts.append("MySQL uses the 8.4 LTS series.")
+        case .postgresql: parts.append("PostgreSQL uses the 18 series from Postgres.app.")
+        case .redis: parts.append("Redis builds need the Xcode command line tools.")
+        case .mailpit, .rustfs: parts.append("An update restarts this service. Jerd keeps a local data backup for recovery.")
+        default: break
+        }
+        return parts.joined(separator: " ")
+    }
+    @ViewBuilder private var phpSelections: some View {
+        ForEach(model.configuration.runtimes) { runtime in
+            ControlRow("PHP \(runtime.version)",
+                       detail: updates.installed.first(where: { $0.executable.path == runtime.cliPath }).map { "Build \($0.archiveSHA256.prefix(12))" }) {
+                if model.configuration.defaultRuntimeID == runtime.id {
+                    Text("Default").foregroundStyle(.secondary)
+                } else {
+                    Button("Use as default") { model.setDefaultRuntime(runtime.id) }
+                        .disabled(model.isBusy || updates.installing != nil)
+                        .accessibilityLabel("Use PHP \(runtime.version) as default")
                 }
             }
         }
@@ -100,10 +99,11 @@ struct RuntimeSettingsView: View {
             Label("Installed", systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
         } else if release.kind == .php {
             HStack {
-                Button("Install & use") { updates.install(release, model: model) }
+                Button("Install and use") { updates.install(release, model: model) }
                 Menu {
                     Button("Install only") { updates.install(release, model: model, useAsDefault: false) }
                 } label: { Image(systemName: "chevron.down") }.menuStyle(.borderlessButton).frame(width: 20)
+                    .accessibilityLabel("More install options").help("More install options")
             }.disabled(updates.installing != nil || model.isBusy)
         } else {
             Button([RuntimeKind.mysql, .postgresql, .redis].contains(release.kind) ? "Install version" : "Update") {

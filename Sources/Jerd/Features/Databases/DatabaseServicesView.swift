@@ -15,18 +15,11 @@ struct DatabaseServicesView: View {
         NavigationSplitView {
             List(selection: $model.selectedID) {
                 ForEach(model.configuration.services) { service in
-                    HStack(spacing: 10) {
-                        Image(systemName: "externaldrive")
-                            .foregroundStyle(model.status(service).state == .running ? .green : .secondary)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(service.name).font(.headline)
-                            if let runtime = model.runtime(service) {
-                                Text("\(runtime.engine.title) \(runtime.version) · \(service.port)")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            Text(model.status(service).state.title).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.padding(.vertical, 5).tag(service.id)
+                    let status = model.status(service)
+                    SidebarRow(title: service.name,
+                               subtitle: model.runtime(service).map { "\($0.engine.title) \($0.version) · \(String(service.port))" } ?? "Runtime unavailable",
+                               status: status.state.title, tone: status.state.tone)
+                        .tag(service.id)
                 }
             }
             .navigationTitle("Databases")
@@ -34,78 +27,99 @@ struct DatabaseServicesView: View {
             .safeAreaInset(edge: .bottom) {
                 HStack {
                     Button("Add database", systemImage: "plus") { adding = true }
-                        .disabled(!model.isLoaded || model.configuration.runtimes.isEmpty || model.isLoading || model.isSaving || model.isShuttingDown)
+                        .disabled(!canAdd)
                     Spacer()
-                }.padding()
+                }.padding(12)
             }
         } detail: {
             if let service = model.selected, let runtime = model.runtime(service) {
                 detail(service, runtime: runtime)
+            } else if let service = model.selected {
+                ContentUnavailableView {
+                    Label("Runtime unavailable", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text("\(service.name) uses a database runtime that is not installed. Its data folder stays in place.")
+                } actions: {
+                    Button("Show data folder") { model.revealData(service) }
+                    Button("Remove registration…", role: .destructive) { removing = service }
+                        .disabled(model.isBusy(service) || model.isSaving)
+                }
             } else {
                 ContentUnavailableView {
-                    Label("Local databases", systemImage: "externaldrive")
+                    Label(model.isLoading ? "Preparing databases" : "No database selected", systemImage: "externaldrive")
                 } description: {
-                    Text(model.isLoading ? "Preparing MySQL, PostgreSQL, and Redis…" : "Add a database service, choose its version and port, then start it.")
+                    Text(model.isLoading ? "Checking MySQL, PostgreSQL, and Redis runtimes…" :
+                            model.configuration.services.isEmpty ? "Add a MySQL, PostgreSQL, or Redis service. Choose its version and port, then start it." :
+                            "Select a database service in the sidebar.")
                 } actions: {
-                    if !model.isLoading, !model.configuration.runtimes.isEmpty {
-                        Button("Add database") { adding = true }.disabled(model.isSaving || model.isShuttingDown)
+                    if !model.isLoading, !model.configuration.runtimes.isEmpty, model.configuration.services.isEmpty {
+                        Button("Add database") { adding = true }
+                            .primaryAction(canAdd)
                     }
                 }
             }
         }
         .toolbar {
             if model.isLoading || model.isShuttingDown { ProgressView().controlSize(.small) }
-            Button("Restore registration…") { model.inspectRetained(); showRetained = true }.disabled(!model.isLoaded || model.isSaving || model.isShuttingDown)
+            Button("Restore registration…", systemImage: "arrow.uturn.backward.circle") { model.inspectRetained(); showRetained = true }
+                .help("Restore a removed database registration")
+                .disabled(!model.isLoaded || model.isSaving || model.isShuttingDown)
             Button("Database runtimes", systemImage: "gearshape") { showRuntimes = true }
+                .help("Database runtimes")
         }
         .sheet(item: $restoring) { item in DatabaseRestoreEditor(model: model, item: item) }
         .sheet(isPresented: $showRetained, onDismiss: { restoring = pendingRestore; pendingRestore = nil }) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Retained databases").font(.title2.bold())
-                Text("Restore a removed registration with its original runtime and data. Choose a name and an available port.").foregroundStyle(.secondary)
-                if model.isSaving { ProgressView() }
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(model.retained) { item in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(item.name).font(.headline)
-                                if let runtime = item.runtime { Text("\(runtime.engine.title) \(runtime.version)") }
-                                Text(item.directory.path).font(.caption).textSelection(.enabled)
-                                if let bytes = item.bytes { Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) }
-                                if let problem = item.problem { Text(problem).foregroundStyle(.red) }
-                                Button("Restore…") { pendingRestore = item; showRetained = false }.disabled(!item.canRestore || model.isSaving)
-                            }
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+            SheetScaffold(title: "Retained databases",
+                          message: "Restore a removed registration with its original runtime and data. Choose a name and an available port.",
+                          width: 560) {
+                if model.retained.isEmpty {
+                    Text(model.isSaving ? "Inspecting data folders…" : "No removed database registrations were found.")
+                        .foregroundStyle(.secondary)
                 }
-                if let error = model.errorMessage { Text(error).foregroundStyle(.red) }
-                HStack { Button("Inspect again") { model.inspectRetained() }.disabled(model.isSaving); Spacer(); Button("Done") { showRetained = false } }
-            }.padding(24).frame(width: 560, height: 450)
+                ForEach(model.retained) { item in
+                    Section {
+                        ControlRow(item.name) {
+                            Button("Restore…") { pendingRestore = item; showRetained = false }
+                                .disabled(!item.canRestore || model.isSaving)
+                                .accessibilityLabel("Restore \(item.name)")
+                        }
+                        if let runtime = item.runtime { ValueRow("Runtime", "\(runtime.engine.title) \(runtime.version)") }
+                        if let bytes = item.bytes { ValueRow("Size", ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) }
+                        ValueRow("Data folder", item.directory.path)
+                        if let problem = item.problem { InlineMessage(problem) }
+                    }
+                }
+                if let error = model.errorMessage { InlineMessage(error) }
+            } footer: {
+                Button("Inspect again") { model.inspectRetained() }.disabled(model.isSaving)
+                if model.isSaving { ProgressView().controlSize(.small) }
+                Spacer()
+                Button("Done") { model.errorMessage = nil; showRetained = false }.keyboardShortcut(.defaultAction)
+            }
+            .frame(height: 460)
         }
         .sheet(isPresented: $adding) { DatabaseEditor(model: model, original: nil) }
         .sheet(item: $editing) { service in DatabaseEditor(model: model, original: service) }
         .sheet(isPresented: $showRuntimes) {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Database runtimes").font(.title2.bold())
-                Text(model.runtimeMessage).foregroundStyle(.secondary)
-                ForEach(model.configuration.runtimes) { runtime in
-                    HStack {
-                        Text(runtime.engine.title).font(.headline)
-                        Spacer()
-                        Text(runtime.version).monospacedDigit()
+            SheetScaffold(title: "Database runtimes", message: model.runtimeMessage, width: 460) {
+                Section {
+                    if model.configuration.runtimes.isEmpty { Text("No database runtimes are installed.").foregroundStyle(.secondary) }
+                    ForEach(model.configuration.runtimes) { runtime in
+                        ValueRow(runtime.engine.title, runtime.version)
                     }
+                } footer: {
+                    Text("A service keeps the version used to create its data. Create a new service to use another version.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
-                Text("A service keeps the version used to create its data. Create a new service to use another version.")
-                    .font(.callout).foregroundStyle(.secondary)
-                HStack {
-                    Button("Check runtimes") { model.load() }.disabled(model.isLoading || model.isShuttingDown)
-                    Spacer()
-                    Button("Done") { showRuntimes = false }.keyboardShortcut(.defaultAction)
-                }
-            }.padding(24).frame(width: 500)
+            } footer: {
+                Button("Check runtimes") { model.load() }.disabled(model.isLoading || model.isShuttingDown)
+                if model.isLoading { ProgressView().controlSize(.small) }
+                Spacer()
+                Button("Done") { showRuntimes = false }.keyboardShortcut(.defaultAction)
+            }
         }
         .alert("Jerd could not complete the database operation", isPresented: Binding(
-            get: { model.errorMessage != nil && !adding && editing == nil },
+            get: { model.errorMessage != nil && !adding && editing == nil && !showRetained && restoring == nil },
             set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
@@ -120,59 +134,57 @@ struct DatabaseServicesView: View {
             }
     }
 
+    private var canAdd: Bool {
+        model.isLoaded && !model.configuration.runtimes.isEmpty && !model.isLoading && !model.isSaving && !model.isShuttingDown
+    }
+
     private func detail(_ service: DatabaseService, runtime: DatabaseRuntime) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(service.name).font(.largeTitle.bold())
-                    Text("\(runtime.engine.title) \(runtime.version)").font(.title3).foregroundStyle(.secondary)
+        let status = model.status(service)
+        let busy = model.isBusy(service)
+        let active = status.processID != nil
+        return GroupedPane(feedback: model.copiedMessage) {
+            PaneHeader(service.name, subtitle: "\(runtime.engine.title) \(runtime.version) · 127.0.0.1:\(String(service.port))",
+                       status: (status.state.title, status.state.tone)) {
+                if active {
+                    Button("Stop service", systemImage: "stop.fill") { model.stop(service) }.disabled(busy)
+                } else {
+                    Button("Start service", systemImage: "play.fill") { model.start(service) }
+                        .primaryAction(!busy)
                 }
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(model.status(service).state.title,
-                              systemImage: model.status(service).state == .running ? "checkmark.circle" : "externaldrive")
-                            .font(.headline)
-                        if case .failed(let message) = model.status(service).state {
-                            Text(message).foregroundStyle(.red).lineLimit(5).textSelection(.enabled)
-                        }
-                        Text("This service runs independently from your sites and other databases.").foregroundStyle(.secondary)
-                        if model.status(service).processID != nil {
-                            Button("Stop service") { model.stop(service) }.disabled(model.isBusy(service))
-                        } else {
-                            Button("Start service") { model.start(service) }.disabled(model.isBusy(service))
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
-                }
-                Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 14) {
-                    GridRow { Text("Host").foregroundStyle(.secondary); Text("127.0.0.1").textSelection(.enabled) }
-                    GridRow { Text("Port").foregroundStyle(.secondary); Text(String(service.port)).textSelection(.enabled) }
-                    GridRow { Text("User").foregroundStyle(.secondary); Text(runtime.engine.username).textSelection(.enabled) }
-                    GridRow { Text("Database").foregroundStyle(.secondary); Text(runtime.engine.database).textSelection(.enabled) }
-                    GridRow {
-                        Text("Password").foregroundStyle(.secondary)
-                        Button("Copy password") { model.copyConnection(service, passwordOnly: true) }
-                    }
-                    GridRow {
-                        Text("Data folder").foregroundStyle(.secondary)
-                        Text(model.paths(service).data.path).font(.callout).textSelection(.enabled)
-                    }
-                }
-                HStack {
-                    Button("Copy Laravel settings", systemImage: "doc.on.doc") { model.copyConnection(service) }
-                    Button("Show data folder", systemImage: "folder") { model.revealData(service) }
-                    Button("Open log", systemImage: "doc.text") { model.openLog(service) }
-                }
-                Divider()
-                HStack {
-                    Button("Edit service") { editing = service }
-                        .disabled(model.isBusy(service) || model.status(service).processID != nil || model.isSaving)
-                    Spacer()
-                    Button("Remove registration", role: .destructive) { removing = service }
-                        .disabled(model.isBusy(service) || model.isSaving)
-                }
+            }
+        } content: {
+            if case .failed(let message) = status.state {
+                Section { InlineMessage(message) }
+            }
+            Section {
+                ValueRow("Host", "127.0.0.1")
+                ValueRow("Port", String(service.port))
+                ValueRow("User", runtime.engine.username)
+                ValueRow("Database", runtime.engine.database)
+                ActionRow("Password", action: "Copy password", symbol: "key") { model.copyConnection(service, passwordOnly: true) }
+            } header: { Text("Connection") } footer: {
                 Text("Connections are limited to this Mac. A password is created for each service. Quitting Jerd stops its database services.")
                     .font(.callout).foregroundStyle(.secondary)
-            }.padding(30)
+            }
+            Section("Laravel") {
+                ActionRow(".env settings", action: "Copy Laravel settings", symbol: "doc.on.doc") { model.copyConnection(service) }
+            }
+            Section("Files") {
+                PathRow(label: "Data folder", path: model.paths(service).data.path) { model.revealData(service) }
+                ActionRow("Log", action: "Open log", perform: { model.openLog(service) })
+            }
+            Section {
+                ControlRow("Registration") {
+                    Button("Edit service…") { editing = service }
+                        .disabled(busy || active || model.isSaving)
+                    Button("Remove registration…", role: .destructive) { removing = service }
+                        .disabled(busy || model.isSaving)
+                }
+            } footer: {
+                Text(active ? "Stop the service to change its name or port. This service runs independently from your sites and other databases." :
+                        "This service runs independently from your sites and other databases.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
         }
     }
 }
@@ -190,31 +202,29 @@ private struct DatabaseEditor: View {
 
     private var runtimes: [DatabaseRuntime] { model.configuration.runtimes.filter { $0.engine == engine } }
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(original == nil ? "Add database service" : "Edit database service").font(.title2.bold())
-            Form {
+        SheetScaffold(title: original == nil ? "Add database service" : "Edit database service",
+                      message: original == nil ? "Jerd creates a separate data folder and password. The service listens on 127.0.0.1." :
+                        "The service listens on 127.0.0.1. The engine and version stay fixed because the data folder uses them.") {
+            Section {
                 Picker("Engine", selection: $engine) {
                     ForEach(DatabaseEngine.allCases, id: \.self) { Text($0.title).tag($0) }
-                }.disabled(original != nil || model.isSaving)
+                }.disabled(original != nil)
                 Picker("Version", selection: $runtimeID) {
                     ForEach(runtimes) { Text($0.version).tag($0.id) }
-                }.disabled(original != nil || model.isSaving)
+                }.disabled(original != nil)
                 TextField("Name", text: $name)
-                TextField("Port", text: $port)
-            }.disabled(model.isSaving)
-            Text("Jerd will create a separate data folder and password. The service will listen on 127.0.0.1.")
-                .font(.callout).foregroundStyle(.secondary)
-            if let error = localError ?? model.errorMessage { Text(error).foregroundStyle(.red).textSelection(.enabled) }
-            HStack {
-                Button("Cancel") { model.errorMessage = nil; dismiss() }.keyboardShortcut(.cancelAction)
-                Spacer()
-                if model.isSaving { ProgressView().controlSize(.small) }
-                Button(original == nil ? "Create and start" : "Save") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(model.isSaving || runtimeID.isEmpty || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }.disabled(model.isSaving)
+                TextField("Port", text: $port, prompt: Text("1024–65535"))
+            }
+            if let error = localError ?? model.errorMessage { InlineMessage(error) }
+        } footer: {
+            Button("Cancel") { model.errorMessage = nil; dismiss() }.keyboardShortcut(.cancelAction)
+            Spacer()
+            if model.isSaving { ProgressView().controlSize(.small) }
+            Button(original == nil ? "Create and start" : "Save") { save() }
+                .keyboardShortcut(.defaultAction)
+                .disabled(model.isSaving || runtimeID.isEmpty || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
-        .padding(24).frame(width: 500)
+        .disabled(model.isSaving)
         .task {
             guard !initialized else { return }
             if let original, let runtime = model.runtime(original) {
@@ -253,21 +263,24 @@ private struct DatabaseRestoreEditor: View {
     @State private var port = ""
     @State private var localError: String?
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Restore database registration").font(.title2.bold())
-            TextField("Name", text: $name)
-            TextField("Port", text: $port)
-            Text("The original runtime and data folder stay in use. Start the service after you restore it.").foregroundStyle(.secondary)
-            if let error = localError ?? model.errorMessage { Text(error).foregroundStyle(.red) }
-            HStack {
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Spacer()
-                Button("Restore") {
-                    guard let value = UInt16(port), value > 1023 else { localError = "Enter a port from 1024 to 65535."; return }
-                    model.restore(item, name: name, port: value) { dismiss() }
-                }.keyboardShortcut(.defaultAction)
+        SheetScaffold(title: "Restore database registration",
+                      message: "The original runtime and data folder stay in use. Start the service after you restore it.") {
+            Section {
+                TextField("Name", text: $name)
+                TextField("Port", text: $port, prompt: Text("1024–65535"))
             }
-        }.padding(24).frame(width: 500).disabled(model.isSaving)
+            if let error = localError ?? model.errorMessage { InlineMessage(error) }
+        } footer: {
+            Button("Cancel") { model.errorMessage = nil; dismiss() }.keyboardShortcut(.cancelAction)
+            Spacer()
+            if model.isSaving { ProgressView().controlSize(.small) }
+            Button("Restore") {
+                guard let value = UInt16(port), value > 1023 else { localError = "Enter a port from 1024 to 65535."; return }
+                model.restore(item, name: name, port: value) { dismiss() }
+            }.keyboardShortcut(.defaultAction)
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .disabled(model.isSaving)
             .onAppear { name = item.name; port = String(item.port ?? item.runtime?.engine.defaultPort ?? 3307) }
     }
 }

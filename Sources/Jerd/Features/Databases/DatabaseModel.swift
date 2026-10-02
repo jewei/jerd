@@ -7,7 +7,9 @@ final class DatabaseModel {
     var configuration = DatabaseConfiguration()
     var retained: [RetainedDatabase] = []
     var statuses: [UUID: DatabaseStatus] = [:]
-    var selectedID: UUID?
+    var selectedID: UUID? { didSet { if selectedID != oldValue { copiedMessage = nil } } }
+    var copiedMessage: String?
+    @ObservationIgnored private var copiedReset: Task<Void, Never>?
     var errorMessage: String?
     var runtimeMessage = "Preparing database runtimes…"
     var isLoading = false
@@ -158,9 +160,20 @@ final class DatabaseModel {
         Task {
             do {
                 let connection = try await manager.connection(for: service.id)
+                guard selectedID == service.id else { return }
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(passwordOnly ? connection.password : connection.environment, forType: .string)
+                showCopied(passwordOnly ? "Password copied." : "Laravel settings copied.")
             } catch { errorMessage = error.localizedDescription }
+        }
+    }
+    func showCopied(_ message: String) {
+        copiedMessage = message
+        copiedReset?.cancel()
+        copiedReset = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.copiedMessage = nil
         }
     }
     func revealData(_ service: DatabaseService) {

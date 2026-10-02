@@ -24,6 +24,7 @@
 		5067AA2A270DC0936D3C27BE /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACF72C27741CBD6AF7B3579 /* AboutView.swift */; };
 		524FFBC474E758E5D64A4A2F /* AppearanceAndAdvancedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43830ED1CB2333FBB74FFBD4 /* AppearanceAndAdvancedViews.swift */; };
 		5AFA917B4882B91A2B98F97C /* Icon-lock.png in Resources */ = {isa = PBXBuildFile; fileRef = 13C74847BEFCD2F127DDA191 /* Icon-lock.png */; };
+		7084885347076BEF908848F6 /* JerdUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED712700FBFF27CD2877AD8 /* JerdUI.swift */; };
 		75F2EF6DCF6B1BC0570AC2C8 /* AppUpdatesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */; };
 		7AB59428F147D88E55BA87A9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF95E7C2A01AA02E3962277 /* ContentView.swift */; };
 		7C7531536DBA920CCAACC47A /* Icon-stack.png in Resources */ = {isa = PBXBuildFile; fileRef = 24073687C0540B2D250490FC /* Icon-stack.png */; };
@@ -98,6 +99,7 @@
 		D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdatesModel.swift; sourceTree = "<group>"; };
 		ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-elephant.png"; sourceTree = "<group>"; };
 		F3D637D66C7860EB546D18B6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		FED712700FBFF27CD2877AD8 /* JerdUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdUI.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,6 +183,14 @@
 				24073687C0540B2D250490FC /* Icon-stack.png */,
 			);
 			path = AppIcons;
+			sourceTree = "<group>";
+		};
+		2FEF1DD0B8DB963902771352 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				FED712700FBFF27CD2877AD8 /* JerdUI.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		31869F0D9834F9EB9C64A502 = {
@@ -296,6 +306,7 @@
 				060E24CE7682887F6BA7FA13 /* Application */,
 				0571DC145E1A19C743A3B7F0 /* Features */,
 				3966AF47E1F2F101E0662624 /* Resources */,
+				2FEF1DD0B8DB963902771352 /* Shared */,
 				DC7EB55A6475D4D7252DD4A4 /* SystemIntegration */,
 			);
 			name = Jerd;
@@ -484,6 +495,7 @@
 				4A5F2D95DEF91D5029967E35 /* DatabaseServicesView.swift in Sources */,
 				E39579947E4969D76140A8D5 /* HelperClient.swift in Sources */,
 				B521BF8C9655452AEFA67658 /* JerdApp.swift in Sources */,
+				7084885347076BEF908848F6 /* JerdUI.swift in Sources */,
 				A03C966697016758C9731910 /* MailModel.swift in Sources */,
 				0F347D589536CF6C6EF0B267 /* MailServiceView.swift in Sources */,
 				0FC70F2CF2CCD0345C0BAA96 /* RuntimeSettingsView.swift in Sources */,
