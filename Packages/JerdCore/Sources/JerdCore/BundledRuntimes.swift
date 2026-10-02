@@ -13,6 +13,7 @@ public actor BundledRuntimes {
         let tag: String
         let sha256: String
         let files: [String]
+        let installationID: String?
     }
     private struct Receipt: Decodable {
         let schemaVersion: Int
@@ -57,7 +58,11 @@ public actor BundledRuntimes {
                   }) else {
                 throw JerdError.invalid("The bundled runtime receipt does not match its manifest.")
             }
-            let target = directory.appendingPathComponent("\(entry.name)-\(entry.tag)-\(pins.architecture)")
+            let installationID = entry.installationID ?? "\(entry.name)-\(entry.tag)-\(pins.architecture)"
+            guard DatabaseConfiguration.safeIdentifier(installationID) else {
+                throw JerdError.invalid("The bundled runtime installation ID is invalid.")
+            }
+            let target = directory.appendingPathComponent(installationID)
             if FileManager.default.fileExists(atPath: target.path) {
                 try verify(target, receipt: receipt)
             } else {

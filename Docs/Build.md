@@ -77,8 +77,9 @@ Before you replace a running app, use **Quit Jerd** and wait for its services to
 Use an atomic bundle replacement so the running helper's files remain valid.
 
 For distribution, complete [Publish an app update](PublishUpdate.md).
-A local signature alone does not establish notarization. The bundled runtime
-executables still need a release-signing step with updated digest receipts.
+A local signature alone does not establish notarization. Use
+`Scripts/release.sh prepare VERSION BUILD` for runtime signing, updated receipts,
+notarization, and a validated release candidate. See [Publish an app update](PublishUpdate.md).
 
 ## Change the Xcode project
 

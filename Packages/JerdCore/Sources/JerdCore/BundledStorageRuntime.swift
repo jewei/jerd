@@ -8,6 +8,7 @@ public actor BundledStorageRuntime {
         let version: String
         let architecture: String
         let sha256: String
+        let installationID: String?
     }
     private struct Receipt: Decodable {
         let schemaVersion: Int
@@ -25,12 +26,18 @@ public actor BundledStorageRuntime {
         let origin = source.appendingPathComponent(pin.id)
         let receiptData = try Data(contentsOf: origin.appendingPathComponent("receipt.json"))
         let receipt = try JSONDecoder().decode(Receipt.self, from: receiptData)
+        let baseFiles: Set<String> = ["rustfs", "LICENSE"]
+        let releaseFiles = baseFiles.union(["liblzma.5.dylib", "XZ-LICENSE.txt"])
         guard receipt.schemaVersion == 1, receipt.archiveSHA256 == pin.sha256,
-              Set(receipt.files.keys) == ["rustfs", "LICENSE"] else {
+              Set(receipt.files.keys) == baseFiles || Set(receipt.files.keys) == releaseFiles else {
             throw JerdError.invalid("The RustFS runtime receipt is invalid.")
         }
         try PrivateFiles.directory(directory)
-        let target = directory.appendingPathComponent(pin.id)
+        let installationID = pin.installationID ?? pin.id
+        guard DatabaseConfiguration.safeIdentifier(installationID) else {
+            throw JerdError.invalid("The RustFS runtime installation ID is invalid.")
+        }
+        let target = directory.appendingPathComponent(installationID)
         if FileManager.default.fileExists(atPath: target.path) {
             try verify(target, receipt: receipt)
         } else {
@@ -47,7 +54,7 @@ public actor BundledStorageRuntime {
             try verify(stage, receipt: receipt)
             try FileManager.default.moveItem(at: stage, to: target)
         }
-        return StorageRuntime(id: pin.id, version: pin.version, path: target.path)
+        return StorageRuntime(id: installationID, version: pin.version, path: target.path)
     }
 
     private func verify(_ directory: URL, receipt: Receipt) throws {

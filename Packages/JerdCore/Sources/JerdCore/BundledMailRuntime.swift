@@ -8,6 +8,7 @@ public actor BundledMailRuntime {
         let version: String
         let architecture: String
         let sha256: String
+        let installationID: String?
     }
     private struct Receipt: Decodable {
         let schemaVersion: Int
@@ -30,7 +31,11 @@ public actor BundledMailRuntime {
             throw JerdError.invalid("The Mailpit runtime receipt is invalid.")
         }
         try PrivateFiles.directory(directory)
-        let target = directory.appendingPathComponent(pin.id)
+        let installationID = pin.installationID ?? pin.id
+        guard DatabaseConfiguration.safeIdentifier(installationID) else {
+            throw JerdError.invalid("The Mailpit runtime installation ID is invalid.")
+        }
+        let target = directory.appendingPathComponent(installationID)
         if FileManager.default.fileExists(atPath: target.path) {
             try verify(target, receipt: receipt)
         } else {
@@ -47,7 +52,7 @@ public actor BundledMailRuntime {
             try verify(stage, receipt: receipt)
             try FileManager.default.moveItem(at: stage, to: target)
         }
-        return MailRuntime(id: pin.id, version: pin.version, path: target.path)
+        return MailRuntime(id: installationID, version: pin.version, path: target.path)
     }
 
     private func verify(_ directory: URL, receipt: Receipt) throws {

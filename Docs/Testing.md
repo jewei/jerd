@@ -151,3 +151,17 @@ projects and system changes before you start. Default tests do not require this 
 28. Confirm that a port conflict causes no host/trust change and does not report **Ready**.
 
 For completed checks and remaining gaps, see the [verification record](Verification.md).
+
+## Release preparation checks
+
+Run the release failure checks without signing or network access:
+
+```sh
+/usr/bin/python3 -m unittest discover -s Scripts/tests -v
+```
+
+`Scripts/release.sh prepare VERSION BUILD` also runs the full core suite with
+explicit paths to the signed candidate runtimes. These tests use private data,
+loopback ports above 1023, and an isolated CA. They do not change hosts, trust
+stores, installed apps, or existing service data. The opt-in
+`JERD_RELEASE_RESOURCES` test verifies installation from signed bundle receipts.

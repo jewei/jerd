@@ -12,6 +12,7 @@ public actor BundledDatabaseRuntimes {
         let engine: DatabaseEngine
         let version: String
         let sha256: String
+        let installationID: String?
     }
     private struct FileRecord: Decodable {
         let sha256: String
@@ -46,7 +47,11 @@ public actor BundledDatabaseRuntimes {
                   receipt.files.keys.allSatisfy(Self.safeRelativePath) else {
                 throw JerdError.invalid("The database runtime receipt is invalid.")
             }
-            let target = directory.appendingPathComponent(artifact.id)
+            let installationID = artifact.installationID ?? artifact.id
+            guard DatabaseConfiguration.safeIdentifier(installationID) else {
+                throw JerdError.invalid("The database runtime installation ID is invalid.")
+            }
+            let target = directory.appendingPathComponent(installationID)
             if FileManager.default.fileExists(atPath: target.path) {
                 try verify(target, receipt: receipt)
             } else {
@@ -64,7 +69,7 @@ public actor BundledDatabaseRuntimes {
                 try verify(staging, receipt: receipt)
                 try FileManager.default.moveItem(at: staging, to: target)
             }
-            installed.append(DatabaseRuntime(id: artifact.id, engine: artifact.engine, version: artifact.version, path: target.path))
+            installed.append(DatabaseRuntime(id: installationID, engine: artifact.engine, version: artifact.version, path: target.path))
         }
         return installed
     }

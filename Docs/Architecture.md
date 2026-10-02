@@ -446,3 +446,22 @@ Sparkle does not need a separate path that stops data services.
 The isolated installation test covers signature rejection, replacement, delayed
 termination, and a cancelled quit. Notarization and production release publication
 remain separate steps in [Publish an app update](PublishUpdate.md).
+
+## Local release preparation
+
+`Scripts/release.sh` separates private preparation, validation, and publication.
+The Python helpers use argument arrays for commands. Preparation signs every
+Mach-O runtime file before it signs the enclosing app. It records the changed
+hashes and gives each payload a content-based installation ID. Existing runtime
+selections can continue to use their original folders.
+
+Release copies contain a pinned, locally built XZ library for RustFS. Library
+paths resolve within each payload or use macOS system libraries. The optional
+PostgreSQL PL/Python modules are removed from the release copy because their
+external Python framework is not bundled. The retained receipt records these
+exclusions and the original source receipt hash.
+
+The app and DMG each require Apple notarization. The final stapled DMG and feed
+use the existing Jerd Sparkle key. Publication uploads and verifies the assets
+before it makes the signed feed available on `main`. Failed publication state
+is retained for manual recovery. See [Publish an app update](PublishUpdate.md).

@@ -24,6 +24,9 @@ Keep Jerd small. Implement only the approved features below.
 - Use Sparkle with the public `jewei/jerd` repository and a published HTTPS feed.
   Verify signed feeds and archives. Preserve normal graceful service shutdown.
   Keep private signing keys in the local Keychain, outside the repository.
+The user also approved adapting the Claude Meter release procedure for Jerd.
+Prepare and validate signed, notarized private candidates. Keep publication
+as a separate command.
 
 The approved runtime and Sparkle updates replace the earlier limit on update work.
 After feature work, use three fresh independent agents to review code,

@@ -31,7 +31,7 @@ The isolated Sparkle test passed these cases with temporary signed apps.
 The fixture uses separate bundle identifiers, temporary data, a temporary signing
 key, and high loopback ports. It does not use production data or the production key.
 The tests use the isolated installer fixture. A production update with the registered
-Jerd helper remains untested, as do notarization and release readiness.
+Jerd helper remains untested. Release preparation now has separate checks below.
 
 The final Debug and signed Release builds passed. The built app contains build
 number 2, the public GitHub HTTPS feed, the expected public key, and both signature
@@ -159,10 +159,9 @@ An isolated 87 MiB PHP hash needed 1 MiB of extra buffer memory after that chang
 
 ## Remaining test gaps
 
-Intel execution, macOS 14 execution, notarization, and a published Jerd archive
-remain unverified. Separate browser trust stores have no acceptance result.
-The local signing identity does not establish distribution readiness. Bundled
-runtime executables retain upstream or ad hoc signatures and require release signing.
+Intel execution, macOS 14 execution, and a published Jerd archive remain
+unverified. Separate browser trust stores have no acceptance result.
+A local signing identity alone does not establish distribution readiness.
 
 Manual GUI checks remain for removal of one host from a live multiple-host setup,
 withheld setup approval, and an occupied-port attempt through the final helper.
@@ -172,3 +171,24 @@ Forced-crash recovery and interrupted privileged transaction recovery remain inc
 
 Database TLS, database export/import UI, and multiple mail inboxes are not implemented.
 SMTP and the data-service HTTP interfaces use loopback without TLS.
+
+## Release preparation
+
+Developer ID signing passed for the copied runtime payloads. The signed copies
+passed the real PHP/TLS, MySQL, PostgreSQL, Redis, Mailpit, and RustFS tests with
+private data and loopback ports. The checks include service restart and retained
+data. The release copy of RustFS uses a library built from the pinned XZ source.
+It does not load the Homebrew XZ library.
+
+Release-script unit tests cover the first empty feed, increasing versions and
+builds, unsafe paths, library relocation, and failure before public feed changes.
+The release validator requires Apple acceptance and valid stapled tickets for
+both the app and the DMG. Each completed candidate keeps its notary records,
+runtime test log, source commit, artifact hashes, and retained symbols under
+`.build/releases/`. Inspect those records for the selected candidate.
+
+Three fresh independent reviews covered code, architecture, and performance.
+The agreed changes removed inherited runtime-update test settings, retained
+command output during failures, removed the unsafe outer service-test timeout,
+and stopped new signing work after a failure. Regression tests cover these
+conditions. The reviews found no further release-code blocker.

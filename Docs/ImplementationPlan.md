@@ -21,10 +21,11 @@ checks that passed and the remaining test gaps.
 
 ## Remaining release work
 
-The initial public feed contains no update archive. Notarization and the first
-published app release remain incomplete. Bundled executables need release signing
-and updated digest receipts before notarization. [Publish an app update](PublishUpdate.md)
-describes the release procedure.
+The initial public feed contains no update archive. The local release procedure
+now signs bundled executables, updates their receipts, and requires notarization
+of the app and DMG before it accepts a private candidate. The first published
+app release remains incomplete. [Publish an app update](PublishUpdate.md)
+describes preparation, validation, and publication.
 
 Runtime distribution still needs reproducible builds, Jerd-signed manifests,
 a tested architecture and minimum-OS matrix, and smaller release packages.
