@@ -37,7 +37,8 @@ The command prints the candidate directory. It then:
    signs each native runtime, and updates its digest receipt.
 4. Gives signed payloads separate installation IDs. Existing runtime folders
    and service selections remain valid.
-5. Signs the app and checks its signatures, receipts, dependencies, and symbols.
+5. Signs Sparkle’s embedded tools, its framework, and the app. It checks all
+   native signatures, receipts, dependencies, and symbols.
 6. Runs the core tests and real runtime tests with private data and loopback ports.
 7. Submits the app to Apple, requires `Accepted`, and staples the ticket.
 8. Builds, signs, notarizes, and staples a DMG.
@@ -101,6 +102,7 @@ After publication, test **Check for Updates** from an older installed build.
 Check graceful shutdown, relaunch, and retained service data. Local release
 validation does not replace this public update test.
 
-See [Sparkle publishing](https://sparkle-project.org/documentation/publishing/)
+See [Sparkle manual signing](https://sparkle-project.org/documentation/sandboxing/#code-signing),
+[Sparkle publishing](https://sparkle-project.org/documentation/publishing/)
 and [Apple notarization](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)
 for the upstream procedures.

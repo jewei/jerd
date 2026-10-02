@@ -111,6 +111,17 @@ def test_runtimes(app, directory):
         cwd=ROOT, log=directory / "runtime-tests.log", timeout=None)
 
 
+def sign_sparkle(app, identity):
+    # Archive signing does not replace the ad hoc signatures on Sparkle's tools.
+    # Follow Sparkle's documented manual signing order before sealing the app.
+    framework = app / "Contents/Frameworks/Sparkle.framework"
+    for name in ["Versions/B/XPCServices/Installer.xpc", "Versions/B/XPCServices/Downloader.xpc",
+                 "Versions/B/Autoupdate", "Versions/B/Updater.app", "."]:
+        options = ["--preserve-metadata=entitlements"] if name.endswith("Downloader.xpc") else []
+        run("/usr/bin/codesign", "--force", "--sign", identity, "--options", "runtime", "--timestamp",
+            *options, framework / name)
+
+
 def prepare(options):
     source = require_clean_source()
     feed = (ROOT / "appcast.xml").read_bytes()
@@ -157,6 +168,7 @@ def prepare(options):
     print("Sign the bundled runtime files.", flush=True)
     report = sign_payloads(app, identity, options.team, support)
     write_json(directory / "runtime-signing.json", report)
+    sign_sparkle(app, identity)
     for path in [app / "Contents/MacOS/JerdCLI", app / "Contents/Library/LaunchServices/JerdHelper", app]:
         run("/usr/bin/codesign", "--force", "--sign", identity, "--options", "runtime", "--timestamp", path)
     verify_app(app, options.team, minimum, notarized=False)

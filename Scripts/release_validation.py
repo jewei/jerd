@@ -43,6 +43,10 @@ def verify_app(app, team, minimum, notarized=True):
     run("/usr/bin/codesign", "--verify", "--deep", "--strict", app)
     binaries = [app / "Contents/MacOS/Jerd", app / "Contents/MacOS/JerdCLI",
                 app / "Contents/Library/LaunchServices/JerdHelper"]
+    # Strict recursive verification alone also accepts valid ad hoc signatures.
+    # Apply the Developer ID, timestamp, and runtime checks to nested framework tools.
+    binaries.extend(path for path in (app / "Contents/Frameworks").rglob("*")
+                    if not path.is_symlink() and path.is_file() and is_macho(path))
     for group, _, _, entry, folder, _, receipt, key in payloads(app / "Contents/Resources"):
         fingerprint = hashlib.sha256(json.dumps(receipt[key], sort_keys=True).encode()).hexdigest()[:16]
         base = entry.get("id") or f"{entry['name']}-{entry['tag']}-arm64"
