@@ -433,9 +433,13 @@ cancels Quit. Storage controls resume if a later service cancels app termination
 AppAppearance stores independent menu bar and Dock preferences in UserDefaults.
 The app keeps a reopen action for the main window when both entry points are
 hidden. AppIconChoice maps the original asset and six Canvas designs to cached
-AppKit images. Dashboard uses the same NavigationSplitView layout as Sites and
-Databases. Its left menu contains Dashboard, Appearance, Runtimes, Advanced,
-and About. AppModel owns both tab and dashboard selections, so links and menu
+AppKit images. The workspace owns one native split view and one section picker.
+It changes the shared sidebar and selected detail together without a page
+transition. Five retained hosting controllers keep each page's scroll and editor
+state. The sidebar keeps its width across section changes, and each section keeps
+its own collapsed state. Mail uses the full detail area. Native sidebar collapse
+and tab selection also update the SwiftUI state. Dashboard's left menu contains
+Dashboard, Appearance, Runtimes, Advanced, and About. AppModel owns both tab and dashboard selections, so links and menu
 commands select the correct tab and page together. Settings and About commands
 open the main window, including when that window was closed. There is no
 separate Settings scene. About reads version information from the app bundle
