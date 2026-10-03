@@ -207,6 +207,8 @@ struct ContentView: View {
                 }
                 ValueRow("Document root", site.documentRoot, monospaced: true)
                 ValueRow("PHP", runtimeLabel(site))
+                ActionRow("Web logs", action: "Open log", symbol: "doc.text") { model.openEnvironmentLog() }
+                    .disabled(model.isBusy)
             }
             let tunnels = model.tunnels.configuration.tunnels.filter { $0.siteID == site.id }
             if !tunnels.isEmpty {

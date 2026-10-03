@@ -6,7 +6,13 @@ import Darwin
 public struct AtomicHostsFile: Sendable {
     public let url: URL
     public let expectedOwner: uid_t
-    public init(url: URL, expectedOwner: uid_t) { self.url = url; self.expectedOwner = expectedOwner }
+    private let preExchange: (@Sendable () throws -> Void)?
+    public init(url: URL, expectedOwner: uid_t) {
+        self.url = url; self.expectedOwner = expectedOwner; self.preExchange = nil
+    }
+    init(url: URL, expectedOwner: uid_t, preExchange: @escaping @Sendable () throws -> Void) {
+        self.url = url; self.expectedOwner = expectedOwner; self.preExchange = preExchange
+    }
 
     public func read() throws -> Data {
         let fd = try openChecked()
@@ -26,7 +32,11 @@ public struct AtomicHostsFile: Sendable {
         let temporary = url.deletingLastPathComponent().appendingPathComponent(".jerd-hosts-\(UUID().uuidString)")
         let output = open(temporary.path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard output >= 0 else { throw JerdError.invalid("Cannot stage the hosts file.") }
-        defer { close(output); unlink(temporary.path) }
+        var temporaryContainsDisplacedDestination = false
+        defer {
+            close(output)
+            if !temporaryContainsDisplacedDestination { unlink(temporary.path) }
+        }
         try replacement.withUnsafeBytes { buffer in
             var offset = 0
             while offset < buffer.count {
@@ -45,7 +55,29 @@ public struct AtomicHostsFile: Sendable {
               original.st_ctimespec.tv_sec == current.st_ctimespec.tv_sec,
               original.st_ctimespec.tv_nsec == current.st_ctimespec.tv_nsec,
               try bytes(source) == expected else { throw JerdError.invalid("The hosts file changed during setup. Retry the operation.") }
-        guard rename(temporary.path, url.path) == 0 else { throw JerdError.invalid("Cannot commit the hosts update.") }
+        try preExchange?()
+        guard renamex_np(temporary.path, url.path, UInt32(RENAME_SWAP)) == 0 else {
+            throw JerdError.invalid("Cannot commit the hosts update.")
+        }
+        temporaryContainsDisplacedDestination = true
+        let displaced = open(temporary.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        let displacedMatches: Bool
+        if displaced >= 0 {
+            displacedMatches = (try? bytes(displaced)) == expected
+            close(displaced)
+        } else {
+            displacedMatches = false
+        }
+        guard displacedMatches else {
+            guard renamex_np(temporary.path, url.path, UInt32(RENAME_SWAP)) == 0 else {
+                throw JerdError.invalid(
+                    "The hosts file changed during setup, and restoration failed. The displaced hosts file was preserved.")
+            }
+            temporaryContainsDisplacedDestination = false
+            throw JerdError.invalid("The hosts file changed during setup. Retry the operation.")
+        }
+        temporaryContainsDisplacedDestination = false
+        _ = unlink(temporary.path)
         let directory = open(url.deletingLastPathComponent().path, O_RDONLY | O_CLOEXEC)
         if directory >= 0 { _ = fsync(directory); close(directory) }
     }

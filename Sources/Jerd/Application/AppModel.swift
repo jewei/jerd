@@ -43,8 +43,9 @@ final class AppModel {
     private var backgroundWaiters: [CheckedContinuation<Void, Never>] = []
     private var monitor: Task<Void, Never>?
     private let helper = HelperClient()
+    private let environmentDirectory = JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment")
     @ObservationIgnored private lazy var environment = LocalEnvironment(
-        directory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment"), system: helper)
+        directory: environmentDirectory, system: helper)
     let registry = SiteRegistry(store: JSONConfigurationStore(directory: JSONConfigurationStore.applicationDirectory))
 
     @ObservationIgnored private lazy var siteChanges = SiteConfigurationOperation(registry: registry, environment: environment)
@@ -421,6 +422,20 @@ final class AppModel {
         guard runningSiteIDs.contains(site.id), environmentState == .running,
               let url = URL(string: "https://\(site.hostname)") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    func openEnvironmentLog() {
+        let url = environmentDirectory.appendingPathComponent("logs")
+        Task {
+            let available = await Task.detached(priority: .utility) {
+                var isDirectory: ObjCBool = false
+                return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+                    && isDirectory.boolValue
+            }.value
+            if !available || !NSWorkspace.shared.open(url) {
+                errorMessage = "The web environment log is not available yet."
+            }
+        }
     }
 
     func shutdown() async -> Bool {
