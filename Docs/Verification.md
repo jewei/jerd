@@ -203,3 +203,23 @@ Native screenshots cover stopped, connected, and failed tunnel fixtures in light
 and dark appearance at standard and compact window sizes. Live cloudflared
 connectivity, real Keychain access, public website health, and Intel execution
 remain unverified. The existing remakan.dev connector was not changed.
+
+## Workspace navigation — 4 October 2026
+
+The default core suite passed 154 tests in 31 suites. The Debug Xcode build
+passed without code signing. The navigation harness passed at 980 × 660 and
+820 × 540 with in-memory data and no service or system setup actions.
+
+The harness checks normal and rapid tab clicks, fixed section-control geometry,
+native next/previous selection, retained page controllers, sidebar width, separate
+collapsed states, native collapse feedback, and retained scroll position. It also
+checks that a site editor stays open when a Settings-style command changes the
+page, and that Escape closes site and storage sheets.
+
+Three fresh independent reviews covered code, architecture, and performance.
+Frame-by-frame review of both final recordings found no page overlap, intermediate
+page width, sidebar jump, or section-control movement. The final recordings are
+`navigation-16DF16EC-E0FD-4962-BD77-B2734F01B2C2.mov` and
+`navigation-607BAF09-708A-4DAE-AED0-69D8260F05AB.mov` under
+`.build/ui-review/screenshots-final`. This evidence covers this Mac and these
+fixtures. Full VoiceOver use and the complete keyboard workflow remain unchecked.

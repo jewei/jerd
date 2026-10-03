@@ -42,6 +42,13 @@ struct CaptureUI {
         let tunnel = TunnelRegistration(name: "Studio public preview", hostname: "preview.example.com", siteID: site.id, metricsPort: 20400)
         model.tunnels.configuration.runtime = TunnelRuntime(id: "preview", version: "2026.9.3", path: "/preview")
         let bucket = StorageBucket(name: "studio-assets", setupComplete: true)
+        if filter.contains("navigation") || filter.contains("navigation-compact") {
+            model.configuration.sites = [site]; model.selectedSiteID = site.id
+            model.databases.configuration.services = [database]; model.databases.selectedID = database.id
+            model.storage.configuration.buckets = [bucket]; model.storage.selectedName = bucket.name
+            try await captureNavigation(model: model, output: output, compact: filter.contains("navigation-compact"))
+            return
+        }
         var captureCount = 0
         for dark in [false, true] {
             let theme = dark ? "dark" : "light"
@@ -141,6 +148,190 @@ struct CaptureUI {
             }
         }
         print("Captured \(captureCount) native views in \(output.path)")
+    }
+
+    @MainActor private static func captureNavigation(model: AppModel, output: URL, compact: Bool) async throws {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: compact ? 820 : 980, height: compact ? 540 : 660),
+                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = "Jerd · Navigation review"
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.center()
+        let sites = SitePresentation()
+        let storage = StoragePresentation()
+        window.contentView = NSHostingView(rootView: JerdWorkspaceView(model: model, sites: sites, storage: storage))
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        try await Task.sleep(for: .seconds(1))
+        guard let root = window.contentView?.superview,
+              let picker = descendants(root).compactMap({ $0 as? NSSegmentedControl }).first(where: { $0.segmentCount == 5 }),
+              let split = descendants(root).compactMap({ $0 as? NSSplitView }).first,
+              let splitController = split.delegate as? NSSplitViewController,
+              let tabs = splitController.children.compactMap({ $0 as? WorkspaceDetailController }).first else {
+            throw JerdError.invalid("The navigation controls are missing.")
+        }
+        let pickerFrame = picker.convert(picker.bounds, to: nil)
+        let firstDetail = tabs.pages[0]
+        func checkSelection(_ section: AppSection) throws {
+            guard model.selectedSection == section, tabs.selectedIndex == section.rawValue else {
+                throw JerdError.invalid("The section control, sidebar, and detail are out of sync.")
+            }
+            let frame = picker.convert(picker.bounds, to: nil)
+            guard abs(frame.minX - pickerFrame.minX) < 1, abs(frame.width - pickerFrame.width) < 1 else {
+                throw JerdError.invalid("The section control moved during navigation: \(pickerFrame) → \(frame).")
+            }
+        }
+        func select(_ section: AppSection, delay: Duration = .milliseconds(700)) async throws {
+            let point = picker.convert(NSPoint(x: picker.bounds.width * (CGFloat(section.rawValue) + 0.5) / 5,
+                                                y: picker.bounds.midY), to: nil)
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                guard let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 0, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0) else {
+                    throw JerdError.invalid("Cannot create a navigation click.")
+                }
+                NSApp.postEvent(event, atStart: false)
+            }
+            try await Task.sleep(for: delay)
+            try checkSelection(section)
+        }
+        let windowID = String(window.windowNumber)
+        let movie = output.appendingPathComponent("navigation-\(UUID().uuidString).mov")
+        let recording = Task.detached {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+            process.arguments = ["-x", "-o", "-v", "-V", "18", "-l", windowID, movie.path]
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { throw CocoaError(.fileWriteUnknown) }
+        }
+        try await Task.sleep(for: .seconds(2))
+        for section in [AppSection.sites, .databases, .storage, .mail, .dashboard, .sites, .dashboard] {
+            try await select(section)
+        }
+        for section in [DashboardSection.appearance, .runtimes, .advanced, .about, .dashboard] {
+            model.selectedDashboard = section
+            try await Task.sleep(for: .milliseconds(700))
+        }
+        for section in [AppSection.sites, .databases, .storage, .mail, .dashboard] {
+            try await select(section, delay: .milliseconds(180))
+        }
+        try await recording.value
+        print("Recorded clicks and stable toolbar: \(movie.path)"); fflush(stdout)
+        guard tabs.pages[0] === firstDetail else {
+            throw JerdError.invalid("The Dashboard detail controller was replaced.")
+        }
+        try await verifyNavigationState(model: model, sites: sites, storage: storage, window: window, tabs: tabs, split: split)
+        window.close()
+        print("Captured navigation transitions in \(movie.path)")
+    }
+
+    @MainActor private static func descendants(_ view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap { descendants($0) }
+    }
+
+    @MainActor private static func verifyNavigationState(model: AppModel, sites: SitePresentation,
+        storage: StoragePresentation, window: NSWindow, tabs: WorkspaceDetailController, split: NSSplitView) async throws {
+        // Native next/previous actions must also update the SwiftUI selection.
+        tabs.selectNextTabViewItem(nil)
+        try await Task.sleep(for: .milliseconds(200))
+        guard model.selectedSection == .sites else { throw JerdError.invalid("Native next-tab selection was not synchronized.") }
+        tabs.selectPreviousTabViewItem(nil)
+        try await Task.sleep(for: .milliseconds(200))
+        guard model.selectedSection == .dashboard else { throw JerdError.invalid("Native previous-tab selection was not synchronized.") }
+
+        // A wider sidebar and a scrolled detail must survive a Mail round trip.
+        split.setPosition(250, ofDividerAt: 0)
+        model.selectedDashboard = .runtimes
+        try await Task.sleep(for: .milliseconds(300))
+        let width = split.arrangedSubviews[0].frame.width
+        guard let detail = tabs.selectedIndex >= 0 ? tabs.pages[tabs.selectedIndex].view : nil,
+              let scroll = scrollViews(in: detail).first(where: { ($0.documentView?.frame.height ?? 0) > $0.contentView.bounds.height + 80 }) else {
+            throw JerdError.invalid("The Runtimes scroll fixture is missing.")
+        }
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: 100))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        let origin = scroll.contentView.bounds.origin
+        model.selectedSection = .mail
+        try await Task.sleep(for: .milliseconds(300))
+        model.selectedSection = .dashboard
+        try await Task.sleep(for: .milliseconds(300))
+        guard abs(split.arrangedSubviews[0].frame.width - width) < 1, scroll.contentView.bounds.origin == origin else {
+            throw JerdError.invalid("Sidebar width or detail scroll position was lost.")
+        }
+
+        try clickToolbarItem("Hide sidebar", in: window)
+        try await Task.sleep(for: .milliseconds(350))
+        guard split.isSubviewCollapsed(split.arrangedSubviews[0]) else { throw JerdError.invalid("Hide sidebar did not collapse the sidebar.") }
+        model.selectedSection = .sites
+        try await Task.sleep(for: .milliseconds(300))
+        guard !split.isSubviewCollapsed(split.arrangedSubviews[0]) else { throw JerdError.invalid("Sites inherited Dashboard's hidden sidebar.") }
+        model.selectedSection = .dashboard
+        try await Task.sleep(for: .milliseconds(300))
+        guard split.isSubviewCollapsed(split.arrangedSubviews[0]) else { throw JerdError.invalid("Dashboard's sidebar visibility was lost.") }
+        try clickToolbarItem("Show sidebar", in: window)
+        try await Task.sleep(for: .milliseconds(350))
+        guard let splitController = split.delegate as? NSSplitViewController else {
+            throw JerdError.invalid("Missing native split controller.")
+        }
+        splitController.splitViewItems[0].isCollapsed = true
+        try await Task.sleep(for: .milliseconds(300))
+        try clickToolbarItem("Show sidebar", in: window)
+        try await Task.sleep(for: .milliseconds(300))
+        guard !splitController.splitViewItems[0].isCollapsed else {
+            throw JerdError.invalid("Native collapse did not update the toolbar action.")
+        }
+        print("Native selection, sidebar, and scroll checks passed."); fflush(stdout)
+
+        // Editors must remain attached and usable through menu-style navigation.
+        model.selectedSection = .sites
+        try await Task.sleep(for: .milliseconds(300))
+        sites.editingSite = model.configuration.sites.first
+        try await Task.sleep(for: .milliseconds(350))
+        guard let sheet = window.attachedSheet else { throw JerdError.invalid("The site editor did not open.") }
+        model.showDashboard(.appearance)
+        try await Task.sleep(for: .milliseconds(300))
+        guard window.attachedSheet === sheet else {
+            throw JerdError.invalid("Navigation discarded or disabled the site editor.")
+        }
+        try pressEscape(in: sheet)
+        try await Task.sleep(for: .milliseconds(350))
+        guard window.attachedSheet == nil else { throw JerdError.invalid("The site editor did not close.") }
+        model.selectedSection = .storage
+        try await Task.sleep(for: .milliseconds(300))
+        storage.settings = true
+        try await Task.sleep(for: .milliseconds(350))
+        guard let storageSheet = window.attachedSheet else { throw JerdError.invalid("Storage settings did not open.") }
+        try pressEscape(in: storageSheet)
+        try await Task.sleep(for: .milliseconds(350))
+        guard window.attachedSheet == nil else { throw JerdError.invalid("Storage settings did not close.") }
+        print("Navigation checks passed: clicks, native selection, stable toolbar, retained sidebar width, scroll, and editors.")
+    }
+
+    @MainActor private static func clickToolbarItem(_ title: String, in window: NSWindow) throws {
+        guard let root = window.contentView?.superview,
+              let item = descendants(root).first(where: {
+                  [$0.accessibilityTitle(), $0.accessibilityLabel(), $0.accessibilityHelp()].contains(title)
+              }) else { throw JerdError.invalid("Missing toolbar item: \(title)") }
+        let point = item.convert(NSPoint(x: item.bounds.midX, y: item.bounds.midY), to: nil)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            guard let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 0, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0) else {
+                throw JerdError.invalid("Cannot create a toolbar click.")
+            }
+            NSApp.postEvent(event, atStart: false)
+        }
+    }
+
+    @MainActor private static func pressEscape(in window: NSWindow) throws {
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            guard let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}",
+                isARepeat: false, keyCode: 53) else { throw JerdError.invalid("Cannot create an Escape key event.") }
+            NSApp.postEvent(event, atStart: false)
+        }
     }
 
     @MainActor private static func scrollViews(in view: NSView) -> [NSScrollView] {
