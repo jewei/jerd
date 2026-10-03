@@ -1,99 +1,105 @@
 import SwiftUI
+import Observation
 import AppKit
 import JerdCore
 import ServiceManagement
 
-struct ContentView: View {
-    @Bindable var model: AppModel
-    @State private var editingSite: Site?
-    @State private var removingSite: Site?
-    @State private var removingSetup = false
-    @State private var addingTunnel = false
+@MainActor @Observable
+final class SitePresentation {
+    var editingSite: Site?
+    var removingSetup = false
+    var addingTunnel = false
+}
 
-    private enum Selection: Hashable { case site(UUID), tunnel(UUID) }
-    private var selection: Binding<Selection?> {
-        Binding(get: {
-            if let id = model.selectedTunnelID { return .tunnel(id) }
-            return model.selectedSiteID.map { .site($0) }
-        }, set: { value in
-            switch value {
-            case .site(let id): model.selectedTunnelID = nil; model.selectedSiteID = id
-            case .tunnel(let id): model.selectedSiteID = nil; model.selectedTunnelID = id
-            case nil: model.selectedSiteID = nil; model.selectedTunnelID = nil
+struct ContentView: View {
+    @Bindable var presentation: SitePresentation
+    @Bindable var model: AppModel
+    @State private var removingSite: Site?
+
+    @ViewBuilder var sidebarRows: some View {
+        Section("Your projects") {
+            ForEach(model.configuration.sites) { site in
+                let status = siteStatus(site)
+                SidebarRow(title: site.displayName, subtitle: site.hostname,
+                           status: status.title, tone: status.tone, dimmed: !site.isEnabled)
+                    .tag(WorkspaceSelection.site(site.id))
+                    .contextMenu {
+                        Button("Open in browser", systemImage: "safari") { model.open(site) }
+                            .disabled(model.isBusy || !model.runningSiteIDs.contains(site.id) || model.environmentState != .running)
+                        Button("Show in Finder", systemImage: "folder") {
+                            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: site.projectPath)
+                        }
+                        Divider()
+                        Button("Edit site…") { presentation.editingSite = site }.disabled(model.isBusy)
+                    }
             }
-        })
+        }
+        Section("Tunnels") {
+            ForEach(model.tunnels.configuration.tunnels) { tunnel in
+                let state = model.tunnels.state(tunnel)
+                SidebarRow(title: tunnel.name, subtitle: tunnel.hostname,
+                           status: state.title, tone: state.tone)
+                    .tag(WorkspaceSelection.tunnel(tunnel.id))
+                    .contextMenu {
+                        Button("Open website", systemImage: "safari") { model.tunnels.open(tunnel) }
+                        Button("Copy URL", systemImage: "doc.on.doc") { model.tunnels.copyURL(tunnel) }
+                    }
+            }
+            if model.tunnels.configuration.tunnels.isEmpty {
+                if !model.tunnels.isLoaded && !model.tunnels.isBusy {
+                    Button("Retry tunnel settings", systemImage: "arrow.clockwise") { model.tunnels.load() }
+                } else {
+                    Text(model.tunnels.isLoaded ? "No tunnels added" : "Loading tunnels…")
+                        .font(.callout).foregroundStyle(.secondary).padding(.vertical, 6)
+                }
+            }
+        }
+    }
+
+    var sidebarFooter: some View {
+        VStack(spacing: 10) {
+            if !model.configuration.sites.isEmpty {
+                HStack {
+                    Text("\(model.configuration.sites.count) \(model.configuration.sites.count == 1 ? "site" : "sites")")
+                    Spacer()
+                    Text("\(model.runningSiteIDs.count) running")
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                .monospacedDigit()
+            }
+            Menu {
+                Button("Add site…", systemImage: "globe") { addSite() }
+                    .disabled(!model.isLoaded || model.isBusy)
+                Button("Add Cloudflare tunnel…", systemImage: "network") { presentation.addingTunnel = true }
+                    .disabled(!model.tunnels.canChange)
+            } label: {
+                Label("Add…", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .controlSize(.large)
+        }
+        .padding(14)
+        .background(.bar)
+    }
+
+    @ViewBuilder var toolbarActions: some View {
+        if model.isBusy { ProgressView().controlSize(.small) }
+        if !model.isLoaded {
+            Button("Retry load", systemImage: "arrow.clockwise") { model.load() }
+                .help("Retry loading sites").disabled(model.isBusy)
+        }
+        Button("Runtimes", systemImage: "shippingbox") { model.showDashboard(.runtimes) }
+            .help("Manage runtimes")
+        Menu("System setup", systemImage: "lock.shield") {
+            Button("Login Items & Extensions") { SMAppService.openSystemSettingsLoginItems() }
+            Button("Remove system setup…") { presentation.removingSetup = true }
+        }
+        .help("System setup")
+        .disabled(!model.isLoaded || model.isBusy)
     }
 
     var body: some View {
-        JerdSplitView {
-            List(selection: selection) {
-                Section("Your projects") {
-                    ForEach(model.configuration.sites) { site in
-                        let status = siteStatus(site)
-                        SidebarRow(title: site.displayName, subtitle: site.hostname,
-                                   status: status.title, tone: status.tone, dimmed: !site.isEnabled)
-                            .tag(Selection.site(site.id))
-                            .contextMenu {
-                                Button("Open in browser", systemImage: "safari") { model.open(site) }
-                                    .disabled(model.isBusy || !model.runningSiteIDs.contains(site.id) || model.environmentState != .running)
-                                Button("Show in Finder", systemImage: "folder") {
-                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: site.projectPath)
-                                }
-                                Divider()
-                                Button("Edit site…") { editingSite = site }.disabled(model.isBusy)
-                            }
-                    }
-                }
-                Section("Tunnels") {
-                    ForEach(model.tunnels.configuration.tunnels) { tunnel in
-                        let state = model.tunnels.state(tunnel)
-                        SidebarRow(title: tunnel.name, subtitle: tunnel.hostname,
-                                   status: state.title, tone: state.tone)
-                            .tag(Selection.tunnel(tunnel.id))
-                            .contextMenu {
-                                Button("Open website", systemImage: "safari") { model.tunnels.open(tunnel) }
-                                Button("Copy URL", systemImage: "doc.on.doc") { model.tunnels.copyURL(tunnel) }
-                            }
-                    }
-                    if model.tunnels.configuration.tunnels.isEmpty {
-                        if !model.tunnels.isLoaded && !model.tunnels.isBusy {
-                            Button("Retry tunnel settings", systemImage: "arrow.clockwise") { model.tunnels.load() }
-                        } else {
-                            Text(model.tunnels.isLoaded ? "No tunnels added" : "Loading tunnels…")
-                                .font(.callout).foregroundStyle(.secondary).padding(.vertical, 6)
-                        }
-                    }
-                }
-            }
-            .listStyle(.sidebar)
-            .navigationTitle("Sites")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 10) {
-                    if !model.configuration.sites.isEmpty {
-                        HStack {
-                            Text("\(model.configuration.sites.count) \(model.configuration.sites.count == 1 ? "site" : "sites")")
-                            Spacer()
-                            Text("\(model.runningSiteIDs.count) running")
-                        }
-                        .font(.caption).foregroundStyle(.secondary)
-                        .monospacedDigit()
-                    }
-                    Menu {
-                        Button("Add site…", systemImage: "globe") { addSite() }
-                            .disabled(!model.isLoaded || model.isBusy)
-                        Button("Add Cloudflare tunnel…", systemImage: "network") { addingTunnel = true }
-                            .disabled(!model.tunnels.canChange)
-                    } label: {
-                        Label("Add…", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .controlSize(.large)
-                }
-                .padding(14)
-                .background(.bar)
-            }
-        } detail: {
+        Group {
             if let tunnel = model.selectedTunnel {
                 TunnelDetailView(app: model, tunnel: tunnel).id(tunnel.id)
             } else if let site = model.selectedSite {
@@ -102,31 +108,16 @@ struct ContentView: View {
                 emptyState
             }
         }
-        .toolbar {
-            if model.isBusy { ProgressView().controlSize(.small) }
-            if !model.isLoaded {
-                Button("Retry load", systemImage: "arrow.clockwise") { model.load() }
-                    .help("Retry loading sites").disabled(model.isBusy)
-            }
-            Button("Runtimes", systemImage: "shippingbox") { model.showDashboard(.runtimes) }
-                .help("Manage runtimes")
-            Menu("System setup", systemImage: "lock.shield") {
-                Button("Login Items & Extensions") { SMAppService.openSystemSettingsLoginItems() }
-                Button("Remove system setup…") { removingSetup = true }
-            }
-            .help("System setup")
-            .disabled(!model.isLoaded || model.isBusy)
-        }
-        .sheet(item: $editingSite, onDismiss: { model.presentPreparedSetup() }) { site in SiteEditor(model: model, original: site) }
-        .sheet(isPresented: $addingTunnel) { TunnelEditor(app: model) }
+        .sheet(item: $presentation.editingSite, onDismiss: { model.presentPreparedSetup() }) { site in SiteEditor(model: model, original: site) }
+        .sheet(isPresented: $presentation.addingTunnel) { TunnelEditor(app: model) }
         .sheet(item: $model.pendingSetup, onDismiss: { model.discardPreparedSetup() }) { setup in HTTPSSetupView(model: model, setup: setup) }
         .alert("Jerd could not complete the operation", isPresented: Binding(
-            get: { model.errorMessage != nil && model.pendingSetup == nil && editingSite == nil },
+            get: { model.errorMessage != nil && model.pendingSetup == nil && presentation.editingSite == nil },
             set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
         .alert("Jerd could not complete the tunnel operation", isPresented: Binding(
-            get: { model.tunnels.errorMessage != nil && !addingTunnel && model.selectedTunnelID == nil },
+            get: { model.tunnels.errorMessage != nil && !presentation.addingTunnel && model.selectedTunnelID == nil },
             set: { if !$0 { model.tunnels.errorMessage = nil } })) {
                 Button("OK") { model.tunnels.errorMessage = nil }
             } message: { Text(model.tunnels.errorMessage ?? "") }
@@ -137,7 +128,7 @@ struct ContentView: View {
                     removingSite = nil
                 }
             } message: { Text("Jerd will remove this site’s registered host. Other enabled sites will restart. The CA remains trusted while other hosts are registered. The project directory and its files will remain on disk.") }
-        .confirmationDialog("Remove Jerd system setup?", isPresented: $removingSetup) {
+        .confirmationDialog("Remove Jerd system setup?", isPresented: $presentation.removingSetup) {
             Button("Remove system setup", role: .destructive) { model.removeSystemSetup() }
         } message: {
             Text("Jerd will stop the environment, remove its host entries and CA certificate, then unregister its helper. Site records and project files will remain.")
@@ -145,7 +136,7 @@ struct ContentView: View {
     }
 
     private func addSite() {
-        editingSite = Site(displayName: "", projectPath: "", documentRoot: "", hostname: "")
+        presentation.editingSite = Site(displayName: "", projectPath: "", documentRoot: "", hostname: "")
     }
 
     private var emptyState: some View {
@@ -160,7 +151,7 @@ struct ContentView: View {
                     Button("Add your first site", systemImage: "plus") { addSite() }
                         .controlSize(.large)
                         .primaryAction(model.isLoaded && !model.isBusy)
-                    Button("Add Cloudflare tunnel…", systemImage: "network") { addingTunnel = true }
+                    Button("Add Cloudflare tunnel…", systemImage: "network") { presentation.addingTunnel = true }
                         .disabled(!model.tunnels.canChange)
                     Text("Your project files stay where they are.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -184,7 +175,7 @@ struct ContentView: View {
             PaneHeader(site.displayName, subtitle: "https://\(site.hostname)", status: status) {
                 Button("Open in browser", systemImage: "safari") { model.open(site) }
                     .primaryAction(!model.isBusy && running && model.environmentState == .running)
-                Button("Edit site…") { editingSite = site }.disabled(model.isBusy)
+                Button("Edit site…") { presentation.editingSite = site }.disabled(model.isBusy)
             }
         } content: {
             if case .failed(let message) = model.environmentState {

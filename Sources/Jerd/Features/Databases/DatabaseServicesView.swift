@@ -1,46 +1,60 @@
 import SwiftUI
+import Observation
 import JerdCore
 
+@MainActor @Observable
+final class DatabasePresentation {
+    var adding = false
+    var showRuntimes = false
+    var showRetained = false
+}
+
 struct DatabaseServicesView: View {
+    @Bindable var presentation: DatabasePresentation
     @Bindable var model: DatabaseModel
-    @State private var adding = false
     @State private var editing: DatabaseService?
     @State private var removing: DatabaseService?
-    @State private var showRuntimes = false
-    @State private var showRetained = false
     @State private var restoring: RetainedDatabase?
     @State private var pendingRestore: RetainedDatabase?
 
+    @ViewBuilder var sidebarRows: some View {
+        Section("Services") {
+            ForEach(model.configuration.services) { service in
+                let status = model.status(service)
+                SidebarRow(title: service.name,
+                           subtitle: model.runtime(service).map { "\($0.engine.title) \($0.version) · \(String(service.port))" } ?? "Runtime unavailable",
+                           status: status.state.title, tone: status.state.tone)
+                    .tag(WorkspaceSelection.database(service.id))
+            }
+        }
+    }
+
+    var sidebarFooter: some View {
+        HStack {
+            Button("Add database", systemImage: "plus") { presentation.adding = true }
+                .disabled(!canAdd)
+            Spacer()
+        }.padding(12)
+    }
+
+    @ViewBuilder var toolbarActions: some View {
+        if model.isLoading || model.isShuttingDown { ProgressView().controlSize(.small) }
+        Button("Restore registration…", systemImage: "arrow.uturn.backward.circle") { model.inspectRetained(); presentation.showRetained = true }
+            .help("Restore a removed database registration")
+            .disabled(!model.isLoaded || model.isSaving || model.isShuttingDown)
+        Button("Database runtimes", systemImage: "gearshape") { presentation.showRuntimes = true }
+            .help("Database runtimes")
+    }
+
     var body: some View {
-        JerdSplitView {
-            List(selection: $model.selectedID) {
-                Section("Services") {
-                    ForEach(model.configuration.services) { service in
-                        let status = model.status(service)
-                        SidebarRow(title: service.name,
-                                   subtitle: model.runtime(service).map { "\($0.engine.title) \($0.version) · \(String(service.port))" } ?? "Runtime unavailable",
-                                   status: status.state.title, tone: status.state.tone)
-                            .tag(service.id)
-                    }
-                }
-            }
-            .navigationTitle("Databases")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
-            .safeAreaInset(edge: .bottom) {
-                HStack {
-                    Button("Add database", systemImage: "plus") { adding = true }
-                        .disabled(!canAdd)
-                    Spacer()
-                }.padding(12)
-            }
-        } detail: {
+        Group {
             if let service = model.selected, let runtime = model.runtime(service) {
                 detail(service, runtime: runtime)
             } else if let service = model.selected {
                 EmptyPane(title: "Runtime unavailable", symbol: "exclamationmark.triangle",
                           message: "\(service.name) uses a database runtime that is not installed. Its data folder stays in place.") {
                     Button("Show data folder") { model.revealData(service) }
-                    Button("View runtimes") { showRuntimes = true }
+                    Button("View runtimes") { presentation.showRuntimes = true }
                     Button("Remove registration…", role: .destructive) { removing = service }
                         .disabled(model.isBusy(service) || model.isSaving)
                 }
@@ -53,26 +67,18 @@ struct DatabaseServicesView: View {
                             "Select a database service in the sidebar.") {
                     if !model.isLoading, model.configuration.services.isEmpty {
                         if model.configuration.runtimes.isEmpty {
-                            Button("View runtimes", systemImage: "shippingbox") { showRuntimes = true }
+                            Button("View runtimes", systemImage: "shippingbox") { presentation.showRuntimes = true }
                                 .buttonStyle(.borderedProminent)
                         } else {
-                            Button("Add database", systemImage: "plus") { adding = true }
+                            Button("Add database", systemImage: "plus") { presentation.adding = true }
                                 .primaryAction(canAdd)
                         }
                     }
                 }
             }
         }
-        .toolbar {
-            if model.isLoading || model.isShuttingDown { ProgressView().controlSize(.small) }
-            Button("Restore registration…", systemImage: "arrow.uturn.backward.circle") { model.inspectRetained(); showRetained = true }
-                .help("Restore a removed database registration")
-                .disabled(!model.isLoaded || model.isSaving || model.isShuttingDown)
-            Button("Database runtimes", systemImage: "gearshape") { showRuntimes = true }
-                .help("Database runtimes")
-        }
         .sheet(item: $restoring) { item in DatabaseRestoreEditor(model: model, item: item) }
-        .sheet(isPresented: $showRetained, onDismiss: { restoring = pendingRestore; pendingRestore = nil }) {
+        .sheet(isPresented: $presentation.showRetained, onDismiss: { restoring = pendingRestore; pendingRestore = nil }) {
             SheetScaffold(title: "Retained databases",
                           message: "Restore a removed registration with its original runtime and data. Choose a name and an available port.",
                           width: 560) {
@@ -83,7 +89,7 @@ struct DatabaseServicesView: View {
                 ForEach(model.retained) { item in
                     Section {
                         ControlRow(item.name) {
-                            Button("Restore…") { pendingRestore = item; showRetained = false }
+                            Button("Restore…") { pendingRestore = item; presentation.showRetained = false }
                                 .disabled(!item.canRestore || model.isSaving)
                                 .accessibilityLabel("Restore \(item.name)")
                         }
@@ -98,13 +104,13 @@ struct DatabaseServicesView: View {
                 Button("Inspect again") { model.inspectRetained() }.disabled(model.isSaving)
                 if model.isSaving { ProgressView().controlSize(.small) }
                 Spacer()
-                Button("Done") { model.errorMessage = nil; showRetained = false }.keyboardShortcut(.defaultAction)
+                Button("Done") { model.errorMessage = nil; presentation.showRetained = false }.keyboardShortcut(.defaultAction)
             }
             .frame(height: 460)
         }
-        .sheet(isPresented: $adding) { DatabaseEditor(model: model, original: nil) }
+        .sheet(isPresented: $presentation.adding) { DatabaseEditor(model: model, original: nil) }
         .sheet(item: $editing) { service in DatabaseEditor(model: model, original: service) }
-        .sheet(isPresented: $showRuntimes) {
+        .sheet(isPresented: $presentation.showRuntimes) {
             SheetScaffold(title: "Database runtimes", message: model.runtimeMessage, width: 460) {
                 Section {
                     if model.configuration.runtimes.isEmpty { Text("No database runtimes are installed.").foregroundStyle(.secondary) }
@@ -119,11 +125,11 @@ struct DatabaseServicesView: View {
                 Button("Check runtimes") { model.load() }.disabled(model.isLoading || model.isShuttingDown)
                 if model.isLoading { ProgressView().controlSize(.small) }
                 Spacer()
-                Button("Done") { showRuntimes = false }.keyboardShortcut(.defaultAction)
+                Button("Done") { presentation.showRuntimes = false }.keyboardShortcut(.defaultAction)
             }
         }
         .alert("Jerd could not complete the database operation", isPresented: Binding(
-            get: { model.errorMessage != nil && !adding && editing == nil && !showRetained && restoring == nil },
+            get: { model.errorMessage != nil && !presentation.adding && editing == nil && !presentation.showRetained && restoring == nil },
             set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
