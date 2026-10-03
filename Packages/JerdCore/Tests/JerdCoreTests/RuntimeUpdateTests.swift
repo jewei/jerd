@@ -3,6 +3,63 @@ import Testing
 @testable import JerdCore
 
 @Suite struct RuntimeUpdateTests {
+    @Test func cloudflaredCatalogRequiresStableNativePackagesAndDigests() throws {
+        let hash = String(repeating: "a", count: 64)
+        func entry(_ version: String = "2026.9.3", prerelease: Bool = false, draft: Bool = false,
+                   digest: String? = nil, repository: String = "cloudflare/cloudflared", platform: String = "darwin") -> [String: Any] {
+            ["tag_name": version, "draft": draft, "prerelease": prerelease, "assets": ["arm64", "amd64"].map { arch in
+                ["name": "cloudflared-\(platform)-\(arch).tgz", "size": 20_000_000,
+                 "digest": digest ?? "sha256:\(hash)",
+                 "browser_download_url": "https://github.com/\(repository)/releases/download/\(version)/cloudflared-\(platform)-\(arch).tgz"] as [String: Any]
+            }]
+        }
+        let metadata = try JSONSerialization.data(withJSONObject: [entry(), entry("2026.9.4-beta"), entry(prerelease: true),
+            entry(draft: true), entry(digest: "sha256:invalid"), entry(repository: "other/cloudflared"), entry(platform: "linux")])
+        for architecture in [CPUArchitecture.arm64, .x86_64] {
+            let releases = try RuntimeUpdateCatalog.cloudflaredReleases(metadata, architecture: architecture)
+            let release = try #require(releases.first)
+            #expect(releases.count == 1)
+            #expect(release.kind == .cloudflared)
+            #expect(release.version == "2026.9.3")
+            #expect(release.architecture == architecture)
+            #expect(release.sha256 == hash)
+            #expect(release.url.lastPathComponent == "cloudflared-darwin-\(architecture == .arm64 ? "arm64" : "amd64").tgz")
+        }
+        let missing = try JSONSerialization.data(withJSONObject: [["tag_name": "2026.9.3", "draft": false, "prerelease": false,
+            "assets": [["name": "cloudflared-darwin-arm64.tgz", "size": 20_000_000,
+                        "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.3/cloudflared-darwin-arm64.tgz"]]]])
+        #expect(try RuntimeUpdateCatalog.cloudflaredReleases(missing, architecture: .arm64).isEmpty)
+    }
+
+    @Test(arguments: ["cloudflared version 2026.9.3 (built today)", "cloudflared version 2026.9.30", "other version 2026.9.3"])
+    func cloudflaredInspectionRequiresExpectedProductAndVersion(output: String) async throws {
+        actor Commands: CommandRunning {
+            let output: String
+            init(_ output: String) { self.output = output }
+            func run(_ request: ProcessRequest, timeout: Duration) async throws -> CommandResult {
+                #expect(request.executable.lastPathComponent == "cloudflared")
+                #expect(request.arguments == ["--version"])
+                return CommandResult(status: 0, output: output)
+            }
+        }
+        let root = try temporaryDirectory("cloudflared inspection")
+        defer { try? FileManager.default.removeItem(at: root) }
+        try PrivateFiles.write(Data("test fixture".utf8), to: root.appendingPathComponent("cloudflared"))
+        let release = RuntimeRelease(kind: .cloudflared, version: "2026.9.3",
+            url: URL(string: "https://github.com/cloudflare/cloudflared/releases/download/2026.9.3/cloudflared-darwin-arm64.tgz")!,
+            sha256: String(repeating: "a", count: 64), size: 20_000_000,
+            source: URL(string: "https://github.com/cloudflare/cloudflared/releases")!)
+        let installer = RuntimeInstaller(directory: root, commands: Commands(output))
+        if output.hasPrefix("cloudflared version 2026.9.3 ") {
+            let inspected = try await installer.inspect(release, payload: root, staging: root, php: nil)
+            #expect(inspected.0 == release.version)
+            #expect(inspected.1 == "cloudflared")
+            #expect(inspected.2 == nil)
+        } else {
+            await #expect(throws: (any Error).self) { try await installer.inspect(release, payload: root, staging: root, php: nil) }
+        }
+    }
+
     @Test func sameVersionBuildsHaveIndependentIdentitiesAndLegacyReceiptsRemainUsable() async throws {
         let root = try temporaryDirectory(" runtime builds")
         defer { try? FileManager.default.removeItem(at: root) }

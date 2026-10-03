@@ -7,13 +7,15 @@ public struct ProcessRequest: Sendable {
     public let directory: URL
     public let environment: [String: String]
     public let listeningSockets: ListeningSockets?
+    public let redactedValues: [String]
     public init(executable: URL, arguments: [String], directory: URL, environment: [String: String] = [:],
-                listeningSockets: ListeningSockets? = nil) {
+                listeningSockets: ListeningSockets? = nil, redactedValues: [String] = []) {
         self.executable = executable
         self.arguments = arguments
         self.directory = directory
         self.environment = environment
         self.listeningSockets = listeningSockets
+        self.redactedValues = redactedValues
     }
 }
 
@@ -44,6 +46,7 @@ public actor ProcessSupervisor: ProcessControlling {
     private var children: [UUID: pid_t] = [:]
     private var stopping: Set<UUID> = []
     private var logs: [UUID: URL] = [:]
+    private var filteredLogs: [UUID: RedactedProcessLog] = [:]
     private var logMaintenance: Task<Void, Never>?
     private let logPrefixBytes: Int
     private let gracefulTimeout: Duration
@@ -71,6 +74,13 @@ public actor ProcessSupervisor: ProcessControlling {
         let descriptor = open(log.path, O_WRONLY | O_APPEND | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else { throw JerdError.process("Cannot open process log: \(log.path)") }
         defer { close(descriptor) }
+        let filtered = request.redactedValues.isEmpty ? nil : try RedactedProcessLog(log: descriptor, values: request.redactedValues)
+        var didStart = false
+        defer {
+            filtered?.closeParentWriter()
+            if !didStart { filtered?.finish() }
+        }
+        let outputDescriptor = filtered?.writer ?? descriptor
         var actions: posix_spawn_file_actions_t?
         var attributes: posix_spawnattr_t?
         try checked(posix_spawn_file_actions_init(&actions))
@@ -86,8 +96,8 @@ public actor ProcessSupervisor: ProcessControlling {
         sigfillset(&mask)
         try checked(posix_spawnattr_setsigdefault(&attributes, &mask))
         try checked(posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0))
-        try checked(posix_spawn_file_actions_adddup2(&actions, descriptor, STDOUT_FILENO))
-        try checked(posix_spawn_file_actions_adddup2(&actions, descriptor, STDERR_FILENO))
+        try checked(posix_spawn_file_actions_adddup2(&actions, outputDescriptor, STDOUT_FILENO))
+        try checked(posix_spawn_file_actions_adddup2(&actions, outputDescriptor, STDERR_FILENO))
         try checked(posix_spawn_file_actions_addchdir_np(&actions, request.directory.path))
         var duplicates: [Int32] = []
         defer { duplicates.forEach { Darwin.close($0) } }
@@ -118,6 +128,11 @@ public actor ProcessSupervisor: ProcessControlling {
         let id = UUID()
         children[id] = pid
         logs[id] = log
+        if let filtered {
+            filteredLogs[id] = filtered
+            filtered.start()
+        }
+        didStart = true
         if logMaintenance == nil {
             logMaintenance = Task { [weak self] in
                 while !Task.isCancelled {
@@ -240,6 +255,7 @@ public actor ProcessSupervisor: ProcessControlling {
     }
 
     private func finishLog(_ id: UUID) {
+        filteredLogs.removeValue(forKey: id)?.finish()
         if let file = logs.removeValue(forKey: id) { try? ProcessLog.trim(file, prefixBytes: logPrefixBytes) }
         if logs.isEmpty { logMaintenance?.cancel(); logMaintenance = nil }
     }

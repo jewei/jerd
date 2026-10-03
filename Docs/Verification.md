@@ -183,3 +183,23 @@ The agreed changes removed inherited runtime-update test settings, retained
 command output during failures, removed the unsafe outer service-test timeout,
 and stopped new signing work after a failure. Regression tests cover these
 conditions. The reviews found no further release-code blocker.
+
+## Cloudflare Tunnel management — 3 October 2026
+
+The default core suite passed 149 tests. The Debug Xcode build passed without
+code signing. Tunnel tests use injected transports and secret stores. They cover
+readiness, retries, independent connectors, graceful shutdown failures, stale
+readiness results, concurrent Stop calls, token validation, and corrupt settings.
+Streaming log tests check redaction across writes and prompt display of ordinary
+messages. No live tunnel or real Keychain token was used.
+
+Three fresh independent reviews covered code, architecture, and performance.
+The changes prevent old readiness checks and repeated Stop calls from changing
+a replacement process. Stop remains available during other tunnel operations.
+Log filtering retains only possible secret prefixes, and readiness no longer
+repeats the same listener check.
+
+Native screenshots cover stopped, connected, and failed tunnel fixtures in light
+and dark appearance at standard and compact window sizes. Live cloudflared
+connectivity, real Keychain access, public website health, and Intel execution
+remain unverified. The existing remakan.dev connector was not changed.

@@ -154,6 +154,10 @@ public actor RuntimeInstaller {
         case .caddy, .mailpit:
             let names: Set<String> = [release.kind.rawValue, "LICENSE", "README.md"]
             try RuntimeArchive.extract(archive, to: payload) { names.contains($0) }
+        case .cloudflared:
+            try RuntimeArchive.extract(archive, to: payload) { $0 == "cloudflared" }
+            try await RuntimeDownload.file(URL(string: "https://raw.githubusercontent.com/cloudflare/cloudflared/\(release.version)/LICENSE")!,
+                to: payload.appendingPathComponent("LICENSE"), limit: 1_000_000)
         case .rustfs:
             try RuntimeArchive.extract(archive, to: payload) { $0 == "rustfs" }
             try await RuntimeDownload.file(URL(string: "https://raw.githubusercontent.com/rustfs/rustfs/\(release.version)/LICENSE")!,
@@ -227,7 +231,7 @@ public actor RuntimeInstaller {
         }
     }
 
-    private func inspect(_ release: RuntimeRelease, payload: URL, staging: URL, php: DevelopmentRuntime?) async throws -> (String, String, String?) {
+    func inspect(_ release: RuntimeRelease, payload: URL, staging: URL, php: DevelopmentRuntime?) async throws -> (String, String, String?) {
         let path: String, arguments: [String]
         switch release.kind {
         case .php:
@@ -246,6 +250,7 @@ public actor RuntimeInstaller {
         case .redis: path = "bin/redis-server"; arguments = ["--version"]
         case .mailpit: path = "mailpit"; arguments = ["version", "--no-release-check"]
         case .rustfs: path = "rustfs"; arguments = ["--version"]
+        case .cloudflared: path = "cloudflared"; arguments = ["--version"]
         case .composer: path = "composer.phar"; arguments = ["--version", "--no-ansi", "--no-plugins"]
         case .laravel: path = "vendor/laravel/installer/bin/laravel"; arguments = ["--version", "--no-ansi"]
         }
@@ -262,6 +267,7 @@ public actor RuntimeInstaller {
         switch release.kind {
         case .postgresql: pattern = "PostgreSQL\\) ([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)"
         case .redis: pattern = "Redis server v=([0-9]+\\.[0-9]+\\.[0-9]+)"
+        case .cloudflared: pattern = "^cloudflared version " + NSRegularExpression.escapedPattern(for: release.version) + "(?=\\s|$)"
         default: pattern = "(?<![0-9])" + NSRegularExpression.escapedPattern(for: release.version) + "(?![0-9.])"
         }
         let regex = try NSRegularExpression(pattern: pattern)

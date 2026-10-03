@@ -15,6 +15,8 @@ Keep Jerd small. Implement only the approved features below.
 - Provide a separate local Mailpit service with SMTP capture, an inbox, and Laravel settings.
 - Provide native RustFS storage. On bucket Save, start the owned service as needed
   and verify the bucket before reporting Ready.
+- Manage existing Cloudflare Tunnel connectors in Sites with Keychain tokens,
+  native cloudflared, optional startup, and retry controls. Do not change remote routes.
 - Use the tab order Dashboard, Sites, Databases, Storage, Mail.
 - Use Dashboard's two-pane navigation in this order: Dashboard, Appearance,
   Runtimes, Advanced, About. Settings commands open Appearance in the main window.
@@ -51,6 +53,8 @@ architecture, and performance. Fix the agreed findings.
 - Preserve database data when stopping or removing a service registration.
   Never reuse an existing database directory with a different runtime version.
   Database shutdown must be graceful; a timeout must not force-kill the server.
+- Stop only tunnel connectors started by Jerd. Save does not connect. Keep tokens
+  out of configuration, command arguments, and logs. Verify loopback metrics ownership.
 - Keep captured mail after Stop or Quit. Use loopback-only SMTP and HTTP ports.
   Do not configure external mail relay, forwarding, or inherited mail settings.
 - Keep storage buckets, objects, and credentials after Stop or Quit. Use an

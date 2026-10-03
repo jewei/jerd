@@ -23,8 +23,13 @@ struct DashboardView: View {
     var body: some View {
         JerdSplitView {
             List(DashboardSection.allCases, selection: $model.selectedDashboard) { section in
-                Label(section.rawValue, systemImage: section.symbol)
-                    .padding(.vertical, 5).tag(section)
+                Label {
+                    Text(section.rawValue).fontWeight(.medium)
+                } icon: {
+                    Image(systemName: section.symbol)
+                        .symbolVariant(model.selectedDashboard == section ? .fill : .none)
+                }
+                .padding(.vertical, 7).tag(section)
             }
             .listStyle(.sidebar)
             .navigationTitle("Dashboard")
@@ -49,12 +54,13 @@ private struct DashboardOverview: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PaneHeader("Dashboard", subtitle: "Sites and services on this Mac")
+            PaneHeader("Dashboard", subtitle: "Your local development environment")
+                .frame(maxWidth: 1100).frame(maxWidth: .infinity)
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     ForEach(errors, id: \.self) { InlineMessage($0) }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 290), spacing: 16)], spacing: 16) {
                         sitesCard
                         databasesCard
                         storageCard
@@ -64,13 +70,14 @@ private struct DashboardOverview: View {
                 }
                 .padding(.horizontal, 30).padding(.vertical, 24)
                 .frame(maxWidth: 1100, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .top)
             }
+            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 
     private var errors: [String] {
-        [model.errorMessage, model.databases.errorMessage, model.storage.errorMessage, model.mail.errorMessage].compactMap { $0 }
+        [model.errorMessage, model.databases.errorMessage, model.storage.errorMessage, model.mail.errorMessage, model.tunnels.errorMessage].compactMap { $0 }
     }
 
     private var sitesCard: some View {
@@ -82,7 +89,7 @@ private struct DashboardOverview: View {
             : sites.isEmpty ? ("No sites", .idle) : (model.stateLabel, model.environmentState.tone)
         return card("Sites", symbol: "globe", status: status,
                     summary: sites.isEmpty ? "Register an existing PHP project to serve it over HTTPS." :
-                        "\(sites.count) registered · \(enabled) enabled", section: .sites) {
+                        "\(sites.count) registered · \(enabled) enabled" + tunnelSummary, section: .sites) {
             if !sites.isEmpty || model.isBusy {
                 let stopping = model.isBusy || !model.runningSiteIDs.isEmpty
                 Button(stopping ? "Stop all sites" : "Start all sites") {
@@ -90,6 +97,13 @@ private struct DashboardOverview: View {
                 }.disabled(stopping ? !model.canStop : enabled == 0)
             }
         }
+    }
+
+    private var tunnelSummary: String {
+        let count = model.tunnels.configuration.tunnels.count
+        guard count > 0 else { return "" }
+        let connected = model.tunnels.states.values.filter { $0.state == .connected }.count
+        return " · \(connected)/\(count) tunnels connected"
     }
 
     private var databasesCard: some View {
@@ -134,35 +148,51 @@ private struct DashboardOverview: View {
 
     private var runtimesCard: some View {
         let php = model.configuration.runtimes.first { $0.id == model.configuration.defaultRuntimeID }
-        return GroupBox {
-            HStack(spacing: 14) {
-                Image(systemName: "shippingbox").font(.title2).foregroundStyle(Color.accentColor)
-                    .frame(width: 28).accessibilityHidden(true)
+        return HStack(alignment: .center, spacing: 16) {
+                ServiceIcon(symbol: "shippingbox", tint: .secondary, size: 44)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Runtimes").font(.headline)
                     Text(php.map { "PHP \($0.version) is the default. View installed versions and check for updates." } ??
                             "View installed versions and check for updates.")
-                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 12)
-                Button("Manage runtimes") { model.showDashboard(.runtimes) }
-            }.padding(10)
-        }
+                Button { model.showDashboard(.runtimes) } label: {
+                    Image(systemName: "chevron.right").font(.body.weight(.semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Manage runtimes").help("Manage runtimes")
+            }
+            .padding(18)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.separator.opacity(0.35)))
     }
 
     private func card<Actions: View>(_ title: String, symbol: String, status: (String, StatusTone), summary: String,
                                      section: AppSection, @ViewBuilder actions: () -> Actions) -> some View {
-        let view = Button("View") { model.selectedSection = section }.accessibilityLabel("View \(title.lowercased())")
-        return GroupBox {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 10) {
-                    Image(systemName: symbol).font(.title3).foregroundStyle(Color.accentColor)
-                        .frame(width: 26).accessibilityHidden(true)
-                    Text(title).font(.title3.bold()).accessibilityAddTraits(.isHeader)
-                    Spacer(minLength: 8)
-                    StatusBadge(title: status.0, tone: status.1)
+        let view = Button { model.selectedSection = section } label: {
+            Label("Open", systemImage: "arrow.right")
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("Open \(title.lowercased())")
+        return VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .center, spacing: 12) {
+                    ServiceIcon(symbol: symbol, size: 46)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                        StatusBadge(title: status.0, tone: status.1)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Text(summary).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
+                Text(summary).font(.callout).foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true).help(summary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(20)
+            Divider().opacity(0.55)
+            Group {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) { actions(); Spacer(minLength: 0); view }
                     VStack(alignment: .leading, spacing: 8) {
@@ -171,8 +201,13 @@ private struct DashboardOverview: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
+            .controlSize(.regular)
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .frame(minHeight: 52)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.separator.opacity(0.45)))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

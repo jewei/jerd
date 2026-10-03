@@ -111,6 +111,7 @@ final class RuntimeUpdatesModel {
         case .mysql, .postgresql, .redis: values = model.databases.configuration.runtimes.filter { $0.engine.rawValue == kind.rawValue }.map(\.version)
         case .mailpit: values = model.mail.configuration.runtime.map { [$0.version] } ?? []
         case .rustfs: values = model.storage.configuration.runtime.map { [$0.version] } ?? []
+        case .cloudflared: values = model.tunnels.configuration.runtime.map { [$0.version] } ?? []
         }
         return Set(values).sorted { (RuntimeVersion($0) ?? RuntimeVersion("0.0")!) > (RuntimeVersion($1) ?? RuntimeVersion("0.0")!) }
     }
@@ -124,6 +125,7 @@ final class RuntimeUpdatesModel {
         case .mysql, .postgresql, .redis: return model.databases.configuration.runtimes.contains { $0.path == build.directory.path }
         case .mailpit: return model.mail.configuration.runtime?.path == build.directory.path
         case .rustfs: return model.storage.configuration.runtime?.path == build.directory.path
+        case .cloudflared: return model.tunnels.configuration.runtime?.path == build.directory.path
         }
     }
 }

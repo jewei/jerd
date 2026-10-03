@@ -14,16 +14,18 @@ struct DatabaseServicesView: View {
     var body: some View {
         JerdSplitView {
             List(selection: $model.selectedID) {
-                ForEach(model.configuration.services) { service in
-                    let status = model.status(service)
-                    SidebarRow(title: service.name,
-                               subtitle: model.runtime(service).map { "\($0.engine.title) \($0.version) · \(String(service.port))" } ?? "Runtime unavailable",
-                               status: status.state.title, tone: status.state.tone)
-                        .tag(service.id)
+                Section("Services") {
+                    ForEach(model.configuration.services) { service in
+                        let status = model.status(service)
+                        SidebarRow(title: service.name,
+                                   subtitle: model.runtime(service).map { "\($0.engine.title) \($0.version) · \(String(service.port))" } ?? "Runtime unavailable",
+                                   status: status.state.title, tone: status.state.tone)
+                            .tag(service.id)
+                    }
                 }
             }
             .navigationTitle("Databases")
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
             .safeAreaInset(edge: .bottom) {
                 HStack {
                     Button("Add database", systemImage: "plus") { adding = true }
@@ -35,26 +37,28 @@ struct DatabaseServicesView: View {
             if let service = model.selected, let runtime = model.runtime(service) {
                 detail(service, runtime: runtime)
             } else if let service = model.selected {
-                ContentUnavailableView {
-                    Label("Runtime unavailable", systemImage: "exclamationmark.triangle")
-                } description: {
-                    Text("\(service.name) uses a database runtime that is not installed. Its data folder stays in place.")
-                } actions: {
+                EmptyPane(title: "Runtime unavailable", symbol: "exclamationmark.triangle",
+                          message: "\(service.name) uses a database runtime that is not installed. Its data folder stays in place.") {
                     Button("Show data folder") { model.revealData(service) }
+                    Button("View runtimes") { showRuntimes = true }
                     Button("Remove registration…", role: .destructive) { removing = service }
                         .disabled(model.isBusy(service) || model.isSaving)
                 }
             } else {
-                ContentUnavailableView {
-                    Label(model.isLoading ? "Preparing databases" : "No database selected", systemImage: "externaldrive")
-                } description: {
-                    Text(model.isLoading ? "Checking MySQL, PostgreSQL, and Redis runtimes…" :
-                            model.configuration.services.isEmpty ? "Add a MySQL, PostgreSQL, or Redis service. Choose its version and port, then start it." :
-                            "Select a database service in the sidebar.")
-                } actions: {
-                    if !model.isLoading, !model.configuration.runtimes.isEmpty, model.configuration.services.isEmpty {
-                        Button("Add database") { adding = true }
-                            .primaryAction(canAdd)
+                EmptyPane(title: model.isLoading ? "Preparing databases" :
+                            model.configuration.services.isEmpty ? "Your local databases" : "Select a database",
+                          symbol: "externaldrive",
+                          message: model.isLoading ? "Checking MySQL, PostgreSQL, and Redis runtimes…" :
+                            model.configuration.services.isEmpty ? "Run MySQL, PostgreSQL, and Redis with separate data and controls for each service." :
+                            "Select a database service in the sidebar.") {
+                    if !model.isLoading, model.configuration.services.isEmpty {
+                        if model.configuration.runtimes.isEmpty {
+                            Button("View runtimes", systemImage: "shippingbox") { showRuntimes = true }
+                                .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Add database", systemImage: "plus") { adding = true }
+                                .primaryAction(canAdd)
+                        }
                     }
                 }
             }
@@ -143,7 +147,7 @@ struct DatabaseServicesView: View {
         let busy = model.isBusy(service)
         let active = status.processID != nil
         return GroupedPane(feedback: model.copiedMessage) {
-            PaneHeader(service.name, subtitle: "\(runtime.engine.title) \(runtime.version) · 127.0.0.1:\(String(service.port))",
+            PaneHeader(service.name, subtitle: "\(runtime.engine.title) \(runtime.version) · Local database service",
                        status: (status.state.title, status.state.tone)) {
                 if active {
                     Button("Stop service", systemImage: "stop.fill") { model.stop(service) }.disabled(busy)
@@ -157,17 +161,19 @@ struct DatabaseServicesView: View {
                 Section { InlineMessage(message) }
             }
             Section {
-                ValueRow("Host", "127.0.0.1")
-                ValueRow("Port", String(service.port))
-                ValueRow("User", runtime.engine.username)
-                ValueRow("Database", runtime.engine.database)
+                ValueRow("Host", "127.0.0.1", monospaced: true)
+                ValueRow("Port", String(service.port), monospaced: true)
+                ValueRow("User", runtime.engine.username, monospaced: true)
+                ValueRow("Database", runtime.engine.database, monospaced: true)
                 ActionRow("Password", action: "Copy password", symbol: "key") { model.copyConnection(service, passwordOnly: true) }
-            } header: { Text("Connection") } footer: {
-                Text("Connections are limited to this Mac. A password is created for each service. Quitting Jerd stops its database services.")
+            } header: { Label("Connection", systemImage: "network") } footer: {
+                Text("Available only on this Mac. Each service has its own password.")
                     .font(.callout).foregroundStyle(.secondary)
             }
-            Section("Laravel") {
+            Section {
                 ActionRow(".env settings", action: "Copy Laravel settings", symbol: "doc.on.doc") { model.copyConnection(service) }
+            } header: { Text("Laravel") } footer: {
+                Text("Paste these settings into your application's .env file.")
             }
             Section("Files") {
                 PathRow(label: "Data folder", path: model.paths(service).data.path) { model.revealData(service) }
@@ -180,9 +186,9 @@ struct DatabaseServicesView: View {
                     Button("Remove registration…", role: .destructive) { removing = service }
                         .disabled(busy || model.isSaving)
                 }
-            } footer: {
-                Text(active ? "Stop the service to change its name or port. This service runs independently from your sites and other databases." :
-                        "This service runs independently from your sites and other databases.")
+            } header: { Text("Service") } footer: {
+                Text(active ? "Stop the service to change its name or port. Database files remain after Stop, Quit, or removal." :
+                        "Database files remain after Stop, Quit, or removal.")
                     .font(.callout).foregroundStyle(.secondary)
             }
         }
