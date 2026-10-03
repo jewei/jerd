@@ -384,8 +384,13 @@ struct DatabaseDescendantTests {
             if inspectionFails { try PrivateFiles.write(Data(), to: inspectionError) }
             try PrivateFiles.write(Data(), to: paths.root.appendingPathComponent("exit-master"))
             let deadline = ContinuousClock.now + .seconds(3)
-            while (try? ProcessIdentity.capture(pid)) != nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
-            let snapshot = await manager.snapshot()
+            // Foundation can report the process exit after native PID inspection.
+            // Wait for the manager to observe it before checking retained ownership.
+            var snapshot = await manager.snapshot()
+            while snapshot.statuses[service.id]?.state == .running, ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+                snapshot = await manager.snapshot()
+            }
             #expect(snapshot.statuses[service.id]?.processID == pid)
             guard case .failed = snapshot.statuses[service.id]?.state else { throw JerdError.invalid("Expected a failed descendant stop") }
             #expect(try Data(contentsOf: record) == original)
