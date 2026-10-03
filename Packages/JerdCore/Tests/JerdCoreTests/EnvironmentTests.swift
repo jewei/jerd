@@ -40,6 +40,44 @@ private final class MemoryTrust: CertificateTrustManaging, @unchecked Sendable {
 }
 
 struct SetupTransactionTests {
+    @Test(arguments: [false, true])
+    func hostsRestorationFailureRetainsSetupJournal(removing: Bool) async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let directory = root.appendingPathComponent("helper")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        try original.write(to: url)
+        let trust = MemoryTrust()
+        let request = SystemRegistrationRequest(installationID: UUID(), hostname: "demo.test", certificateDER: Data("test CA".utf8))
+        if removing {
+            let initial = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(),
+                hosts: AtomicHostsFile(url: url, expectedOwner: getuid()), certificates: trust)
+            try await initial.configure(request, ownerUID: getuid())
+        }
+        let before = try Data(contentsOf: url)
+        let raced = before + Data("127.0.0.1 raced.test\n".utf8)
+        let hosts = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            try raced.write(to: url, options: .atomic)
+        }, preRestore: {
+            throw JerdError.unavailable("Injected restoration failure")
+        })
+        let store = PrivilegedSetupStore(directory: directory, expectedFileOwner: getuid(), hosts: hosts, certificates: trust)
+        await #expect(throws: (any Error).self) {
+            if removing { try await store.remove(ownerUID: getuid()) }
+            else { try await store.configure(request, ownerUID: getuid()) }
+        }
+        #expect(PrivateFiles.exists(directory.appendingPathComponent("pending.json")))
+        #expect(try Data(contentsOf: directory.appendingPathComponent("hosts.previous")) == before)
+        let recovery = try #require(await store.status(ownerUID: getuid()).recovery)
+        #expect(recovery.phase.contains("Host replacement needs recovery"))
+        let retained = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix(".jerd-hosts-") }
+        #expect(retained.count == 1)
+        #expect(try Data(contentsOf: #require(retained.first)) == raced)
+        #expect(try trust.isInstalled(request.certificateDER, hostname: "demo.test") == removing)
+    }
+
     @Test func serverTrustRequiresItsOwnApprovalAndUsesOnlySSLPolicy() throws {
         let der = Data("approved CA".utf8), hosts = ["games-hk.test", "games-jp.test"]
         let change = TrustConsentRequest(certificateDER: der, hostnames: hosts, policy: .serverTLS)
