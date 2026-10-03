@@ -12,7 +12,7 @@ struct DatabaseServicesView: View {
     @State private var pendingRestore: RetainedDatabase?
 
     var body: some View {
-        NavigationSplitView {
+        JerdSplitView {
             List(selection: $model.selectedID) {
                 ForEach(model.configuration.services) { service in
                     let status = model.status(service)

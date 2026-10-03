@@ -2,12 +2,12 @@ import AppKit
 import Observation
 
 enum AppIconChoice: String, CaseIterable, Identifiable {
-    case original, monogram, rainbow, elephant, dots, stack, lock
+    case rainbow, monogram, elephant, dots
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .original: "Original"; case .monogram: "Monogram"; case .rainbow: "Rainbow hook"
-        case .elephant: "Elephant"; case .dots: "Dot matrix"; case .stack: "Site stack"; case .lock: "Secure J"
+        case .rainbow: "Rainbow hook"; case .monogram: "Monogram"
+        case .elephant: "Elephant"; case .dots: "Dot matrix"
         }
     }
 }
@@ -27,12 +27,12 @@ final class AppAppearance {
         self.defaults = defaults
         showMenuBar = defaults.object(forKey: "showMenuBar") as? Bool ?? true
         showDock = defaults.object(forKey: "showDock") as? Bool ?? true
-        icon = AppIconChoice(rawValue: defaults.string(forKey: "appIcon") ?? "") ?? .original
+        // Use Rainbow hook for new settings and removed icon choices.
+        icon = AppIconChoice(rawValue: defaults.string(forKey: "appIcon") ?? "") ?? .rainbow
     }
     func image(for choice: AppIconChoice) -> NSImage? {
         if let cached = icons[choice] { return cached }
-        let url = choice == .original ? Bundle.main.url(forResource: "AppIcon", withExtension: "icns") :
-            Bundle.main.url(forResource: "Icon-\(choice.rawValue)", withExtension: "png")
+        let url = Bundle.main.url(forResource: "Icon-\(choice.rawValue)", withExtension: "png")
         guard let url, let image = NSImage(contentsOf: url) else { return nil }
         icons[choice] = image
         return image

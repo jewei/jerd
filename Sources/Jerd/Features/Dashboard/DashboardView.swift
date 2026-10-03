@@ -21,7 +21,7 @@ struct DashboardView: View {
     @Bindable var model: AppModel
 
     var body: some View {
-        NavigationSplitView {
+        JerdSplitView {
             List(DashboardSection.allCases, selection: $model.selectedDashboard) { section in
                 Label(section.rawValue, systemImage: section.symbol)
                     .padding(.vertical, 5).tag(section)

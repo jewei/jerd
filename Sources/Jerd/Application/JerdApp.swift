@@ -91,6 +91,11 @@ private struct MainWindowView: View {
                 MailServiceView(model: model.mail)
                     .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
             }
+                // Replace the page and its toolbar together when changing tabs.
+                .transaction(value: model.selectedSection) { transaction in
+                    transaction.animation = nil
+                    transaction.disablesAnimations = true
+                }
                 .frame(minWidth: 820, minHeight: 540)
                 .safeAreaInset(edge: .bottom) {
                     if let message = model.operationMessage {
