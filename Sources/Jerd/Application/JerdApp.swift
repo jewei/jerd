@@ -80,6 +80,22 @@ private struct MainWindowView: View {
     let delegate: AppDelegate
     @Environment(\.openWindow) private var openWindow
     var body: some View {
+        JerdWorkspaceView(model: model)
+                .task {
+                    delegate.model = model
+                    delegate.openMainWindow = { openWindow(id: "main") }
+                    model.appearance.apply()
+                    model.load()
+                    model.appUpdates.start()
+                }
+    }
+}
+
+/// The workspace has no startup effects, so previews can use in-memory models.
+struct JerdWorkspaceView: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
         TabView(selection: $model.selectedSection) {
                 DashboardView(model: model)
                     .tabItem { Label("Dashboard", systemImage: "square.grid.2x2") }.tag(AppSection.dashboard)
@@ -103,13 +119,6 @@ private struct MainWindowView: View {
                             }
                         }.padding(12).background(.bar)
                     }
-                }
-                .task {
-                    delegate.model = model
-                    delegate.openMainWindow = { openWindow(id: "main") }
-                    model.appearance.apply()
-                    model.load()
-                    model.appUpdates.start()
                 }
     }
 }

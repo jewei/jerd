@@ -12,38 +12,53 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $model.selectedSiteID) {
-                ForEach(model.configuration.sites) { site in
-                    let status = siteStatus(site)
-                    SidebarRow(title: site.displayName, subtitle: site.hostname,
-                               status: status.title, tone: status.tone, dimmed: !site.isEnabled)
-                        .tag(site.id)
+                Section("Your projects") {
+                    ForEach(model.configuration.sites) { site in
+                        let status = siteStatus(site)
+                        SidebarRow(title: site.displayName, subtitle: site.hostname,
+                                   status: status.title, tone: status.tone, dimmed: !site.isEnabled)
+                            .tag(site.id)
+                            .contextMenu {
+                                Button("Open in browser", systemImage: "safari") { model.open(site) }
+                                    .disabled(model.isBusy || !model.runningSiteIDs.contains(site.id) || model.environmentState != .running)
+                                Button("Show in Finder", systemImage: "folder") {
+                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: site.projectPath)
+                                }
+                                Divider()
+                                Button("Edit site…") { editingSite = site }.disabled(model.isBusy)
+                            }
+                    }
                 }
             }
+            .listStyle(.sidebar)
             .navigationTitle("Sites")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
             .safeAreaInset(edge: .bottom) {
-                HStack {
-                    Button("Add site", systemImage: "plus") { addSite() }
-                        .disabled(!model.isLoaded || model.isBusy)
-                    Spacer()
-                }.padding(12)
+                VStack(spacing: 10) {
+                    if !model.configuration.sites.isEmpty {
+                        HStack {
+                            Text("\(model.configuration.sites.count) \(model.configuration.sites.count == 1 ? "site" : "sites")")
+                            Spacer()
+                            Text("\(model.runningSiteIDs.count) running")
+                        }
+                        .font(.caption).foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    }
+                    Button(action: addSite) {
+                        Label("Add site", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .disabled(!model.isLoaded || model.isBusy)
+                }
+                .padding(14)
+                .background(.bar)
             }
         } detail: {
             if let site = model.selectedSite {
                 detail(site)
             } else {
-                ContentUnavailableView {
-                    Label(model.configuration.sites.isEmpty ? "Add an existing PHP project" : "No site selected",
-                          systemImage: "folder.badge.plus")
-                } description: {
-                    Text(model.configuration.sites.isEmpty ? "Choose a folder, check its hostname, then enable HTTPS. Jerd manages PHP and Caddy." :
-                            "Select a site in the sidebar.")
-                } actions: {
-                    if model.configuration.sites.isEmpty {
-                        Button("Add site") { addSite() }
-                            .primaryAction(model.isLoaded && !model.isBusy)
-                    }
-                }
+                emptyState
             }
         }
         .toolbar {
@@ -86,6 +101,24 @@ struct ContentView: View {
         editingSite = Site(displayName: "", projectPath: "", documentRoot: "", hostname: "")
     }
 
+    private var emptyState: some View {
+        EmptyPane(title: model.configuration.sites.isEmpty ? "A home for your local sites" : "Select a site",
+                  symbol: "globe.desk",
+                  message: model.configuration.sites.isEmpty
+                  ? "Bring an existing PHP project. Give it a local address and run it with HTTPS."
+                  : "Choose a project in the sidebar to view its details and manage your environment.") {
+            if model.configuration.sites.isEmpty {
+                VStack(spacing: 12) {
+                    Button("Add your first site", systemImage: "plus") { addSite() }
+                        .controlSize(.large)
+                        .primaryAction(model.isLoaded && !model.isBusy)
+                    Text("Your project files stay where they are.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     private func siteStatus(_ site: Site) -> (title: String, tone: StatusTone) {
         if !site.isEnabled { return ("Disabled", .idle) }
         if model.runningSiteIDs.contains(site.id) { return ("Ready", .ready) }
@@ -118,21 +151,27 @@ struct ContentView: View {
                      "These controls apply to every enabled site. Ready means PHP-FPM and HTTPS passed their checks. Project code is not checked.")
                     .font(.callout).foregroundStyle(.secondary)
             }
-            Section("Site") {
+            Section("Project") {
                 PathRow(label: "Project", path: site.projectPath) {
                     NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: site.projectPath)
                 }
-                ValueRow("Document root", site.documentRoot)
+                ValueRow("Document root", site.documentRoot, monospaced: true)
                 ValueRow("PHP", runtimeLabel(site))
             }
-            Section("Checks") {
-                ValueRow("HTTPS setup", model.hasSetup(site) ? "Approved for this hostname" : "Setup required")
-                ValueRow("PHP-FPM check", running ? "Private ping passed" : "Checked at startup")
-                ValueRow("System HTTPS check", running ? "Passed" : "Checked at startup")
+            Section("Connection checks") {
+                checkRow("HTTPS setup", detail: model.hasSetup(site) ? "Approved for this hostname" : "Setup required",
+                         passed: model.hasSetup(site))
+                checkRow("PHP-FPM", detail: running ? "Private ping passed" : "Checked at startup",
+                         passed: running)
+                checkRow("System HTTPS", detail: running ? "Passed" : "Checked at startup",
+                         passed: running)
             }
             Section {
-                ControlRow("Registration") {
+                ControlRow("Site availability", detail: site.isEnabled ? "Included when you start all sites." : "Excluded when you start all sites.") {
                     Button(site.isEnabled ? "Disable site" : "Enable site") { model.toggleEnabled(site) }
+                }
+                .disabled(model.isBusy)
+                ControlRow("Registration", detail: "Keep the project folder and its files.") {
                     Button("Remove registration…", role: .destructive) { removingSite = site }
                 }
                 .disabled(model.isBusy)
@@ -143,16 +182,26 @@ struct ContentView: View {
         }
     }
 
+    private func checkRow(_ title: String, detail: String, passed: Bool) -> some View {
+        LabeledContent {
+            Label(detail, systemImage: passed ? "checkmark.circle.fill" : "circle.dashed")
+                .font(.callout)
+                .foregroundStyle(passed ? Color.green : Color.secondary)
+                .multilineTextAlignment(.trailing)
+        } label: {
+            Text(title)
+        }
+    }
+
     @ViewBuilder private func environmentActions(_ site: Site) -> some View {
         if !model.runningSiteIDs.isEmpty || model.isBusy {
             Button("Stop all sites") { model.stop() }.disabled(!model.canStop)
         } else if model.hasSetup(site) {
-            Button("Start all sites") { model.start() }.disabled(!site.isEnabled || model.isBusy)
+            Button("Start all sites", systemImage: "play.fill") { model.start() }
+                .primaryAction(site.isEnabled && !model.isBusy)
         } else {
-            Button("Enable HTTPS…") { model.prepareHTTPS() }.disabled(!site.isEnabled || model.isBusy)
-        }
-        if !model.systemStatus.hostnames.isEmpty {
-            Button("Remove system setup…") { removingSetup = true }.disabled(model.isBusy)
+            Button("Enable HTTPS…", systemImage: "lock.shield") { model.prepareHTTPS() }
+                .primaryAction(site.isEnabled && !model.isBusy)
         }
     }
 
@@ -230,7 +279,7 @@ private struct SiteEditor: View {
                         Text("Pinned runtime unavailable").tag(PHPSelection.pinned(id))
                     }
                 }
-                Toggle("Enabled", isOn: $site.isEnabled)
+                Toggle("Include when starting all sites", isOn: $site.isEnabled)
             }
             .disabled(model.isBusy)
             if let error = model.errorMessage { InlineMessage(error) }
@@ -241,7 +290,7 @@ private struct SiteEditor: View {
             Spacer()
             if model.isBusy { ProgressView().controlSize(.small) }
             Button("Save registration") { model.save(site, confirmed: confirmed) { dismiss() } }
-                .keyboardShortcut(.defaultAction).disabled(!confirmed || model.isBusy)
+                .keyboardShortcut(.defaultAction).primaryAction(confirmed && !model.isBusy)
         }
         .frame(height: 560)
         .onChange(of: site.documentRoot) { confirmed = false }
