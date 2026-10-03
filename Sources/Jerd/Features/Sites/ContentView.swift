@@ -10,7 +10,7 @@ struct ContentView: View {
     @State private var removingSetup = false
 
     var body: some View {
-        NavigationSplitView {
+        JerdSplitView {
             List(selection: $model.selectedSiteID) {
                 ForEach(model.configuration.sites) { site in
                     let status = siteStatus(site)

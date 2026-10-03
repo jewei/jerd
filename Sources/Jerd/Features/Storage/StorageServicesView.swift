@@ -7,7 +7,7 @@ struct StorageServicesView: View {
     @State private var settings = false
 
     var body: some View {
-        NavigationSplitView {
+        JerdSplitView {
             List(selection: $model.selectedName) {
                 ForEach(model.configuration.buckets) { bucket in
                     SidebarRow(title: bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",

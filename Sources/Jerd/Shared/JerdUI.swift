@@ -1,6 +1,38 @@
 import SwiftUI
 import JerdCore
 
+/// Keep the sidebar control in one toolbar position while the columns resize.
+struct JerdSplitView<Sidebar: View, Detail: View>: View {
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ViewBuilder var sidebar: Sidebar
+    @ViewBuilder var detail: Detail
+
+    private var sidebarAction: String {
+        columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar"
+    }
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            sidebar.toolbar(removing: .sidebarToggle)
+        } detail: {
+            detail
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(sidebarAction, systemImage: "sidebar.left") {
+                    var transaction = Transaction(animation: reduceMotion ? nil : .easeInOut(duration: 0.25))
+                    transaction.disablesAnimations = reduceMotion
+                    withTransaction(transaction) {
+                        columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+                    }
+                }
+                .help(sidebarAction)
+            }
+        }
+    }
+}
+
 /// Shared visual vocabulary for service state. Each tone has a distinct symbol,
 /// so state never depends on color alone.
 enum StatusTone {
