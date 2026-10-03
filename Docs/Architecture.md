@@ -158,8 +158,12 @@ It rejects duplicates, malformed sections, conflicts, or external changes to
 that section. It preserves unrelated bytes, including original line endings.
 Reads reject symlinks, non-regular files, unexpected ownership and hard links.
 Replacement uses an advisory lock, content and inode/time checks, metadata
-copy (owner/mode/ACL/xattrs), fsync, and a same-volume rename. Software that
-ignores advisory locks can still race after the last check.
+copy (owner/mode/ACL/xattrs), fsync, and a same-volume inode exchange. It
+validates the displaced file's identity, content, and metadata and attempts to
+restore it if another writer won the race. If safe restoration cannot be
+confirmed, it retains the displaced file and the pending recovery record.
+The recovery record reports the retained path. The advisory lock cannot exclude
+writers that ignore it; repeated external writes can still require manual recovery.
 
 A durable pending record and hosts backup precede system writes. Normal
 failures restore prior hosts, trust, and registration. Removal also restores

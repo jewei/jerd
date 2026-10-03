@@ -47,6 +47,8 @@ struct SystemSetupTests {
         let next = try HostsDocument.replacing(original, hostname: "demo.test", expectedHostname: nil)
         try store.replace(expected: original, with: next)
         #expect(try store.read() == next)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path)
+            .allSatisfy { !$0.hasPrefix(".jerd-hosts-") })
         let metadata = try FileManager.default.attributesOfItem(atPath: url.path)
         #expect((metadata[.posixPermissions] as? NSNumber)?.intValue == 0o640)
         var read = [UInt8](repeating: 0, count: 4)
@@ -59,6 +61,105 @@ struct SystemSetupTests {
         let alias = root.appendingPathComponent("alias")
         try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: url)
         #expect(throws: (any Error).self) { try AtomicHostsFile(url: alias, expectedOwner: getuid()).read() }
+    }
+
+    @Test func atomicHostsRestoresRacedDestination() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        let raced = Data("127.0.0.1 raced.test\n".utf8)
+        try original.write(to: url)
+        let store = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            try raced.write(to: url, options: .atomic)
+        })
+
+        #expect(throws: (any Error).self) {
+            try store.replace(expected: original, with: Data("127.0.0.1 replacement.test\n".utf8))
+        }
+        #expect(try Data(contentsOf: url) == raced)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path)
+            .allSatisfy { !$0.hasPrefix(".jerd-hosts-") })
+    }
+
+    @Test(arguments: ["permissions", "attribute", "inode"])
+    func atomicHostsPreservesRacedMetadata(change: String) throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        try original.write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o640], ofItemAtPath: url.path)
+        var before = stat()
+        #expect(lstat(url.path, &before) == 0)
+        let store = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            switch change {
+            case "permissions":
+                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            case "attribute":
+                let value = Array("keep".utf8)
+                #expect(value.withUnsafeBytes { setxattr(url.path, "com.jerd.race", $0.baseAddress, $0.count, 0, 0) } == 0)
+            default:
+                try original.write(to: url, options: .atomic)
+            }
+        })
+        #expect(throws: (any Error).self) { try store.replace(expected: original, with: Data("replacement".utf8)) }
+        #expect(try Data(contentsOf: url) == original)
+        var after = stat()
+        #expect(lstat(url.path, &after) == 0)
+        switch change {
+        case "permissions": #expect(after.st_mode & 0o777 == 0o600)
+        case "attribute":
+            var value = [UInt8](repeating: 0, count: 4)
+            #expect(getxattr(url.path, "com.jerd.race", &value, value.count, 0, 0) == 4)
+            #expect(value == Array("keep".utf8))
+        default: #expect(after.st_ino != before.st_ino)
+        }
+    }
+
+    @Test func atomicHostsPreservesASecondWriterDuringRestoration() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        let first = Data("127.0.0.1 first.test\n".utf8)
+        let second = Data("127.0.0.1 second.test\n".utf8)
+        try original.write(to: url)
+        let store = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            try first.write(to: url, options: .atomic)
+        }, preRestore: {
+            try second.write(to: url, options: .atomic)
+        })
+        do {
+            try store.replace(expected: original, with: Data("replacement".utf8))
+            Issue.record("Expected retained recovery data")
+        } catch {
+            guard case JerdError.partialChange = error else { throw error }
+        }
+        #expect(try Data(contentsOf: url) == first)
+        let retained = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix(".jerd-hosts-") }
+        #expect(retained.count == 1)
+        #expect(try Data(contentsOf: #require(retained.first)) == second)
+    }
+
+    @Test func atomicHostsRejectsAndRestoresFIFOWithoutBlocking() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("hosts")
+        let original = Data("127.0.0.1 localhost\n".utf8)
+        try original.write(to: url)
+        let store = AtomicHostsFile(url: url, expectedOwner: getuid(), preExchange: {
+            try FileManager.default.removeItem(at: url)
+            #expect(mkfifo(url.path, 0o600) == 0)
+        })
+        #expect(throws: (any Error).self) { try store.replace(expected: original, with: Data("replacement".utf8)) }
+        var info = stat()
+        #expect(lstat(url.path, &info) == 0)
+        #expect(info.st_mode & S_IFMT == S_IFIFO)
+        #expect(throws: (any Error).self) { try store.read() }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path)
+            .allSatisfy { !$0.hasPrefix(".jerd-hosts-") })
     }
 
     @Test func rejectsNonJerdCertificateAndSigningInput() throws {

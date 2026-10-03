@@ -8,29 +8,35 @@ struct AboutView: View {
 
     var body: some View {
         GroupedPane {
-            HStack(spacing: 16) {
+            HStack(spacing: 20) {
                 if let icon = model.appearance.image(for: model.appearance.icon) {
-                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 64, height: 64)
+                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 80, height: 80)
                         .accessibilityHidden(true)
                 }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Jerd").font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                    Text("A local PHP development environment for macOS.").foregroundStyle(.secondary)
-                    Text("Version \(version) · Build \(build)").font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Jerd").font(.system(size: 28, weight: .bold)).accessibilityAddTraits(.isHeader)
+                    Text("Local PHP development. At home on your Mac.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text("Version \(version) · Build \(build)")
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary).textSelection(.enabled)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(.quaternary.opacity(0.5), in: Capsule())
                 }
                 Spacer()
             }
-            .padding(.horizontal, 30).padding(.vertical, 16)
+            .padding(.horizontal, 30).padding(.vertical, 24)
         } content: {
             Section {
                 ControlRow("Jerd updates", detail: model.appUpdates.message) {
-                    Button("Check for app updates") { model.appUpdates.checkForUpdates() }
+                    Button("Check for updates", systemImage: "arrow.clockwise") { model.appUpdates.checkForUpdates() }
+                        .accessibilityLabel("Check for app updates")
                         .disabled(!model.appUpdates.canCheckForUpdates)
                 }
                 if let error = model.appUpdates.errorMessage { InlineMessage(error) }
                 Toggle("Automatically check for app updates", isOn: Binding(
                     get: { model.appUpdates.automaticallyChecks },
                     set: { model.appUpdates.setAutomaticChecks($0) }))
+                    .toggleStyle(.switch)
                     .disabled(!model.appUpdates.canChangePreferences)
                 if let checked = model.appUpdates.lastCheck {
                     ValueRow("Last check", checked.formatted(date: .abbreviated, time: .shortened))
@@ -54,7 +60,13 @@ struct AboutView: View {
                     LabeledContent {
                         Text(credit.role).foregroundStyle(.secondary)
                     } label: {
-                        Link(credit.name, destination: credit.url)
+                        Link(destination: credit.url) {
+                            HStack(spacing: 6) {
+                                Text(credit.name)
+                                Image(systemName: "arrow.up.right").font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.tertiary).accessibilityHidden(true)
+                            }
+                        }
                     }
                 }
             } header: { Text("Credits") } footer: {
@@ -94,6 +106,7 @@ struct AboutView: View {
             Credit(name: "PHP", role: "PHP CLI and PHP-FPM", url: URL(string: "https://www.php.net/")!),
             Credit(name: "Lerd PHP builds", role: "Native PHP packages", url: URL(string: "https://github.com/lerd-env/php")!),
             Credit(name: "Caddy", role: "Local web server and TLS", url: URL(string: "https://caddyserver.com/")!),
+            Credit(name: "cloudflared", role: "Cloudflare Tunnel connector", url: URL(string: "https://github.com/cloudflare/cloudflared")!),
             Credit(name: "Composer", role: "PHP dependency manager", url: URL(string: "https://getcomposer.org/")!),
             Credit(name: "Laravel", role: "Application installer", url: URL(string: "https://laravel.com/")!),
             Credit(name: "MySQL", role: "Database server", url: URL(string: "https://www.mysql.com/")!),

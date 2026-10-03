@@ -14,8 +14,10 @@ final class AppModel {
     let databases = DatabaseModel()
     let storage = StorageModel()
     let mail = MailModel()
+    let tunnels = TunnelModel()
     var configuration = AppConfiguration()
     var selectedSiteID: UUID?
+    var selectedTunnelID: UUID?
     var errorMessage: String?
     private(set) var isBusy = false
     private(set) var isShuttingDown = false
@@ -41,14 +43,22 @@ final class AppModel {
     private var backgroundWaiters: [CheckedContinuation<Void, Never>] = []
     private var monitor: Task<Void, Never>?
     private let helper = HelperClient()
+    private let environmentDirectory = JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment")
     @ObservationIgnored private lazy var environment = LocalEnvironment(
-        directory: JSONConfigurationStore.applicationDirectory.appendingPathComponent("environment"), system: helper)
+        directory: environmentDirectory, system: helper)
     let registry = SiteRegistry(store: JSONConfigurationStore(directory: JSONConfigurationStore.applicationDirectory))
 
     @ObservationIgnored private lazy var siteChanges = SiteConfigurationOperation(registry: registry, environment: environment)
 
     var canStop: Bool { !isShuttingDown && !stopInProgress }
     var selectedSite: Site? { configuration.sites.first { $0.id == selectedSiteID } }
+    var selectedTunnel: TunnelRegistration? { tunnels.configuration.tunnels.first { $0.id == selectedTunnelID } }
+
+    func showTunnel(_ id: UUID) {
+        selectedSiteID = nil
+        selectedTunnelID = id
+        selectedSection = .sites
+    }
 
     func showDashboard(_ section: DashboardSection) {
         selectedDashboard = section
@@ -60,6 +70,7 @@ final class AppModel {
         if !databases.isLoaded { databases.load() }
         if !storage.isLoaded { storage.load() }
         if !mail.isLoaded { mail.load() }
+        if !tunnels.isLoaded { tunnels.load() }
         updates.load()
         perform {
             self.configuration = try await self.registry.load()
@@ -163,7 +174,7 @@ final class AppModel {
         switch result {
         case .committed(let configuration):
             self.configuration = configuration
-            if let selection { selectedSiteID = selection }
+            if let selection { selectedTunnelID = nil; selectedSiteID = selection }
             if !configuration.sites.contains(where: { $0.id == selectedSiteID }) { selectedSiteID = configuration.sites.first?.id }
         case .needsApproval(let change):
             preparedSiteChange = change
@@ -227,6 +238,8 @@ final class AppModel {
             try await mail.updateRuntime(MailRuntime(id: runtime.directory.lastPathComponent, version: runtime.version, path: runtime.directory.path))
         case .rustfs:
             try await storage.updateRuntime(StorageRuntime(id: runtime.directory.lastPathComponent, version: runtime.version, path: runtime.directory.path))
+        case .cloudflared:
+            try await tunnels.registerUpdatedRuntime(TunnelRuntime(id: runtime.id, version: runtime.version, path: runtime.directory.path))
         case .composer, .laravel: try await updates.installer.activateCompanion(runtime)
         }
     }
@@ -411,6 +424,20 @@ final class AppModel {
         NSWorkspace.shared.open(url)
     }
 
+    func openEnvironmentLog() {
+        let url = environmentDirectory.appendingPathComponent("logs")
+        Task {
+            let available = await Task.detached(priority: .utility) {
+                var isDirectory: ObjCBool = false
+                return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+                    && isDirectory.boolValue
+            }.value
+            if !available || !NSWorkspace.shared.open(url) {
+                errorMessage = "The web environment log is not available yet."
+            }
+        }
+    }
+
     func shutdown() async -> Bool {
         isShuttingDown = true
         operationMessage = canCancelWork ? "Cancelling preparation…" : "Waiting for system setup. Complete or cancel the macOS approval prompt…"
@@ -419,11 +446,21 @@ final class AppModel {
         await work?.value
         operationMessage = "Finishing runtime changes…"
         await updates.finishBeforeQuit()
+        operationMessage = "Stopping Cloudflare tunnels…"
+        guard await tunnels.shutdown() else {
+            isShuttingDown = false
+            operationMessage = nil
+            updates.resumeAfterCancelledQuit()
+            if let tunnel = tunnels.configuration.tunnels.first { showTunnel(tunnel.id) }
+            errorMessage = "A tunnel could not stop safely. Jerd will remain open. Retry Stop in Sites."
+            return false
+        }
         operationMessage = "Stopping storage…"
         guard await storage.shutdown() else {
             isShuttingDown = false
             operationMessage = nil
             updates.resumeAfterCancelledQuit()
+            tunnels.resumeAfterCancelledQuit()
             selectedSection = .storage
             errorMessage = "Storage could not stop safely. Jerd will remain open. Retry Stop in Storage."
             return false
@@ -433,6 +470,7 @@ final class AppModel {
             isShuttingDown = false
             operationMessage = nil
             updates.resumeAfterCancelledQuit()
+            tunnels.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             selectedSection = .mail
             errorMessage = "The mail service could not stop safely. Jerd will remain open. Retry Stop in Mail."
@@ -443,6 +481,7 @@ final class AppModel {
             isShuttingDown = false
             operationMessage = nil
             updates.resumeAfterCancelledQuit()
+            tunnels.resumeAfterCancelledQuit()
             storage.resumeAfterCancelledQuit()
             mail.resumeAfterCancelledQuit()
             errorMessage = "A database service could not stop safely. Jerd will remain open. Check Databases and retry Stop."

@@ -147,6 +147,11 @@ public actor PrivilegedSetupStore {
             try FileManager.default.removeItem(at: directory.appendingPathComponent("pending.json"))
         } catch {
             var recoveryErrors: [String] = []
+            if !changedHosts, case JerdError.partialChange = error {
+                journal.phase = "Host replacement needs recovery: \(error.localizedDescription)"
+                try? writeJournal(journal)
+                recoveryErrors.append(error.localizedDescription)
+            }
             if case JerdError.approvalInterrupted = error {
                 recoveryErrors.append("Certificate approval was interrupted. Its result is unknown; the recovery record was retained.")
             }
@@ -198,6 +203,11 @@ public actor PrivilegedSetupStore {
             try FileManager.default.removeItem(at: directory.appendingPathComponent("pending.json"))
         } catch {
             var failures: [String] = []
+            if !changedHosts, case JerdError.partialChange = error {
+                journal.phase = "Host replacement needs recovery: \(error.localizedDescription)"
+                try? writeJournal(journal)
+                failures.append(error.localizedDescription)
+            }
             if case JerdError.approvalInterrupted = error {
                 failures.append("Certificate approval was interrupted. Inspect the retained recovery record before retrying.")
             }

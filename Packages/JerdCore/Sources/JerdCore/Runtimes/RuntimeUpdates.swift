@@ -1,12 +1,13 @@
 import Foundation
 
 public enum RuntimeKind: String, Codable, CaseIterable, Identifiable, Sendable {
-    case php, caddy, composer, laravel, mysql, postgresql, redis, mailpit, rustfs
+    case php, caddy, composer, laravel, mysql, postgresql, redis, mailpit, rustfs, cloudflared
     public var id: String { rawValue }
     public var title: String {
         switch self {
         case .php: "PHP"; case .caddy: "Caddy"; case .composer: "Composer"; case .laravel: "Laravel installer"
         case .mysql: "MySQL"; case .postgresql: "PostgreSQL"; case .redis: "Redis"; case .mailpit: "Mailpit"; case .rustfs: "RustFS"
+        case .cloudflared: "Cloudflare Tunnel"
         }
     }
 }
@@ -153,6 +154,26 @@ public actor RuntimeUpdateCatalog {
             let content = try await metadata.text(source)
             return try Self.mysqlReleases(content, architecture: arm ? "arm64" : "x86_64",
                                           majorOS: ProcessInfo.processInfo.operatingSystemVersion.majorVersion)
+        case .cloudflared:
+            let url = URL(string: "https://api.github.com/repos/cloudflare/cloudflared/releases?per_page=30")!
+            return try Self.cloudflaredReleases(await metadata.data(url), architecture: .current)
+        }
+    }
+
+    static func cloudflaredReleases(_ data: Data, architecture: CPUArchitecture) throws -> [RuntimeRelease] {
+        let name = "cloudflared-darwin-\(architecture == .arm64 ? "arm64" : "amd64").tgz"
+        let source = URL(string: "https://github.com/cloudflare/cloudflared/releases")!
+        return try JSONDecoder().decode([GitHubRelease].self, from: data).compactMap { release in
+            guard !release.draft, !release.prerelease,
+                  RuntimeVersion(release.tag_name) != nil,
+                  let asset = release.assets.first(where: { $0.name == name }),
+                  let digest = asset.digest, digest.hasPrefix("sha256:"),
+                  RuntimeDownload.validSHA256(String(digest.dropFirst(7))),
+                  asset.browser_download_url.absoluteString ==
+                    "https://github.com/cloudflare/cloudflared/releases/download/\(release.tag_name)/\(name)" else { return nil }
+            return RuntimeRelease(kind: .cloudflared, version: release.tag_name,
+                url: asset.browser_download_url, sha256: String(digest.dropFirst(7)),
+                size: asset.size, source: source, architecture: architecture)
         }
     }
 

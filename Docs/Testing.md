@@ -94,6 +94,27 @@ It checks automatic bucket startup, signed S3 reads and writes, public/private
 access, persistence, port conflicts, credentials, and interrupted setup retry.
 
 
+## Review the native interface
+
+Build the Debug app with the standard Xcode build command, then run:
+
+```sh
+python3 Scripts/Checks/capture-ui.py
+```
+
+The script compiles a separate preview app from the current UI source. It uses
+in-memory examples and does not call app startup, service actions, runtime
+installation, the updater, or system setup. Pointer input is blocked in its
+workspace. It opens a temporary review window and captures that window only.
+A macOS graphical session and screen capture access are required.
+
+Images are saved in `.build/ui-review/screenshots-final`. Check the main pages in
+light and dark modes at standard and minimum window sizes. The examples cover
+empty and populated pages, the lower form sections, long site names, and service running, error, and busy
+states. These are visual fixtures; they do not prove service health. The capture
+does not verify keyboard navigation, VoiceOver, or dialogs. Check those separately
+before a release.
+
 ## Check signed XPC
 
 
@@ -185,3 +206,23 @@ explicit paths to the signed candidate runtimes. These tests use private data,
 loopback ports above 1023, and an isolated CA. They do not change hosts, trust
 stores, installed apps, or existing service data. The opt-in
 `JERD_RELEASE_RESOURCES` test verifies installation from signed bundle receipts.
+
+## Tunnel checks
+
+The default core suite uses temporary directories and injected tunnel transports
+and secret stores. It checks saved settings, token separation, duplicate tokens,
+process ownership, connection state, retry, graceful stop, and failed shutdown.
+Log tests check tokens split across writes and bounded buffering. No real tunnel
+or existing cloudflared process is used by these tests.
+
+After a Debug build, capture the tunnel views with memory-only fixtures:
+
+```sh
+python3 Scripts/Checks/capture-ui.py tunnel-stopped,tunnel-connected,tunnel-error
+```
+
+For an approved live check, use a separate test tunnel and its token. Confirm its
+remote route first. Check Connect, loss of network, reconnect, Stop, Quit, and
+optional startup. Confirm loopback-only metrics, token-free logs, and that any
+separate connector continues to run. A live test of the user's current tunnel
+requires a separate instruction; default tests do not start or stop it.

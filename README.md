@@ -4,6 +4,7 @@ Jerd is a native macOS app for local PHP development. It serves registered
 `.test` sites over HTTPS, with a selected PHP version for each site.
 It also manages MySQL, PostgreSQL, Redis, RustFS storage, and a Mailpit inbox.
 Each data service uses private files and loopback ports.
+The Sites tab can manage connectors for existing Cloudflare Tunnels.
 
 The Dashboard contains service status, appearance controls, runtime versions,
 and app update controls. Sparkle checks the signed app feed on GitHub.

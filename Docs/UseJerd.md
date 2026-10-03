@@ -46,6 +46,38 @@ current stage. Quit also waits for graceful database, mail, and storage shutdown
 For PHP inspection and local executable selection, open **Dashboard > Advanced**.
 A missing pinned PHP version causes an error. Jerd does not select another version automatically.
 
+## Add an existing Cloudflare Tunnel
+
+1. Configure the tunnel and public hostname in Cloudflare first.
+2. Install cloudflared in **Dashboard > Runtimes**, or select a trusted local executable in the tunnel details.
+3. Open **Sites > Add > Add Cloudflare tunnel**.
+4. Enter a name, public hostname, and the tunnel token from Cloudflare.
+5. Select a registered site or enter a loopback origin address for reference.
+6. Confirm that the remote route is configured, then select **Save**.
+7. Select **Connect** when this Mac is ready to serve the route.
+
+Save stores the registration and a Keychain token. It does not start a connector.
+The local destination is a reference; Jerd does not change Cloudflare routes or DNS.
+If another connector already runs for the same tunnel, Cloudflare can send traffic
+to either connector. Check the origin on this Mac before you connect.
+
+For a Jerd HTTPS site, configure the Cloudflare origin with the correct hostname
+and Jerd CA certificate. Set the origin server name and CA pool in Cloudflare as
+needed. Keep certificate verification enabled. See
+[Cloudflare origin settings](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/cloudflared-parameters/origin-parameters/).
+
+**Connected** means that cloudflared reports an active connection to Cloudflare.
+It does not verify the public website or its local origin. Open the public address
+to check the website. Logs are available in the tunnel details, with token values
+removed before Jerd writes them to disk.
+
+**Restart after failure** retries a failed connector with increasing delays.
+**Start when Jerd opens** is off by default. It starts the saved connector when
+Jerd opens; it does not install a system service. Stop and Quit stop only the
+connectors that Jerd owns. If graceful shutdown fails, Jerd stays open.
+Removing a tunnel stops its owned connector and removes its local registration
+and Keychain token. It retains logs and leaves Cloudflare settings unchanged.
+
 ## Add a database
 
 1. Open **Databases** and select the add control.

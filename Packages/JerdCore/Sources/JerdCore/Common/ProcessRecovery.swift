@@ -282,7 +282,7 @@ public actor ProcessRecoveryStore {
             let file = root.appendingPathComponent("active-run.json")
             if PrivateFiles.exists(file) { result[service.capitalized] = file }
         }
-        for (folder, prefix, nested) in [("databases/instances", "Database", true), ("environment/processes", "Web", false)] {
+        for (folder, prefix, nested) in [("databases/instances", "Database", true), ("tunnels/instances", "Tunnel", true), ("environment/processes", "Web", false)] {
             let root = directory.appendingPathComponent(folder)
             guard FileManager.default.fileExists(atPath: root.path) else { continue }
             try PrivateFiles.requireDirectory(root, within: directory)

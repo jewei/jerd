@@ -7,7 +7,7 @@ struct MailServiceView: View {
 
     var body: some View {
         GroupedPane(feedback: model.copiedMessage) {
-            PaneHeader("Mail", subtitle: "Capture test emails from your applications and inspect them in one inbox.",
+            PaneHeader("Mail", subtitle: "A local inbox for your application's test emails.",
                        status: (model.state.title, model.isBusy ? .busy : model.state.tone)) {
                 if model.processID != nil {
                     Button("Stop mail", systemImage: "stop.fill") { model.stop() }.disabled(!model.canChange)
@@ -16,39 +16,47 @@ struct MailServiceView: View {
                         .primaryAction(model.canChange && model.configuration.runtime != nil)
                 }
                 Button("Open inbox", systemImage: "tray") { model.openInbox() }
-                    .disabled(model.state != .running || model.isShuttingDown)
-                Button("Send test email", systemImage: "paperplane") { model.sendTestEmail() }
-                    .disabled(!model.canChange || model.state != .running)
+                    .primaryAction(model.state == .running && !model.isShuttingDown)
             }
         } content: {
             if case .failed(let message) = model.state {
                 Section { InlineMessage(message) }
             }
-            if let message = model.testMessage {
-                Section { InlineMessage(message, kind: .success) }
-            }
             if model.configuration.runtime == nil {
                 Section { InlineMessage(model.runtimeMessage, kind: .info) }
             }
             Section {
-                ValueRow("Host", "127.0.0.1")
-                ValueRow("SMTP port", String(model.configuration.smtpPort))
-                ValueRow("Inbox URL", model.configuration.inboxURL.absoluteString)
+                ValueRow("Host", "127.0.0.1", monospaced: true)
+                ValueRow("SMTP port", String(model.configuration.smtpPort), monospaced: true)
+                ValueRow("Inbox URL", model.configuration.inboxURL.absoluteString, monospaced: true)
                 ValueRow("Authentication", "No username or password")
-                ValueRow("Encryption", "None (local SMTP and HTTP)")
-            } header: { Text("Connection") } footer: {
-                Text("Both ports are limited to this Mac. External mail delivery is not configured.")
+                ValueRow("Encryption", "None · Local SMTP and HTTP")
+            } header: { Label("Connection", systemImage: "network") } footer: {
+                Text("Available only on this Mac. Messages are captured here; they are not sent to external recipients.")
                     .font(.callout).foregroundStyle(.secondary)
             }
-            Section("Laravel") {
+            Section {
                 ActionRow(".env settings", action: "Copy Laravel settings", symbol: "doc.on.doc") { model.copyLaravelSettings() }
                     .disabled(!model.canChange || model.configuration.runtime == nil)
+            } header: { Text("Laravel") } footer: {
+                Text("Paste these settings into your application's .env file, then clear any cached configuration.")
+            }
+            Section {
+                ControlRow("Test email", detail: "Send a sample message to the local inbox.") {
+                    Button("Send test email", systemImage: "paperplane") { model.sendTestEmail() }
+                        .disabled(!model.canChange || model.state != .running)
+                }
+                if let message = model.testMessage {
+                    InlineMessage(message, kind: .success)
+                }
+            } header: { Text("Inbox") } footer: {
+                Text("Open the inbox to search messages and inspect their HTML and attachments.")
             }
             Section {
                 PathRow(label: "Inbox data", path: model.paths.inbox.path) { model.showData() }
                 ActionRow("Log", action: "Open log", perform: { model.openLog() })
             } header: { Text("Files") } footer: {
-                Text("Messages stay in the inbox after Stop or Quit. Use the inbox to search messages, inspect HTML and attachments, or delete messages.")
+                Text("Messages remain in the inbox after Stop or Quit.")
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section {

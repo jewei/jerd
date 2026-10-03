@@ -6,9 +6,10 @@ struct RuntimeSettingsView: View {
     private var updates: RuntimeUpdatesModel { model.updates }
     var body: some View {
         GroupedPane {
-            PaneHeader("Runtimes", subtitle: "Choose a version, then install it. PHP versions remain available for sites that use them.") {
+            PaneHeader("Runtimes", subtitle: "Manage the tools that power your local environment.") {
                 if updates.isChecking { ProgressView().controlSize(.small) }
-                Button("Check for runtime updates", systemImage: "arrow.clockwise") { updates.check(model: model) }
+                Button("Check for updates", systemImage: "arrow.clockwise") { updates.check(model: model) }
+                    .accessibilityLabel("Check for runtime updates")
                     .disabled(updates.isChecking || updates.isShuttingDown)
             }
         } content: {
@@ -25,8 +26,9 @@ struct RuntimeSettingsView: View {
             if kind == .php, !model.configuration.runtimes.isEmpty {
                 phpSelections
             } else {
-                LabeledContent("Installed") {
-                    Text(versions.isEmpty ? "Unavailable" : versions.joined(separator: ", "))
+                LabeledContent("Version") {
+                    Text(versions.isEmpty ? "Not installed" : versions.joined(separator: ", "))
+                        .monospacedDigit().foregroundStyle(versions.isEmpty ? .secondary : .primary)
                         .textSelection(.enabled).id(versions)
                 }
             }
@@ -52,20 +54,36 @@ struct RuntimeSettingsView: View {
                 }
             }
             if updates.installing == kind, let progress = updates.progress {
-                HStack {
-                    if let fraction = progress.fraction { ProgressView(value: fraction).frame(width: 120) }
-                    else { ProgressView().controlSize(.small) }
-                    Text(progress.message).font(.callout)
-                    Spacer()
-                    if updates.canCancel { Button("Cancel") { updates.cancelInstall() } }
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        if progress.fraction == nil { ProgressView().controlSize(.small) }
+                        Text(progress.message).font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        if updates.canCancel { Button("Cancel") { updates.cancelInstall() } }
+                    }
+                    if let fraction = progress.fraction { ProgressView(value: fraction) }
                 }
+                .padding(.vertical, 4)
             }
             if let message = updates.messages[kind] { InlineMessage(message, kind: .info) }
             if let error = updates.errors[kind] { InlineMessage(error) }
         } header: {
-            Text(kind.title)
+            Label(kind.title, systemImage: symbol(kind))
         } footer: {
             Text(footer(kind, checked: check?.checkedAt)).font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
+    private func symbol(_ kind: RuntimeKind) -> String {
+        switch kind {
+        case .php: "chevron.left.forwardslash.chevron.right"
+        case .caddy: "globe"
+        case .composer, .laravel: "shippingbox"
+        case .mysql, .postgresql, .redis: "externaldrive"
+        case .mailpit: "envelope"
+        case .rustfs: "externaldrive.badge.icloud"
+        case .cloudflared: "network"
         }
     }
 
@@ -76,6 +94,7 @@ struct RuntimeSettingsView: View {
         case .postgresql: parts.append("PostgreSQL uses the 18 series from Postgres.app.")
         case .redis: parts.append("Redis builds need the Xcode command line tools.")
         case .mailpit, .rustfs: parts.append("An update restarts this service. Jerd keeps a local data backup for recovery.")
+        case .cloudflared: parts.append("Cloudflare Tunnel uses the official cloudflared runtime. Stop Jerd tunnels before changing this runtime.")
         default: break
         }
         return parts.joined(separator: " ")
@@ -85,7 +104,8 @@ struct RuntimeSettingsView: View {
             ControlRow("PHP \(runtime.version)",
                        detail: updates.installed.first(where: { $0.executable.path == runtime.cliPath }).map { "Build \($0.archiveSHA256.prefix(12))" }) {
                 if model.configuration.defaultRuntimeID == runtime.id {
-                    Text("Default").foregroundStyle(.secondary)
+                    Label("Default", systemImage: "checkmark.circle.fill")
+                        .font(.callout.weight(.medium)).foregroundStyle(Color.accentColor)
                 } else {
                     Button("Use as default") { model.setDefaultRuntime(runtime.id) }
                         .disabled(model.isBusy || updates.installing != nil)
@@ -96,7 +116,7 @@ struct RuntimeSettingsView: View {
     }
     @ViewBuilder private func installControl(_ release: RuntimeRelease) -> some View {
         if updates.isInstalled(release, model: model) {
-            Label("Installed", systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
+            Label("Installed", systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(.secondary)
         } else if release.kind == .php {
             HStack {
                 Button("Install and use") { updates.install(release, model: model) }
@@ -106,7 +126,8 @@ struct RuntimeSettingsView: View {
                     .accessibilityLabel("More install options").help("More install options")
             }.disabled(updates.installing != nil || model.isBusy)
         } else {
-            Button([RuntimeKind.mysql, .postgresql, .redis].contains(release.kind) ? "Install version" : "Update") {
+            Button([RuntimeKind.mysql, .postgresql, .redis].contains(release.kind) ? "Install version" :
+                   (updates.installedVersions(release.kind, model: model).isEmpty ? "Install" : "Update")) {
                 updates.install(release, model: model)
             }.disabled(updates.installing != nil || model.isBusy)
         }

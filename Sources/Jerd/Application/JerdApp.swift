@@ -80,6 +80,22 @@ private struct MainWindowView: View {
     let delegate: AppDelegate
     @Environment(\.openWindow) private var openWindow
     var body: some View {
+        JerdWorkspaceView(model: model)
+                .task {
+                    delegate.model = model
+                    delegate.openMainWindow = { openWindow(id: "main") }
+                    model.appearance.apply()
+                    model.load()
+                    model.appUpdates.start()
+                }
+    }
+}
+
+/// The workspace has no startup effects, so previews can use in-memory models.
+struct JerdWorkspaceView: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
         TabView(selection: $model.selectedSection) {
                 DashboardView(model: model)
                     .tabItem { Label("Dashboard", systemImage: "square.grid.2x2") }.tag(AppSection.dashboard)
@@ -108,13 +124,6 @@ private struct MainWindowView: View {
                             }
                         }.padding(12).background(.bar)
                     }
-                }
-                .task {
-                    delegate.model = model
-                    delegate.openMainWindow = { openWindow(id: "main") }
-                    model.appearance.apply()
-                    model.load()
-                    model.appUpdates.start()
                 }
     }
 }
@@ -152,6 +161,25 @@ private struct MenuContent: View {
             Button("Stop environment") { model.stop() }.disabled(!model.canStop)
         } else if model.configuration.sites.contains(where: \.isEnabled) {
             Button("Start all sites") { model.start() }.disabled(model.isBusy)
+        }
+        if !model.tunnels.configuration.tunnels.isEmpty {
+            Menu("Tunnels") {
+                ForEach(model.tunnels.configuration.tunnels) { tunnel in
+                    Menu(tunnel.name) {
+                        Text(model.tunnels.state(tunnel).title)
+                        Button("Open public address") { model.tunnels.open(tunnel) }
+                        Button("Manage tunnel…") {
+                            model.showTunnel(tunnel.id)
+                            openWindow(id: "main")
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                        if model.tunnels.isActive(tunnel) {
+                            Button("Stop connector") { model.tunnels.stop(tunnel) }
+                                .disabled(!model.tunnels.canStop(tunnel))
+                        }
+                    }
+                }
+            }
         }
         if !model.databases.configuration.services.isEmpty {
             Menu("Databases") {

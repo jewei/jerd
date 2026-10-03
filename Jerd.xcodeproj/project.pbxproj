@@ -19,6 +19,7 @@
 		33FBA2CF7DA2380659B1D087 /* Icon-monogram.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C2CC4D7EE1FBDB5D3F18651 /* Icon-monogram.png */; };
 		387DEBBAA5FD736D86B8AEDA /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFFB6C42F9034C9F250DB4E /* AppAppearance.swift */; };
 		3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13AA2674D69717280670C24F /* JerdCore */; };
+		4014B5844FDE4881C7907F5D /* TunnelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */; };
 		4478ED35B219193FBAF51EA7 /* Icon-rainbow.png in Resources */ = {isa = PBXBuildFile; fileRef = C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */; };
 		4A5F2D95DEF91D5029967E35 /* DatabaseServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */; };
 		5067AA2A270DC0936D3C27BE /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACF72C27741CBD6AF7B3579 /* AboutView.swift */; };
@@ -39,6 +40,8 @@
 		CD185446028D36783E05372C /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BCC5D6DDA4C86990D41DCC /* HelperService.swift */; };
 		D04A445E53E90087DAEFEBD8 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8346E110A794E2E6A64F8F /* main.swift */; };
 		DF791BC611566ACF4D017073 /* TrustConsentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CED13C4F5EB4F20B0E4333D /* TrustConsentClient.swift */; };
+		E05BA7F70AB07DBB75B86187 /* TunnelModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */; };
+		E37099F9894404B9E2C75F01 /* TunnelDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */; };
 		E39579947E4969D76140A8D5 /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D26362B1DF3FA4FF7963C7A2 /* HelperClient.swift */; };
 		ECC47E3F34D2BCFDAF74DE4F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A6C945C5B467316C6E8BB1 /* AppModel.swift */; };
 		F0839D894CA9343AA1D14C22 /* Icon-dots.png in Resources */ = {isa = PBXBuildFile; fileRef = 3EA233A2BE2D9AFAB712696D /* Icon-dots.png */; };
@@ -69,6 +72,7 @@
 		24073687C0540B2D250490FC /* Icon-stack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-stack.png"; sourceTree = "<group>"; };
 		251EC6CC703F3A2C6C835F8C /* StorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModel.swift; sourceTree = "<group>"; };
 		28A6C945C5B467316C6E8BB1 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelEditor.swift; sourceTree = "<group>"; };
 		393B28D7BFE55969E235ABAA /* MailModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailModel.swift; sourceTree = "<group>"; };
 		3C8346E110A794E2E6A64F8F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		3CF9F1BE123BCEEA3A2EF531 /* TrustConsentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentService.swift; sourceTree = "<group>"; };
@@ -89,6 +93,7 @@
 		8EB21B0CC4F9DCD13C7E94F2 /* JerdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdApp.swift; sourceTree = "<group>"; };
 		A1166F2EE5762E02A30C7102 /* JerdCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = JerdCore; path = Packages/JerdCore; sourceTree = SOURCE_ROOT; };
 		AFF9D466C3ECDBA618840327 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelDetailView.swift; sourceTree = "<group>"; };
 		BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Sparkle-LICENSE.txt"; sourceTree = "<group>"; };
 		BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCertificateTrust.swift; sourceTree = "<group>"; };
 		C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-rainbow.png"; sourceTree = "<group>"; };
@@ -97,6 +102,7 @@
 		D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseServicesView.swift; sourceTree = "<group>"; };
 		D3FCAA0733515A1222E2C1C2 /* Jerd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jerd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdatesModel.swift; sourceTree = "<group>"; };
+		E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelModel.swift; sourceTree = "<group>"; };
 		ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-elephant.png"; sourceTree = "<group>"; };
 		F3D637D66C7860EB546D18B6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		FED712700FBFF27CD2877AD8 /* JerdUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdUI.swift; sourceTree = "<group>"; };
@@ -139,6 +145,7 @@
 				BD0DBF40511F44BDF8EA8843 /* Mail */,
 				1CFC9C43E819F502CF75969B /* Sites */,
 				C3B7EDF189E0B0CFC4B02141 /* Storage */,
+				A0336895246A56A98BEC14E6 /* Tunnels */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -245,6 +252,16 @@
 				D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */,
 			);
 			path = Databases;
+			sourceTree = "<group>";
+		};
+		A0336895246A56A98BEC14E6 /* Tunnels */ = {
+			isa = PBXGroup;
+			children = (
+				B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */,
+				2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */,
+				E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */,
+			);
+			path = Tunnels;
 			sourceTree = "<group>";
 		};
 		B2842AECF1B655E17E607A20 /* Licenses */ = {
@@ -503,6 +520,9 @@
 				2B0979E5C00C17DB8871C01E /* StorageModel.swift in Sources */,
 				F4B30B3C09B622704392D320 /* StorageServicesView.swift in Sources */,
 				A3F50488AC0746D224D3D51C /* TrustConsentService.swift in Sources */,
+				E37099F9894404B9E2C75F01 /* TunnelDetailView.swift in Sources */,
+				4014B5844FDE4881C7907F5D /* TunnelEditor.swift in Sources */,
+				E05BA7F70AB07DBB75B86187 /* TunnelModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
