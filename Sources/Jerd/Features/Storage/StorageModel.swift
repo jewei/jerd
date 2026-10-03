@@ -32,7 +32,13 @@ final class StorageModel {
     }
     func bucketStatus(_ bucket: StorageBucket) -> String {
         if !bucket.setupComplete { return "Setup incomplete" }
-        if state != .running { return "Storage stopped" }
+        switch state {
+        case .stopped: return "Storage stopped"
+        case .starting: return "Storage starting"
+        case .stopping: return "Storage stopping"
+        case .failed: return "Storage failed"
+        case .running: break
+        }
         return availableBuckets.contains(bucket.name) ? "Ready" : "Bucket missing"
     }
     func load() {

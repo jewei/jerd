@@ -1,5 +1,60 @@
 import SwiftUI
+import AppKit
 import JerdCore
+
+/// A consistent visual anchor for services and empty states.
+struct ServiceIcon: View {
+    let symbol: String
+    var tint: Color = .accentColor
+    var size: CGFloat = 40
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.44, weight: .medium))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background {
+                RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+                    .fill(tint.gradient.opacity(0.10))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+                    .strokeBorder(tint.opacity(contrast == .increased ? 0.6 : 0.16))
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+/// Empty pages retain the same hierarchy and readable width as populated pages.
+struct EmptyPane<Actions: View>: View {
+    let title: String
+    let symbol: String
+    let message: String
+    @ViewBuilder var actions: Actions
+
+    init(title: String, symbol: String, message: String,
+         @ViewBuilder actions: () -> Actions = { EmptyView() }) {
+        self.title = title; self.symbol = symbol; self.message = message; self.actions = actions()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ServiceIcon(symbol: symbol, size: 64).padding(.bottom, 20)
+            Text(title).font(.system(size: 22, weight: .semibold))
+                .accessibilityAddTraits(.isHeader).padding(.bottom, 8)
+            Text(message).font(.body).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(3).padding(.bottom, 22)
+            actions.controlSize(.large)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 380)
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
 
 /// Shared visual vocabulary for service state. Each tone has a distinct symbol,
 /// so state never depends on color alone.
@@ -80,9 +135,9 @@ struct StatusBadge: View {
             }
             Text(title).foregroundStyle(.primary)
         }
-        .font(.callout.weight(.medium))
-        .padding(.horizontal, 9).padding(.vertical, 3)
-        .background(tone.color.opacity(tone == .idle ? 0.12 : 0.16), in: Capsule())
+        .font(.system(size: 11, weight: .medium))
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(tone.color.opacity(tone == .idle ? 0.08 : 0.10), in: Capsule())
         .fixedSize()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Status")
@@ -121,7 +176,7 @@ struct SidebarRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title).fontWeight(.medium).foregroundStyle(dimmed ? .secondary : .primary)
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
@@ -129,7 +184,7 @@ struct SidebarRow: View {
             Spacer(minLength: 4)
             StatusIndicator(title: status, tone: tone)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
 }
@@ -158,34 +213,39 @@ struct PaneHeader<Actions: View>: View {
                 actionRow
             }
         }
-        .padding(.horizontal, 30).padding(.vertical, 16)
+        .padding(.horizontal, 28).padding(.vertical, 22)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .center, spacing: 10) {
-                Text(title).font(.title2.bold())
-                    .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                Text(title).font(.system(size: 24, weight: .semibold))
+                    .lineLimit(1).truncationMode(.middle).textSelection(.enabled).help(title)
                     .accessibilityAddTraits(.isHeader)
                 if let status { StatusBadge(title: status.title, tone: status.tone) }
             }
             if let subtitle {
-                Text(subtitle).foregroundStyle(.secondary).lineLimit(2).textSelection(.enabled)
+                Text(subtitle).font(.callout).foregroundStyle(.secondary)
+                    .lineLimit(2).textSelection(.enabled).help(subtitle)
             }
         }
     }
 
     private var actionRow: some View {
-        HStack(spacing: 8) { actions }.fixedSize()
+        HStack(spacing: 8) { actions }.controlSize(.regular).fixedSize()
     }
 }
 
 extension View {
     /// Uses the prominent style only while the action is available, so a disabled
     /// control never looks like the next step.
-    func primaryAction(_ enabled: Bool) -> some View {
-        buttonStyle(.borderedProminent).tint(enabled ? nil : Color.secondary).disabled(!enabled)
+    @ViewBuilder func primaryAction(_ enabled: Bool) -> some View {
+        if enabled {
+            buttonStyle(.borderedProminent)
+        } else {
+            buttonStyle(.bordered).disabled(true)
+        }
     }
 }
 
@@ -317,6 +377,7 @@ struct PathRow: View {
 /// confirmation toast that does not move the content.
 struct GroupedPane<Header: View, Content: View>: View {
     var feedback: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
 
@@ -325,15 +386,19 @@ struct GroupedPane<Header: View, Content: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Match the readable width of grouped forms, so the header and the
-            // sections stay aligned in wide windows.
-            header.frame(maxWidth: 744).frame(maxWidth: .infinity)
-            Divider()
-            Form { content }
-                .formStyle(.grouped)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Keep the native form's ideal height from enlarging the pane.
+                // The form scrolls within the space below its fixed header.
+                header.frame(maxWidth: 744).frame(maxWidth: .infinity)
+                Divider().opacity(0.6)
+                Form { content }
+                    .formStyle(.grouped)
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) {
             ZStack {
                 if let feedback {
@@ -346,7 +411,7 @@ struct GroupedPane<Header: View, Content: View>: View {
                         .transition(.opacity)
                 }
             }
-            .animation(.easeOut(duration: 0.2), value: feedback)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: feedback)
         }
         .onChange(of: feedback) { _, message in
             if let message { AccessibilityNotification.Announcement(message).post() }
@@ -365,16 +430,16 @@ struct SheetScaffold<Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.title3.bold()).accessibilityAddTraits(.isHeader)
+                Text(title).font(.system(size: 20, weight: .semibold)).accessibilityAddTraits(.isHeader)
                 if let message { Text(message).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
             }
-            .padding(.horizontal, 20).padding(.top, 20)
+            .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 6)
             Form { content }
                 .formStyle(.grouped)
                 .scrollContentBackground(.hidden)
             Divider()
             HStack(spacing: 8) { footer }
-                .padding(.horizontal, 20).padding(.vertical, 14)
+                .padding(.horizontal, 24).padding(.vertical, 16)
         }
         .frame(width: width)
     }

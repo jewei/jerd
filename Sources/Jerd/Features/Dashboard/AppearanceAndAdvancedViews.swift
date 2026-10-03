@@ -8,19 +8,27 @@ struct AppearanceView: View {
             PaneHeader("Appearance", subtitle: "Choose where Jerd appears and which icon it uses.")
         } content: {
             Section {
-                Toggle("Show in menu bar", isOn: $appearance.showMenuBar)
-                Toggle("Show in Dock", isOn: $appearance.showDock)
+                Toggle(isOn: $appearance.showMenuBar) {
+                    visibilityLabel("Menu bar", detail: "Keep Jerd within reach at the top of your screen.", symbol: "menubar.rectangle")
+                }
+                .toggleStyle(.switch)
+                .accessibilityLabel("Show in menu bar")
+                Toggle(isOn: $appearance.showDock) {
+                    visibilityLabel("Dock", detail: "Show the app icon in your Dock.", symbol: "dock.rectangle")
+                }
+                .toggleStyle(.switch)
+                .accessibilityLabel("Show in Dock")
             } header: { Text("App visibility") } footer: {
                 Text("When both are off, open Jerd from Applications to return to its window.")
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 124), spacing: 12)], spacing: 12) {
                     ForEach(AppIconChoice.allCases) { choice in iconButton(choice) }
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("App icon")
-                .padding(.vertical, 6)
+                .padding(.vertical, 10)
             } header: { Text("App icon") } footer: {
                 Text("The selected icon appears in the Dock and menu bar while Jerd is open.")
                     .font(.callout).foregroundStyle(.secondary)
@@ -31,7 +39,7 @@ struct AppearanceView: View {
     private func iconButton(_ choice: AppIconChoice) -> some View {
         let selected = appearance.icon == choice
         return Button { appearance.icon = choice } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 10) {
                 Group {
                     if let image = appearance.image(for: choice) {
                         Image(nsImage: image).resizable().scaledToFit()
@@ -39,21 +47,38 @@ struct AppearanceView: View {
                         RoundedRectangle(cornerRadius: 14).fill(.quaternary)
                     }
                 }
-                .frame(width: 64, height: 64)
-                HStack(spacing: 4) {
-                    if selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor) }
-                    Text(choice.title).font(.callout).lineLimit(1)
+                .frame(width: 72, height: 72)
+                .accessibilityHidden(true)
+                Text(choice.title).font(.callout.weight(selected ? .semibold : .regular)).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 18).padding(.horizontal, 8)
+            .background(selected ? Color.accentColor.opacity(0.08) : Color(nsColor: .windowBackgroundColor).opacity(0.5), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.06), lineWidth: selected ? 1.5 : 1))
+            .overlay(alignment: .topTrailing) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.accentColor)
+                        .padding(8).accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 10).padding(.horizontal, 6)
-            .background(selected ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 1.5))
-            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .contentShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(choice.title)
         .accessibilityValue(selected ? "Selected" : "Not selected")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func visibilityLabel(_ title: String, detail: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            ServiceIcon(symbol: symbol, size: 34)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).fontWeight(.medium)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -85,7 +110,7 @@ struct AdvancedSettingsView: View {
             }
             Section {
                 if model.processFindings.isEmpty {
-                    Text("No saved services to recover. Select Inspect recovery and backups to check.").foregroundStyle(.secondary)
+                    emptyState("No saved services", detail: "Select Inspect recovery and backups to check for a previous session.", symbol: "arrow.counterclockwise")
                 }
                 ForEach(model.processFindings) { finding in
                     ControlRow(finding.title, detail: finding.detail) {
@@ -100,7 +125,7 @@ struct AdvancedSettingsView: View {
             }
             Section {
                 if model.retainedBackups.isEmpty {
-                    Text("No retained backups. Select Inspect recovery and backups to check.").foregroundStyle(.secondary)
+                    emptyState("No retained backups", detail: "Select Inspect recovery and backups to check for saved copies.", symbol: "archivebox")
                 }
                 ForEach(model.retainedBackups) { backup in
                     VStack(alignment: .leading, spacing: 6) {
@@ -136,6 +161,9 @@ struct AdvancedSettingsView: View {
                 Text("Select trusted executables for development.").font(.callout).foregroundStyle(.secondary)
             }
             Section {
+                if model.configuration.runtimes.isEmpty {
+                    emptyState("No PHP runtimes registered", detail: "Install a version in Runtimes, or select local executables above.", symbol: "shippingbox")
+                }
                 ForEach(model.configuration.runtimes) { runtime in
                     DisclosureGroup {
                         VStack(alignment: .leading, spacing: 8) {
@@ -186,5 +214,18 @@ struct AdvancedSettingsView: View {
                 removingRuntime = nil
             }
         } message: { Text("Jerd will remove this registration only. The runtime files stay on disk.") }
+    }
+
+    private func emptyState(_ title: String, detail: String, symbol: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(.secondary)
+                .frame(width: 24).padding(.top, 2).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).fontWeight(.medium)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 7)
     }
 }

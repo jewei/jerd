@@ -9,14 +9,16 @@ struct StorageServicesView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $model.selectedName) {
-                ForEach(model.configuration.buckets) { bucket in
-                    SidebarRow(title: bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",
-                               status: model.bucketStatus(bucket), tone: model.bucketTone(bucket))
-                        .tag(bucket.name)
+                Section("Buckets") {
+                    ForEach(model.configuration.buckets) { bucket in
+                        SidebarRow(title: bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",
+                                   status: model.bucketStatus(bucket), tone: model.bucketTone(bucket))
+                            .tag(bucket.name)
+                    }
                 }
             }
             .navigationTitle("Storage")
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
             .safeAreaInset(edge: .bottom) {
                 VStack(alignment: .leading, spacing: 10) {
                     Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; adding = true }
@@ -37,15 +39,16 @@ struct StorageServicesView: View {
         } detail: {
             if let bucket = model.selected { detail(bucket) }
             else {
-                ContentUnavailableView {
-                    Label(model.configuration.buckets.isEmpty ? "No buckets" : "No bucket selected", systemImage: "externaldrive.badge.icloud")
-                } description: {
-                    Text(model.configuration.runtime == nil ? model.runtimeMessage :
-                            model.configuration.buckets.isEmpty ? "Create an S3 bucket for your application's files. Jerd starts RustFS when you save your first bucket." :
-                            "Select a bucket in the sidebar.")
-                } actions: {
-                    if model.configuration.buckets.isEmpty {
-                        Button("Add bucket") { model.errorMessage = nil; adding = true }
+                EmptyPane(title: model.configuration.buckets.isEmpty ? "Local object storage" : "Select a bucket",
+                          symbol: "shippingbox",
+                          message: model.configuration.runtime == nil ? model.runtimeMessage :
+                            model.configuration.buckets.isEmpty ? "Give your application an S3 bucket for uploads and files. Jerd starts RustFS and checks the bucket when you save." :
+                            "Select a bucket in the sidebar to view its connection and access settings.") {
+                    if model.configuration.runtime == nil {
+                        Button("Storage settings", systemImage: "gearshape") { model.errorMessage = nil; settings = true }
+                            .buttonStyle(.borderedProminent)
+                    } else if model.configuration.buckets.isEmpty {
+                        Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; adding = true }
                             .primaryAction(model.canAdd)
                     }
                 }
@@ -104,18 +107,25 @@ struct StorageServicesView: View {
                 }
             }
             Section {
-                ValueRow("Endpoint", model.configuration.endpoint.absoluteString)
-                ValueRow("Bucket", bucket.name)
-                ValueRow("Region", model.configuration.region)
-                ValueRow("Access", bucket.publicRead ? "Public read (this Mac only)" : "Private")
+                ValueRow("Endpoint", model.configuration.endpoint.absoluteString, monospaced: true)
+                ValueRow("Bucket", bucket.name, monospaced: true)
+                ValueRow("Region", model.configuration.region, monospaced: true)
                 ValueRow("Addressing", "Path style")
+            } header: { Label("Connection", systemImage: "network") } footer: {
+                Text("Available only on this Mac. All buckets use the same RustFS service.")
+            }
+            Section {
+                LabeledContent("Bucket access") {
+                    Label(bucket.publicRead ? "Public read" : "Private", systemImage: bucket.publicRead ? "eye" : "lock")
+                        .foregroundStyle(.secondary)
+                }
                 ActionRow("Access key", action: "Copy access key", symbol: "key") { model.copy("Access key") }
                     .disabled(!model.canChange)
                 ActionRow("Secret key", action: "Copy secret key", symbol: "key") { model.copy("Secret key") }
                     .disabled(!model.canChange)
-            } header: { Text("Connection") } footer: {
+            } header: { Label("Access", systemImage: "lock.shield") } footer: {
                 Text((bucket.publicRead ? "Objects can be read without credentials. Uploads require credentials. " : "Credentials are required to read and write objects. ") +
-                     "All local buckets share one RustFS service and its credentials. Use the access key and secret key to sign in to the console. Buckets and objects remain after Stop or Quit.")
+                     "Use the shared access key and secret key to sign in to the console.")
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section {
@@ -125,9 +135,11 @@ struct StorageServicesView: View {
                 Text("Laravel needs its S3 filesystem adapter. Copy the settings into your application's .env file, then clear any cached configuration.")
                     .font(.callout).foregroundStyle(.secondary)
             }
-            Section("Files") {
+            Section {
                 PathRow(label: "Data folder", path: model.paths.data.path) { model.showData() }
                 ActionRow("Log", action: "Open log", perform: { model.openLog() })
+            } header: { Text("Files") } footer: {
+                Text("Buckets, objects, and credentials remain after Stop or Quit.")
             }
         }
     }
@@ -142,7 +154,7 @@ private struct StorageBucketEditor: View {
     @FocusState private var nameFocused: Bool
 
     var body: some View {
-        SheetScaffold(title: "Add bucket", message: "Jerd creates the credentials and starts storage if needed. Your bucket is ready when Save finishes.") {
+        SheetScaffold(title: "Add bucket", message: "Jerd starts storage if needed, then creates and checks your bucket.") {
             Section {
                 TextField("Bucket name", text: $name, prompt: Text("my-app-uploads"))
                     .focused($nameFocused)
@@ -153,8 +165,8 @@ private struct StorageBucketEditor: View {
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section {
-                ValueRow("Endpoint", model.configuration.endpoint.absoluteString)
-                ValueRow("Region", model.configuration.region)
+                ValueRow("Endpoint", model.configuration.endpoint.absoluteString, monospaced: true)
+                ValueRow("Region", model.configuration.region, monospaced: true)
             }
             if let message = localError ?? model.errorMessage { InlineMessage(message) }
         } footer: {

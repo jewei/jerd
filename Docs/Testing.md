@@ -94,6 +94,27 @@ It checks automatic bucket startup, signed S3 reads and writes, public/private
 access, persistence, port conflicts, credentials, and interrupted setup retry.
 
 
+## Review the native interface
+
+Build the Debug app with the standard Xcode build command, then run:
+
+```sh
+python3 Scripts/Checks/capture-ui.py
+```
+
+The script compiles a separate preview app from the current UI source. It uses
+in-memory examples and does not call app startup, service actions, runtime
+installation, the updater, or system setup. Pointer input is blocked in its
+workspace. It opens a temporary review window and captures that window only.
+A macOS graphical session and screen capture access are required.
+
+Images are saved in `.build/ui-review/screenshots-final`. Check the main pages in
+light and dark modes at standard and minimum window sizes. The examples cover
+empty and populated pages, the lower form sections, long site names, and service running, error, and busy
+states. These are visual fixtures; they do not prove service health. The capture
+does not verify keyboard navigation, VoiceOver, or dialogs. Check those separately
+before a release.
+
 ## Check signed XPC
 
 
