@@ -91,40 +91,282 @@ private struct MainWindowView: View {
     }
 }
 
+enum WorkspaceSelection: Hashable {
+    case dashboard(DashboardSection), site(UUID), tunnel(UUID), database(UUID), bucket(String)
+}
+
 /// The workspace has no startup effects, so previews can use in-memory models.
 struct JerdWorkspaceView: View {
     @Bindable var model: AppModel
+    @State var sites = SitePresentation()
+    @State private var databases = DatabasePresentation()
+    @State var storage = StoragePresentation()
+    @State private var sidebarState = WorkspaceSidebarState()
+
+    private var sitePage: ContentView { ContentView(presentation: sites, model: model) }
+    private var databasePage: DatabaseServicesView { DatabaseServicesView(presentation: databases, model: model.databases) }
+    private var storagePage: StorageServicesView { StorageServicesView(presentation: storage, model: model.storage) }
 
     var body: some View {
-        TabView(selection: $model.selectedSection) {
-                DashboardView(model: model)
-                    .tabItem { Label("Dashboard", systemImage: "square.grid.2x2") }.tag(AppSection.dashboard)
-                ContentView(model: model).tabItem { Label("Sites", systemImage: "globe") }.tag(AppSection.sites)
-                DatabaseServicesView(model: model.databases)
-                    .tabItem { Label("Databases", systemImage: "externaldrive") }.tag(AppSection.databases)
-                StorageServicesView(model: model.storage)
-                    .tabItem { Label("Storage", systemImage: "externaldrive.badge.icloud") }.tag(AppSection.storage)
-                MailServiceView(model: model.mail)
-                    .tabItem { Label("Mail", systemImage: "envelope") }.tag(AppSection.mail)
-            }
-                // Replace the page and its toolbar together when changing tabs.
-                .transaction(value: model.selectedSection) { transaction in
-                    transaction.animation = nil
-                    transaction.disablesAnimations = true
+        WorkspacePages(model: model, sites: sites, databases: databases, storage: storage,
+                       sidebarState: sidebarState, sidebar: AnyView(sidebar))
+        .toolbar(removing: titleItem)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(sidebarAction, systemImage: "sidebar.left") {
+                    sidebarState.toggle(model.selectedSection)
                 }
-                .frame(minWidth: 820, minHeight: 540)
-                .safeAreaInset(edge: .bottom) {
-                    if let message = model.operationMessage {
-                        HStack {
-                            ProgressView().controlSize(.small)
-                            Text(message).font(.callout)
-                            Spacer()
-                            if model.isBusy && !model.isShuttingDown {
-                                Button("Stop sites") { model.stop() }.disabled(!model.canStop)
-                            }
-                        }.padding(12).background(.bar)
+                .help(model.selectedSection == .mail ? "Mail has no sidebar" : sidebarAction)
+                .disabled(model.selectedSection == .mail)
+            }
+            ToolbarItem(placement: .principal) {
+                Picker("Section", selection: $model.selectedSection) {
+                    ForEach(AppSection.allCases, id: \.self) { section in
+                        Text(section.title).tag(section)
                     }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            ToolbarItemGroup {
+                switch model.selectedSection {
+                case .sites: sitePage.toolbarActions
+                case .databases: databasePage.toolbarActions
+                case .storage: storagePage.toolbarActions
+                default: EmptyView()
+                }
+            }
+        }
+        .transaction(value: model.selectedSection) { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
+        .frame(minWidth: 820, minHeight: 540)
+        .safeAreaInset(edge: .bottom) {
+            if let message = model.operationMessage {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text(message).font(.callout)
+                    Spacer()
+                    if model.isBusy && !model.isShuttingDown {
+                        Button("Stop sites") { model.stop() }.disabled(!model.canStop)
+                    }
+                }.padding(12).background(.bar)
+            }
+        }
+    }
+
+    private var titleItem: ToolbarDefaultItemKind? {
+        if #available(macOS 15, *) { .title } else { nil }
+    }
+
+    private var sidebarAction: String {
+        sidebarState.isHidden(model.selectedSection) ? "Show sidebar" : "Hide sidebar"
+    }
+
+    private var sidebar: some View {
+        List(selection: sidebarSelection) {
+            switch model.selectedSection {
+            case .dashboard: DashboardView(model: model).sidebarRows
+            case .sites: sitePage.sidebarRows
+            case .databases: databasePage.sidebarRows
+            case .storage: storagePage.sidebarRows
+            case .mail: EmptyView()
+            }
+        }
+        .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom) {
+            switch model.selectedSection {
+            case .sites: sitePage.sidebarFooter
+            case .databases: databasePage.sidebarFooter
+            case .storage: storagePage.sidebarFooter
+            default: EmptyView()
+            }
+        }
+    }
+
+    private var sidebarSelection: Binding<WorkspaceSelection?> {
+        Binding(get: {
+            switch model.selectedSection {
+            case .dashboard: .dashboard(model.selectedDashboard)
+            case .sites:
+                if let id = model.selectedTunnelID { .tunnel(id) }
+                else { model.selectedSiteID.map(WorkspaceSelection.site) }
+            case .databases: model.databases.selectedID.map(WorkspaceSelection.database)
+            case .storage: model.storage.selectedName.map(WorkspaceSelection.bucket)
+            case .mail: nil
+            }
+        }, set: { selection in
+            // A native list refresh must not clear another section's selection.
+            switch (model.selectedSection, selection) {
+            case (.dashboard, .dashboard(let section)): model.selectedDashboard = section
+            case (.sites, .site(let id)): model.selectedTunnelID = nil; model.selectedSiteID = id
+            case (.sites, .tunnel(let id)): model.selectedSiteID = nil; model.selectedTunnelID = id
+            case (.databases, .database(let id)): model.databases.selectedID = id
+            case (.storage, .bucket(let name)): model.storage.selectedName = name
+            default: break
+            }
+        })
+    }
+}
+
+@MainActor @Observable
+private final class WorkspaceSidebarState {
+    var hidden: Set<AppSection> = []
+    func isHidden(_ section: AppSection) -> Bool { section == .mail || hidden.contains(section) }
+    func toggle(_ section: AppSection) {
+        guard section != .mail else { return }
+        if hidden.contains(section) { hidden.remove(section) } else { hidden.insert(section) }
+    }
+}
+
+/// Resize the shared sidebar and select the retained detail in one native update.
+private struct WorkspacePages: NSViewControllerRepresentable {
+    let model: AppModel
+    let sites: SitePresentation
+    let databases: DatabasePresentation
+    let storage: StoragePresentation
+    let sidebarState: WorkspaceSidebarState
+    let sidebar: AnyView
+
+    func makeNSViewController(context: Context) -> WorkspaceController {
+        let controller = WorkspaceController(sidebar: sidebar)
+        let pages: [AnyView] = [
+            AnyView(DashboardView(model: model)),
+            AnyView(ContentView(presentation: sites, model: model)),
+            AnyView(DatabaseServicesView(presentation: databases, model: model.databases)),
+            AnyView(StorageServicesView(presentation: storage, model: model.storage)),
+            AnyView(MailServiceView(model: model.mail))
+        ]
+        for (section, page) in zip(AppSection.allCases, pages) {
+            controller.details.addPage(NSHostingController(rootView: page), section: section)
+        }
+        controller.details.onSelection = { [weak controller, weak model, weak sidebarState] index in
+            guard let section = AppSection(rawValue: index), let model, let sidebarState else { return }
+            controller?.setSidebarHidden(sidebarState.isHidden(section))
+            if model.selectedSection != section { model.selectedSection = section }
+        }
+        controller.onSidebarCollapse = { [weak model, weak sidebarState] collapsed in
+            guard let model, let sidebarState, model.selectedSection != .mail else { return }
+            if collapsed { sidebarState.hidden.insert(model.selectedSection) }
+            else { sidebarState.hidden.remove(model.selectedSection) }
+        }
+        controller.select(model.selectedSection, sidebarHidden: sidebarState.isHidden(model.selectedSection))
+        return controller
+    }
+
+    func updateNSViewController(_ controller: WorkspaceController, context: Context) {
+        controller.sidebar.rootView = sidebar
+        controller.select(model.selectedSection, sidebarHidden: sidebarState.isHidden(model.selectedSection))
+    }
+}
+
+private final class WorkspaceController: NSSplitViewController {
+    let sidebar: NSHostingController<AnyView>
+    let details = WorkspaceDetailController()
+    var onSidebarCollapse: ((Bool) -> Void)?
+    private var collapseObservation: NSKeyValueObservation?
+    private var updatingSidebar = false
+
+    init(sidebar: AnyView) {
+        self.sidebar = NSHostingController(rootView: sidebar)
+        super.init(nibName: nil, bundle: nil)
+        let item = NSSplitViewItem(sidebarWithViewController: self.sidebar)
+        item.minimumThickness = 200
+        item.maximumThickness = 280
+        item.preferredThicknessFraction = 220.0 / 980.0
+        item.canCollapse = true
+        item.canCollapseFromWindowResize = false
+        item.collapseBehavior = .preferResizingSiblingsWithFixedSplitView
+        addSplitViewItem(item)
+        addSplitViewItem(NSSplitViewItem(viewController: details))
+        collapseObservation = item.observe(\.isCollapsed, options: [.new]) { [weak self] _, change in
+            guard let collapsed = change.newValue else { return }
+            // AppKit changes split-view geometry on the main thread.
+            MainActor.assumeIsolated {
+                guard let self, !self.updatingSidebar else { return }
+                self.onSidebarCollapse?(collapsed)
+            }
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func setSidebarHidden(_ hidden: Bool) {
+        let wasUpdating = updatingSidebar
+        updatingSidebar = true
+        defer { updatingSidebar = wasUpdating }
+        let item = splitViewItems[0]
+        if item.isCollapsed != hidden { item.isCollapsed = hidden }
+        view.layoutSubtreeIfNeeded()
+    }
+
+    func select(_ section: AppSection, sidebarHidden: Bool) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        setSidebarHidden(sidebarHidden)
+        if details.selectedIndex != section.rawValue {
+            details.selectedIndex = section.rawValue
+        }
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+    }
+}
+
+/// Keep every page attached to the window so navigation cannot dismiss a sheet.
+final class WorkspaceDetailController: NSViewController {
+    var onSelection: ((Int) -> Void)?
+    private(set) var pages: [NSViewController] = []
+    var selectedIndex = 0 {
+        didSet {
+            guard oldValue != selectedIndex else { return }
+            showSelectedPage()
+            onSelection?(selectedIndex)
+        }
+    }
+
+    override func loadView() {
+        view = NSView()
+        // Hide the page and its native controls in the same layer transaction.
+        view.wantsLayer = true
+    }
+
+    func addPage(_ controller: NSViewController, section: AppSection) {
+        precondition(section.rawValue == pages.count)
+        addChild(controller)
+        pages.append(controller)
+        controller.view.wantsLayer = true
+        controller.view.isHidden = section.rawValue != selectedIndex
+        view.addSubview(controller.view)
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        layoutSelectedPage()
+    }
+
+    private func showSelectedPage() {
+        layoutSelectedPage()
+        for (index, page) in pages.enumerated() {
+            page.view.isHidden = index != selectedIndex
+        }
+    }
+
+    private func layoutSelectedPage() {
+        guard pages.indices.contains(selectedIndex) else { return }
+        pages[selectedIndex].view.frame = view.bounds
+    }
+
+    @objc func selectNextTabViewItem(_ sender: Any?) {
+        guard selectedIndex + 1 < pages.count else { return }
+        selectedIndex += 1
+    }
+
+    @objc func selectPreviousTabViewItem(_ sender: Any?) {
+        guard selectedIndex > 0 else { return }
+        selectedIndex -= 1
     }
 }
 

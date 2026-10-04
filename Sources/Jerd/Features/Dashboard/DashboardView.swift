@@ -20,32 +20,29 @@ enum DashboardSection: String, CaseIterable, Identifiable {
 struct DashboardView: View {
     @Bindable var model: AppModel
 
-    var body: some View {
-        JerdSplitView {
-            List(DashboardSection.allCases, selection: $model.selectedDashboard) { section in
-                Label {
-                    Text(section.rawValue).fontWeight(.medium)
-                } icon: {
-                    Image(systemName: section.symbol)
-                        .symbolVariant(model.selectedDashboard == section ? .fill : .none)
-                }
-                .padding(.vertical, 7).tag(section)
+    var sidebarRows: some View {
+        ForEach(DashboardSection.allCases) { section in
+            Label {
+                Text(section.rawValue).fontWeight(.medium)
+            } icon: {
+                Image(systemName: section.symbol)
+                    .symbolVariant(model.selectedDashboard == section ? .fill : .none)
             }
-            .listStyle(.sidebar)
-            .navigationTitle("Dashboard")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
-        } detail: {
-            Group {
-                switch model.selectedDashboard {
-                case .dashboard: DashboardOverview(model: model)
-                case .appearance: AppearanceView(appearance: model.appearance)
-                case .runtimes: RuntimeSettingsView(model: model)
-                case .advanced: AdvancedSettingsView(model: model)
-                case .about: AboutView(model: model)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 7).tag(WorkspaceSelection.dashboard(section))
         }
+    }
+
+    var body: some View {
+        Group {
+            switch model.selectedDashboard {
+            case .dashboard: DashboardOverview(model: model)
+            case .appearance: AppearanceView(appearance: model.appearance)
+            case .runtimes: RuntimeSettingsView(model: model)
+            case .advanced: AdvancedSettingsView(model: model)
+            case .about: AboutView(model: model)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

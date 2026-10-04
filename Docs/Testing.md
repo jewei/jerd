@@ -112,8 +112,23 @@ Images are saved in `.build/ui-review/screenshots-final`. Check the main pages i
 light and dark modes at standard and minimum window sizes. The examples cover
 empty and populated pages, the lower form sections, long site names, and service running, error, and busy
 states. These are visual fixtures; they do not prove service health. The capture
-does not verify keyboard navigation, VoiceOver, or dialogs. Check those separately
-before a release.
+does not verify keyboard navigation, VoiceOver, or dialogs.
+
+To check section changes with pointer input enabled, run:
+
+```sh
+python3 Scripts/Checks/capture-ui.py navigation
+python3 Scripts/Checks/capture-ui.py navigation-compact
+```
+
+These modes record normal and rapid tab clicks at 980 × 660 and 820 × 540.
+They check selection agreement, a fixed section control, retained page controllers,
+sidebar width and collapsed state, native next/previous selection, and retained
+scroll position. They also open site and storage editors with in-memory presentation
+state and check dismissal with Escape. No Save or service action is invoked.
+Movies are saved beside the screenshots. Inspect transitions frame by frame for
+page overlap, intermediate widths, and sidebar movement. Check VoiceOver and the
+full keyboard workflow separately before a release.
 
 ## Check signed XPC
 

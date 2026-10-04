@@ -2,7 +2,19 @@ import AppKit
 import Observation
 import JerdCore
 
-enum AppSection { case dashboard, sites, databases, storage, mail }
+enum AppSection: Int, CaseIterable {
+    case dashboard, sites, databases, storage, mail
+
+    var title: String {
+        switch self {
+        case .dashboard: "Dashboard"
+        case .sites: "Sites"
+        case .databases: "Databases"
+        case .storage: "Storage"
+        case .mail: "Mail"
+        }
+    }
+}
 
 @MainActor @Observable
 final class AppModel {
@@ -363,6 +375,7 @@ final class AppModel {
         guard let caddy = configuration.caddy else { throw JerdError.unavailable("Caddy is unavailable.") }
         if !sites.allSatisfy(hasSetup) {
             pendingSetup = try await prepareSetup()
+            selectedSection = .sites
             return
         }
         environmentState = .starting

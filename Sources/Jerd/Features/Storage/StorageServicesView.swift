@@ -1,42 +1,55 @@
 import SwiftUI
+import Observation
 import JerdCore
 
+@MainActor @Observable
+final class StoragePresentation {
+    var adding = false
+    var settings = false
+}
+
 struct StorageServicesView: View {
+    @Bindable var presentation: StoragePresentation
     @Bindable var model: StorageModel
-    @State private var adding = false
-    @State private var settings = false
+
+    @ViewBuilder var sidebarRows: some View {
+        Section("Buckets") {
+            ForEach(model.configuration.buckets) { bucket in
+                SidebarRow(title: bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",
+                           status: model.bucketStatus(bucket), tone: model.bucketTone(bucket))
+                    .tag(WorkspaceSelection.bucket(bucket.name))
+            }
+        }
+    }
+
+    var sidebarFooter: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; presentation.adding = true }
+                .disabled(!model.canAdd)
+            Divider()
+            HStack(spacing: 8) {
+                StatusIndicator(title: model.state.title, tone: model.isBusy ? .busy : model.state.tone)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("RustFS").font(.callout.weight(.medium))
+                    Text(model.state.title).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                serviceButton.controlSize(.small)
+            }
+            .accessibilityElement(children: .contain)
+        }.padding(12)
+    }
+
+    @ViewBuilder var toolbarActions: some View {
+        Button("Refresh buckets", systemImage: "arrow.clockwise") { model.refreshBuckets() }
+            .help("Refresh buckets")
+            .disabled(!model.canChange || model.state != .running)
+        Button("Storage settings", systemImage: "gearshape") { model.errorMessage = nil; presentation.settings = true }
+            .help("Storage settings")
+    }
 
     var body: some View {
-        JerdSplitView {
-            List(selection: $model.selectedName) {
-                Section("Buckets") {
-                    ForEach(model.configuration.buckets) { bucket in
-                        SidebarRow(title: bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",
-                                   status: model.bucketStatus(bucket), tone: model.bucketTone(bucket))
-                            .tag(bucket.name)
-                    }
-                }
-            }
-            .navigationTitle("Storage")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
-            .safeAreaInset(edge: .bottom) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; adding = true }
-                        .disabled(!model.canAdd)
-                    Divider()
-                    HStack(spacing: 8) {
-                        StatusIndicator(title: model.state.title, tone: model.isBusy ? .busy : model.state.tone)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("RustFS").font(.callout.weight(.medium))
-                            Text(model.state.title).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        serviceButton.controlSize(.small)
-                    }
-                    .accessibilityElement(children: .contain)
-                }.padding(12)
-            }
-        } detail: {
+        Group {
             if let bucket = model.selected { detail(bucket) }
             else {
                 EmptyPane(title: model.configuration.buckets.isEmpty ? "Local object storage" : "Select a bucket",
@@ -45,26 +58,19 @@ struct StorageServicesView: View {
                             model.configuration.buckets.isEmpty ? "Give your application an S3 bucket for uploads and files. Jerd starts RustFS and checks the bucket when you save." :
                             "Select a bucket in the sidebar to view its connection and access settings.") {
                     if model.configuration.runtime == nil {
-                        Button("Storage settings", systemImage: "gearshape") { model.errorMessage = nil; settings = true }
+                        Button("Storage settings", systemImage: "gearshape") { model.errorMessage = nil; presentation.settings = true }
                             .buttonStyle(.borderedProminent)
                     } else if model.configuration.buckets.isEmpty {
-                        Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; adding = true }
+                        Button("Add bucket", systemImage: "plus") { model.errorMessage = nil; presentation.adding = true }
                             .primaryAction(model.canAdd)
                     }
                 }
             }
         }
-        .toolbar {
-            Button("Refresh buckets", systemImage: "arrow.clockwise") { model.refreshBuckets() }
-                .help("Refresh buckets")
-                .disabled(!model.canChange || model.state != .running)
-            Button("Storage settings", systemImage: "gearshape") { model.errorMessage = nil; settings = true }
-                .help("Storage settings")
-        }
-        .sheet(isPresented: $adding) { StorageBucketEditor(model: model) }
-        .sheet(isPresented: $settings) { StorageSettingsView(model: model) }
+        .sheet(isPresented: $presentation.adding) { StorageBucketEditor(model: model) }
+        .sheet(isPresented: $presentation.settings) { StorageSettingsView(model: model) }
         .alert("Jerd could not complete the storage operation", isPresented: Binding(
-            get: { model.errorMessage != nil && !adding && !settings },
+            get: { model.errorMessage != nil && !presentation.adding && !presentation.settings },
             set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
