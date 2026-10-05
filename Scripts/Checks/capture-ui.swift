@@ -73,7 +73,8 @@ struct CaptureUI {
                     ("storage-empty", .storage, .dashboard), ("mail", .mail, .dashboard),
                     ("sites", .sites, .dashboard), ("databases", .databases, .dashboard), ("storage", .storage, .dashboard),
                     ("dashboard-populated", .dashboard, .dashboard),
-                    ("sites-long", .sites, .dashboard), ("databases-running", .databases, .dashboard),
+                    ("sites-long", .sites, .dashboard), ("sites-running", .sites, .dashboard),
+                    ("sites-stopped", .sites, .dashboard), ("databases-running", .databases, .dashboard),
                     ("storage-running", .storage, .dashboard), ("mail-running", .mail, .dashboard),
                     ("databases-error", .databases, .dashboard), ("storage-error", .storage, .dashboard),
                     ("mail-busy", .mail, .dashboard), ("tunnel-stopped", .sites, .dashboard),
@@ -92,7 +93,15 @@ struct CaptureUI {
                         model.databases.configuration.services = [database]; model.databases.selectedID = database.id
                         model.storage.configuration.buckets = [bucket]; model.storage.selectedName = bucket.name
                     }
+                    model.environmentState = .stopped
+                    model.runningSiteIDs = []
                     switch name {
+                    case "sites-running", "sites-stopped":
+                        let second = Site(displayName: "API", projectPath: "/preview/api", documentRoot: "/preview/api/public", hostname: "api.test")
+                        model.configuration.sites = [site, second]
+                        model.selectedSiteID = name == "sites-running" ? site.id : second.id
+                        model.runningSiteIDs = [site.id]
+                        model.environmentState = .running
                     case "tunnel-stopped", "tunnel-connected", "tunnel-error":
                         model.configuration.sites = [site]
                         model.tunnels.configuration.tunnels = [tunnel]

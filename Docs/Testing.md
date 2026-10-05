@@ -7,6 +7,8 @@ Run commands from the repository root. First prepare the required runtimes with
 
 
 Default tests need no root access and do not change system files or trust.
+Site tests cover changes to the active subset, activation failure after HTTPS
+approval, and Stop during approval. They use injected services and temporary data.
 They cover site edit rollback, stale approval, cancelled preparation, no-op
 starts, helper recovery stages, PID reuse, verified orphan shutdown, silent FPM
 sockets, database registration restore, protected backups, and log limits.
@@ -100,6 +102,12 @@ Build the Debug app with the standard Xcode build command, then run:
 
 ```sh
 python3 Scripts/Checks/capture-ui.py
+```
+
+To check the site header and individual controls in both window sizes and themes:
+
+```sh
+python3 Scripts/Checks/capture-ui.py sites,sites-long,sites-running,sites-stopped
 ```
 
 The script compiles a separate preview app from the current UI source. It uses

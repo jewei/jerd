@@ -22,6 +22,8 @@ For the permission boundary, see [Hosts and certificates](Architecture.md#hosts-
 
 ## Control sites
 
+- To run one site, select it in the sidebar and select **Start site**.
+- To stop one site, select **Stop site**. Other running sites remain selected.
 - To run all enabled sites, select **Start all sites**.
 - To stop the web environment, select **Stop all sites**.
 - To retain a registration without its route, disable that site.
@@ -29,7 +31,9 @@ For the permission boundary, see [Hosts and certificates](Architecture.md#hosts-
 - To remove all host mappings, CA trust, and helper registration, select **System setup > Remove system setup**.
 
 These actions retain project files. Jerd validates a changed configuration before
-it stops working sites. Activation then restarts the enabled sites together.
+it stops working sites. A change to the running group briefly restarts the shared
+PHP and HTTPS services. Site edits keep stopped sites stopped. New or newly enabled
+sites join an existing run. Start and Stop do not change a site's enabled setting.
 If activation fails, Jerd restores the previous settings and attempts to restart
 them. A failed restore appears as an error. A display-name change or an unchanged
 configuration keeps healthy processes running. A new hostname requires HTTPS
@@ -42,6 +46,12 @@ its checks. It does not mean that the project's code works.
 Caddy. A runtime activation or a system change must finish safely first.
 Complete or cancel an active macOS approval prompt. The status bar shows the
 current stage. Quit also waits for graceful database, mail, and storage shutdown.
+
+If Jerd cannot communicate with its system helper, select **System setup > Reconnect helper**
+and approve reconnection. This stops Jerd's sites and registers the helper again.
+Existing host mappings and certificate settings remain. Complete any macOS approval
+prompt, then start the sites you need. This can resolve an old helper process left
+running after the app was replaced.
 
 For PHP inspection and local executable selection, open **Dashboard > Advanced**.
 A missing pinned PHP version causes an error. Jerd does not select another version automatically.
