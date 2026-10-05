@@ -65,27 +65,7 @@ import Testing
         let service = try await removedService(harness, first)
         let files = harness.files(service.id)
         let credentials = contents(files.layout.credentialsFile)
-        switch scenario {
-        case "missing-marker": try FileManager.default.removeItem(at: files.layout.initializedMarkerFile)
-        case "wrong-version":
-            let changed = DatabaseIdentity(
-                serviceID: service.id, runtimeID: service.runtimeID, engine: .redis, version: "9.0.0")
-            try MarkerFile.write(changed, to: files.layout.runtimeIdentityFile)
-        case "corrupt-registration": try write("corrupt", to: files.layout.removedRegistrationFile)
-        case "legacy": try FileManager.default.removeItem(at: files.layout.removedRegistrationFile)
-        default: break
-        }
-        if scenario == "moved-runtime" {
-            // The same runtime ID in another folder is another runtime.
-            var saved = try await first.load()
-            saved.runtimes = saved.runtimes.map { runtime in
-                runtime.engine == .redis
-                    ? DatabaseRuntime(id: runtime.id, engine: .redis, version: runtime.version, path: "/moved")
-                    : runtime
-            }
-            try AtomicFile.write(
-                JSONFileFormat.settings.makeEncoder().encode(saved), to: harness.layout.servicesFile)
-        }
+        try await damage(scenario, service: service, harness: harness, manager: first)
         let manager = harness.manager()
         _ = try await manager.load()
         let retained = try #require(try await manager.retainedDatabases().first)
@@ -108,6 +88,34 @@ import Testing
         #expect(text(files.data.appendingPathComponent("dump.rdb")) == "same stored data")
         #expect(contents(files.layout.credentialsFile) == credentials)
         if scenario == "corrupt-registration" { #expect(text(files.layout.removedRegistrationFile) == "corrupt") }
+    }
+
+    /// Changes the retained folder or the registry for one restore scenario.
+    private func damage(
+        _ scenario: String, service: DatabaseService, harness: DatabaseHarness, manager: DatabaseManager
+    ) async throws {
+        let files = harness.files(service.id)
+        switch scenario {
+        case "missing-marker": try FileManager.default.removeItem(at: files.layout.initializedMarkerFile)
+        case "wrong-version":
+            let changed = DatabaseIdentity(
+                serviceID: service.id, runtimeID: service.runtimeID, engine: .redis, version: "9.0.0")
+            try MarkerFile.write(changed, to: files.layout.runtimeIdentityFile)
+        case "corrupt-registration": try write("corrupt", to: files.layout.removedRegistrationFile)
+        case "legacy": try FileManager.default.removeItem(at: files.layout.removedRegistrationFile)
+        default: break
+        }
+        if scenario == "moved-runtime" {
+            // The same runtime ID in another folder is another runtime.
+            var saved = try await manager.load()
+            saved.runtimes = saved.runtimes.map { runtime in
+                runtime.engine == .redis
+                    ? DatabaseRuntime(id: runtime.id, engine: .redis, version: runtime.version, path: "/moved")
+                    : runtime
+            }
+            try AtomicFile.write(
+                JSONFileFormat.settings.makeEncoder().encode(saved), to: harness.layout.servicesFile)
+        }
     }
 
     @Test func aRestoreCannotTakeAPortOfAnotherService() async throws {

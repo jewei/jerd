@@ -30,26 +30,34 @@ import os
         }
     }
 
-    @Test func anExitedMasterKeepsDataLockedUntilItsChildStops() async throws {
-        let directory = try TemporaryDirectory(" owned descendants")
-        defer { directory.remove() }
+    /// A loaded manager whose Redis runtime is the orphan-service fixture, with one service.
+    private static func fixtureManager(
+        _ directory: TemporaryDirectory, layout: DatabasesLayout, supervisor: ProcessSupervisor
+    ) async throws -> (DatabaseManager, DatabaseService) {
         let runtimeFolder = directory.path("runtime")
         try OwnedDirectory.create(runtimeFolder.appendingPathComponent("bin"))
         try FileManager.default.copyItem(
             at: try await Fixtures.shared.executable("orphan-service"),
             to: runtimeFolder.appendingPathComponent("bin/redis-server"))
         let commands = Self.commands()
-        let supervisor = ProcessSupervisor()
         let probe = LoopbackProbe(isAccepting: { _ in false }, requireBindable: { _ in })
         let effects = ServiceEffects(
             processes: supervisor, commands: commands, ports: LoopbackPortGuard(commands: commands, probe: probe),
             stopTimeout: .milliseconds(300))
-        let layout = DataLayout(root: directory.path("Jerd")).databases
         let manager = DatabaseManager(layout: layout, effects: effects)
         _ = try await manager.load()
         let runtime = DatabaseRuntime(id: "fixture", engine: .redis, version: "8.8.3", path: runtimeFolder.path)
         try await manager.registerRuntimes([runtime])
         let service = try await manager.add(name: "Fixture", runtimeID: runtime.id, port: 26_700)
+        return (manager, service)
+    }
+
+    @Test func anExitedMasterKeepsDataLockedUntilItsChildStops() async throws {
+        let directory = try TemporaryDirectory(" owned descendants")
+        defer { directory.remove() }
+        let supervisor = ProcessSupervisor()
+        let layout = DataLayout(root: directory.path("Jerd")).databases
+        let (manager, service) = try await Self.fixtureManager(directory, layout: layout, supervisor: supervisor)
         let instance = layout.instance(service.id)
         do {
             try await manager.start(service.id)
