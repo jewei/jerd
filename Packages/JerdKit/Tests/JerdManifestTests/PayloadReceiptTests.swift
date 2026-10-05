@@ -60,6 +60,18 @@ import Testing
         #expect(throws: JerdError.invalid(message)) { try PayloadReceipt.decode(data) }
     }
 
+    @Test func phpScriptsNeedNoExecutableFlagButNativeExecutablesDo() throws {
+        let phar = try #require(RelativePath("composer.phar"))
+        let files = [phar: PayloadFileRecord(sha256: digest("1"), executable: false)]
+        func receipt(_ kind: RuntimeKind) -> PayloadReceipt {
+            PayloadReceipt(
+                id: "x-1.0.0", kind: kind, version: "1.0.0", releaseVersion: "1.0.0", architecture: .arm64,
+                archiveSHA256: digest("a"), executable: phar, secondaryExecutable: nil, files: files)
+        }
+        try receipt(.composer).validate()
+        #expect(throws: JerdError.self) { try receipt(.caddy).validate() }
+    }
+
     @Test func receiptCannotListItself() throws {
         var files = try PayloadSample.receipt().fileRecords
         files[try #require(RelativePath(PayloadReceipt.fileName))] = PayloadFileRecord(

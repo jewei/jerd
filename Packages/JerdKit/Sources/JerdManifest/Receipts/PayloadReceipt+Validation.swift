@@ -2,7 +2,8 @@ import JerdFoundation
 
 extension PayloadReceipt {
     /// Schema 1, a safe payload ID, parseable versions, a valid archive digest, 1 to 50 000 safe
-    /// paths with valid digests, and both executables recorded as executable files.
+    /// paths with valid digests, and both executables recorded. A native executable must be recorded
+    /// as executable; a PHP script (Composer, the Laravel installer) is run by PHP and may not be.
     public func validate() throws {
         guard schemaVersion == Self.currentSchemaVersion else {
             throw Self.invalid("The payload receipt has an unsupported format version.")
@@ -15,7 +16,7 @@ extension PayloadReceipt {
             !files.keys.contains(Self.fileName)
         else { throw Self.invalid("The payload receipt has an invalid file list.") }
         for path in [executable] + (secondaryExecutable.map { [$0] } ?? []) {
-            guard files[path.string]?.executable == true else {
+            guard let record = files[path.string], record.executable || kind.isPHPScript else {
                 throw Self.invalid("The payload receipt does not record its executable: \(path).")
             }
         }
