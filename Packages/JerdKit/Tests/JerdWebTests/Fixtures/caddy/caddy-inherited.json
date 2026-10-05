@@ -1,0 +1,501 @@
+{
+  "admin" : {
+    "disabled" : true
+  },
+  "apps" : {
+    "http" : {
+      "http_port" : 80,
+      "https_port" : 443,
+      "servers" : {
+        "http" : {
+          "automatic_https" : {
+            "disable" : true
+          },
+          "listen" : [
+            "fd/3"
+          ],
+          "protocols" : [
+            "h1"
+          ],
+          "routes" : [
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "headers" : {
+                    "Location" : [
+                      "https://app.test{http.request.uri}"
+                    ]
+                  },
+                  "status_code" : 308
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "app.test"
+                  ]
+                }
+              ]
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "headers" : {
+                    "Location" : [
+                      "https://blog.test{http.request.uri}"
+                    ]
+                  },
+                  "status_code" : 308
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "blog.test"
+                  ]
+                }
+              ]
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "status_code" : 421
+                }
+              ]
+            }
+          ]
+        },
+        "https" : {
+          "automatic_https" : {
+            "disable_redirects" : true
+          },
+          "listen" : [
+            "fd/4"
+          ],
+          "protocols" : [
+            "h1",
+            "h2"
+          ],
+          "routes" : [
+            {
+              "handle" : [
+                {
+                  "handler" : "subroute",
+                  "routes" : [
+                    {
+                      "handle" : [
+                        {
+                          "body" : "Jerd is ready.",
+                          "handler" : "static_response",
+                          "status_code" : 200
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path" : [
+                            "/.jerd/ready"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "vars",
+                          "root" : "/p/app/public"
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.phtml",
+                            "*.phar"
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path}"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                              }
+                            },
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)(^|/)\\.|^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "rewrite",
+                          "uri" : "{http.matchers.file.relative}"
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "split_path" : [
+                              ".php"
+                            ],
+                            "try_files" : [
+                              "{http.request.uri.path}",
+                              "{http.request.uri.path}/index.php",
+                              "index.php"
+                            ],
+                            "try_policy" : "first_exist_fallback"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "reverse_proxy",
+                          "transport" : {
+                            "dial_timeout" : 3000000000,
+                            "protocol" : "fastcgi",
+                            "read_timeout" : 35000000000,
+                            "root" : "/p/app/public",
+                            "split_path" : [
+                              ".php"
+                            ]
+                          },
+                          "upstreams" : [
+                            {
+                              "dial" : "unix//tmp/jerd-abcdef123456/php.sock"
+                            }
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/storage/"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "\\.php$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.phtml",
+                            "*.phar"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "app.test"
+                  ]
+                }
+              ],
+              "terminal" : true
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "subroute",
+                  "routes" : [
+                    {
+                      "handle" : [
+                        {
+                          "body" : "Jerd is ready.",
+                          "handler" : "static_response",
+                          "status_code" : 200
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path" : [
+                            "/.jerd/ready"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "vars",
+                          "root" : "/p/blog"
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.phtml",
+                            "*.phar"
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path}"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                              }
+                            },
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "rewrite",
+                          "uri" : "{http.matchers.file.relative}"
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "split_path" : [
+                              ".php"
+                            ],
+                            "try_files" : [
+                              "{http.request.uri.path}",
+                              "{http.request.uri.path}/index.php",
+                              "index.php"
+                            ],
+                            "try_policy" : "first_exist_fallback"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "reverse_proxy",
+                          "transport" : {
+                            "dial_timeout" : 3000000000,
+                            "protocol" : "fastcgi",
+                            "read_timeout" : 35000000000,
+                            "root" : "/p/blog",
+                            "split_path" : [
+                              ".php"
+                            ]
+                          },
+                          "upstreams" : [
+                            {
+                              "dial" : "unix//tmp/jerd-abcdef123456/php-1.sock"
+                            }
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/storage/"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "\\.php$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.phtml",
+                            "*.phar"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "blog.test"
+                  ]
+                }
+              ],
+              "terminal" : true
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "status_code" : 421
+                }
+              ]
+            }
+          ],
+          "strict_sni_host" : true,
+          "tls_connection_policies" : [
+            {
+
+            }
+          ]
+        }
+      }
+    },
+    "pki" : {
+      "certificate_authorities" : {
+        "jerd" : {
+          "install_trust" : false,
+          "name" : "Jerd Local CA 11111111-2222-3333-4444-555555555555",
+          "root_common_name" : "Jerd Local CA 11111111-2222-3333-4444-555555555555"
+        }
+      }
+    },
+    "tls" : {
+      "automation" : {
+        "policies" : [
+          {
+            "issuers" : [
+              {
+                "ca" : "jerd",
+                "module" : "internal"
+              }
+            ],
+            "subjects" : [
+              "app.test",
+              "blog.test"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "storage" : {
+    "module" : "file_system",
+    "root" : "/Users/u/Library/Application Support/Jerd/environment/certificates"
+  }
+}
