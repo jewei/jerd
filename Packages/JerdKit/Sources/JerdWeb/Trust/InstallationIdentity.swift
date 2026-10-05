@@ -34,11 +34,12 @@ public struct InstallationIdentity: Sendable {
         try OwnedDirectory.create(file.deletingLastPathComponent())
         let staged = file.deletingLastPathComponent().appendingPathComponent(".installation-id-\(UUID().uuidString)")
         try AtomicFile.write(Data(UUID().uuidString.utf8), to: staged)
-        // link(2) never replaces an existing file: the first writer wins and the others read its ID.
-        let linked = link(staged.path, file.path) == 0
+        // An exclusive rename never replaces an existing file and never shows a second link:
+        // the first writer wins and the others read its ID.
+        let renamed = renamex_np(staged.path, file.path, UInt32(RENAME_EXCL)) == 0
         let failure = errno
-        unlink(staged.path)
-        guard linked || failure == EEXIST else {
+        if !renamed { unlink(staged.path) }
+        guard renamed || failure == EEXIST else {
             throw JerdError.unavailable("Cannot save the installation identity (\(SystemError.describe(failure))).")
         }
         guard let id = try read() else {
