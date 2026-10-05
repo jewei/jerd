@@ -69,7 +69,10 @@ let package = Package(
             "JerdWeb", "JerdCLICore", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
         ]),
         module("JerdUIFixtures", ["JerdUI", "JerdDesign"]),
-        .executableTarget(name: "JerdSnapshots", dependencies: ["JerdUI", "JerdUIFixtures", "JerdDesign"],
+        // Snapshot rendering and the component gallery. Only JerdSnapshots and tests import it; it never ships.
+        module("JerdSnapshotSupport", ["JerdDesign"]),
+        .executableTarget(name: "JerdSnapshots",
+                          dependencies: ["JerdUI", "JerdUIFixtures", "JerdDesign", "JerdSnapshotSupport"],
                           swiftSettings: strictSettings),
 
         // Tests
@@ -87,7 +90,8 @@ let package = Package(
         tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
         tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
-        tests("JerdDesign", []),
+        tests("JerdDesign", ["JerdSnapshotSupport"]),
+        tests("JerdSnapshotSupport", ["JerdDesign"]),
         tests("JerdUI", ["JerdUIFixtures", "JerdDesign", "JerdFoundation"]),
         tests("JerdLive", ["JerdUI", "JerdFoundation"]),
     ]
