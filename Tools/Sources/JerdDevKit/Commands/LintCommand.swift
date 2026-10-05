@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev lint`: the format check, the project check, and the repository policies.
-struct LintCommand: AsyncParsableCommand {
+struct LintCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "lint",
         abstract: "Check format, project generation, and repository policies.",

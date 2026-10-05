@@ -7,7 +7,7 @@ contain only entry points, resources, and live wiring.
 ## Layers
 
 ```
-Apps/Jerd ─────────► JerdLive ──► JerdUI ──► JerdDesign
+Apps/Jerd ─────────► JerdLive ──► JerdUI ──► JerdDesign, domain value types
 Apps/JerdHelper ───► JerdHelperCore ──► JerdSystem
 Apps/JerdCLI ──────► JerdCLICore ──► JerdWeb, JerdRuntimes
 
@@ -18,6 +18,10 @@ Base:        JerdProcess   JerdManifest   JerdArchive (CArchive)
 ```
 
 A target may import only the targets that `Package.swift` lists for it.
+`Package.swift` lets `JerdUI` import the domain targets, so that screens can show
+their value types. `JerdUI` calls side effects only through its own port
+protocols, which `JerdLive` implements. The compiler does not enforce this
+rule; review does.
 Domain targets do not import each other, except the service modules, which use
 `JerdServiceKit`. When a domain target needs another domain, it declares a
 small port protocol with its own value types. `JerdLive` implements the port
@@ -25,6 +29,9 @@ with the other domain. This keeps each target buildable, testable, and
 reviewable alone.
 
 ## Targets
+
+The table describes the target design of the rewrite. A target whose folder
+holds only `Placeholder.swift` is not built yet.
 
 | Target | Responsibility |
 | --- | --- |
@@ -62,7 +69,7 @@ fakes. View models depend only on ports.
 **Explicit state machines.** Every long-running component has a named state
 enum and one function that changes it: managed instances, the environment
 coordinator, the site change transaction, the setup transaction, tunnels,
-and the release publisher.
+and the release publisher of the planned `./dev release` command.
 
 **One owner per file.** Each saved file has exactly one type that reads and
 writes it. That type keeps the exact compatible encoding and the backup copy.

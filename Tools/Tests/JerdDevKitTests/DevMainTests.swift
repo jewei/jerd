@@ -18,6 +18,8 @@ struct DevMainTests {
             ["build", "--team", "TEAM"],
             ["test", "--integration", "cache"],
             ["format", "--fix"],
+            ["help", "nope"],
+            ["help", "test", "nope"],
         ])
     func usageErrors(arguments: [String]) {
         #expect(exitStatus(arguments) == .usage)
@@ -27,6 +29,33 @@ struct DevMainTests {
         "maps help requests to exit status 0", arguments: [["--help"], ["help"], ["help", "test"], ["build", "-h"]])
     func helpRequests(arguments: [String]) {
         #expect(exitStatus(arguments) == .success)
+    }
+
+    @Test("every usage error has one format: the message, the usage of the command, and the help hint")
+    func formatsUsageErrors() {
+        guard case .exit(_, let unknown) = DevMain.parse(["help", "nope"]),
+            case .exit(_, let option) = DevMain.parse(["format", "--fix"])
+        else {
+            Issue.record("Both arguments must be usage errors.")
+            return
+        }
+        #expect(
+            unknown
+                == "error: Unknown command \"nope\".\nUsage: dev <subcommand>\n  See './dev help' for more information."
+        )
+        #expect(option.hasPrefix("error: Unknown option '--fix'\nUsage: dev format "))
+        #expect(option.hasSuffix("\n  See './dev help format' for more information."))
+        let fromRun = UsageMessage.text("Unknown test target \"X\".", command: TestCommand.self)
+        #expect(fromRun.hasPrefix("error: Unknown test target \"X\".\nUsage: dev test "))
+    }
+
+    @Test("check, lint, test, and build accept --json", arguments: ["check", "lint", "test", "build", "doctor"])
+    func acceptsJSON(command: String) throws {
+        guard case .command(let parsed) = DevMain.parse([command, "--json"]) else {
+            Issue.record("--json must parse for \(command).")
+            return
+        }
+        #expect(try #require(parsed as? any DevSubcommand).options.json)
     }
 
     @Test("parses each command with its options")

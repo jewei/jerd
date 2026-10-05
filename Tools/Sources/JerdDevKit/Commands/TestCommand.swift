@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev test`: unit tests of JerdKit targets, opt-in integration tests, and the Tools tests.
-struct TestCommand: AsyncParsableCommand {
+struct TestCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "test",
         abstract: "Run unit tests, for example ./dev test JerdWeb.",

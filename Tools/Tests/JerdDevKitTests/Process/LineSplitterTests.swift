@@ -28,4 +28,21 @@ struct LineSplitterTests {
         #expect(splitter.append(Data(bytes[0..<1])).isEmpty)
         #expect(splitter.append(Data(bytes[1...])) == ["é"])
     }
+
+    @Test("splits many lines in many chunks, and a long line that arrives in parts")
+    func splitsLargeInput() {
+        var splitter = LineSplitter()
+        var lines: [String] = []
+        let chunk = Data(String(repeating: "0123456789\n", count: 6_000).utf8)
+        for _ in 0..<32 {
+            lines += splitter.append(chunk)
+        }
+        #expect(lines.count == 192_000)
+        #expect(lines.allSatisfy { $0 == "0123456789" })
+        let longLine = String(repeating: "x", count: 100_000)
+        for part in stride(from: 0, to: longLine.count, by: 1_000) {
+            #expect(splitter.append(Data(longLine.utf8.dropFirst(part).prefix(1_000))).isEmpty)
+        }
+        #expect(splitter.append(Data("\n".utf8)) == [longLine])
+    }
 }

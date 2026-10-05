@@ -62,14 +62,17 @@ struct ProcessRunnerTests {
         #expect(result.standardOutput == "a\nwarning: b\nc\n")
     }
 
-    @Test("stops a command at its time limit and reports the command line")
+    @Test("stops a command at its time limit and keeps its output")
     func stopsAtTimeLimit() async throws {
-        let runner = ProcessRunner(output: RecordingTextOutput(), killDelay: .seconds(1))
+        let runner = ProcessRunner(output: RecordingTextOutput(), killDelay: .seconds(1), groups: ChildProcessGroups())
         let command = invocation("/bin/sleep", ["30"], timeout: .milliseconds(200))
         let clock = ContinuousClock()
         let start = clock.now
-        await #expect(throws: InvocationFailure.timedOut(commandLine: "/bin/sleep 30", limit: .milliseconds(200))) {
-            _ = try await runner.run(command, output: .capture)
+        let result = try await runner.run(command, output: .capture)
+        #expect(result.exceededTimeLimit == .milliseconds(200))
+        #expect(result.status == 128 + SIGTERM)
+        #expect(throws: InvocationFailure.timedOut(commandLine: "/bin/sleep 30", limit: .milliseconds(200))) {
+            try result.checked()
         }
         #expect(start.duration(to: clock.now) < .seconds(10))
     }

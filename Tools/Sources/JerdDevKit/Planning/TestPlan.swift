@@ -52,20 +52,6 @@ enum TestPlan {
             filters: filterArguments(testTargets: [], filter: filter), environment: environment)
     }
 
-    /// Without `--verbose`, a test run shows failures, diagnostics, and the final count. It hides build
-    /// progress, "started" events, and one line for each passed test or suite.
-    static func showsInQuietMode(_ line: String) -> Bool {
-        let hiddenPrefixes = ["◇ ", "↳ ", "✔ Suite ", "\t Executed "]
-        if SwiftPMOutput.isProgress(line) || hiddenPrefixes.contains(where: line.hasPrefix) {
-            return false
-        }
-        // XCTest also reports its empty run. Keep only its failures.
-        if line.hasPrefix("Test Suite '") || line.hasPrefix("Test Case '") {
-            return line.contains(" failed")
-        }
-        return !line.hasPrefix("✔ Test ") || line.hasPrefix("✔ Test run ")
-    }
-
     private static func swiftTest(
         package: URL,
         toolchain: Toolchain,

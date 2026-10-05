@@ -1,71 +1,72 @@
+import Darwin
 import Foundation
 
-/// Runs external commands with Foundation `Process`: an absolute executable, an argument array,
-/// separate output pipes, and a hard time limit. It never uses a shell.
+/// Runs external commands: an absolute executable, an argument array, separate output pipes, and a
+/// hard time limit. It never uses a shell. Each child leads its own process group, so the time limit
+/// and a forwarded interrupt stop the child and every process that it started.
 struct ProcessRunner: ProcessRunning {
     private let output: any TextOutput
     private let killDelay: Duration
     private let drainLimit: Duration
+    private let groups: ChildProcessGroups
 
     /// - Parameters:
-    ///   - killDelay: How long a timed-out child has to stop after SIGTERM before it gets SIGKILL.
+    ///   - killDelay: How long a timed-out group has to stop after SIGTERM before it gets SIGKILL.
     ///   - drainLimit: How long to wait for the rest of the output after the child exits. A grandchild
     ///     that keeps a pipe open must not block the tool.
-    init(output: any TextOutput, killDelay: Duration = .seconds(5), drainLimit: Duration = .seconds(2)) {
+    ///   - groups: Where the running process groups are registered for the signal forwarder.
+    init(
+        output: any TextOutput,
+        killDelay: Duration = .seconds(5),
+        drainLimit: Duration = .seconds(2),
+        groups: ChildProcessGroups = .shared
+    ) {
         self.output = output
         self.killDelay = killDelay
         self.drainLimit = drainLimit
+        self.groups = groups
     }
 
     func run(_ invocation: Invocation, output mode: OutputMode) async throws -> InvocationResult {
         let (events, continuation) = AsyncStream.makeStream(of: ProcessRunState.Event.self)
         let standardOutput = OutputCollector(channel: .standardOutput, mode: mode, output: output)
         let standardError = OutputCollector(channel: .standardError, mode: mode, output: output)
-        let process = makeProcess(for: invocation)
         let pipes = [
             attachPipe(.standardOutput, to: standardOutput, continuation: continuation),
             attachPipe(.standardError, to: standardError, continuation: continuation),
         ]
-        process.standardOutput = pipes[0]
-        process.standardError = pipes[1]
-        process.terminationHandler = { finished in
-            continuation.yield(.exited(status: Self.shellStyleStatus(of: finished)))
-        }
         defer {
             pipes.forEach { $0.fileHandleForReading.readabilityHandler = nil }
             continuation.finish()
         }
-        do {
-            try process.run()
-        } catch {
-            throw InvocationFailure.launchFailed(
-                commandLine: invocation.commandLine, reason: error.localizedDescription)
-        }
-        let outcome = await drive(process, events: events, continuation: continuation, timeout: invocation.timeout)
+        let group = try start(invocation, pipes: pipes)
+        ChildProcess.waitForExit(group) { continuation.yield(.exited(status: $0)) }
+        let outcome = await drive(group: group, events: events, continuation: continuation, timeout: invocation.timeout)
+        groups.finish(group) { ChildProcess.reap(group) }
         standardOutput.finish()
         standardError.finish()
+        var result = InvocationResult(
+            commandLine: invocation.commandLine, status: 0,
+            standardOutput: standardOutput.text, standardError: standardError.text)
         switch outcome {
-        case .timedOut:
-            throw InvocationFailure.timedOut(commandLine: invocation.commandLine, limit: invocation.timeout)
         case .exited(let status):
-            return InvocationResult(
-                commandLine: invocation.commandLine, status: status,
-                standardOutput: standardOutput.text, standardError: standardError.text)
+            result.status = status
+        case .timedOut(let status):
+            result.status = status
+            result.exceededTimeLimit = invocation.timeout
         }
+        return result
     }
 
-    private func makeProcess(for invocation: Invocation) -> Process {
-        let process = Process()
-        process.executableURL = invocation.executable
-        process.arguments = invocation.arguments
-        process.standardInput = FileHandle.nullDevice
-        if let environment = invocation.environment {
-            process.environment = environment
+    /// Starts the child with the write ends of the pipes, then closes them here, so that the pipes
+    /// close when the last process of the group closes them.
+    private func start(_ invocation: Invocation, pipes: [Pipe]) throws -> pid_t {
+        let outputDescriptor = pipes[0].fileHandleForWriting.fileDescriptor
+        let errorDescriptor = pipes[1].fileHandleForWriting.fileDescriptor
+        defer { pipes.forEach { try? $0.fileHandleForWriting.close() } }
+        return try groups.start(commandLine: invocation.commandLine) {
+            try ChildProcess.spawn(invocation, standardOutput: outputDescriptor, standardError: errorDescriptor)
         }
-        if let workingDirectory = invocation.workingDirectory {
-            process.currentDirectoryURL = workingDirectory
-        }
-        return process
     }
 
     private func attachPipe(
@@ -88,7 +89,7 @@ struct ProcessRunner: ProcessRunning {
 
     /// Feeds events to the state machine and performs its actions until it finishes.
     private func drive(
-        _ process: Process,
+        group: pid_t,
         events: AsyncStream<ProcessRunState.Event>,
         continuation: AsyncStream<ProcessRunState.Event>.Continuation,
         timeout: Duration
@@ -100,10 +101,10 @@ struct ProcessRunner: ProcessRunning {
             for action in state.handle(event) {
                 switch action {
                 case .terminate:
-                    process.terminate()
+                    ChildProcess.signalGroup(group, SIGTERM)
                     timers.append(Self.timer(after: killDelay, event: .killDelayReached, continuation: continuation))
                 case .kill:
-                    if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+                    ChildProcess.signalGroup(group, SIGKILL)
                 case .startDrainTimer:
                     timers.append(Self.timer(after: drainLimit, event: .drainLimitReached, continuation: continuation))
                 case .finish(let outcome):
@@ -111,7 +112,7 @@ struct ProcessRunner: ProcessRunning {
                 }
             }
         }
-        return .timedOut
+        return .timedOut(status: -1)
     }
 
     private static func timer(
@@ -127,10 +128,5 @@ struct ProcessRunner: ProcessRunning {
                 // Cancelled: the process finished first, so the event is not needed.
             }
         }
-    }
-
-    /// The exit status as a shell reports it: 128 plus the signal number for a signal.
-    private static func shellStyleStatus(of process: Process) -> Int32 {
-        process.terminationReason == .uncaughtSignal ? 128 + process.terminationStatus : process.terminationStatus
     }
 }

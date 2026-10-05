@@ -18,7 +18,8 @@ enum TestStep {
             testTargets: testTargets, filter: filter, environment: environment)
         let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
-            throw DevFailure.checkFailed("JerdKit tests failed with exit status \(result.status).")
+            FailureLog.report(result, name: "kit-tests", showsTail: result.exceededTimeLimit != nil, context: context)
+            throw DevFailure.checkFailed("JerdKit tests \(result.failureSummary).")
         }
         let scope = testTargets.isEmpty ? "all JerdKit test targets" : testTargets.joined(separator: ", ")
         let integration =
@@ -32,13 +33,14 @@ enum TestStep {
             repository: context.repository, toolchain: context.toolchain, filter: filter, environment: environment)
         let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
-            throw DevFailure.checkFailed("Tools tests failed with exit status \(result.status).")
+            FailureLog.report(result, name: "tools-tests", showsTail: result.exceededTimeLimit != nil, context: context)
+            throw DevFailure.checkFailed("Tools tests \(result.failureSummary).")
         }
         context.console.success("Tools tests passed.")
     }
 
-    /// Every line in verbose mode; otherwise failures, diagnostics, and the final count.
+    /// Every line in verbose mode; otherwise failures with their details, diagnostics, and the final count.
     static func outputMode(_ context: DevContext) -> OutputMode {
-        context.console.verbose ? .stream : .streamMatching(TestPlan.showsInQuietMode)
+        context.console.verbose ? .stream : .streamFiltered(QuietTestOutput())
     }
 }

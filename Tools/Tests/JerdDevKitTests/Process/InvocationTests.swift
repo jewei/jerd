@@ -42,6 +42,17 @@ struct InvocationTests {
         }
     }
 
+    @Test("a timed-out result keeps its output and throws the time-out")
+    func timedOutResultThrows() {
+        let result = InvocationResult(
+            commandLine: "/bin/sleep 9", status: 143, standardOutput: "last words", exceededTimeLimit: .seconds(5))
+        #expect(!result.succeeded)
+        #expect(result.failureSummary == "stopped at the time limit of 5 s")
+        #expect(throws: InvocationFailure.timedOut(commandLine: "/bin/sleep 9", limit: .seconds(5))) {
+            try result.checked()
+        }
+    }
+
     @Test("failure messages name the command")
     func failureMessagesNameCommand() {
         #expect(

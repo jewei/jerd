@@ -54,10 +54,13 @@ struct StepSequenceTests {
         #expect(StepSequence.seconds(.seconds(61)) == "61.0 s")
     }
 
-    @Test("check runs lint, both test suites, and the Debug build, in this order")
+    @Test("check runs lint, both test suites, and the Debug and Release builds, in this order")
     func checkIsTheCIContract() {
         #expect(Stage.lint == [.formatCheck, .projectCheck, .repositoryPolicies])
-        #expect(Stage.check == [.formatCheck, .projectCheck, .repositoryPolicies, .kitTests, .toolTests, .debugBuild])
+        #expect(
+            Stage.check == [
+                .formatCheck, .projectCheck, .repositoryPolicies, .kitTests, .toolTests, .debugBuild, .releaseBuild,
+            ])
         #expect(Set(Stage.check) == Set(Stage.allCases))
     }
 }

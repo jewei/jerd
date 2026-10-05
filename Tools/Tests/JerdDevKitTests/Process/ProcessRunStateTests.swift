@@ -35,13 +35,21 @@ struct ProcessRunStateTests {
         #expect(!state.isFinished)
     }
 
-    @Test("sends SIGTERM at the time limit and reports a timeout after the exit")
+    @Test("sends SIGTERM at the time limit, then SIGKILL to what is left of the group at the end")
     func terminatesAtTimeLimit() {
         var state = ProcessRunState()
         #expect(state.handle(.timeLimitReached) == [.terminate])
         _ = state.handle(.outputClosed(.standardOutput))
         _ = state.handle(.outputClosed(.standardError))
-        #expect(state.handle(.exited(status: 143)) == [.finish(.timedOut)])
+        #expect(state.handle(.exited(status: 143)) == [.kill, .finish(.timedOut(status: 143))])
+    }
+
+    @Test("kills a grandchild that keeps a pipe open after a timed-out child exits")
+    func killsGroupAfterTimedOutDrain() {
+        var state = ProcessRunState()
+        _ = state.handle(.timeLimitReached)
+        #expect(state.handle(.exited(status: 143)) == [.startDrainTimer])
+        #expect(state.handle(.drainLimitReached) == [.kill, .finish(.timedOut(status: 143))])
     }
 
     @Test("sends SIGKILL only when the child ignores SIGTERM")

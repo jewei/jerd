@@ -29,7 +29,9 @@ struct StepSequence {
         } catch {
             status = report(error)
         }
-        records.append(Record(title: title, status: status, duration: start.duration(to: clock.now)))
+        let duration = start.duration(to: clock.now)
+        records.append(Record(title: title, status: status, duration: duration))
+        RunReport.current?.finishStep(title: title, status: status, duration: duration)
     }
 
     /// Runs one step with the same output and error handling as a longer sequence.
@@ -76,18 +78,9 @@ struct StepSequence {
         console.step("Summary")
         let width = records.map(\.title.count).max() ?? 0
         for record in records {
-            let label = Self.label(for: record.status).padding(toLength: 8, withPad: " ", startingAt: 0)
+            let label = record.status.label.padding(toLength: 8, withPad: " ", startingAt: 0)
             let title = record.title.padding(toLength: width, withPad: " ", startingAt: 0)
             console.detail("\(label) \(title)  \(Self.seconds(record.duration))")
-        }
-    }
-
-    static func label(for status: ExitStatus) -> String {
-        switch status {
-        case .success: "ok"
-        case .checkFailed: "failed"
-        case .usage: "usage"
-        case .missingPrerequisite: "missing"
         }
     }
 

@@ -52,6 +52,31 @@ struct BuildPlanTests {
         #expect(throws: DevFailure.self) { try BuildOptions.signing(identity: "", team: "T") }
     }
 
+    @Test("a check build without runtimes turns off only the runtime gate")
+    func plansReleaseWithoutRuntimes() {
+        let options = BuildOptions(configuration: .release, allowsMissingRuntimes: true)
+        let invocation = BuildPlan.invocation(
+            repository: TestFixtures.repository, toolchain: TestFixtures.toolchain, options: options)
+        #expect(invocation.arguments.suffix(3) == ["CODE_SIGNING_ALLOWED=NO", "JERD_REQUIRE_RUNTIMES=NO", "build"])
+        let release = BuildPlan.invocation(
+            repository: TestFixtures.repository, toolchain: TestFixtures.toolchain,
+            options: BuildOptions(configuration: .release))
+        #expect(!release.arguments.contains("JERD_REQUIRE_RUNTIMES=NO"))
+    }
+
+    @Test("--allow-missing-runtimes needs an unsigned Release build")
+    func validatesMissingRuntimes() throws {
+        try BuildOptions.validateMissingRuntimes(allowed: true, configuration: .release, signing: nil)
+        try BuildOptions.validateMissingRuntimes(allowed: false, configuration: .debug, signing: nil)
+        #expect(throws: DevFailure.usage("Use --allow-missing-runtimes only with --release.")) {
+            try BuildOptions.validateMissingRuntimes(allowed: true, configuration: .debug, signing: nil)
+        }
+        #expect(throws: DevFailure.self) {
+            try BuildOptions.validateMissingRuntimes(
+                allowed: true, configuration: .release, signing: .init(identity: "A", team: "T"))
+        }
+    }
+
     @Test("names the app in the products folder of the configuration")
     func namesAppPath() {
         let app = BuildPlan.appURL(repository: TestFixtures.repository, configuration: .release)

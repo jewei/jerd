@@ -3,7 +3,12 @@ import Foundation
 /// `appcast.xml` must be an RSS 2.0 feed with one channel, every item must point to an HTTPS archive
 /// with an EdDSA signature, and the feed must end with Sparkle's signature block. Installed apps require
 /// a signed feed, so an edit without a new signature breaks every update check.
-/// The Ed25519 check of the signature itself comes with `JerdManifest`.
+///
+/// Limit: this policy checks the signature block and the signed length only. An edit that keeps the
+/// length (for example `Jerd updates` to `Jerd Updates`) passes it.
+/// TODO(JerdManifest follow-up, review tooling-r1 M2): verify `edSignature` over the bytes before
+/// `signatureMarker` with the committed public key (`UpdateSettingsPolicy.publicKey`) through the
+/// JerdManifest appcast verifier when Tools depends on JerdKit, and add a same-length edit test.
 enum AppcastPolicy {
     static let file = "appcast.xml"
     static let signatureMarker = "<!-- sparkle-signatures:"

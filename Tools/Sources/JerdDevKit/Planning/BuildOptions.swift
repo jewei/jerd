@@ -1,4 +1,5 @@
-/// What `./dev build` builds: a configuration and an optional signing identity.
+/// What `./dev build` builds: a configuration, an optional signing identity, and whether a Release
+/// build may lack the runtime payloads.
 struct BuildOptions: Equatable, Sendable {
     enum Configuration: String, Sendable {
         case debug = "Debug"
@@ -13,7 +14,22 @@ struct BuildOptions: Equatable, Sendable {
 
     var configuration: Configuration = .debug
     var signing: Signing?
+    /// Turns off the Release gate `JERD_REQUIRE_RUNTIMES` for an unsigned check build. Only
+    /// `./dev check` (and so CI) uses it: CI has no prepared runtimes, but must compile Release.
+    var allowsMissingRuntimes = false
     var verbose = false
+
+    /// `--allow-missing-runtimes` is only for an unsigned Release build. A signed build is for release,
+    /// and a Debug build never requires runtimes.
+    static func validateMissingRuntimes(allowed: Bool, configuration: Configuration, signing: Signing?) throws {
+        guard allowed else { return }
+        guard configuration == .release else {
+            throw DevFailure.usage("Use --allow-missing-runtimes only with --release.")
+        }
+        guard signing == nil else {
+            throw DevFailure.usage("A signed build must contain the runtimes. Remove --allow-missing-runtimes.")
+        }
+    }
 
     /// Accepts both `--sign` and `--team`, or neither.
     static func signing(identity: String?, team: String?) throws -> Signing? {

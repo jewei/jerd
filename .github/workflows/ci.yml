@@ -1,6 +1,8 @@
 name: CI
 
-# CI runs exactly `./dev check`. Run the same command locally before you push.
+# CI runs exactly `./dev check`: lint, the JerdKit and Tools tests, the Debug build, and an
+# unsigned Release build without runtimes (`--allow-missing-runtimes`), each with a check of the
+# built app. Run the same command locally before you push.
 
 on:
   push:
@@ -25,7 +27,7 @@ jobs:
     # The newest GitHub-hosted image with the Xcode in .xcode-version (Xcode 27, Swift 6.4).
     # It is a preview image. The fallback is macos-26 with Xcode 26.6 (Swift 6.3).
     runs-on: xcode-27
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,26 +69,12 @@ jobs:
       - name: Run ./dev check
         run: ./dev check
 
-  runtime-integration:
-    name: Runtime integration tests
-    # Requires prepared runtimes. This job is a disabled skeleton until `./dev runtimes prepare`
-    # exists. Then remove `false &&` to run it on manual dispatch only, never on every pull request.
-    if: false && github.event_name == 'workflow_dispatch'
-    runs-on: xcode-27
-    timeout-minutes: 90
-    steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Upload failure logs
+        # A failed quiet step writes its full output to .build/logs.
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          persist-credentials: false
-
-      - name: Select Xcode
-        run: sudo xcode-select --switch "/Applications/Xcode_$(cat .xcode-version).app"
-
-      - name: Prepare runtimes
-        # Downloads and verifies every pinned runtime into .build/runtimes/payloads.
-        run: ./dev runtimes prepare
-
-      - name: Run integration tests
-        # The runtimes command will set the JERD_* paths from the prepared payloads.
-        run: ./dev test --integration web,database,mail,storage
+          name: dev-check-logs
+          path: .build/logs
+          if-no-files-found: ignore
+          retention-days: 7

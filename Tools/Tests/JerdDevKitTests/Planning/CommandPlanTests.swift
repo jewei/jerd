@@ -66,7 +66,8 @@ struct CommandPlanTests {
     @Test("cleans build folders, and with --all also packages and runtimes")
     func plansClean() {
         let paths = CleanPlan.targets(repository: repository, all: false).map(repository.relativePath(of:))
-        #expect(paths == [".build/xcode", ".build/snapshots", "Packages/JerdKit/.build", "Tools/.build"])
+        #expect(
+            paths == [".build/xcode", ".build/snapshots", ".build/logs", "Packages/JerdKit/.build", "Tools/.build"])
         let all = CleanPlan.targets(repository: repository, all: true).map(repository.relativePath(of:))
         #expect(all == paths + [".build/SourcePackages", ".build/runtimes"])
     }

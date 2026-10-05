@@ -10,9 +10,9 @@ struct ProcessRunState: Equatable {
     }
 
     enum Action: Equatable {
-        /// Send SIGTERM and start the kill delay.
+        /// Send SIGTERM to the child's process group and start the kill delay.
         case terminate
-        /// Send SIGKILL: the child ignored SIGTERM.
+        /// Send SIGKILL to the child's process group: a process in it ignored SIGTERM.
         case kill
         /// The child exited but a grandchild may keep a pipe open. Wait a short time for the rest of the output.
         case startDrainTimer
@@ -21,7 +21,8 @@ struct ProcessRunState: Equatable {
 
     enum Outcome: Equatable {
         case exited(status: Int32)
-        case timedOut
+        /// The child passed its time limit. The status is how it ended after the signals.
+        case timedOut(status: Int32)
     }
 
     private(set) var exitStatus: Int32?
@@ -34,10 +35,10 @@ struct ProcessRunState: Equatable {
         switch event {
         case .exited(let status):
             exitStatus = status
-            return openChannels.isEmpty ? [finish()] : [.startDrainTimer]
+            return openChannels.isEmpty ? finish() : [.startDrainTimer]
         case .outputClosed(let channel):
             openChannels.remove(channel)
-            return exitStatus != nil && openChannels.isEmpty ? [finish()] : []
+            return exitStatus != nil && openChannels.isEmpty ? finish() : []
         case .timeLimitReached:
             guard exitStatus == nil, !timedOut else { return [] }
             timedOut = true
@@ -45,13 +46,15 @@ struct ProcessRunState: Equatable {
         case .killDelayReached:
             return exitStatus == nil ? [.kill] : []
         case .drainLimitReached:
-            return exitStatus != nil ? [finish()] : []
+            return exitStatus != nil ? finish() : []
         }
     }
 
-    private mutating func finish() -> Action {
+    /// After a time-out, SIGKILL also reaches every process that is left in the group, for example a
+    /// grandchild that ignored SIGTERM after the child itself stopped.
+    private mutating func finish() -> [Action] {
         isFinished = true
-        if timedOut { return .finish(.timedOut) }
-        return .finish(.exited(status: exitStatus ?? -1))
+        let status = exitStatus ?? -1
+        return timedOut ? [.kill, .finish(.timedOut(status: status))] : [.finish(.exited(status: status))]
     }
 }

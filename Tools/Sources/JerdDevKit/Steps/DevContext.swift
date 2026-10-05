@@ -10,8 +10,9 @@ struct DevContext: Sendable {
     let environment: [String: String]
 
     /// The live context for the repository that contains the working directory.
-    static func live(verbose: Bool) throws -> DevContext {
-        let output = StandardTextOutput()
+    /// - Parameter json: Send every line to standard error, because standard output carries the JSON summary.
+    static func live(verbose: Bool, json: Bool = false) throws -> DevContext {
+        let output = StandardTextOutput(sendsEverythingToStandardError: json)
         let environment = ProcessInfo.processInfo.environment
         let workingDirectory = URL(filePath: FileManager.default.currentDirectoryPath)
         let located = Repository.locate(from: workingDirectory) { FileManager.default.fileExists(atPath: $0) }

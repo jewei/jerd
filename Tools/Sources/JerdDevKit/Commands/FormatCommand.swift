@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev format`: rewrites Swift files with the configured format.
-struct FormatCommand: AsyncParsableCommand {
+struct FormatCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "format",
         abstract: "Format all Swift code with swift-format.")

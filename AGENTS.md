@@ -10,11 +10,11 @@ Run every task through `./dev`. It works from any folder in the repository.
 
 | Command | Purpose |
 | --- | --- |
-| `./dev check` | Run everything CI runs: lint, JerdKit tests, Tools tests, and the Debug build |
+| `./dev check` | Run everything CI runs: lint, JerdKit tests, Tools tests, the Debug build, and an unsigned Release build without runtimes |
 | `./dev test [TARGET...] [--filter X]` | Run JerdKit unit tests, for example `./dev test JerdWeb` |
 | `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests; see [Tools](Tools/README.md) |
 | `./dev test --tools` | Run the tests of the `./dev` tool |
-| `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default) and print its path |
+| `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default), check the built app, and print its path |
 | `./dev snapshots [PAGE...]` | Render UI pages to PNG files in `.build/snapshots` |
 | `./dev format [--check]` | Format all Swift code with swift-format |
 | `./dev lint` | Check the format, `generate --check`, and the repository policies |
@@ -23,8 +23,14 @@ Run every task through `./dev`. It works from any folder in the repository.
 | `./dev clean [--all]` | Remove build output; `--all` also removes packages and runtimes |
 | `./dev help [COMMAND]` | List every command, or show the options of one command |
 
-Add `--verbose` to a command to see each underlying command line. Exit status:
-0 success, 1 a check failed, 2 usage error, 3 a prerequisite is missing.
+Add `--verbose` to a command to see each underlying command line. Add `--json`
+to get one JSON summary on standard output (all other lines go to standard
+error). Exit status: 0 success, 1 a check failed, 2 usage error, 3 a
+prerequisite is missing, 128 plus the signal number when a signal stops `./dev`.
+A failed quiet step writes its full output to `.build/logs/<step>.log`.
+
+`./dev build --release` requires the prepared runtime payloads. Only `./dev check`
+and CI use `--allow-missing-runtimes`; never ship such a build.
 
 For quick loops inside the package, `swift test --package-path Packages/JerdKit
 --filter JerdWebTests` also works.
@@ -40,17 +46,32 @@ For quick loops inside the package, `swift test --package-path Packages/JerdKit
 | `Tools/` | The `jerd-dev` tool behind `./dev` |
 | `Runtimes/` | Pinned runtime versions and lock files |
 | `Configuration/` | Xcode build settings and the app version |
-| `Docs/` | User, build, test, release, and architecture documentation |
+| `Docs/` | Architecture, data reference, and test guide |
 
 `project.yml` is the XcodeGen source. Run `./dev generate` after you change it.
 Do not edit `Jerd.xcodeproj` by hand.
+
+## Pinned and coupled files
+
+Change these files together, in one commit:
+
+| When you change | Also change |
+| --- | --- |
+| `.xcode-version` | The `runs-on` label and its comment in `.github/workflows/ci.yml` |
+| `Tools/xcodegen-version` | `XCODEGEN_SHA256` in `.github/workflows/ci.yml` |
+| The Sparkle `exactVersion` in `project.yml` | `Package.resolved` in `Jerd.xcodeproj` (resolve again in Xcode); `./dev lint` checks it |
+| `appcast.xml` | Its signature block: sign the feed again with Sparkle `sign_update` |
+| `Configuration/Version.xcconfig` | Only as part of a release |
+| The feed URL or key in `Configuration/App.xcconfig` | Never without a migration plan; `./dev lint` and every build check them |
 
 ## Code rules
 
 - Swift 6 language mode, strict concurrency, macOS 14 or later.
 - One main type per file. The file name is the type name.
-- Keep files under 300 lines and functions under 40 lines. Split a larger type
-  into extensions in separate files named `Type+Topic.swift`.
+- Keep source files at 300 lines or fewer and functions under 40 lines.
+  `./dev lint` checks the line count in `Sources`, `Apps`, and `Tools/Sources`;
+  tests may be longer. Split a larger type into extensions in separate files
+  named `Type+Topic.swift`.
 - Name types for what they are and functions for what they do. Do not use
   abbreviations other than common ones (URL, ID, PHP, TLS, CA, S3, SMTP).
 - Put a one-line `///` comment on every public type and on every non-obvious

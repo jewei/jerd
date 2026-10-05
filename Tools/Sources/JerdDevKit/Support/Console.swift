@@ -1,5 +1,6 @@
 /// Writes the tool's own lines in one style: `==>` step headers, indented details, and `$` command
-/// lines in verbose mode. Errors go to standard error; everything else goes to standard output.
+/// lines in verbose mode. Errors go to standard error; everything else goes to standard output. With
+/// `--json`, the output sends everything to standard error, and the messages also go to the report.
 struct Console: Sendable {
     let output: any TextOutput
     let verbose: Bool
@@ -9,18 +10,22 @@ struct Console: Sendable {
     }
 
     func detail(_ text: String) {
+        RunReport.current?.record(level: "detail", text: text)
         output.write(Self.indented(text), to: .standardOutput)
     }
 
     func success(_ text: String) {
+        RunReport.current?.record(level: "ok", text: text)
         output.write(Self.indented("ok: \(text)"), to: .standardOutput)
     }
 
     func warning(_ text: String) {
+        RunReport.current?.record(level: "warning", text: text)
         output.write(Self.indented("warning: \(text)"), to: .standardOutput)
     }
 
     func error(_ text: String) {
+        RunReport.current?.record(level: "error", text: text)
         output.write(Self.indented("error: \(text)"), to: .standardError)
     }
 

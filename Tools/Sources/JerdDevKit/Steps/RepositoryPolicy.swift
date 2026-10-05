@@ -16,7 +16,15 @@ struct RepositoryPolicy: Sendable {
                 packageResolved: read(SparklePinPolicy.resolvedFile, in: repository))
         },
         RepositoryPolicy(title: "App update feed URL and public key") { repository in
-            try UpdateSettingsPolicy.findings(xcconfig: readText(UpdateSettingsPolicy.file, in: repository))
+            let xcconfigs = try FileTree.relativeFilePaths(
+                under: repository.path("Configuration"), pathExtension: "xcconfig"
+            )
+            .map { file in
+                let path = "Configuration/\(file)"
+                return (path: path, text: try readText(path, in: repository))
+            }
+            return UpdateSettingsPolicy.findings(
+                xcconfigs: xcconfigs, projectSpec: try readText(UpdateSettingsPolicy.projectSpec, in: repository))
         },
         RepositoryPolicy(title: "appcast.xml") { repository in
             try AppcastPolicy.findings(feed: read(AppcastPolicy.file, in: repository))
@@ -25,10 +33,9 @@ struct RepositoryPolicy: Sendable {
             try SourceLengthPolicy.findings(files: swiftSources(in: repository))
         },
         RepositoryPolicy(title: "Markdown links") { repository in
-            try markdownFiles(in: repository).flatMap { path in
-                try MarkdownLinkPolicy.findings(file: path, markdown: readText(path, in: repository)) {
-                    FileManager.default.fileExists(atPath: repository.path($0).path)
-                }
+            let files = RepositoryFiles(repository: repository)
+            return try markdownFiles(in: repository).flatMap { path in
+                MarkdownLinkPolicy.findings(file: path, markdown: try readText(path, in: repository), files: files)
             }
         },
     ]
@@ -54,13 +61,20 @@ struct RepositoryPolicy: Sendable {
         }
     }
 
-    /// Root documents, everything under `Docs`, and the Tools guide. Symbolic links such as `CLAUDE.md`
-    /// are skipped because their target is checked already.
+    /// The folders whose Markdown documents the link policy reads. `Runtimes` is left out: its vendor
+    /// folders hold third-party documents.
+    static let markdownFolders = ["Docs", "Tools", "Apps", "Packages/JerdKit/Sources"]
+
+    /// Root documents and every document under `markdownFolders`, for example the module READMEs.
+    /// Symbolic links such as `CLAUDE.md` are skipped because their target is checked already.
     static func markdownFiles(in repository: Repository) throws -> [String] {
         let rootFiles = try FileManager.default.contentsOfDirectory(atPath: repository.root.path)
             .filter { $0.hasSuffix(".md") && !FileTree.isSymbolicLink(repository.path($0)) }
-        let docs = try FileTree.relativeFilePaths(under: repository.path("Docs"), pathExtension: "md")
-        let tools = try FileTree.relativeFilePaths(under: repository.path("Tools"), pathExtension: "md")
-        return rootFiles.sorted() + docs.map { "Docs/\($0)" } + tools.map { "Tools/\($0)" }
+        let nested = try markdownFolders.flatMap { folder in
+            try FileTree.relativeFilePaths(under: repository.path(folder), pathExtension: "md").map {
+                "\(folder)/\($0)"
+            }
+        }
+        return rootFiles.sorted() + nested
     }
 }
