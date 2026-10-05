@@ -24,7 +24,7 @@ enum Samples {
             cliExtensions: extensions, fpmExtensions: extensions, inspectedAt: Date(timeIntervalSinceReferenceDate: 1))
     }
 
-    static func caddy(path: String = "/local/caddy", version: String = "v2.11.4") -> CaddyRuntime {
+    static func caddy(path: String = "/local/caddy", version: String = "v2.11.4 h1:abc=") -> CaddyRuntime {
         CaddyRuntime(path: path, version: version, architectures: [.current])
     }
 

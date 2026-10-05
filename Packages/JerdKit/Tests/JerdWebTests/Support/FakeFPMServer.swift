@@ -13,7 +13,7 @@ final class FakeFPMServer: @unchecked Sendable {
         case bytes(Data)
         /// Accept and keep the connection open without an answer.
         case silent
-        /// Accept and close at once.
+        /// Read the request, then close without an answer.
         case close
     }
 
@@ -52,6 +52,8 @@ final class FakeFPMServer: @unchecked Sendable {
             case .silent:
                 continue
             case .close:
+                var buffer = [UInt8](repeating: 0, count: 4_096)
+                _ = read(client, &buffer, buffer.count)
                 close(client)
             }
         }
