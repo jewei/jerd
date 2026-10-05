@@ -78,7 +78,7 @@ let package = Package(
         tests("JerdManifest", ["JerdFoundation"]),
         tests("JerdArchive", ["JerdFoundation"]),
         tests("JerdRuntimes", ["JerdFoundation", "JerdProcess", "JerdManifest", "JerdArchive"]),
-        tests("JerdSystem", ["JerdFoundation"]),
+        tests("JerdSystem", ["JerdFoundation"], resources: [.copy("Fixtures")]),
         tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"]),
         tests("JerdWeb", ["JerdFoundation", "JerdProcess"]),
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
