@@ -1,0 +1,61 @@
+{
+  "caddy" : {
+    "architectures" : [
+      "arm64"
+    ],
+    "path" : "/Users/u/Library/Application Support/Jerd/runtimes/caddy/caddy",
+    "version" : "v2.11.4 h1:abc="
+  },
+  "defaultRuntimeID" : "AAAAAAAA-0000-0000-0000-000000000001",
+  "runtimes" : [
+    {
+      "architectures" : [
+        "arm64",
+        "x86_64"
+      ],
+      "cliExtensions" : [
+        "Core",
+        "json"
+      ],
+      "cliPath" : "/Users/u/Library/Application Support/Jerd/runtimes/php/php-native-8.5",
+      "fpmExtensions" : [
+        "Core",
+        "json",
+        "opcache"
+      ],
+      "fpmPath" : "/Users/u/Library/Application Support/Jerd/runtimes/php/php-native-fpm-8.5",
+      "id" : "AAAAAAAA-0000-0000-0000-000000000001",
+      "inspectedAt" : 800000000.5,
+      "version" : "8.5.1"
+    }
+  ],
+  "schemaVersion" : 1,
+  "sites" : [
+    {
+      "displayName" : "App",
+      "documentRoot" : "/Users/u/Code/app/public",
+      "hostname" : "app.test",
+      "id" : "BBBBBBBB-0000-0000-0000-000000000002",
+      "isEnabled" : true,
+      "phpSelection" : {
+        "followDefault" : {
+
+        }
+      },
+      "projectPath" : "/Users/u/Code/app"
+    },
+    {
+      "displayName" : "Blog café",
+      "documentRoot" : "/Users/u/Code/blog",
+      "hostname" : "blog.test",
+      "id" : "CCCCCCCC-0000-0000-0000-000000000003",
+      "isEnabled" : false,
+      "phpSelection" : {
+        "pinned" : {
+          "_0" : "AAAAAAAA-0000-0000-0000-000000000001"
+        }
+      },
+      "projectPath" : "/Users/u/Code/blog"
+    }
+  ]
+}
