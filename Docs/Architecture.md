@@ -1,549 +1,90 @@
-# Architecture and security boundaries
-
-`Sources/Jerd/` contains SwiftUI views, the main-actor model, file dialogs, Finder and
-browser access, and app lifecycle handling. `Packages/JerdCore` contains core
-logic. `Sources/JerdHelper/` contains the narrow privileged service. File and process
-work runs in actors away from the UI actor.
-
-For source responsibilities and data paths, see [Data and components](Reference.md).
-
-## Projects and processes
-
-Detection reads file names only. It never executes `artisan` or project
-scripts. Roots are canonicalized and must remain inside the project.
-Removal never deletes project files.
-
-PHP and Caddy run as the user. The process supervisor uses `posix_spawn`, a
-new process group, a clean signal mask, an explicit environment, and closed
-inherited file descriptors. Only the two approved listener descriptors reach
-Caddy, at descriptors 3 and 4. Commands use executable URLs and argument arrays.
-
-One Caddy process routes the selected running hostnames. Start all selects every
-enabled site; individual Start and Stop controls change the active subset without
-changing saved enable settings. The engine groups sites by
-runtime ID and starts one PHP-FPM master per runtime, each with its own Unix
-socket and generated settings. Sites that select the same runtime share that
-group. All roots, runtimes, and generated settings are checked before startup.
-SiteConfigurationOperation prepares a candidate before it changes saved settings
-or stops live sites. A changed serving plan restarts the whole environment.
-Failed activation restores the previous configuration and attempts to restore its
-run. A failed restore is reported. Unchanged effective settings keep healthy
-processes and listeners. A consumed preparation result avoids a duplicate
-preflight; executable stamps and fresh path checks protect its reuse. Approval
-waits invalidate that result. Startup still validates the final generated files.
-
-The supervisor retains an exited group leader unreaped until group cleanup.
-This prevents PID reuse while it signals the owned group. It does not select a process by name. It gives live descendants their shutdown
-period after the leader exits. Data-service shutdown never escalates to SIGKILL;
-a timeout retains the process, record, and data lock, including after a master
-crash or an early launch failure. Shared native group inspection distinguishes
-an empty group from a failed or incomplete check. It clears and captures `errno`,
-limits interruption retries, and treats a full result buffer as unknown.
-Recovery checks saved-record count and byte limits before it writes descendant
-identities or sends a signal. Existing socket directories are
-rejected. A new short private path is used for each FPM Unix socket.
-
-The engine checks readiness before reporting running, then watches the owned
-services. If Caddy or any PHP-FPM master exits, all are stopped. The coordinator releases
-the socket lease on failure or stop. A normal app quit waits for cleanup.
-SIGKILL or an app crash can leave runtimes alive. Saved records include UID,
-boot/start identity, executable, controller identity, and a kernel audit token.
-Advanced classifies stale, managed, recoverable, and uncertain records. Recovery
-locks the service, verifies that its old controller ended, and sends a graceful
-signal through the audit token. It never falls back to signalling a saved PID.
-Unknown child ownership and legacy records require manual inspection. A recovery
-timeout preserves evidence and never force-kills a data service.
-
-Stop cancels ordinary site preparation and startup. Rollback finishes required
-settings restoration but checks the live Stop request before any restart.
-System changes and runtime activation finish safely; an active macOS consent
-prompt must be completed or cancelled. Quit shows each shutdown stage and
-cancels termination if a data service cannot stop safely.
-
-## HTTP and TLS
-
-Only IPv4 loopback listeners are used. Caddy's admin API, HTTP/3, and automatic
-redirect listeners are disabled. Known hosts redirect to HTTPS; unknown hosts
-are rejected. HTTPS uses strict SNI/Host checks and a separate route for each
-hostname, with that site's document root and PHP socket.
-
-Sensitive paths and PHP-like source files are rejected before static serving.
-The executable PHP suffix matcher is case-sensitive. This prevents an uppercase
-`.PHP` file from entering FastCGI through Caddy's case-insensitive path matcher.
-FastCGI failures never fall through to static serving.
-[Caddy PHP routing](https://caddyserver.com/docs/caddyfile/directives/php_fastcgi).
-
-When the document root is the project directory, `/storage` remains blocked.
-With a separate public document root, it can serve Laravel's `public/storage`
-link to `storage/app/public`. Hidden files and PHP-like source stay blocked;
-PHP under `/storage` is rejected before FastCGI, including path-info requests
-and directory URLs rewritten to `index.php`.
-[Laravel public storage](https://laravel.com/docs/12.x/filesystem#the-public-disk).
-
-Each FPM pool must answer a bounded FastCGI request to its private ping endpoint.
-The request has a three-second timeout and a 16 KiB response limit. It runs no
-project file. `/.jerd/ready` is a separate static HTTPS response. The UI reports
-FPM and HTTPS checks separately; neither establishes project health.
-
-Caddy's internal issuer always has `install_trust: false`. The app creates a
-stable installation UUID and a CA named `Jerd Local CA <UUID>`. CA preparation
-uses Caddy validation with only the PKI app, without opening network listeners.
-Each isolated test gets separate storage and never installs trust.
-
-Engine readiness uses a CA-verified request. Product readiness also requires valid helper host/trust status and a matching CA fingerprint.
-Each enabled hostname must resolve to 127.0.0.1 and pass a URLSession request
-with default macOS trust.
-The URLSession probe rejects redirects and uses no custom CA or TLS bypass.
-Browsers with separate trust stores still require their own acceptance check.
-
-Managed PHP uses OpenSSL CA files. Before FPM starts, and before a default CLI
-invocation, Jerd checks the installation CA's macOS trust settings. Only the
-approved server-TLS policy can enter PHP's private CA bundle. User trust settings
-take precedence; denied, hostname-restricted, and unapproved roots are excluded.
-The trust comparison accepts macOS's stored `sslServer` policy name. It still
-rejects client-policy names, unknown settings, and certificate-error exceptions.
-The bundle retains `/etc/ssl/cert.pem` and adds the installation CA. Jerd changes
-no system CA file. PHP cURL and OpenSSL streams use this bundle for peer verification.
-Trust changes take effect on the next CLI invocation or web start.
-
-## Privileged boundary
-
-The helper uses SMAppService. The setup screen explains host/trust changes
-and shows the certificate fingerprint before registration. macOS handles
-administrator and background-item approval. Jerd collects no password.
-[Apple SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice).
-
-The listener and each XPC connection require an Apple signing chain and the
-exact app/helper identifier. The signing team must match the running binary.
-The `get-task-allow` entitlement must be absent. The app verifies the helper too. These checks use Foundation's
-connection code-signing requirement APIs. Caller ownership comes from the
-XPC connection's effective UID, not a claimed UID or PID supplied by a client.
-
-XPC offers status, configure a validated hostname list and CA, acquire/release sockets, and
-remove setup. Recovery accepts an approved record digest and a restore/remove action.
-It accepts no command, arbitrary file path, executable, project
-root, or network destination. The helper does not spawn processes. Root never
-runs PHP or Caddy.
-
-Read-only status requests finish promptly on cancellation without invalidating
-the shared XPC connection. Requests that change state still await completion or
-a transport failure. Configure, remove, and recovery have no app timeout while
-macOS approval is open. Every completed request cancels its timeout task, and
-late replies cannot complete the same continuation again.
-
-The app checks existing listeners before XPC configure and acquire calls. The
-helper then binds only 127.0.0.1:80 and :443; this bind is the authoritative
-reservation. A conflict changes neither hosts nor trust. On start, it passes both listening
-file descriptors to the app. Caddy 2.11.4 accepts `fd/3` and `fd/4` directly;
-there is no proxy process or wildcard bind. `SO_REUSEADDR` permits prompt
-restart; `SO_REUSEPORT` is not used. A live listener cannot be shared.
-[Caddy descriptor listener implementation](https://github.com/caddyserver/caddy/blob/v2.11.4/listen_unix.go).
-
-Only one authenticated connection can lease the sockets. Invalidation marks
-the session closed before asynchronous cleanup, so a delayed acquire cannot
-recreate its lease. XPC reply continuations complete once. A timeout closes
-the corresponding connection. Explicit Sendable callbacks avoid inheriting
-Swift actor isolation on Foundation reply queues.
-
-## Hosts and certificates
-
-The helper uses fixed paths and records the owning UID, installation UUID,
-hostnames, and exact CA DER. Another user cannot replace that registration.
-Version 1 and 2 records remain under their original hostname trust policy.
-Version 3 records store the approved policy. Loading an old record never
-broadens its trust. The hostname list must contain 1 to 256 distinct `.test` names.
-The CA must have the installation-specific name, matching issuer/subject,
-and a CA basic constraint. A different CA requires cleanup first.
-
-The hosts editor changes only an exact tracked `BEGIN JERD`/`END JERD` section.
-It rejects duplicates, malformed sections, conflicts, or external changes to
-that section. It preserves unrelated bytes, including original line endings.
-Reads reject symlinks, non-regular files, unexpected ownership and hard links.
-Replacement uses an advisory lock, content and inode/time checks, metadata
-copy (owner/mode/ACL/xattrs), fsync, and a same-volume inode exchange. It
-validates the displaced file's identity, content, and metadata and attempts to
-restore it if another writer won the race. If safe restoration cannot be
-confirmed, it retains the displaced file and the pending recovery record.
-The recovery record reports the retained path. The advisory lock cannot exclude
-writers that ignore it; repeated external writes can still require manual recovery.
-
-A durable pending record and hosts backup precede system writes. Normal
-failures restore prior hosts, trust, and registration. Removal also restores
-state if certificate deletion fails. Tests inject partial failures. A crash
-with a pending record blocks ordinary mutation. Read-only status reports the
-operation, last known phase, and available recovery actions. Approved recovery
-uses the exact saved CA and changes only the tracked host section, preserving
-unrelated edits. The helper validates the approved journal digest again and keeps
-the original journal and hosts backup. Unknown or corrupt evidence blocks writes.
-
-The helper imports the root into System.keychain. A reverse call on the same authenticated XPC connection requests admin-domain
-trust from the logged-in app. That trust uses one SSL server trustRoot rule
-for the installation CA. This trust applies to
-all hostnames; it does not grant code-signing or general X.509 trust. The setup
-screen states that scope. Chromium ignores macOS trust entries that contain
-`kSecTrustSettingsPolicyString`, so the old per-host rule is retained only for
-legacy records and rollback.
-[Chromium macOS trust reader](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/net/cert/internal/trust_store_mac.cc).
-
-The app accepts only the exact CA, setup hostname set, and policy approved
-for the active operation. Its scope includes the previous hostnames and policy
-when rollback can require them. An empty hostname list cannot set trust, and
-a hostname-only approval cannot authorize the server TLS policy. No password
-enters Jerd. No browser certificate database or security bypass is required.
-Interactive trust calls have no arbitrary transport timeout. A lost connection
-during consent leaves a recovery record because the outcome can be unknown.
-
-Cleanup removes the
-recorded certificate and its trust, not certificates selected by display name.
-An untracked duplicate CA is rejected. The CA key is never sent to the helper.
-Certificate deletion retrieves a keychain-backed reference by issuer/serial,
-compares the complete DER, then deletes only that reference. A fresh in-memory
-certificate is not a valid persistent-item reference for this operation.
-The system keychain API is deprecated by Apple and builds with a warning.
-Actual import, original hostname trust, removal, and rollback were tested on
-macOS 27. The approved migration to server TLS trust was also applied on that
-host, and the user confirmed that Brave loads both registered sites.
-
-## CLI companions
-
-The app bundles Composer's pinned official PHAR and a locked Laravel installer
-dependency tree. Both use Jerd PHP. An explicit shell setup copies the signed
-native CLI launcher to the app's private bin directory and creates three links.
-It backs up shell files before adding the managed PATH block.
-
-The launcher reads the current app configuration for each invocation. It
-resolves working-directory symlinks and chooses the longest matching project
-path by path components. A registered site's PHP pin applies even when its web
-server is disabled. The default applies outside registered projects. Missing
-selections fail without fallback. Composer's `--working-dir` argument does not
-alter this initial selection; the caller must change directory first.
-
-The launcher replaces itself with the selected PHP through `execv`. It adds the
-companion script path before the user's arguments and places Jerd's bin directory
-first for child commands. It preserves terminal input, output, and exit status.
-It neither starts web services nor changes a project during selection.
-PHPConfigurationPolicy supplies shared UTC, error logging, and version-header
-settings. CLI memory and execution time are unlimited by default; FPM retains
-web limits. Explicit `-n`, `-c`, `-d`, `PHPRC`, and scan-directory settings remain
-available to CLI users. Companion arguments stay after their script path.
-Explicit CA environment settings also retain their existing behavior. Default
-local-TLS commands use a separate INI file so a concurrent command with explicit
-trust settings cannot replace their configuration.
-
-## Runtime supply and release scope
-
-The development PHP comes from [lerd-env/php](https://github.com/lerd-env/php),
-not Herd. Caddy comes from its official releases. Fixed pins are checked
-against GitHub metadata over authenticated HTTPS before download. Archive
-size and SHA-256 are checked before extraction. Only named regular binaries
-and license/build notices are extracted. Per-file receipts are checked during
-embedding and app installation. No upstream PHP installer or external PHP module is run.
-
-Composer's download and license have fixed SHA-256 pins. Laravel dependencies
-are installed from a committed lock file using verified HTTPS, without Composer
-plugins or scripts. Every prepared file is hashed for embedding and installation.
-The dependency archives do not have an independent publisher-signature check.
-
-This is an approved development trust basis, not publisher-signed metadata.
-Runtime distribution still needs Jerd-signed manifests, tested architecture and
-minimum-OS constraints, and reproducible builds. The current
-payload has only been tested on arm64 macOS 27.0.1. Lerd's build-script license
-does not replace the binary and linked-library license notices, which are
-retained with the payload.
-
-PHP inspection uses `-n` and an empty INI scan directory. Runtime startup uses
-Jerd's INI and an empty scan directory. The UI reports observed CLI/FPM modules.
-The intended common extension profile remains a release target. Upstream
-built-in extras do not establish a supported optional-extension feature.
-Database servers are managed by the separate modules described below. The
-tested PHP build includes `pdo_mysql`, `pdo_pgsql`, and `redis` for clients.
-
-Jerd uses its own source and interface. It copies no Herd binary or asset.
-This tool runs trusted local code; it is not a sandbox for hostile projects.
-
-## Database research and implementation
-
-Research date: 2026-10-01. [DBngin](https://dbngin.com/) describes native
-database processes with selectable versions and ports. Its
-[public repository](https://github.com/TablePlus/DBngin) is an issue tracker
-with screenshots, not application source. The screenshots show a short
-create form and a service list with per-row Start/Stop controls. The installed
-DBngin 27.0.1 app was inspected through its window and public scripting command.
-Its PostgreSQL 18.4 and Redis 8.8.0 services were already running on 5432 and
-6379. No DBngin binary or image is included in Jerd.
-
-Jerd adopts the independent-service workflow. Database records are separate
-from site records. Every instance has a UUID, runtime ID, name, unique port,
-private credentials, and an owned data directory. The first catalog supplies
-one version per engine and permits multiple instances. It does not implement
-a SQL editor, automatic data migration, Homebrew service control, or login startup.
-
-Runtime sources are [Oracle MySQL 8.4](https://dev.mysql.com/downloads/mysql/8.4.html),
-[Postgres.app](https://postgresapp.com/downloads.html), and
-[Redis source](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-from-source/).
-The exact selected versions and SHA-256 values are in `Runtimes/Database/pins.json`.
-MySQL 8.4.11 also passes the upstream GPG signature check with the pinned
-Oracle key. PostgreSQL 18.6 comes from the digest-pinned Postgres.app 2.9.6
-image; its app signature is checked before runtime extraction. Redis 8.8.3
-source matches the official redis-hashes entry and is compiled locally with
-the installed compiler. The script stages files in the repository's build
-directory and runs no system installer. Safe in-archive links become regular
-files; per-file hashes are checked during embedding and installation.
-
-DatabaseManager runs off the UI actor. It serializes each instance's lifecycle
-and all record mutations, while different instances can start independently.
-An exclusive file lock prevents two Jerd processes from using the same instance.
-The saved runtime identity must match before existing data can start. A failed
-or interrupted initialization preserves partial data and blocks reinitialization.
-A saved process identity from a previous app session blocks a second server
-until safe recovery. Removing a registration saves its exact runtime metadata.
-Restore registration reuses the original UUID, data, and credentials only after
-identity, initialization, runtime, port, and lock checks succeed.
-
-MySQL uses `--no-defaults`, a private data directory, no X Protocol listener,
-and an initial socket-only bootstrap. That bootstrap sets passwords and creates
-the `jerd` user and database before TCP starts. PostgreSQL uses `initdb` with
-SCRAM password authentication and a private password file. Redis uses a private
-configuration, a generated password, and append-only persistence. All final
-listeners are restricted to `127.0.0.1`; runtime processes have no root access.
-Readiness requires an authenticated SQL query or Redis PING and actual per-PID
-TCP/UDP listener inspection. Passwords do not enter process arguments or probe
-results. Redis passes its password to `redis-cli` in the `REDISCLI_AUTH` child
-environment. A same-user `ps -E` command can show this value. Passwords are
-retained in mode-0600 files within mode-0700 instance folders.
-
-The manager watches process exit. One failed database does not stop other
-databases or the web environment. MySQL and Redis receive SIGTERM for shutdown;
-PostgreSQL receives SIGINT for its documented fast shutdown. The supervisor
-waits up to 30 seconds without escalating to SIGKILL. On timeout the process
-remains tracked, and app termination is cancelled. Removal first completes
-shutdown, then removes only the registration. Data and credentials remain.
-See [PostgreSQL shutdown modes](https://www.postgresql.org/docs/18/server-shutdown.html).
-
-The database port check first inspects active TCP listeners with `lsof`,
-then checks a loopback bind with SO_REUSEADDR. This allows restart while closed
-connections are in TIME_WAIT. A bind alone is insufficient on macOS: a specific
-address can share a port with an existing wildcard listener. The live DBngin
-Redis service exposed this case. Jerd now rejects any existing listener on the
-port, then checks after startup that only its own PID listens there.
-It never enables SO_REUSEPORT. See [Apple socket options](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setsockopt.2.html).
-
-The development build embeds the full prepared payload, about 1.1 GB, including
-shared libraries and upstream notices. Runtime installation on demand is available. Smaller release packages, a wider
-tested version range and export/import UI remain incomplete. Process recovery is
-available when saved ownership can be verified.
-
-## Local mail
-
-The [Mailpit site](https://mailpit.axllent.org/) describes a standalone SMTP
-capture service with a web UI and API. Jerd manages the upstream binary as a
-separate service. The native Mail tab supplies lifecycle controls, port editing,
-Laravel settings, data/log access, and a local test message. The full inbox opens
-in the user's default browser. No SMTP implementation or HTML mail viewer is
-duplicated in Jerd, and mail is not a database engine entry.
-
-The first runtime is [Mailpit 1.31.3](https://github.com/axllent/mailpit/releases/tag/v1.31.3).
-Its fixed arm64 archive size and SHA-256 match GitHub release metadata. The
-preparation script extracts only the binary, license, and readme as regular
-files. Per-file hashes are checked at build and installation time. The binary's
-`version --no-release-check` output is checked before opening the inbox database;
-a version in the executable path cannot satisfy this check. The payload is
-about 26 MB and does not depend on the installed Homebrew Mailpit service.
-
-MailManager is an actor with serialized operations. It stores settings and a
-backup independently from sites and databases. MailPaths defines a private
-SQLite inbox, runtime identity, initialization marker, log, and active-run record.
-An exclusive file lock and the previous-process check block concurrent use.
-An initialized but missing inbox file is not silently replaced. A different
-runtime identity is rejected before Mailpit opens existing data.
-
-[Runtime options](https://mailpit.axllent.org/docs/configuration/runtime-options/)
-provide an explicit database path, SMTP/web bind addresses, and retention controls.
-Jerd binds both ports to `127.0.0.1`, disables automatic message deletion and
-version checks, and disables reverse DNS lookups. The process receives the
-supervisor's clean environment. External relay, forwarding, webhooks, POP3,
-and metrics listeners are not configured. SMTP and HTTP have no authentication
-or TLS in this local development version. The UI states those connection settings.
-
-The [HTTP host allowlist](https://mailpit.axllent.org/docs/configuration/http/)
-is enabled for local access. Unknown DNS hostnames are rejected before API
-handling. Remote CSS and fonts are blocked by Mailpit. These options do not
-promise that every optional inbox action or remote image works without a network.
-
-Readiness requires the expected version and private database path from the
-[information API](https://mailpit.axllent.org/docs/api-v1/). An SMTP NOOP request
-must succeed. The process must own both expected listeners and have no UDP sockets.
-Send test email uses SMTP, not the send API. The monitor detects process exit.
-Stop sends SIGTERM and waits up to 30 seconds without a forced kill. A timeout
-keeps the owned process and cancels quit. If a later database stop cancels quit,
-the mail controls and monitor resume. Stop and Quit never delete captured mail.
-
-The development Mac initially ran Homebrew Mailpit on 1025/8025. Jerd selected
-other free ports and did not import that inbox. The user later requested that
-the Homebrew service be stopped; its own service command was used.
-
-## Local storage
-
-[RustFS](https://docs.rustfs.com/en/installation/macos) supplies a native Apple
-Silicon server with an S3 API and embedded console. Jerd bundles the official
-[1.0.0 release](https://github.com/rustfs/rustfs/releases/tag/1.0.0) with its
-Apache license. The fixed archive digest matches the GitHub asset metadata.
-The preparation script checks size, digest, and regular archive member type.
-The embed script and app installer check the per-file receipt again.
-
-[Lerd's S3 service](https://github.com/lerd-env/lerd/blob/5b42cb29d7ed2723d37d2d65d033dc73620cda2b/internal/serviceops/s3.go)
-uses one shared instance and a built-in S3 client for bucket operations. Jerd
-uses that arrangement with a native Swift client. It does not need a client
-container. Jerd creates random credentials, defaults to private buckets, and
-limits optional anonymous access to object reads. It does not adopt Lerd's
-anonymous write policy or forced bucket deletion.
-
-StorageManager serializes lifecycle and bucket changes. Save validates the S3
-name, starts the owned service when needed, then records an incomplete setup
-before sending bucket operations. The client creates the bucket, applies and
-reads back its access policy, and checks it with HeadBucket. Only then does
-the record become complete. A failure leaves the intent available for retry.
-Saved complete buckets that disappear from the server are reported missing.
-They are not recreated automatically. The native list contains Jerd records;
-the full RustFS console manages objects and other server buckets.
-
-StorageS3Client uses path-style S3 requests with AWS Signature Version 4 and
-CryptoKit. It handles UTF-8 object keys with byte-based URI encoding. It uses
-an ephemeral URLSession with no cookies, cache, proxies, or redirects. Requests
-have timeouts and response size bounds. XML parsing disables external entity
-resolution. Credentials are not placed in commands, URLs, or error messages.
-The generated keys use private 0600 files; RustFS reads each key through its
-credential-file flag. The containing data folders use mode 0700.
-
-The process gets a clean environment with telemetry export and upstream update
-checks disabled. Both API and console listeners bind to loopback. Ready needs
-a signed ListBuckets response, an accessible embedded console, and exact PID
-ownership of the two expected listeners with no UDP socket. The real binary
-serves its console at `/rustfs/console/`, not the authenticated root route.
-RustFS splits volume arguments at spaces, so Jerd passes the fixed relative
-`data` directory from its private working directory. This supports the macOS
-Application Support path and Unicode without symlinks or shell escaping.
-
-A file lock and previous-process record prevent competing use. Runtime identity
-and an initialization marker preserve the selected version, RustFS format file,
-and credential digest. Missing initialized data or credentials block startup.
-SIGTERM shutdown has a 30-second grace period and no forced kill. A timeout
-cancels Quit. Storage controls resume if a later service cancels app termination.
-
-## Dashboard, appearance, and runtime updates
-
-AppAppearance stores independent menu bar and Dock preferences in UserDefaults.
-The app keeps a reopen action for the main window when both entry points are
-hidden. AppIconChoice maps the original asset and six Canvas designs to cached
-AppKit images. The workspace owns one native split view and one section picker.
-It changes the shared sidebar and selected detail together without a page
-transition. Five retained hosting controllers keep each page's scroll and editor
-state. The sidebar keeps its width across section changes, and each section keeps
-its own collapsed state. Mail uses the full detail area. Native sidebar collapse
-and tab selection also update the SwiftUI state. Dashboard's left menu contains
-Dashboard, Appearance, Runtimes, Advanced, and About. AppModel owns both tab and dashboard selections, so links and menu
-commands select the correct tab and page together. Settings and About commands
-open the main window, including when that window was closed. There is no
-separate Settings scene. About reads version information from the app bundle
-and operating system. AppUpdatesModel owns Sparkle and shares its state with About and the app menus.
-App update checks use the feed URL and public key from the signed app bundle.
-
-RuntimeUpdateCatalog reads stable releases from lerd-env/php, Caddy, Mailpit,
-RustFS, Postgres.app, Composer, Laravel, the Redis checksum index, and Oracle's
-MySQL 8.4 macOS page. RuntimeVersion compares numeric components. GitHub checks
-require a matching platform asset and SHA-256 metadata. The UI limits concurrent
-source requests to three, caches metadata for five minutes, and shows individual
-source failures and check times. It does not check over the network on launch.
-
-RuntimeInstaller runs outside the main actor. It downloads into a private
-staging directory, restricts HTTPS hosts and redirects, limits bytes and time,
-and verifies the checksum or Oracle signature before extraction. A restricted
-OpenPGP v4 parser uses the macOS Security framework for RSA/SHA-256 verification
-with Oracle's pinned build key. RuntimeArchive uses system libarchive, bounds
-expanded size and entry counts, rejects traversal, duplicate paths and special
-files, and materializes safe internal file links. It never extracts a symlink.
-Postgres.app is mounted read-only, signature checked, and detached after copying
-only its runtime tree. Redis uses the installed compiler with four build jobs
-at most. Laravel uses isolated Composer state with plugins and scripts disabled.
-
-Actual version checks precede an atomic move to a new immutable build folder.
-The path includes kind, version, architecture, and verified archive SHA-256.
-Two builds of the same version remain distinct. Legacy folders remain usable
-when their receipts match the selected build. Architecture and minimum OS are
-compatibility requirements. Each installation retains a file digest receipt
-and licenses. The bundled CLI
-setup preserves later Composer and Laravel selections across app launches.
-PHP/Caddy activation uses the site transaction and changes the web environment
-only when its effective configuration changes. Failure restores the prior selection. Explicit site pins are unchanged. Database installations
-register additional runtimes, and existing services retain their runtime ID.
-
-Mail and storage runtime changes require a stopped, locked service and a private
-copy of its settings and data. ServiceUpdateBackup writes a recovery record
-before changing runtime identity. The new service must pass normal readiness
-checks; storage must also return all registered, completed buckets. On failure,
-Jerd stops the candidate and restores the saved data and settings. A shutdown
-timeout never forces a data service to exit or restores files under a live
-process. Startup recovers an interrupted update only after the previous-process
-check and file lock succeed. Successful backups and failed candidate files are
-kept. Advanced shows their size and purpose. Explicit deletion takes the service
-lock, rejects surviving processes, and protects all backups while any recovery
-journal remains. Current data is outside the deletion target.
-
-Process logs use append descriptors so a crashed app does not break runtime
-output pipes. The supervisor trims logs on the same inode once per second above
-8 MiB, retaining 4 MiB of recent output. Command logs also keep the first 1 MiB
-for parsers. A write burst can exceed the threshold between checks; concurrent
-output at the trim boundary is diagnostic and can be lost or reordered.
-Orphans can keep writing while the app is absent. See [recovery limits](Reference.md#data-preservation-and-recovery-limits).
-
-The runtime checks follow these publisher and format references.
-
-- [PHP releases](https://github.com/lerd-env/php/releases)
-- [Caddy releases](https://github.com/caddyserver/caddy/releases)
-- [Composer configuration](https://getcomposer.org/doc/06-config.md)
-- [MySQL signature verification](https://dev.mysql.com/doc/refman/8.4/en/checking-gpg-signature.html)
-- [OpenPGP signature packets](https://www.rfc-editor.org/rfc/rfc4880#section-5.2.4)
-- [libarchive source](https://github.com/libarchive/libarchive/tree/v3.8.2/libarchive)
-
-## App updates
-
-Sparkle 2.10.0 supplies the app updater and installation UI. Its exact package
-version is fixed in `project.yml` and `Package.resolved`. Jerd validates the
-bundled HTTPS feed URL and Ed25519 public key before it starts Sparkle.
-The updater delegate returns that URL, so an old preference cannot redirect the feed.
-
-Sparkle verifies signed feeds and archive signatures. Signed-feed enforcement
-has no expiry, and archive verification occurs before extraction.
-The private Ed25519 key remains in the local Keychain. GitHub holds the public
-feed and release archives. The signed bundle contains the public key only.
-This separates archive authenticity from the integrity of the download host.
-
-Periodic checks start disabled and can be enabled in About.
-Automatic installation and system profiling are disabled.
-Sparkle uses the normal app termination path before replacement.
-AppDelegate marks the updater as terminating and waits for AppModel.shutdown().
-A service shutdown failure cancels termination and leaves the app available for a retry.
-Sparkle does not need a separate path that stops data services.
-
-The isolated installation test covers signature rejection, replacement, delayed
-termination, and a cancelled quit. Notarization and production release publication
-remain separate steps in [Publish an app update](PublishUpdate.md).
-
-## Local release preparation
-
-`Scripts/release.sh` separates private preparation, validation, and publication.
-The Python helpers use argument arrays for commands. Preparation signs every
-Mach-O runtime file before it signs the enclosing app. It records the changed
-hashes and gives each payload a content-based installation ID. Existing runtime
-selections can continue to use their original folders.
-
-Release copies contain a pinned, locally built XZ library for RustFS. Library
-paths resolve within each payload or use macOS system libraries. The optional
-PostgreSQL PL/Python modules are removed from the release copy because their
-external Python framework is not bundled. The retained receipt records these
-exclusions and the original source receipt hash.
-
-The app and DMG each require Apple notarization. The final stapled DMG and feed
-use the existing Jerd Sparkle key. Publication uploads and verifies the assets
-before it makes the signed feed available on `main`. Failed publication state
-is retained for manual recovery. See [Publish an app update](PublishUpdate.md).
+# Architecture
+
+Jerd is a macOS app, a privileged helper, and a command-line launcher. Almost
+all code is in the `JerdKit` Swift package. The three app targets in `Apps/`
+contain only entry points, resources, and live wiring.
+
+## Layers
+
+```
+Apps/Jerd ─────────► JerdLive ──► JerdUI ──► JerdDesign
+Apps/JerdHelper ───► JerdHelperCore ──► JerdSystem
+Apps/JerdCLI ──────► JerdCLICore ──► JerdWeb, JerdRuntimes
+
+Domain:      JerdWeb   JerdSystem   JerdRuntimes   JerdDatabases JerdMail JerdStorage JerdTunnels
+                                                    └──────────── JerdServiceKit ────┘
+Base:        JerdProcess   JerdManifest   JerdArchive (CArchive)
+             └────────────── JerdFoundation ──────────────┘
+```
+
+A target may import only the targets that `Package.swift` lists for it.
+Domain targets do not import each other, except the service modules, which use
+`JerdServiceKit`. When a domain target needs another domain, it declares a
+small port protocol with its own value types. `JerdLive` implements the port
+with the other domain. This keeps each target buildable, testable, and
+reviewable alone.
+
+## Targets
+
+| Target | Responsibility |
+| --- | --- |
+| `JerdFoundation` | `JerdError`, safe private files, atomic writes, instance locks, versioned JSON documents, the data layout, `.test` hostnames, secrets, digests, safe relative paths |
+| `JerdProcess` | Spawn plans and `posix_spawn`, the process supervisor, stop policies, process-group inspection, bounded and redacted logs, one-shot commands, process identity, saved run records, recovery classification, and loopback listener inspection |
+| `JerdManifest` | Runtime pins, payload receipts, build receipts, payload folder IDs, app update settings, and appcast signature checks; shared with `Tools/` |
+| `JerdArchive` | libarchive reading, pure extraction plans, and bounded extraction |
+| `JerdRuntimes` | Runtime versions and kinds, release catalogs, HTTPS fetches, checksum and OpenPGP checks, runtime preparation, version probes, managed runtime installation, bundled payload installation, CLI companion selections |
+| `JerdSystem` | The helper XPC protocol and DTOs, hosts sections, guarded file swaps, helper records, setup transactions, recovery assessment, trust policies, certificate identity, consent scope, code-signing requirements, reply gates, port leases, and the app-side helper client |
+| `JerdHelperCore` | Helper daemon logic: connection acceptance, system keychain certificates, trust installation, consent requests, and the XPC service |
+| `JerdWeb` | Site configuration and its codec, project detection, site validation, the site registry, serving plans, Caddy, FPM, and PHP INI rendering, the installation CA, PHP CA bundles, FastCGI ping, the serving engine, readiness checks, the environment coordinator, and the site change transaction |
+| `JerdCLICore` | CLI runtime selection, launch plans, the shell PATH block, and shell setup |
+| `JerdServiceKit` | The managed-instance state machine shared by databases, mail, and storage; data identity guards, readiness polling, runtime update transactions, and backup retention |
+| `JerdDatabases` | MySQL, PostgreSQL, and Redis definitions, the service registry, retained registrations, and the database manager |
+| `JerdMail` | The Mailpit definition, mail settings, test messages, and the mail manager |
+| `JerdStorage` | The RustFS definition, the S3 signer, transport, and parsers, bucket policies, bucket provisioning, and the storage manager |
+| `JerdTunnels` | Tunnel tokens, the Keychain secret store, the cloudflared connector, the reconnect policy, and the tunnel supervisor |
+| `JerdDesign` | Design tokens and reusable SwiftUI components |
+| `JerdUI` | Navigation, feature view models, screens, and the port protocols that the UI needs |
+| `JerdLive` | Live implementations of the UI ports, app bootstrap, and the staged shutdown |
+| `JerdUIFixtures` | In-memory port implementations and sample data for previews, tests, and snapshots |
+| `JerdSnapshots` | Renders every page with fixtures to PNG files |
+
+## Patterns
+
+**Pure policy, effectful shell.** Rules are pure values and functions with
+table tests: hostname rules, route rendering, recovery classification, the
+reconnect policy, and release filters. Actors perform file, process, and
+network work and call the pure rules.
+
+**Ports.** A protocol describes each side effect: commands, the helper,
+the clock, HTTP fetches, the keychain. Live types use the system. Tests use
+fakes. View models depend only on ports.
+
+**Explicit state machines.** Every long-running component has a named state
+enum and one function that changes it: managed instances, the environment
+coordinator, the site change transaction, the setup transaction, tunnels,
+and the release publisher.
+
+**One owner per file.** Each saved file has exactly one type that reads and
+writes it. That type keeps the exact compatible encoding and the backup copy.
+
+**Errors.** `JerdError` carries a kind and a user message. A view shows the
+message of the operation that failed, once, on the page that owns it.
+
+## Process model
+
+PHP-FPM, Caddy, and all data services run as the user, in their own process
+groups, with a clean environment and only the file descriptors that they need.
+The helper runs as root, binds only `127.0.0.1:80` and `127.0.0.1:443`, edits
+only Jerd's tracked hosts section, and manages only Jerd's installation CA.
+It never starts a process.
+
+Data services stop with a graceful signal and a 30-second limit. A timeout
+never escalates to `SIGKILL`; the process, its record, and its data lock stay,
+and Quit is cancelled. Saved run records let Jerd find and safely stop
+processes that survive an app crash.
+
+## Data
+
+All user data is under `~/Library/Application Support/Jerd`. `DataLayout` in
+`JerdFoundation` names every path. The helper keeps its records under
+`/Library/Application Support/JerdHelper`. See [Data reference](Reference.md).

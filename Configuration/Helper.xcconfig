@@ -1,0 +1,8 @@
+// Settings for the privileged helper tool.
+#include "Base.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.helper
+PRODUCT_NAME = JerdHelper
+GENERATE_INFOPLIST_FILE = YES
+CREATE_INFOPLIST_SECTION_IN_BINARY = YES
+SKIP_INSTALL = YES
