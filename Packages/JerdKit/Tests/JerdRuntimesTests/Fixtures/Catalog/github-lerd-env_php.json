@@ -1,0 +1,250 @@
+[
+ {
+  "tag_name": "php-8.5.11",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.5.11-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.11/lerd-php-8.5.11-darwin-arm64.tar.gz",
+    "size": 66723803,
+    "digest": "sha256:59761adfe93cf737282843ea1cbc74e2fef3dd86839554efd71c3dddb2b867dc"
+   },
+   {
+    "name": "lerd-php-8.5.11-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.11/lerd-php-8.5.11-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:b918a3ffbf04f46ab66e47824639901b2313b2318d94d5e9d78f11622581e3b5"
+   },
+   {
+    "name": "lerd-php-8.5.11-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.11/lerd-php-8.5.11-darwin-x86_64.tar.gz",
+    "size": 69617981,
+    "digest": "sha256:3bba566bac8eddcf87dfa9eef51d9723942725a01738a72a02af42da55b6576a"
+   },
+   {
+    "name": "lerd-php-8.5.11-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.11/lerd-php-8.5.11-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:fb9ee371c60c9116af2dde14057cb6f9cf7603a012cf45a9b945be4ce995abd3"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.4.26",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.4.26-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.26/lerd-php-8.4.26-darwin-arm64.tar.gz",
+    "size": 65901558,
+    "digest": "sha256:1f7a1efe35f37bfe491735f778e381c09ad023207fd1f45a2fae4915bffacc0b"
+   },
+   {
+    "name": "lerd-php-8.4.26-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.26/lerd-php-8.4.26-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:48e957d06d307be92140770d818b649d5788243ced3e2bc056d0c62b5233b514"
+   },
+   {
+    "name": "lerd-php-8.4.26-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.26/lerd-php-8.4.26-darwin-x86_64.tar.gz",
+    "size": 68809187,
+    "digest": "sha256:ad21a6778421748a833d092cee87ead5d984a78354e8bc7711db19e1abf53aea"
+   },
+   {
+    "name": "lerd-php-8.4.26-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.26/lerd-php-8.4.26-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:b94639129322c20327694ca07e678b06796fda205e035d3b5582f93886f1bf00"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.3.35",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.3.35-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.35/lerd-php-8.3.35-darwin-arm64.tar.gz",
+    "size": 64630402,
+    "digest": "sha256:4fbe3459af2ff74a38662ac72a927307e29d8a565cba6bb3183ae584c2400790"
+   },
+   {
+    "name": "lerd-php-8.3.35-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.35/lerd-php-8.3.35-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:735e95500f754e1230a5cc5405aa61a890a0687244c9b97661023e69bc494c66"
+   },
+   {
+    "name": "lerd-php-8.3.35-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.35/lerd-php-8.3.35-darwin-x86_64.tar.gz",
+    "size": 67004257,
+    "digest": "sha256:ff93c11c822cdd27413c4bd9a660257c25903207784a061397981c1a1df67a47"
+   },
+   {
+    "name": "lerd-php-8.3.35-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.35/lerd-php-8.3.35-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:eeaec3e5996e27ba05671a3805c8c88448695f3546a973246d580fbfeb9e742e"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.2.34",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.2.34-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.34/lerd-php-8.2.34-darwin-arm64.tar.gz",
+    "size": 64425549,
+    "digest": "sha256:a10027ce53b4640b5303041a495b0903436b64e768c0a7fe713cbad435cb5c73"
+   },
+   {
+    "name": "lerd-php-8.2.34-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.34/lerd-php-8.2.34-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:a396ed30fd2a643744488dc07dc46e2ce8ba812be8f5428cf1e6c29f15f6bdfd"
+   },
+   {
+    "name": "lerd-php-8.2.34-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.34/lerd-php-8.2.34-darwin-x86_64.tar.gz",
+    "size": 66778443,
+    "digest": "sha256:48abde5e549f8d821d39ca6cba7acf22e657435acaa3439b79780916a357e19c"
+   },
+   {
+    "name": "lerd-php-8.2.34-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.34/lerd-php-8.2.34-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:b4b08d32b87562d9c45909e4f0e803862982a4ea60a177253ce3a3f266263430"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.5.10",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.5.10-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.10/lerd-php-8.5.10-darwin-arm64.tar.gz",
+    "size": 66602595,
+    "digest": "sha256:41abe986489de54e9c75a9e36f8fed2ae31cc6294ebaa91e3f58b50538d5a8d2"
+   },
+   {
+    "name": "lerd-php-8.5.10-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.10/lerd-php-8.5.10-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:1bb95e46435aec5bbb9e5fd34d9179d38bbf507c9899334a9c6a571f69432c66"
+   },
+   {
+    "name": "lerd-php-8.5.10-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.10/lerd-php-8.5.10-darwin-x86_64.tar.gz",
+    "size": 69418922,
+    "digest": "sha256:3cbeb8b433f8c7991242e94e4e4ac9c788202f3b7c404db32c4eb1f58fdf3e84"
+   },
+   {
+    "name": "lerd-php-8.5.10-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.5.10/lerd-php-8.5.10-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:cf505e8ec20cf1da3f23089632412db2b7908d1cdb310cb264694c585092c16d"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.4.25",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.4.25-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.25/lerd-php-8.4.25-darwin-arm64.tar.gz",
+    "size": 65782306,
+    "digest": "sha256:ff385b1a304734a19ef153f123c188ffc9fcf25b095c523cad322361249edefa"
+   },
+   {
+    "name": "lerd-php-8.4.25-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.25/lerd-php-8.4.25-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:7fd0b8be14c448e436590a2279373df861b0432b733d5142bef6f932b8f89db7"
+   },
+   {
+    "name": "lerd-php-8.4.25-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.25/lerd-php-8.4.25-darwin-x86_64.tar.gz",
+    "size": 68614013,
+    "digest": "sha256:f0319a2337ed255965139492d6ac5fa2b050119d540831351f08adb157afaba8"
+   },
+   {
+    "name": "lerd-php-8.4.25-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.4.25/lerd-php-8.4.25-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:47f0f96dbecde1f59ee1fccf01106a0b8b6cf6ea2818e370e00d5df25977ee9b"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.3.33",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.3.33-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.33/lerd-php-8.3.33-darwin-arm64.tar.gz",
+    "size": 64511208,
+    "digest": "sha256:049651adbb780b6cf6a81811b21fcdbf2448b4c94fa652ca9d97bf59cbd3aa8d"
+   },
+   {
+    "name": "lerd-php-8.3.33-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.33/lerd-php-8.3.33-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:db406427f1dcacae638860d7fe6bb9a655f78bc3f229868faa20e5b47497bf79"
+   },
+   {
+    "name": "lerd-php-8.3.33-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.33/lerd-php-8.3.33-darwin-x86_64.tar.gz",
+    "size": 66811435,
+    "digest": "sha256:901a4aaa7aabdb0a4407b4acb99852ad43bc9fed21001d2764b64d9c47e737d5"
+   },
+   {
+    "name": "lerd-php-8.3.33-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.3.33/lerd-php-8.3.33-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:2ebc64a05a9abcd609b61b7ee1d434cd1cdaeba289bcda9fd896c4ca37a80bb2"
+   }
+  ]
+ },
+ {
+  "tag_name": "php-8.2.33",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "lerd-php-8.2.33-darwin-arm64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.33/lerd-php-8.2.33-darwin-arm64.tar.gz",
+    "size": 64301080,
+    "digest": "sha256:afc1036ba928e16ac4782119202f0178c5117eb77a0a5efbc88f51e43cb16a22"
+   },
+   {
+    "name": "lerd-php-8.2.33-darwin-arm64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.33/lerd-php-8.2.33-darwin-arm64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:7e59edc71a7ee9cb0f747f18a8b503ae8962b14e84bfb9926a0a5c637689b63b"
+   },
+   {
+    "name": "lerd-php-8.2.33-darwin-x86_64.tar.gz",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.33/lerd-php-8.2.33-darwin-x86_64.tar.gz",
+    "size": 66583081,
+    "digest": "sha256:ffd458c616b463a93f4d0d72439ea8b5dc190e112c716293dc821253a2cf7ab5"
+   },
+   {
+    "name": "lerd-php-8.2.33-darwin-x86_64.tar.gz.sha256",
+    "browser_download_url": "https://github.com/lerd-env/php/releases/download/php-8.2.33/lerd-php-8.2.33-darwin-x86_64.tar.gz.sha256",
+    "size": 65,
+    "digest": "sha256:73c3e5c0f0be3593ac2f3cc62b896cf75fd7f985a03883a1b7bd290032041e1e"
+   }
+  ]
+ }
+]

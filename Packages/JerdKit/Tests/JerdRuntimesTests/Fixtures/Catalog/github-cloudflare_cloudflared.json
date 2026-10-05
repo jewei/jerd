@@ -1,0 +1,202 @@
+[
+ {
+  "tag_name": "2026.9.3",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.3/cloudflared-darwin-amd64.tgz",
+    "size": 21740193,
+    "digest": "sha256:d1155d0837487f261183b15c1eab6c4ebcad9dc49b94675f1524c3564cea3977"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.3/cloudflared-darwin-arm64.tgz",
+    "size": 19784166,
+    "digest": "sha256:587c2cfb1c230fe36c7fa7727da78be459dae028cabe8c001291999350f07095"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.3/cloudflared-amd64.pkg",
+    "size": 21755087,
+    "digest": "sha256:48d0d3b28b3b5d142490f57316981b65ae46fbbe33408c22b0a4a11b5242de50"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.9.2",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.2/cloudflared-darwin-amd64.tgz",
+    "size": 21693742,
+    "digest": "sha256:165bbce902462e910d71b7eb16c1c03e29299a00b522f2c6938cd3f440d1b3ee"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.2/cloudflared-darwin-arm64.tgz",
+    "size": 19771456,
+    "digest": "sha256:42af1e89acf6dac40cf5908ef5a42c166ce07da270b9e0149581be543ec6c6fb"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.2/cloudflared-amd64.pkg",
+    "size": 21708636,
+    "digest": "sha256:86dd0f8fcb3060b6080f2c3233967887d6ceb0fbed180ccfd8999f4b82baa0fd"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.9.1",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.1/cloudflared-darwin-amd64.tgz",
+    "size": 21118723,
+    "digest": "sha256:ff0d3b51d5ff70eceef89d6b32145fee985018a2174596a5dbe405e2766e2ac4"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.1/cloudflared-darwin-arm64.tgz",
+    "size": 19217478,
+    "digest": "sha256:c27ab8fd0aa489449e3d201eb02f957ef460a13b613662928b1b23394bf1bcfe"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.1/cloudflared-amd64.pkg",
+    "size": 21133622,
+    "digest": "sha256:c4084991b83b2f538853c97a502f424805467e4375d18138ab80bc2414340997"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.9.0",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-darwin-amd64.tgz",
+    "size": 21117847,
+    "digest": "sha256:8f2ecf41776d942bcc8070a56e7bafa4c5de70a1d1781110e2eb3774cca512a8"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-darwin-arm64.tgz",
+    "size": 19217242,
+    "digest": "sha256:c0eccb3758420d1f4e46cbf2b8ecde01d9802a154232a817f25133340009fcc7"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-amd64.pkg",
+    "size": 21132730,
+    "digest": "sha256:57f6a86a7f77b75722227729f6d6ce41e5ab1bc82415bd4d39a734c7d9e0c4ce"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.8.3",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-darwin-amd64.tgz",
+    "size": 21094303,
+    "digest": "sha256:61e1316266a00fd70ce40da011d612badc805367fb65293dd1925f938f704c99"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-darwin-arm64.tgz",
+    "size": 19197606,
+    "digest": "sha256:40c9144d86df8937c5b43293a1f7d2d2107029aa74725023dd46b1b27154352f"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-amd64.pkg",
+    "size": 21109217,
+    "digest": "sha256:95f499fba19643893212bbe912733e5e80394af111fea6c67f066b46a70c3194"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.8.2",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.2/cloudflared-darwin-amd64.tgz",
+    "size": 21116242,
+    "digest": "sha256:f1727723c586500e2092368ae21871b3df7ddfd2cb097f22d81bee4a9c458bb4"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.2/cloudflared-darwin-arm64.tgz",
+    "size": 19214189,
+    "digest": "sha256:9042c2c5d8b2de78e60f313d5fb31b6c5c1cebde787a3caf1f2c9588084ac442"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.2/cloudflared-amd64.pkg",
+    "size": 21131195,
+    "digest": "sha256:29102028ce6b69d956956bdc91725b6fbdbba74db370542831429af05b9fa700"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.8.1",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.1/cloudflared-darwin-amd64.tgz",
+    "size": 21116818,
+    "digest": "sha256:5a36a4d8acce7f32bbf2779b54bf5004fa6ae25a44b1e6831fc056d52c201043"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.1/cloudflared-darwin-arm64.tgz",
+    "size": 19214919,
+    "digest": "sha256:2d42cd4448f95a5383f0c5c9777d0c29ff70c275d024945862502bee4db174b4"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.1/cloudflared-amd64.pkg",
+    "size": 21131726,
+    "digest": "sha256:2289fb79b869f53af9349c6aacf1fdbe81695100c8e7e009ac12b51e2a56a9d2"
+   }
+  ]
+ },
+ {
+  "tag_name": "2026.8.0",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "cloudflared-darwin-amd64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.0/cloudflared-darwin-amd64.tgz",
+    "size": 21116390,
+    "digest": "sha256:95c57d69cf6b19a94880090d76f24f46cd359c68ca82a14b143ea604dff33020"
+   },
+   {
+    "name": "cloudflared-darwin-arm64.tgz",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.0/cloudflared-darwin-arm64.tgz",
+    "size": 19214411,
+    "digest": "sha256:6244b4b199515690f93e170110d219d8d141184ba847179980c2f5906800c931"
+   },
+   {
+    "name": "cloudflared-amd64.pkg",
+    "browser_download_url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.0/cloudflared-amd64.pkg",
+    "size": 21131341,
+    "digest": "sha256:d7e11466bacadb0a082d792d2d24f276ed33d012e1975282bab945729df15892"
+   }
+  ]
+ }
+]
