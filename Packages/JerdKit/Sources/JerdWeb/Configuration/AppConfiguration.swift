@@ -40,7 +40,4 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         }
         return runtime
     }
-
-    /// The site with `id`, or nil.
-    public func site(_ id: UUID) -> Site? { sites.first { $0.id == id } }
 }
