@@ -2,7 +2,8 @@ import SwiftUI
 
 /// A message with a symbol, text, an optional action, and an optional Dismiss button.
 /// Use the row style inside a form section and the banner style at the top of a page.
-/// Warnings and errors in the banner style are announced to VoiceOver when they appear.
+/// Warnings and errors are announced to VoiceOver when they appear and each time their text
+/// changes, in both styles.
 public struct InlineMessage: View {
     /// Where the message is shown.
     public enum Style: Sendable {
@@ -12,37 +13,56 @@ public struct InlineMessage: View {
         case banner
     }
 
+    /// The width of the symbol column, so the text starts at one place for every kind.
+    static let symbolWidth: CGFloat = 16
+    /// The height of one line of banner content, with or without a small button, so every banner
+    /// with one line of text has the same height.
+    static let bannerLineHeight: CGFloat = 22
+
     private let text: String
     private let kind: MessageKind
     private let title: String?
     private let style: Style
     private let action: PageAction?
+    private let identifier: String?
     private let dismiss: (@MainActor () -> Void)?
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.messageAnnouncer) private var announcer
 
+    /// - Parameter identifier: The stable name of the message for UI tests. The Dismiss button
+    ///   gets `<identifier>.dismiss`; without it, `message.<kind>.dismiss`.
     public init(
         _ text: String, kind: MessageKind, title: String? = nil, style: Style = .row, action: PageAction? = nil,
-        dismiss: (@MainActor () -> Void)? = nil
+        identifier: String? = nil, dismiss: (@MainActor () -> Void)? = nil
     ) {
         self.text = text
         self.kind = kind
         self.title = title
         self.style = style
         self.action = action
+        self.identifier = identifier
         self.dismiss = dismiss
     }
 
     public var body: some View {
+        styled
+            .onChange(of: spokenText, initial: true) { _, newText in
+                guard kind.isAnnounced else { return }
+                announcer.announce(newText)
+            }
+    }
+
+    @ViewBuilder private var styled: some View {
         switch style {
         case .row:
             content
         case .banner:
             content
+                .frame(minHeight: Self.bannerLineHeight)
                 .padding(.horizontal, Spacing.medium)
-                .padding(.vertical, Spacing.small + Spacing.hairline)
+                .padding(.vertical, Spacing.small)
                 .background { bannerShape.fill(kind.color.opacity(Opacity.bannerFill)) }
                 .overlay { bannerShape.strokeBorder(kind.color.opacity(strokeOpacity)) }
-                .onAppear(perform: announce)
         }
     }
 
@@ -64,6 +84,7 @@ public struct InlineMessage: View {
                 .foregroundStyle(.secondary)
                 .help("Dismiss")
                 .accessibilityLabel("Dismiss \(kind.spokenName.lowercased())")
+                .accessibilityIdentifier(dismissIdentifier)
             }
         }
         .font(TextRole.detail.font)
@@ -75,6 +96,7 @@ public struct InlineMessage: View {
             Image(systemName: kind.systemImage)
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(kind.color)
+                .frame(width: Self.symbolWidth)
             VStack(alignment: .leading, spacing: Spacing.hairline) {
                 if let title {
                     Text(title).fontWeight(.semibold)
@@ -95,16 +117,16 @@ public struct InlineMessage: View {
         [kind.spokenName, title, text].compactMap { $0 }.joined(separator: ": ")
     }
 
+    /// The identifier of the Dismiss button.
+    var dismissIdentifier: String {
+        identifier.map { "\($0).dismiss" } ?? AccessibilityIdentifier.make("message", kind.rawValue, "dismiss")
+    }
+
     private var bannerShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
     }
 
     private var strokeOpacity: CGFloat {
         contrast == .increased ? Opacity.tintStrokeIncreasedContrast : Opacity.tintStroke
-    }
-
-    private func announce() {
-        guard kind.isAnnounced else { return }
-        AccessibilityNotification.Announcement(spokenText).post()
     }
 }

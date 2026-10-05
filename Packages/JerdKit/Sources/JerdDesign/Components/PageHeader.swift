@@ -6,25 +6,24 @@ import SwiftUI
 public struct PageHeader<Accessory: View>: View {
     private let title: String
     private let subtitle: String?
-    private let status: DisplayStatus?
-    private let statusSubject: String
+    let status: NamedStatus?
     private let primaryAction: PageAction?
     private let secondaryActions: [PageAction]
     private let accessory: Accessory
 
     /// - Parameters:
-    ///   - statusSubject: The spoken subject of the badge, for example "Site status".
+    ///   - status: The one status badge of the page, with its spoken subject, for example
+    ///     `NamedStatus("Site status", DisplayStatus("Ready", tone: .ready))`.
     ///   - secondaryActions: Shown before the primary action, in the given order.
     ///   - accessory: Extra trailing content, for example a `BusyIndicator` or a `Menu`.
     public init(
-        _ title: String, subtitle: String? = nil, status: DisplayStatus? = nil, statusSubject: String = "Status",
+        _ title: String, subtitle: String? = nil, status: NamedStatus? = nil,
         primaryAction: PageAction? = nil, secondaryActions: [PageAction] = [],
         @ViewBuilder accessory: () -> Accessory = { EmptyView() }
     ) {
         self.title = title
         self.subtitle = subtitle
         self.status = status
-        self.statusSubject = statusSubject
         self.primaryAction = primaryAction
         self.secondaryActions = secondaryActions
         self.accessory = accessory()
@@ -56,7 +55,7 @@ public struct PageHeader<Accessory: View>: View {
                     .textSelection(.enabled)
                     .help(title)
                 if let status {
-                    StatusBadge(status, accessibilityLabel: statusSubject)
+                    StatusBadge(status.status, accessibilityLabel: status.subject)
                 }
             }
             if let subtitle {
@@ -73,8 +72,9 @@ public struct PageHeader<Accessory: View>: View {
     private var actionRow: some View {
         HStack(spacing: Spacing.small) {
             accessory
-            ForEach(secondaryActions) { action in
-                PageActionButton(action: action, isPrimary: false)
+            // Actions are keyed by position: two actions may share a title.
+            ForEach(secondaryActions.indices, id: \.self) { index in
+                PageActionButton(action: secondaryActions[index], isPrimary: false)
             }
             if let primaryAction {
                 PageActionButton(action: primaryAction, isPrimary: true)

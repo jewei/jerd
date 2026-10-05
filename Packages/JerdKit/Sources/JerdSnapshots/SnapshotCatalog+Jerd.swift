@@ -1,4 +1,4 @@
-import JerdDesign
+import JerdSnapshotSupport
 
 extension SnapshotCatalog {
     /// Every snapshot of Jerd. Register each page with one `add` line, for example:

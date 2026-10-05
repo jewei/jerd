@@ -1,28 +1,30 @@
 import SwiftUI
 
-/// A short "Copied" confirmation at the bottom of the window. It does not move the content,
-/// it is announced to VoiceOver, and it clears itself after `duration`.
-/// Apply it once at the window root, so copies from the sidebar, menus, and pages all show it.
+/// A short "Copied" confirmation at the bottom of the view that it modifies. It does not move
+/// the content, it is announced to VoiceOver, and it clears itself after `duration`.
+/// Keep the message state at the window level, so the sidebar, menus, and pages can all set it,
+/// and draw the toast in the detail column with `detailColumn(copyFeedback:operation:)`.
 struct CopyFeedback: ViewModifier {
-    @Binding var message: String?
+    @Binding var message: CopyFeedbackMessage?
     let duration: Duration
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.messageAnnouncer) private var announcer
 
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .bottom) {
                 ZStack {
                     if let message {
-                        CopyFeedbackToast(message: message)
+                        CopyFeedbackToast(message: message.text)
                             .padding(.bottom, Spacing.large)
                             .transition(.opacity)
                     }
                 }
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: message)
             }
-            .onChange(of: message) { _, newMessage in
+            .onChange(of: message, initial: true) { _, newMessage in
                 if let newMessage {
-                    AccessibilityNotification.Announcement(newMessage).post()
+                    announcer.announce(newMessage.text)
                 }
             }
             .task(id: message) {
@@ -38,8 +40,9 @@ struct CopyFeedback: ViewModifier {
 }
 
 extension View {
-    /// Shows `message` as a copy confirmation, then sets it to nil after `duration`.
-    public func copyFeedback(_ message: Binding<String?>, duration: Duration = .seconds(4)) -> some View {
+    /// Shows `message` as a copy confirmation at the bottom of this view, then sets it to nil
+    /// after `duration`. Prefer `detailColumn(copyFeedback:operation:)` in the main window.
+    public func copyFeedback(_ message: Binding<CopyFeedbackMessage?>, duration: Duration = .seconds(4)) -> some View {
         modifier(CopyFeedback(message: message, duration: duration))
     }
 }

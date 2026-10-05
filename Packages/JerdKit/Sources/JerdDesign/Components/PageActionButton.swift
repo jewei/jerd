@@ -18,5 +18,6 @@ struct PageActionButton: View {
         .primaryActionStyle(isPrimary: isPrimary, isEnabled: action.isEnabled)
         .help(action.help ?? action.title)
         .accessibilityLabel(action.accessibilityLabel ?? action.title)
+        .accessibilityIdentifier(ifPresent: action.identifier)
     }
 }
