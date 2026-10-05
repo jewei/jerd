@@ -20,8 +20,9 @@ public struct OperationBanner: View {
             Divider()
             HStack(spacing: Spacing.medium) {
                 indicator
+                // The detail font with the primary color: here the message is the main content.
                 Text(message)
-                    .textRole(.detail)
+                    .font(TextRole.detail.font)
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .help(message)

@@ -22,5 +22,9 @@ public struct CopyButton: View {
         .buttonStyle(.borderless)
         .help("Copy \(subject)")
         .accessibilityLabel("Copy \(subject)")
+        .accessibilityIdentifier(identifier)
     }
+
+    /// The identifier for UI tests, from the subject, for example `copy.inbox-url`.
+    var identifier: String { AccessibilityIdentifier.make("copy", subject) }
 }

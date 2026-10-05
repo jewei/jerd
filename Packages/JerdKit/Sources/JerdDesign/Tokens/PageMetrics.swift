@@ -13,6 +13,10 @@ public enum PageMetrics {
     /// The inset of row text inside a grouped form section.
     public static let rowInset: CGFloat = 10
 
+    /// The horizontal inset of content inside a dashboard card. It equals `rowInset`, so card
+    /// content starts on the same text column as the page title and form rows.
+    public static let cardInset: CGFloat = rowInset
+
     /// The columns for a page of the given width.
     public static func columns(forWidth width: CGFloat) -> PageColumns {
         let available = max(0, width - 2 * formInset)

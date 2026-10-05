@@ -13,13 +13,18 @@ public struct SummaryCard<Actions: View>: View {
     private let status: DisplayStatus
     private let summary: String
     private let open: @MainActor () -> Void
+    private let identifier: String?
     private let actions: Actions
     @Environment(\.colorSchemeContrast) private var contrast
 
+    /// - Parameter identifier: The stable name of the card for UI tests, for example
+    ///   `dashboard.sites`. The Open button gets `<identifier>.open`.
     public init(
         _ title: String, systemImage: String, tint: ServiceTint, status: DisplayStatus, summary: String,
-        open: @escaping @MainActor () -> Void, @ViewBuilder actions: () -> Actions = { EmptyView() }
+        identifier: String? = nil, open: @escaping @MainActor () -> Void,
+        @ViewBuilder actions: () -> Actions = { EmptyView() }
     ) {
+        self.identifier = identifier
         self.title = title
         self.systemImage = systemImage
         self.tint = tint
@@ -41,7 +46,9 @@ public struct SummaryCard<Actions: View>: View {
                 .padding(.vertical, Spacing.medium)
             footer
         }
-        .padding(Spacing.large)
+        // Content starts on the page text column, like the page title and form rows.
+        .padding(.horizontal, PageMetrics.cardInset)
+        .padding(.vertical, Spacing.medium)
         .background { cardShape.fill(.primary.opacity(Opacity.cardFill)) }
         .overlay { cardShape.strokeBorder(.separator.opacity(strokeOpacity)) }
         .accessibilityElement(children: .contain)
@@ -75,10 +82,16 @@ public struct SummaryCard<Actions: View>: View {
             .buttonStyle(.borderless)
             .help("Open \(title)")
             .accessibilityLabel("Open \(title)")
+            .accessibilityIdentifier(openIdentifier)
         }
         .controlSize(.regular)
         .frame(minHeight: footerHeight)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The identifier of the Open button: `<identifier>.open`, or `card.<title>.open`.
+    var openIdentifier: String {
+        identifier.map { "\($0).open" } ?? AccessibilityIdentifier.make("card", title, "open")
     }
 
     private var cardShape: RoundedRectangle {

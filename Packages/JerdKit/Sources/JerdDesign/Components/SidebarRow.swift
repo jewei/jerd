@@ -31,7 +31,7 @@ public struct SidebarRow: View {
             .truncationMode(.middle)
             .frame(maxWidth: .infinity, alignment: .leading)
             if let status {
-                StatusIndicator(status)
+                StatusIndicator(status, accessibilityLabel: "\(title) status")
             }
         }
         .padding(.vertical, Spacing.tight)

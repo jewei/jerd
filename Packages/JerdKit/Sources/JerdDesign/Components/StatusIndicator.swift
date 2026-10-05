@@ -7,7 +7,7 @@ public struct StatusIndicator: View {
     private let accessibilitySubject: String
 
     /// - Parameter accessibilityLabel: The subject of the status, for example "Site status".
-    public init(_ status: DisplayStatus, accessibilityLabel: String = "Status") {
+    public init(_ status: DisplayStatus, accessibilityLabel: String) {
         self.status = status
         self.accessibilitySubject = accessibilityLabel
     }

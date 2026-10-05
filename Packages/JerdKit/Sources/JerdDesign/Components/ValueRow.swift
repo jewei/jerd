@@ -2,6 +2,7 @@ import SwiftUI
 
 /// A label and a read-only value in a grouped form. Long values truncate in the middle and
 /// show in full as a tooltip. The value is selectable, and an optional button copies it.
+/// Use `PathRow` for file and folder paths, so every path has one style.
 public struct ValueRow: View {
     private let label: String
     private let value: String
@@ -10,7 +11,8 @@ public struct ValueRow: View {
 
     /// - Parameters:
     ///   - isCode: Uses the monospaced font for technical values such as hosts, ports, and keys.
-    ///   - copy: Copies the value. The caller writes to the pasteboard and shows `CopyFeedback`.
+    ///   - copy: Copies the value. The caller writes to the pasteboard and sets the window's
+    ///     `CopyFeedbackMessage`.
     public init(_ label: String, value: String, isCode: Bool = false, copy: (@MainActor () -> Void)? = nil) {
         self.label = label
         self.value = value

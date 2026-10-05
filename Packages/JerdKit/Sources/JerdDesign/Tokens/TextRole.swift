@@ -17,8 +17,10 @@ public enum TextRole: CaseIterable, Sendable {
     case caption
     /// The label in a status badge.
     case badge
-    /// A technical value such as a path, a port, or a fingerprint.
+    /// A technical value such as a host, a port, or a fingerprint.
     case code
+    /// A file or folder path. Every path uses this one style, through `PathRow`.
+    case path
 
     public var font: Font {
         switch self {
@@ -30,6 +32,7 @@ public enum TextRole: CaseIterable, Sendable {
         case .caption: .caption
         case .badge: .subheadline.weight(.medium)
         case .code: .body.monospaced()
+        case .path: .callout.monospaced()
         }
     }
 
@@ -41,10 +44,10 @@ public enum TextRole: CaseIterable, Sendable {
         }
     }
 
-    /// Detail and caption text is secondary; every other role uses the primary color.
+    /// Detail, caption, and path text is secondary; every other role uses the primary color.
     public var isSecondary: Bool {
         switch self {
-        case .detail, .caption: true
+        case .detail, .caption, .path: true
         default: false
         }
     }

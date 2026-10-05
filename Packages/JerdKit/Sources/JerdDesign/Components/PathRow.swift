@@ -25,8 +25,7 @@ public struct PathRow: View {
                 Text(label)
                     .textRole(.rowTitle)
                 Text(path)
-                    .font(TextRole.detail.font.monospaced())
-                    .foregroundStyle(.secondary)
+                    .textRole(.path)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
@@ -39,6 +38,7 @@ public struct PathRow: View {
                 .fixedSize()
                 .help("\(revealTitle): \(label)")
                 .accessibilityLabel("\(revealTitle), \(label)")
+                .accessibilityIdentifier(AccessibilityIdentifier.make("path", label, "reveal"))
         }
         .accessibilityElement(children: .contain)
     }
