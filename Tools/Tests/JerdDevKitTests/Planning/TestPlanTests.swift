@@ -55,28 +55,6 @@ struct TestPlanTests {
         #expect(invocation.timeout == TimeLimit.test)
     }
 
-    @Test(
-        "a quiet test run shows failures, diagnostics, and the final count",
-        arguments: [
-            ("✘ Test \"rule\" recorded an issue at A.swift:3:1: Expectation failed", true),
-            ("/a/B.swift:3:1: error: cannot find 'x' in scope", true),
-            ("✔ Test run with 12 tests in 3 suites passed after 0.2 seconds.", true),
-            ("warning: No matching test cases were run", true),
-            ("◇ Test \"rule\" started.", false),
-            ("↳ Testing Library Version: 2084", false),
-            ("✔ Test \"rule\" passed after 0.001 seconds.", false),
-            ("✔ Suite \"Rules\" passed after 0.001 seconds.", false),
-            ("[12/300] Compiling JerdWeb Site.swift", false),
-            ("Building for debugging...", false),
-            ("Build complete! (7.75 sec)", false),
-            ("Test Suite 'All tests' started at 2026-10-05 22:18:02.085.", false),
-            ("\t Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.006) seconds", false),
-            ("Test Case '-[JerdWebTests.Rules testA]' failed (0.1 seconds).", true),
-        ])
-    func filtersQuietTestOutput(line: String, shown: Bool) {
-        #expect(TestPlan.showsInQuietMode(line) == shown)
-    }
-
     @Test("recognizes SwiftPM progress lines and nothing else")
     func recognizesProgress() {
         #expect(SwiftPMOutput.isProgress("[Computing dependencies]"))

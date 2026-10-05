@@ -37,8 +37,8 @@ enum TestStep {
         context.console.success("Tools tests passed.")
     }
 
-    /// Every line in verbose mode; otherwise failures, diagnostics, and the final count.
+    /// Every line in verbose mode; otherwise failures with their details, diagnostics, and the final count.
     static func outputMode(_ context: DevContext) -> OutputMode {
-        context.console.verbose ? .stream : .streamMatching(TestPlan.showsInQuietMode)
+        context.console.verbose ? .stream : .streamFiltered(QuietTestOutput())
     }
 }
