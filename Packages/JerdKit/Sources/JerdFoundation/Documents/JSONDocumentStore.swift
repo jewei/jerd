@@ -44,6 +44,19 @@ public struct JSONDocumentStore<Document: Codable & Sendable>: Sendable {
         self.admit = admit
     }
 
+    /// A copy of this store whose saves must also pass `extra`, for rules that depend on one
+    /// operation (for example "this save may replace the saved runtime").
+    public func admitting(_ extra: @escaping Admit) -> JSONDocumentStore {
+        let admit = admit
+        return JSONDocumentStore(
+            file: file, previousFile: previousFile, sizeLimit: sizeLimit, format: format, name: name, decode: decode,
+            validate: validate,
+            admit: { saved, new in
+                try admit(saved, new)
+                try extra(saved, new)
+            })
+    }
+
     /// The saved document, or nil when the file is absent.
     public func load() throws -> Document? {
         try loadRecord()?.document

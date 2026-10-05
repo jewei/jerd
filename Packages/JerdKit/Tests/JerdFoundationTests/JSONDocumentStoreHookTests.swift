@@ -31,6 +31,24 @@ private struct Registry: Codable, Equatable, Sendable {
         #expect(try store.load() == Identity(runtimeID: "a"))
     }
 
+    @Test func aPerOperationRuleAddsToTheStoreRules() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let store = JSONDocumentStore<Identity>(
+            file: folder.path("runtime.json"), sizeLimit: 1_024, format: .compact, name: "the runtime identity",
+            admit: { _, new in
+                if new.runtimeID.isEmpty { throw JerdError.invalid("Empty.") }
+            })
+        let replacing = store.admitting { saved, new in
+            if let saved, saved.runtimeID != "a", saved != new { throw JerdError.invalid("Only a may be replaced.") }
+        }
+        try replacing.save(Identity(runtimeID: "a"))
+        try replacing.save(Identity(runtimeID: "b"))
+        #expect(throws: JerdError.invalid("Only a may be replaced.")) { try replacing.save(Identity(runtimeID: "c")) }
+        #expect(throws: JerdError.invalid("Empty.")) { try replacing.save(Identity(runtimeID: "")) }
+        #expect(try store.load() == Identity(runtimeID: "b"))
+    }
+
     @Test func versionedDecodingMigratesInMemoryAndRejectsUnknownVersions() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
