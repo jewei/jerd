@@ -14,11 +14,8 @@ extension ManagedInstance {
     }
 
     func requireStartable() throws {
+        guard !state.isBusy else { throw JerdError.unavailable(messages.busy) }
         guard process == nil else { throw JerdError.unavailable(messages.alreadyHasProcess) }
-        switch state {
-        case .stopped, .failed: return
-        case .starting, .running, .stopping, .stuck: throw JerdError.unavailable(messages.busy)
-        }
     }
 
     func performStart(keepLockOnFailure: Bool) async throws {
