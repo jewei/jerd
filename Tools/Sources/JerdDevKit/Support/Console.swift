@@ -4,11 +4,6 @@ struct Console: Sendable {
     let output: any TextOutput
     let verbose: Bool
 
-    init(output: any TextOutput, verbose: Bool) {
-        self.output = output
-        self.verbose = verbose
-    }
-
     func step(_ title: String) {
         output.write("==> \(title)\n", to: .standardOutput)
     }

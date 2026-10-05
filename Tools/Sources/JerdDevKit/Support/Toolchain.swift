@@ -11,14 +11,6 @@ struct Toolchain: Equatable, Sendable {
     /// `nil` when the GitHub CLI is not installed. Only release publishing needs it.
     var gh: URL?
 
-    init(xcrun: URL, xcodebuild: URL, git: URL, xcodegen: URL?, gh: URL?) {
-        self.xcrun = xcrun
-        self.xcodebuild = xcodebuild
-        self.git = git
-        self.xcodegen = xcodegen
-        self.gh = gh
-    }
-
     /// The system shims in `/usr/bin` and the programs found in `PATH`.
     static func live(environment: [String: String]) -> Toolchain {
         let isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }
