@@ -14,6 +14,9 @@ if [ -z "$developer_dir" ] || [ ! -x "$developer_dir/usr/bin/xcodebuild" ]; then
 	exit 3
 fi
 
+if [ ! -x "$root/Tools/.build/release/jerd-dev" ]; then
+	echo "Building the jerd-dev tool. The first build takes about one minute." >&2
+fi
 if ! /usr/bin/xcrun swift build --package-path "$root/Tools" --configuration release \
 	--product jerd-dev --quiet >&2; then
 	echo "error: Could not build the jerd-dev tool. See the compiler output above." >&2
