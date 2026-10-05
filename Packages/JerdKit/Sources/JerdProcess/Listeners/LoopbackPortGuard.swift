@@ -29,18 +29,20 @@ public struct LoopbackPortGuard: Sendable {
         lsofExecutable = lsof
     }
 
-    /// Requires an unprivileged port with no listener of any address, then a successful loopback bind.
+    /// Requires a service port (1024 or above) that is free on every address: no listener that
+    /// `lsof` reports, no listener that accepts a loopback connection (for example one of another
+    /// user, which `lsof` cannot see), and a successful loopback bind.
     public func requireFree(_ port: UInt16) async throws {
         guard port >= Self.minimumPort else { throw JerdError.invalid("Use a port from 1024 to 65535.") }
         try await requireNoListener(port)
+        guard !probe.isAccepting(port) else { throw occupied(port) }
         try probe.requireBindable(port)
     }
 
-    /// Requires that no TCP listener uses `port` on any address. Any port, including 80 and 443.
+    /// Requires that `lsof` reports no TCP listener on `port` on any address. Any port, including
+    /// 80 and 443. It makes no connection, so it does not see listeners of other users.
     public func requireNoListener(_ port: UInt16) async throws {
-        guard try await listeningProcessIDs(on: port).isEmpty, !probe.isAccepting(port) else {
-            throw JerdError.unavailable("Local port \(port) is occupied. No process was stopped.")
-        }
+        guard try await listeningProcessIDs(on: port).isEmpty else { throw occupied(port) }
     }
 
     /// The first free port from `first` to `first + 200` that is not in `excluding`.
@@ -59,5 +61,9 @@ public struct LoopbackPortGuard: Sendable {
             }
         }
         throw JerdError.unavailable("No free service port was found. Enter a different port.")
+    }
+
+    private func occupied(_ port: UInt16) -> JerdError {
+        .unavailable("Local port \(port) is occupied. No process was stopped.")
     }
 }

@@ -92,9 +92,10 @@ public struct ProcessLogFile: Hashable, Sendable {
     private func openOwned(_ flags: Int32) throws -> FileHandle? {
         let descriptor = open(url.path, flags | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
         guard descriptor >= 0 else {
-            if errno == ENOENT { return nil }
-            throw errno == ELOOP
-                ? notOwned : JerdError.unavailable("Cannot open \(url.path) (\(SystemError.describe(errno))).")
+            let code = errno
+            if code == ENOENT { return nil }
+            if code == ELOOP { throw notOwned }
+            throw JerdError.unavailable("Cannot open \(url.path) (\(SystemError.describe(code))).")
         }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         guard let info = DescriptorIO.status(of: descriptor), DescriptorIO.isPrivateRegularFile(info, owner: geteuid())

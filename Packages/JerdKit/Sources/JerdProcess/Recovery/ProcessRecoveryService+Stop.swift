@@ -8,17 +8,13 @@ extension ProcessRecoveryService {
     /// A running leader: every live group member is verified and saved in the record first, so a
     /// second attempt can finish if Jerd exits during the stop. An exited leader: each saved
     /// descendant that still runs gets the same recorded signal.
-    func requestStop(
-        _ record: inout ActiveRunRecord, _ observation: ProcessObservation, at location: RecordLocation
-    )
-        throws
-    {
+    func requestStop(_ record: inout ActiveRunRecord, _ observation: ProcessObservation, at file: URL) throws {
         guard let identity = record.identity else {
             throw JerdError.unavailable("The old record has no verified process identity. Use manual recovery.")
         }
         if observation.master == .running {
-            record.descendants = try verifiedDescendants(of: record, identity: identity)
-            try ActiveRunRecordFile.write(record, to: location.recordFile)
+            record.descendants = try verifiedMembers(record, identity)
+            try ActiveRunRecordFile.write(record, to: file)
             try signaller.signal(identity, with: record.signal)
             return
         }
@@ -28,8 +24,7 @@ extension ProcessRecoveryService {
     }
 
     /// The saved descendants plus every live group member, each verified as the same user's process.
-    private func verifiedDescendants(of record: ActiveRunRecord, identity: ProcessIdentity) throws -> [ProcessIdentity]
-    {
+    private func verifiedMembers(_ record: ActiveRunRecord, _ identity: ProcessIdentity) throws -> [ProcessIdentity] {
         let unverifiable = JerdError.unavailable("A service child cannot be verified. No process was signalled.")
         var members = record.descendants ?? []
         let pids: [pid_t]

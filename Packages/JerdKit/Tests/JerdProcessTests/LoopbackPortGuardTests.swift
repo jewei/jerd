@@ -31,6 +31,16 @@ import Testing
         await #expect(throws: occupied) { try await hidden.requireFree(3_306) }
     }
 
+    @Test func theListenerCheckForAnyPortUsesOnlyLsof() async throws {
+        let accepting = LoopbackProbe(
+            isAccepting: { _ in true }, requireBindable: { _ in throw JerdError.invalid("No.") })
+        try await guarded([:], probe: accepting).requireNoListener(443)
+        let listed = guarded([LsofQuery.listeners(on: 443): CommandResult(status: 0, output: "p88\n")])
+        await #expect(throws: JerdError.unavailable("Local port 443 is occupied. No process was stopped.")) {
+            try await listed.requireNoListener(443)
+        }
+    }
+
     @Test func aFailedInspectionIsNotTreatedAsFree() async {
         let broken = guarded([LsofQuery.listeners(on: 3_306): CommandResult(status: 2, output: "lsof: error")])
         await #expect(throws: JerdError.unavailable("Cannot inspect local port 3306. No process was stopped.")) {
