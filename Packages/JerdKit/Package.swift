@@ -79,7 +79,10 @@ let package = Package(
         tests("JerdArchive", ["JerdFoundation"]),
         tests("JerdRuntimes", ["JerdFoundation", "JerdProcess", "JerdManifest", "JerdArchive"]),
         tests("JerdSystem", ["JerdFoundation"], resources: [.copy("Fixtures")]),
-        tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"]),
+        tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"], resources: [.copy("Fixtures")]),
+        // Opt-in signed XPC check; SignedXPCCheckTests runs it when JERD_XPC_IDENTITY is set.
+        .executableTarget(name: "JerdXPCCheck", dependencies: ["JerdFoundation", "JerdSystem"],
+                          path: "Tests/JerdXPCCheck", swiftSettings: strictSettings),
         tests("JerdWeb", ["JerdFoundation", "JerdProcess"]),
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
         tests("JerdServiceKit", ["JerdFoundation", "JerdProcess"]),
