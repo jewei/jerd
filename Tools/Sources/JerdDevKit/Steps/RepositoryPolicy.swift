@@ -16,7 +16,15 @@ struct RepositoryPolicy: Sendable {
                 packageResolved: read(SparklePinPolicy.resolvedFile, in: repository))
         },
         RepositoryPolicy(title: "App update feed URL and public key") { repository in
-            try UpdateSettingsPolicy.findings(xcconfig: readText(UpdateSettingsPolicy.file, in: repository))
+            let xcconfigs = try FileTree.relativeFilePaths(
+                under: repository.path("Configuration"), pathExtension: "xcconfig"
+            )
+            .map { file in
+                let path = "Configuration/\(file)"
+                return (path: path, text: try readText(path, in: repository))
+            }
+            return UpdateSettingsPolicy.findings(
+                xcconfigs: xcconfigs, projectSpec: try readText(UpdateSettingsPolicy.projectSpec, in: repository))
         },
         RepositoryPolicy(title: "appcast.xml") { repository in
             try AppcastPolicy.findings(feed: read(AppcastPolicy.file, in: repository))
