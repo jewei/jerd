@@ -1,0 +1,31 @@
+{
+  "runtimes" : [
+    {
+      "engine" : "mysql",
+      "id" : "mysql-8.4.11-arm64",
+      "path" : "/Users/me/Library/Application Support/Jerd/database-runtimes/mysql-8.4.11-arm64",
+      "version" : "8.4.11"
+    },
+    {
+      "engine" : "redis",
+      "id" : "redis-8.8.3-arm64",
+      "path" : "/Users/me/Library/Application Support/Jerd/database-runtimes/redis-8.8.3-arm64",
+      "version" : "8.8.3"
+    }
+  ],
+  "schemaVersion" : 1,
+  "services" : [
+    {
+      "id" : "6F9619FF-8B86-D011-B42D-00C04FC964FF",
+      "name" : "Main MySQL",
+      "port" : 3306,
+      "runtimeID" : "mysql-8.4.11-arm64"
+    },
+    {
+      "id" : "1E2D3C4B-5A69-7887-96A5-B4C3D2E1F00F",
+      "name" : "Cache",
+      "port" : 6379,
+      "runtimeID" : "redis-8.8.3-arm64"
+    }
+  ]
+}
