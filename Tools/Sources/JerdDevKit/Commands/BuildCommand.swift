@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev build`: builds the app with one `xcodebuild` call.
-struct BuildCommand: AsyncParsableCommand {
+struct BuildCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "build",
         abstract: "Build the app: unsigned Debug unless options say otherwise.")

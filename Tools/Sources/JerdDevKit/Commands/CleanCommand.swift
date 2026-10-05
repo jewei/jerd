@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev clean`: removes build output.
-struct CleanCommand: AsyncParsableCommand {
+struct CleanCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "clean",
         abstract: "Remove build output. Add --all for packages and runtimes.",

@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev generate`: makes `Jerd.xcodeproj` from `project.yml`.
-struct GenerateCommand: AsyncParsableCommand {
+struct GenerateCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "generate",
         abstract: "Generate Jerd.xcodeproj from project.yml with XcodeGen.")

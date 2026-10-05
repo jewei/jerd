@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev snapshots`: renders UI pages with fixtures to PNG files.
-struct SnapshotsCommand: AsyncParsableCommand {
+struct SnapshotsCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "snapshots",
         abstract: "Render UI pages to PNG files in .build/snapshots.")

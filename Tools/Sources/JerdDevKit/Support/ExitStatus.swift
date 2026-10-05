@@ -11,6 +11,16 @@ enum ExitStatus: Int32, Sendable, CaseIterable {
         severity >= other.severity ? self : other
     }
 
+    /// The status word of the summary table and of the `--json` summary.
+    var label: String {
+        switch self {
+        case .success: "ok"
+        case .checkFailed: "failed"
+        case .usage: "usage"
+        case .missingPrerequisite: "missing"
+        }
+    }
+
     private var severity: Int {
         switch self {
         case .success: 0

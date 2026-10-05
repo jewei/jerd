@@ -6,8 +6,12 @@ enum SnapshotStep {
         let output: OutputMode =
             context.console.verbose ? .stream : .streamMatching { !SwiftPMOutput.isProgress($0) }
         let result = try await context.run(invocation, output: output)
+        // EX_USAGE: the renderer refused its arguments, for example an unknown page name.
+        if result.status == 64, result.exceededTimeLimit == nil {
+            throw DevFailure.usage("The snapshot renderer refused the arguments. See its message above.")
+        }
         guard result.succeeded else {
-            throw DevFailure.checkFailed("The snapshot renderer failed with exit status \(result.status).")
+            throw DevFailure.checkFailed("The snapshot renderer \(result.failureSummary).")
         }
         context.console.success("Snapshots are in this folder:")
         context.console.detail(context.repository.relativePath(of: context.repository.snapshots))

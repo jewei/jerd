@@ -1,7 +1,7 @@
 import ArgumentParser
 
 /// `./dev doctor`: checks the programs that the other commands need.
-struct DoctorCommand: AsyncParsableCommand {
+struct DoctorCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "doctor",
         abstract: "Check the required programs and show install hints.")

@@ -44,6 +44,24 @@ struct StepTests {
         }
     }
 
+    @Test("a snapshot renderer usage refusal is a usage error, and a time-out is a failed check")
+    func snapshotExitStatuses() async {
+        let refused = RecordingProcessRunner { InvocationResult(commandLine: $0.commandLine, status: 64) }
+        await #expect(
+            throws: DevFailure.usage("The snapshot renderer refused the arguments. See its message above.")
+        ) {
+            try await SnapshotStep.run(TestFixtures.context(runner: refused), pages: ["nope"])
+        }
+        let timedOut = RecordingProcessRunner {
+            InvocationResult(commandLine: $0.commandLine, status: 143, exceededTimeLimit: .seconds(5))
+        }
+        await #expect(
+            throws: DevFailure.checkFailed("The snapshot renderer stopped at the time limit of 5 s.")
+        ) {
+            try await SnapshotStep.run(TestFixtures.context(runner: timedOut), pages: [])
+        }
+    }
+
     @Test("the format check reports a missing swift-format as a missing prerequisite")
     func formatNeedsSwiftFormat() async {
         let runner = RecordingProcessRunner { InvocationResult(commandLine: $0.commandLine, status: 72) }

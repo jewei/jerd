@@ -28,8 +28,12 @@ public enum DevMain {
         }
     }
 
-    /// Help requests end with status 0. Every other parse or validation error is a usage error.
+    /// Help requests end with status 0. Every other parse or validation error, and a help request for
+    /// an unknown command, is a usage error in the format of `UsageMessage`.
     static func parse(_ arguments: [String]) -> Parsed {
+        if let topic = UsageMessage.unknownHelpTopic(in: arguments) {
+            return .exit(.usage, message: UsageMessage.text("Unknown command \"\(topic)\".", command: DevCommand.self))
+        }
         do {
             var command = try DevCommand.parseAsRoot(arguments)
             if let asyncCommand = command as? any AsyncParsableCommand {
@@ -39,21 +43,37 @@ public enum DevMain {
             try command.run()
             return .exit(.success, message: DevCommand.helpMessage())
         } catch {
-            let message = DevCommand.fullMessage(for: error)
-            let status: ExitStatus = DevCommand.exitCode(for: error) == .success ? .success : .usage
-            return .exit(status, message: message)
+            guard DevCommand.exitCode(for: error) != .success else {
+                return .exit(.success, message: DevCommand.fullMessage(for: error))
+            }
+            let command = UsageMessage.command(named: arguments.first)
+            return .exit(.usage, message: UsageMessage.text(DevCommand.message(for: error), command: command))
         }
     }
 
+    /// Runs the command. With `--json`, it also prints one JSON summary on standard output at the end.
     static func execute(_ command: any AsyncParsableCommand, output: any TextOutput) async -> ExitStatus {
+        let report = (command as? any DevSubcommand)?.options.json == true ? RunReport() : nil
+        let (status, message) = await RunReport.$current.withValue(report) { await runReportingErrors(command) }
+        if let message {
+            let text = status == .usage ? UsageMessage.text(message, command: type(of: command)) : "error: \(message)"
+            output.write(text + "\n", to: .standardError)
+        }
+        if let report {
+            let name = type(of: command).configuration.commandName ?? "dev"
+            let summary = report.summary(command: name, status: status, message: message)
+            output.write(RunReport.encoded(summary) + "\n", to: .standardOutput)
+        }
+        return status
+    }
+
+    private static func runReportingErrors(_ command: any AsyncParsableCommand) async -> (ExitStatus, String?) {
         var command = command
         do {
             try await command.run()
-            return .success
+            return (.success, nil)
         } catch {
-            let (status, message) = describe(error)
-            output.write("error: \(message)\n", to: .standardError)
-            return status
+            return describe(error)
         }
     }
 
