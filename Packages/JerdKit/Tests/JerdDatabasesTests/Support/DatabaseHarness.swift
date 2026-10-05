@@ -22,6 +22,8 @@ final class DatabaseHarness: Sendable {
         var clientOutput: CommandResult?
         var initializerStatus: Int32 = 0
         var initializerOutput = ""
+        /// When set, every client probe waits for this gate.
+        var clientGate: Gate?
     }
 
     init() throws {
@@ -86,6 +88,7 @@ final class DatabaseHarness: Sendable {
             let runtime = runtimes.first { request.executable.path.hasPrefix($0.path) }
             return CommandResult(status: 0, output: script.versionOutput ?? "\(name) Ver \(runtime?.version ?? "?")")
         }
+        if let gate = script.clientGate { await gate.wait() }
         if let output = script.clientOutput { return output }
         return CommandResult(status: 0, output: name == "redis-cli" ? "PONG\n" : "42\n")
     }
