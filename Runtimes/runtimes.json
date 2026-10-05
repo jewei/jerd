@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "architecture": "arm64",
+  "pins": [
+    {
+      "id": "php-8.5.11-arm64",
+      "kind": "php",
+      "version": "8.5.11",
+      "archive": {
+        "url": "https://github.com/lerd-env/php/releases/download/php-8.5.11/lerd-php-8.5.11-darwin-arm64.tar.gz",
+        "size": 66723803,
+        "sha256": "59761adfe93cf737282843ea1cbc74e2fef3dd86839554efd71c3dddb2b867dc",
+        "assetID": 596171229
+      },
+      "releasePage": "https://github.com/lerd-env/php/releases/tag/php-8.5.11"
+    },
+    {
+      "id": "caddy-2.11.4-arm64",
+      "kind": "caddy",
+      "version": "2.11.4",
+      "archive": {
+        "url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.tar.gz",
+        "size": 16448366,
+        "sha256": "9efb0af2d6cf09cfb5053c0e51721b9b3d4956d346234f39368d943d25a3c9a7",
+        "assetID": 436912311
+      },
+      "releasePage": "https://github.com/caddyserver/caddy/releases/tag/v2.11.4"
+    },
+    {
+      "id": "composer-2.10.3",
+      "kind": "composer",
+      "version": "2.10.3",
+      "archive": {
+        "url": "https://getcomposer.org/download/2.10.3/composer.phar",
+        "size": 3642137,
+        "sha256": "7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+      },
+      "releasePage": "https://getcomposer.org/download/"
+    },
+    {
+      "id": "laravel-installer-5.32.0",
+      "kind": "laravel",
+      "version": "5.32.0",
+      "composerProject": {
+        "directory": "laravel-installer",
+        "lockSHA256": "2ababca1f9aa06e92c6f6d3690bf06e1d8fd4cfcecfc836f029e2a71eb67d5f0"
+      },
+      "releasePage": "https://github.com/laravel/installer/releases/tag/v5.32.0"
+    },
+    {
+      "id": "mysql-8.4.11-arm64",
+      "kind": "mysql",
+      "version": "8.4.11",
+      "archive": {
+        "url": "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz",
+        "size": 167977240,
+        "sha256": "b96e00493bc3499b9ffd7f08d65c5d64933af0383a8287d9873b64f94c2d6009"
+      },
+      "signature": {
+        "url": "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz.asc",
+        "sizeLimit": 16384,
+        "sha256": "7ae5895cfa44a930e7bb07fbc3cdaac0488997e56ae6b0d6e0733161bc506d03"
+      },
+      "releasePage": "https://dev.mysql.com/downloads/mysql/8.4.html"
+    },
+    {
+      "id": "postgresql-18.6-universal",
+      "kind": "postgresql",
+      "version": "2.9.6",
+      "archive": {
+        "url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
+        "size": 122517005,
+        "sha256": "9fc7d0dc08cf46dfd94bb32cbaaad81b41b37847a42d6dcb2f9fbd292813defb"
+      },
+      "releasePage": "https://github.com/PostgresApp/PostgresApp/releases/tag/v2.9.6"
+    },
+    {
+      "id": "redis-8.8.3-arm64",
+      "kind": "redis",
+      "version": "8.8.3",
+      "archive": {
+        "url": "https://download.redis.io/releases/redis-8.8.3.tar.gz",
+        "size": 4496813,
+        "sha256": "13dbcfc6107ab8b6ab2a4f4582678143d5b2fd03ba38611b810359564cfe8a3c"
+      },
+      "releasePage": "https://raw.githubusercontent.com/redis/redis-hashes/master/README"
+    },
+    {
+      "id": "mailpit-1.31.3-arm64",
+      "kind": "mailpit",
+      "version": "1.31.3",
+      "archive": {
+        "url": "https://github.com/axllent/mailpit/releases/download/v1.31.3/mailpit-darwin-arm64.tar.gz",
+        "size": 9848192,
+        "sha256": "f72ac5bae2c8ef6bd719c1aa11237500e9a81e50ba759f92b9b1e80812920a85"
+      },
+      "releasePage": "https://github.com/axllent/mailpit/releases/tag/v1.31.3"
+    },
+    {
+      "id": "rustfs-1.0.0-arm64",
+      "kind": "rustfs",
+      "version": "1.0.0",
+      "archive": {
+        "url": "https://github.com/rustfs/rustfs/releases/download/1.0.0/rustfs-macos-aarch64-v1.0.0.zip",
+        "size": 87018416,
+        "sha256": "06e32a681c16930fb5414df64c96151fe3370321fab0403a83a83a015874c39a"
+      },
+      "releasePage": "https://github.com/rustfs/rustfs/releases/tag/1.0.0"
+    }
+  ],
+  "supportSources": {
+    "xz": {
+      "version": "5.8.4",
+      "archive": {
+        "url": "https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz",
+        "size": 2799797,
+        "sha256": "0014c7886930454fe8bd4228665b51af55eeae560ea135c9c4cd33f55b2591d9"
+      }
+    }
+  }
+}

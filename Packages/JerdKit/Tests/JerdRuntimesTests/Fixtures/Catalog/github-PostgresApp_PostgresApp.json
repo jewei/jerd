@@ -1,0 +1,178 @@
+[
+ {
+  "tag_name": "v3alpha10",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha10-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha10/Postgres-3alpha10-14-15-16-17-18-19.dmg",
+    "size": 655306706,
+    "digest": "sha256:d39fc87f94ade5c3101156a9261bf73fd1c59085532853bb02951af2a4723d72"
+   },
+   {
+    "name": "Postgres-3alpha10-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha10/Postgres-3alpha10-19.dmg",
+    "size": 129031680,
+    "digest": "sha256:8119ad2b07396d926c8427bd606648ae56d60aaed1e2b95960eac24a92a596c2"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha9",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha9-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha9/Postgres-3alpha9-14-15-16-17-18-19.dmg",
+    "size": 655346263,
+    "digest": "sha256:7470bc7e6d7fdb39828c8fb8b4f9ae73978ef4cd745bd2244a76b20786eac29e"
+   },
+   {
+    "name": "Postgres-3alpha9-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha9/Postgres-3alpha9-19.dmg",
+    "size": 129058857,
+    "digest": "sha256:6091c25479cb246b979014964f88aa73142f1af2f8d6ddd0b07505f29b07ff08"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.9.6",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "Postgres-2.9.6-14-15-16-17-18.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-14-15-16-17-18.dmg",
+    "size": 532978656,
+    "digest": "sha256:ee67776540fb0d29cbd119ea4db4cac3c182349ed53048fdf79766a588ac86b3"
+   },
+   {
+    "name": "Postgres-2.9.6-14.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-14.dmg",
+    "size": 88387881,
+    "digest": "sha256:a73a5d7c78c1fdce15ff1cc31b55d670c0b68070e0c436add53d3b053ef6567a"
+   },
+   {
+    "name": "Postgres-2.9.6-15.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-15.dmg",
+    "size": 104768613,
+    "digest": "sha256:b822c1101524c4a8cbab7e550a6a5b4a0a049bbf2c8bc73cb4c2d8dc7921e2a8"
+   },
+   {
+    "name": "Postgres-2.9.6-16.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-16.dmg",
+    "size": 112949293,
+    "digest": "sha256:2689dc64d6a02e0a66e4585616919060d8fbf5bb06886fccc05b7f87638bf081"
+   },
+   {
+    "name": "Postgres-2.9.6-17.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-17.dmg",
+    "size": 119621638,
+    "digest": "sha256:b38bb00b8c8702a568270aab85995c550f7f93d1503b818efdc5ff9a519b7168"
+   },
+   {
+    "name": "Postgres-2.9.6-18.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
+    "size": 122517005,
+    "digest": "sha256:9fc7d0dc08cf46dfd94bb32cbaaad81b41b37847a42d6dcb2f9fbd292813defb"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha8",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha8-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha8/Postgres-3alpha8-14-15-16-17-18-19.dmg",
+    "size": 653105189,
+    "digest": "sha256:8cd38ea89e5e04727fb57099a570445871c3e57a4f15c54e90a3fb8ad5269cb8"
+   },
+   {
+    "name": "Postgres-3alpha8-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha8/Postgres-3alpha8-19.dmg",
+    "size": 126798818,
+    "digest": "sha256:861fa2393a41ad88f4bf0a8e26fef9d2f8f335ea02ed347478e2fa8ad2973ae3"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha7",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha7-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha7/Postgres-3alpha7-14-15-16-17-18-19.dmg",
+    "size": 652684163,
+    "digest": "sha256:cea5625078de77f88d1e243865ebff58bf62fb70b89d24e664b5fb69498fd018"
+   },
+   {
+    "name": "Postgres-3alpha7-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha7/Postgres-3alpha7-19.dmg",
+    "size": 126652671,
+    "digest": "sha256:7730ee0bf4358aa274e45e81183f2d7cb73a24abdfb4b26c8512b5d171f646b3"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha6",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha6-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha6/Postgres-3alpha6-14-15-16-17-18-19.dmg",
+    "size": 593451121,
+    "digest": "sha256:c92fee9e1e23ecced5174a93a8d3a9eb175dddbad1a0170e0bbf6bd1e92d1eb9"
+   },
+   {
+    "name": "Postgres-3alpha6-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha6/Postgres-3alpha6-19.dmg",
+    "size": 67224714,
+    "digest": "sha256:bf23c5274f2b5c6ba5e3826ec96efdd0eacd00259a0805f3d138c4f39bf01bd0"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha5",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha5-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha5/Postgres-3alpha5-14-15-16-17-18-19.dmg",
+    "size": 593451537,
+    "digest": "sha256:b84e1566785a5ab59275cd2f31f29014d5c7bb7eac19a8b640d1e7426004629e"
+   },
+   {
+    "name": "Postgres-3alpha5-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha5/Postgres-3alpha5-19.dmg",
+    "size": 67225623,
+    "digest": "sha256:281f93850a4013eb06d36878f5a09cc0714d95b7d07998a2e5cddd08e1467d17"
+   }
+  ]
+ },
+ {
+  "tag_name": "v3alpha4",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "Postgres-3alpha4-14-15-16-17-18-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha4/Postgres-3alpha4-14-15-16-17-18-19.dmg",
+    "size": 593244167,
+    "digest": "sha256:7f5671be5137bb4983da8b8c49476570bcfd784095b75fc787b9cc46b6100995"
+   },
+   {
+    "name": "Postgres-3alpha4-19.dmg",
+    "browser_download_url": "https://github.com/PostgresApp/PostgresApp/releases/download/v3alpha4/Postgres-3alpha4-19.dmg",
+    "size": 67197392,
+    "digest": "sha256:122b572a5bb9739957d3d6bb9303351bce10e8151c803af3fe5fed85551dc912"
+   }
+  ]
+ }
+]

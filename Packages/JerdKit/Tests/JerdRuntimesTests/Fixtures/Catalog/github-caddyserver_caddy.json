@@ -1,0 +1,682 @@
+[
+ {
+  "tag_name": "v2.11.7",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.7_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.pem",
+    "size": 3288,
+    "digest": "sha256:3da66282cece2dfa6dbbb0ab658c1b8008703974ed9e6c70d55128805a4751ee"
+   },
+   {
+    "name": "caddy_2.11.7_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.sbom",
+    "size": 144368,
+    "digest": "sha256:2352d11b339b01df738b8485b7dbf9c757581050c4da6b3e5e568596de37b763"
+   },
+   {
+    "name": "caddy_2.11.7_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.sbom.pem",
+    "size": 3288,
+    "digest": "sha256:9e5dd7cfc6ff7188b260f7203854881a3f4aecc4ce640d96dcbc80642c136ed0"
+   },
+   {
+    "name": "caddy_2.11.7_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:94fa244cf161b18fd7ef18a8fb13254847d07eb424edff08901a3442c619f509"
+   },
+   {
+    "name": "caddy_2.11.7_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.tar.gz",
+    "size": 18551994,
+    "digest": "sha256:110c53e5c093e4cfce6eda787f94f23bef913c309f620fab26b4f678031841ad"
+   },
+   {
+    "name": "caddy_2.11.7_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:5bf225a8405e9cf382151363f27acafd82592546b69081f1a222a78d987950b6"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.pem",
+    "size": 3288,
+    "digest": "sha256:f294336230882d45e36d8defdfbe77c03d8f577f80534535c567ba6ac54bf5d1"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.sbom",
+    "size": 144370,
+    "digest": "sha256:88279fae7707ca68f1658906d573224cd56b61f0553a0db67911c8a9065a0848"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.sbom.pem",
+    "size": 3288,
+    "digest": "sha256:7a6f0028e57c833ddd145d8c533d16b2445ec41e2a15104c49318c3ecee8a0cf"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:fc23e53f0c9f03d6859902d6874e4ee37c3a82c3e5daede08be084abb5c6180c"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz",
+    "size": 17297953,
+    "digest": "sha256:cda3030e5d5b13eb9f0b6fb541037f633bddd958c070c5f561d7a5cccb581665"
+   },
+   {
+    "name": "caddy_2.11.7_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:1005c5b1e751b24f99f278a8002f1d67de57d946020a11db231f591726855e27"
+   },
+   {
+    "name": "caddy_2.11.7_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_buildable-artifact.tar.gz",
+    "size": 11549989,
+    "digest": "sha256:b430516910839fbaf35c0a9e9df80d1e2e30aa792530293c39f4a97a1b2c9060"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.6",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.6_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.pem",
+    "size": 3288,
+    "digest": "sha256:a0256a7183ce776e42d4bf5f2ca24e585d7f6d2e80031c14d23b41bd43ed1bae"
+   },
+   {
+    "name": "caddy_2.11.6_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.sbom",
+    "size": 143464,
+    "digest": "sha256:b04ed8ce0d55168d03906458ad77b2229a2fb83b3d6dece0e10375dec1013b8d"
+   },
+   {
+    "name": "caddy_2.11.6_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.sbom.pem",
+    "size": 3288,
+    "digest": "sha256:0cc226a70bb70ca35cf6f36c21cb5501c3aabe2381ed293d6eda565c59777455"
+   },
+   {
+    "name": "caddy_2.11.6_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:2850b722902c6010f13158618792d97f240aca2de9eb4cf5c707b1d49eea2e27"
+   },
+   {
+    "name": "caddy_2.11.6_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.tar.gz",
+    "size": 18512204,
+    "digest": "sha256:77f16d929a01bf8ff4f3fa2bec41867d19fef30f5a2489120f790f048d9d3003"
+   },
+   {
+    "name": "caddy_2.11.6_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:e73055f00c67415abacaaaf72923f700161d2af7e62d2e5f8515e2f380dbd016"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.pem",
+    "size": 3288,
+    "digest": "sha256:a205617a60dedb540deef5269fd449aeb00c48a698be2ad63ab4617f41b4e688"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.sbom",
+    "size": 143466,
+    "digest": "sha256:72929d27608dcc4b3e1dada6159eda50c68f26dff5b2631fd809b9c6cc16a7b2"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.sbom.pem",
+    "size": 3288,
+    "digest": "sha256:94d945663ad9683246d4aeb0a05c069f707544e22a882bd01ba152680f798a16"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:9262b4861736b24feb9a439ce03b135485044b77c0e53437aa427db68117c01b"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.tar.gz",
+    "size": 17267020,
+    "digest": "sha256:4ad5a757d4ebb880e0a2bb333410a0089f09348d9e74693bcf13be0669675f6e"
+   },
+   {
+    "name": "caddy_2.11.6_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:8aa043a3b16e24a49ea2eeb467f891230da9f7399f6fe0eb08162e31363d4ab1"
+   },
+   {
+    "name": "caddy_2.11.6_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_buildable-artifact.tar.gz",
+    "size": 11531999,
+    "digest": "sha256:5abcd51b3b4c4d5e7f50d4c4e83ba26238f5cbe744174c1544328e66cfefa07d"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.4",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.4_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.pem",
+    "size": 3288,
+    "digest": "sha256:3be503c2fd6b304f56d9ba8b1bab28fbde0ad1a52e4e9390d9a9501315888e25"
+   },
+   {
+    "name": "caddy_2.11.4_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.sbom",
+    "size": 141377,
+    "digest": "sha256:44903df4a22f082e7b7a3cbe8e0e200c226fc8bc66707b83411b17404bff9646"
+   },
+   {
+    "name": "caddy_2.11.4_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.sbom.pem",
+    "size": 3280,
+    "digest": "sha256:3022e95b2f9c778be4f74e5e135d302d773c0c6e9e97eb2031d812e22fff6c34"
+   },
+   {
+    "name": "caddy_2.11.4_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:71f09a5471ff06f7e04e30661f94a090f0a6ad61528cd47048cebbb77173a2ce"
+   },
+   {
+    "name": "caddy_2.11.4_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.tar.gz",
+    "size": 17631734,
+    "digest": "sha256:34bc9e5cceee8d67844ef51da624f5b79e8d070f27236e050c3f0066a2dba534"
+   },
+   {
+    "name": "caddy_2.11.4_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:c35e7222679f37534e79555c92162f6d8ff562e26ea63c8f0085733813622c34"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.pem",
+    "size": 3288,
+    "digest": "sha256:f159364af5726b273953415f98fb67025d46191cd933204991bd6f8be448b844"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.sbom",
+    "size": 141379,
+    "digest": "sha256:8d1aaf6bf6162a4f76adfe7a47147801cb8bd8be23012df71a68b847013fc295"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.sbom.pem",
+    "size": 3288,
+    "digest": "sha256:0a116a3df21ce556bd3754d24fdb617e2e52ab58b018b9c88ecd21191470a8bd"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:54e45631822fb06ef11431bddb6a7ec02eca58fc2e4ec7fd4eeac3ca47479c43"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.tar.gz",
+    "size": 16448366,
+    "digest": "sha256:9efb0af2d6cf09cfb5053c0e51721b9b3d4956d346234f39368d943d25a3c9a7"
+   },
+   {
+    "name": "caddy_2.11.4_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:089da7c0ee08a1c6e0d7b35905246b844dc79003da90d5cd86e108a5bc0d4f8c"
+   },
+   {
+    "name": "caddy_2.11.4_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.4/caddy_2.11.4_buildable-artifact.tar.gz",
+    "size": 11306896,
+    "digest": "sha256:33777097f666d60d78bfb74df06978c933f32aa5a0d4ce0b0c5d028489984187"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.3",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.3_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.pem",
+    "size": 3172,
+    "digest": "sha256:5bc1fc9e6a380d232ff77becf54c2059cd8825ebb2272a974ad900456c8ad708"
+   },
+   {
+    "name": "caddy_2.11.3_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.sbom",
+    "size": 141377,
+    "digest": "sha256:40344e87417b0e143756a7defbb9ff81d46f157a9c576159939b80d12f7179fb"
+   },
+   {
+    "name": "caddy_2.11.3_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.sbom.pem",
+    "size": 3172,
+    "digest": "sha256:fdc9f0aeb00a9b644587a9d41e7f04fa19a509ee8416577b7279bbea94ea2c4d"
+   },
+   {
+    "name": "caddy_2.11.3_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:5efb5cb4036586aab2737b038ea0a922d523c09fcb8672d7d893af45e86a4ed9"
+   },
+   {
+    "name": "caddy_2.11.3_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.tar.gz",
+    "size": 17558342,
+    "digest": "sha256:9e6f08758f2a4677d0f3acd3e3ccc541b0475217800325b5e5f4ef56668e4c88"
+   },
+   {
+    "name": "caddy_2.11.3_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:6d468f51e4d84a73d2f9daac83b79a27011f8ac8dd1e8588deca403a3cdcf268"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.pem",
+    "size": 3172,
+    "digest": "sha256:67053131ea8fef1611545f90d786da0b856b25a5383d37521c6abdf7d231b844"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.sbom",
+    "size": 141379,
+    "digest": "sha256:0df7c4b30b23c23e0371bb9b413aecd1ebb01afcde24de8ea08f9e3781f5d663"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.sbom.pem",
+    "size": 3172,
+    "digest": "sha256:8cf949e570e4a0d6676e580776a740390eedb39d86d46bd4d4f85e551a7ae8a2"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:214cb4cb7182001d53cb7bddb4afc158d9ae3cefa265cbb3097473e70380c317"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.tar.gz",
+    "size": 16382463,
+    "digest": "sha256:b37757be82ef630dddf359e6f1685731a1c657576ce80c469e0e3e6a8fb49e9d"
+   },
+   {
+    "name": "caddy_2.11.3_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:b2acc320c9d55dbe282f6ac267d4bd66062b763ec5ed92074dfd8cc7cd0810e7"
+   },
+   {
+    "name": "caddy_2.11.3_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_buildable-artifact.tar.gz",
+    "size": 11600541,
+    "digest": "sha256:13e921d1a4db2740fe80df7c47a3dd9bf6cde7ea302684d836c6352706ce3f6a"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.2",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.2_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.pem",
+    "size": 3172,
+    "digest": "sha256:f493452eaa549624c27efd2b0e066ef1f73f9dec19c33fe42a16270394e8b029"
+   },
+   {
+    "name": "caddy_2.11.2_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.sbom",
+    "size": 141401,
+    "digest": "sha256:c4ff3b611d0a24574449e1ff37e4acd545482ec8f7e5748644b188f5ca57f58c"
+   },
+   {
+    "name": "caddy_2.11.2_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.sbom.pem",
+    "size": 3172,
+    "digest": "sha256:7548b6ec5191bc055efa4b9bf97169dd07d1a9641faa511e77a83522f3af7343"
+   },
+   {
+    "name": "caddy_2.11.2_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:9d5ddf3bc2554989b2b7636a1bc05a586be7266b7b950be658270169b0584819"
+   },
+   {
+    "name": "caddy_2.11.2_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.tar.gz",
+    "size": 17324675,
+    "digest": "sha256:dc44b5b27d306098e79e50d002cbc14349d5b6c298913dffca1f84318cd4c4c3"
+   },
+   {
+    "name": "caddy_2.11.2_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:c1132902e73b9079544bdcc9163a5a2f112f370488c05a7bdb4693bf3c457017"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.pem",
+    "size": 3172,
+    "digest": "sha256:da8c983969c83d34e45b358beeaf0bfe9d0d86da93d3065299fd14759b847bbc"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.sbom",
+    "size": 141403,
+    "digest": "sha256:54b953262d3094e696076cfafa6b1e171665410caaab9e24282ebb490d590f30"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.sbom.pem",
+    "size": 3176,
+    "digest": "sha256:57bd3cc284d048548d64b50c12e02c92a7de40bc9dc2c863ae0ec20c782d75d6"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:9108eb6a896bab0c7dd2062ff650282e1e9757a1767faaedbaa331bbf55730ea"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.tar.gz",
+    "size": 16170320,
+    "digest": "sha256:7ab765777e953574d5713a69cab3f5a2f643a5c1cc264d4239a60ff845b465d8"
+   },
+   {
+    "name": "caddy_2.11.2_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:568957e9dcf71ccf83c51eb1645422e8fcd0a76fcfd23819c6abff20ba407d09"
+   },
+   {
+    "name": "caddy_2.11.2_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.2/caddy_2.11.2_buildable-artifact.tar.gz",
+    "size": 11551539,
+    "digest": "sha256:2fabd8281230e6ea3de2000acc0685e5e64e9310e458498e03612d874008070b"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.1",
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+   {
+    "name": "caddy_2.11.1_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.pem",
+    "size": 3172,
+    "digest": "sha256:8457d21dd13c2eed421cde6e976f1e92feb9eeccb3f52c2647fca969ddf53aae"
+   },
+   {
+    "name": "caddy_2.11.1_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.sbom",
+    "size": 141547,
+    "digest": "sha256:e569292345dd82f3cc66c799a824ae895dd7213c3d016fe893e88662f3882b72"
+   },
+   {
+    "name": "caddy_2.11.1_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.sbom.pem",
+    "size": 3172,
+    "digest": "sha256:bd3c4e8332e957baa60b3342111695348d47849081137a63f0ff66f1b650dd0a"
+   },
+   {
+    "name": "caddy_2.11.1_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:96f2aeddd9713fc7f071d2df924f809e82268e3b5ee12c908ff8b863c68490ca"
+   },
+   {
+    "name": "caddy_2.11.1_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.tar.gz",
+    "size": 17287772,
+    "digest": "sha256:7f78329643208f15646f89d55c36c5489309b7e6e5e5455b0664cc1e7071bb56"
+   },
+   {
+    "name": "caddy_2.11.1_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:447bdce0db4af98516b0f4e2fa6a43c3de35dea779982e9e8d8a7968027c713a"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.pem",
+    "size": 3176,
+    "digest": "sha256:e11399f26113cd691866b94bffd72c7abeb006d822baecee9f0b4ec05c719324"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.sbom",
+    "size": 141549,
+    "digest": "sha256:6abbbff2fdc94333a71c9158ddceb948e865392f709de4d845ca6db53327413e"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.sbom.pem",
+    "size": 3172,
+    "digest": "sha256:0ed8843d49e7e9d29f7101f4dc34562be9f45e86ebd93f5a84c67ec25b89eb76"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:b2bf3177df8c143a104277a6f88c40052c46ba721c49c42f7082256dc2d5477e"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.tar.gz",
+    "size": 16145493,
+    "digest": "sha256:f5fa8b6c88188423562dd41881899b5d350b2acd65a7ce393eb3bd6aa52e593a"
+   },
+   {
+    "name": "caddy_2.11.1_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:a4296ec2cc5ffbf2a012636fa32082a55f5bac252f8d31975351241214c06edc"
+   },
+   {
+    "name": "caddy_2.11.1_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.1/caddy_2.11.1_buildable-artifact.tar.gz",
+    "size": 11539403,
+    "digest": "sha256:d64d0dd28b27c56a5d766f70d7d25f1175a822e1dab28aa7b029aa1723304495"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.0-beta.2",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.pem",
+    "size": 3232,
+    "digest": "sha256:41b9a4825707fe41fc3de5677bd6b225e1f8262030fefc2c0a76686d7d91da9d"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.sbom",
+    "size": 141583,
+    "digest": "sha256:25dbb8fb1e396c5c02116d5bdd4a0a778fb0b31729cab9d1c92f2d8f6ec7768e"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.sbom.pem",
+    "size": 3236,
+    "digest": "sha256:4c21fe43e0e270c43271b04557b87e319ec8d6fe6979117a33d32cddaea034e4"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:ce365a5e52c137cf2ddf9a03f4681fcfc9fb1681a5ab8734507dc625ae5d562b"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.tar.gz",
+    "size": 16810600,
+    "digest": "sha256:d75bb3371128d10c881f17b0e90a07f984d419c88e1c834d9df9d55623236485"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:a55829cd8b3adb733985b485a1a2e12ea272c04402e29f883318c81f3650abec"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.pem",
+    "size": 3236,
+    "digest": "sha256:c2005af58232b258e7e8279c4b05e91617d4d1446c82f56e7aa4001cc157799f"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.sbom",
+    "size": 141585,
+    "digest": "sha256:d52203895e40286a76421f3e34db1654f40f5fe65d0001d251a896daf4a1b147"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.sbom.pem",
+    "size": 3244,
+    "digest": "sha256:14d503015ff13380618a3ceb7399d4a307535bdb323de16c3c515a28e75dc317"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:5b1ef8bf1194a56e42066834342577260fae57badc14d6a0df1066d7431196dd"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.tar.gz",
+    "size": 15701173,
+    "digest": "sha256:08751ea2cf09e808a20767f343d431d6a47c96a21386a96d90cdb23f43d235d6"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:3bdbbb848c11a713f6cd0c37a6ed5d0bbfb56fb3b71f95816edfdce76e680609"
+   },
+   {
+    "name": "caddy_2.11.0-beta.2_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.2/caddy_2.11.0-beta.2_buildable-artifact.tar.gz",
+    "size": 11908668,
+    "digest": "sha256:87b035a23b351b7826bdaf3cc25984739cffbff0be66d360032ff16b11626b86"
+   }
+  ]
+ },
+ {
+  "tag_name": "v2.11.0-beta.1",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.pem",
+    "size": 3236,
+    "digest": "sha256:7e2ca24092763c7f18d31f37d1fd4d387f102531eeb773147ba89d62ac740e9d"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.sbom",
+    "size": 141736,
+    "digest": "sha256:cc7bf040213249c93eea7a0a26b6ce8b595f41482eadaa3f9361b4385bd306ed"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.sbom.pem",
+    "size": 3236,
+    "digest": "sha256:39b0d3381ebadef9410056416ff18fa2d11b2c8a1bf41253963d5b50b13b2a99"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:554e3fae018995f65260f24bd50b9442104eaf40ec8657bdb1f2f0b72c63b24f"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.tar.gz",
+    "size": 16496175,
+    "digest": "sha256:0200e418176a14704cbeb0261e8632454b0177ab20f696da0f4411946e55cdd9"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_amd64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_amd64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:3535cb1e00b066e2a417ed532b17997c39bbc30c27ca464b0b7d7bd30cdfc092"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.pem",
+    "size": 3236,
+    "digest": "sha256:53c51583653456e4f791ca15bffc6b64db9ffed42ab4a8219ad397bba90b2062"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.sbom",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.sbom",
+    "size": 141738,
+    "digest": "sha256:1635dd18f241fe11bd95255bf4abaa0310cc1d5a4c5c94212de2ad27efedd284"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.sbom.pem",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.sbom.pem",
+    "size": 3236,
+    "digest": "sha256:18bc2f553854e7c2431d2f9ab9ceb35f5aee6589f52751ff59d0bc74307c28db"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.sbom.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.sbom.sig",
+    "size": 96,
+    "digest": "sha256:54c01a867ab5b5565693cd9a7992f3f282edeb2bacc20fb5c68de6861dc6a7a9"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.tar.gz",
+    "size": 15411066,
+    "digest": "sha256:205832738ddcd61b85038d95fa307fd7c497ff5b65fdaad0a757a018f09fcf45"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_mac_arm64.tar.gz.sig",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_mac_arm64.tar.gz.sig",
+    "size": 96,
+    "digest": "sha256:76ae6cad4aafe6edbe4f19710606bee747ca2204bef0e9c0a2c4145594684f97"
+   },
+   {
+    "name": "caddy_2.11.0-beta.1_buildable-artifact.tar.gz",
+    "browser_download_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.0-beta.1/caddy_2.11.0-beta.1_buildable-artifact.tar.gz",
+    "size": 11851000,
+    "digest": "sha256:22c825f2a8a5f78622e4fa9e875445a38b531ac8574a0600dd7c46ffc3beba10"
+   }
+  ]
+ }
+]

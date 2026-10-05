@@ -1,0 +1,9 @@
+{
+  "archiveSHA256": "f72ac5bae2c8ef6bd719c1aa11237500e9a81e50ba759f92b9b1e80812920a85",
+  "files": {
+    "LICENSE": "9dade1b3ace5dd6c36ca58eef466ae7dd9afe52bfb978deffa44645f6f0a2aa9",
+    "README.md": "21e25814c9502db02d110e32f50c9a3a2a345e1da01f74bad552c5ea136a4889",
+    "mailpit": "0a995110d7e2960de0444c70d14fe8a2e7542876b4dd263785dd41f3d4aa4aa3"
+  },
+  "schemaVersion": 1
+}

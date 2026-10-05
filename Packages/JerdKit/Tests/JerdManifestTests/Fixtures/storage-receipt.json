@@ -1,0 +1,8 @@
+{
+  "archiveSHA256": "06e32a681c16930fb5414df64c96151fe3370321fab0403a83a83a015874c39a",
+  "files": {
+    "LICENSE": "3a9df97065824982b722fc7fac418a73ffd88febe968a3b9874423791581197a",
+    "rustfs": "e19cf10c0c47c33b72f9cb59ec129cad009e9c7f7a16aa99bd18c966c8e94418"
+  },
+  "schemaVersion": 1
+}
