@@ -79,14 +79,19 @@ public actor SiteConfigurationOperation {
         let running = await environment.runningConfiguration()
         let shouldRun = running != nil || startIfStopped
         let enabled = candidate.sites.filter(\.isEnabled)
-        let plan = shouldRun && !enabled.isEmpty ? try WebConfiguration(candidate) : nil
+        // Preserve the active subset. An edit must not restart a stopped site.
+        // New or newly enabled registrations still join an existing run.
+        let previousEnabled = Set(previous.sites.filter(\.isEnabled).map(\.id))
+        let added = Set(enabled.map(\.id)).subtracting(previousEnabled)
+        let selected = Set(running?.sites.map { $0.site.id } ?? []).union(added).intersection(enabled.map(\.id))
+        let plan = shouldRun && !selected.isEmpty ? try WebConfiguration(candidate, siteIDs: selected) : nil
         let status = try await environment.systemStatus()
         guard status.recovery == nil else { throw JerdError.unavailable("Recover the interrupted HTTPS setup in Advanced before changing sites.") }
         var prepared: PreparedWebConfiguration?
-        if let plan {
+        if let plan, !plan.sites.isEmpty {
             if running?.servesTheSameConfiguration(as: plan) != true { prepared = try await environment.preflight(plan) }
             let needsSetup = !status.hostsConfigured || !status.trustConfigured || status.trustPolicy != .serverTLS ||
-                !Set(enabled.map(\.hostname)).isSubset(of: Set(status.hostnames))
+                !Set(plan.sites.map { $0.site.hostname }).isSubset(of: Set(status.hostnames))
             if needsSetup, approved == nil {
                 let setup = try await environment.prepare(sites: enabled, caddy: plan.caddy)
                 return .needsApproval(PreparedSiteChange(setup: setup, previous: previous, candidate: candidate,
@@ -109,7 +114,7 @@ public actor SiteConfigurationOperation {
             saved = true
             try Task.checkCancellation()
             guard !stopRequested else { throw CancellationError() }
-            if let plan { try await environment.ensure(plan, prepared: prepared) }
+            if let plan, !plan.sites.isEmpty { try await environment.ensure(plan, prepared: prepared) }
             else if running != nil { await environment.stop() }
             return .committed(candidate)
         } catch {

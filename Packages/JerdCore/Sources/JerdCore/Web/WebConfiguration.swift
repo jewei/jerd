@@ -5,10 +5,11 @@ public struct WebConfiguration: Sendable {
     public let sites: [SiteRuntime]
     public let caddy: CaddyRuntime
     public init(sites: [SiteRuntime], caddy: CaddyRuntime) { self.sites = sites; self.caddy = caddy }
-    public init(_ configuration: AppConfiguration) throws {
+    public init(_ configuration: AppConfiguration, siteIDs: Set<UUID>? = nil) throws {
         guard let caddy = configuration.caddy else { throw JerdError.unavailable("Caddy is unavailable.") }
         self.caddy = caddy
-        sites = try configuration.sites.filter(\.isEnabled).map { SiteRuntime(site: $0, runtime: try configuration.runtime(for: $0)) }
+        sites = try configuration.sites.filter { $0.isEnabled && (siteIDs?.contains($0.id) ?? true) }
+            .map { SiteRuntime(site: $0, runtime: try configuration.runtime(for: $0)) }
     }
 
     func servesTheSameConfiguration(as other: Self) -> Bool {

@@ -68,6 +68,71 @@ private actor OperationEnvironment: SiteEnvironmentOperating {
 }
 
 struct SiteOperationTests {
+    @Test func savingADisabledSiteDoesNotRequireCaddy() async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let before = AppConfiguration()
+        let registry = SiteRegistry(store: OperationStore(before))
+        _ = try await registry.load()
+        let environment = OperationEnvironment(WebConfiguration(sites: [],
+            caddy: CaddyRuntime(path: "/unused", version: "2.11.4", architectures: [.current])))
+        await environment.stop()
+        let operation = SiteConfigurationOperation(registry: registry, environment: environment)
+        var site = makeSite(root); site.isEnabled = false
+        _ = try await operation.apply(.save(site, confirmed: true), startIfStopped: true)
+        #expect(try await registry.snapshot().sites.map(\.id) == [site.id])
+        #expect(await environment.launches == 0)
+    }
+
+    @Test(arguments: ["edit", "runtime", "remove", "disable", "approve"])
+    func changesPreserveTheRunningSubset(change: String) async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        var before = try fixture(root)
+        let stoppedRoot = root.appendingPathComponent("stopped")
+        try FileManager.default.createDirectory(at: stoppedRoot, withIntermediateDirectories: true)
+        let stopped = makeSite(stoppedRoot, hostname: "stopped.test")
+        before.sites.append(stopped)
+        let registry = SiteRegistry(store: OperationStore(before))
+        _ = try await registry.load()
+        let active = before.sites[0]
+        let environment = OperationEnvironment(try WebConfiguration(before, siteIDs: [active.id]))
+        let operation = SiteConfigurationOperation(registry: registry, environment: environment)
+        switch change {
+        case "edit":
+            var edited = stopped; edited.displayName = "Still stopped"
+            _ = try await operation.apply(.save(edited, confirmed: true))
+        case "runtime":
+            _ = try await operation.apply(.caddy(CaddyRuntime(path: "/new-caddy", version: "2.11.4", architectures: [.current])))
+        case "remove":
+            _ = try await operation.apply(.remove(active.id))
+        case "disable":
+            _ = try await operation.apply(.enabled(active.id, false))
+        default:
+            var edited = active; edited.hostname = "changed.test"
+            guard case .needsApproval(let pending) = try await operation.apply(.save(edited, confirmed: true)) else {
+                Issue.record("Expected HTTPS approval"); return
+            }
+            _ = try await operation.approve(pending)
+        }
+        let running = await environment.runningConfiguration()
+        if change == "remove" || change == "disable" { #expect(running == nil) }
+        else { #expect(running?.sites.map { $0.site.id } == [active.id]) }
+    }
+
+    @Test func aSelectedRunDoesNotResolveStoppedSitesRuntimes() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        var configuration = try fixture(root)
+        let active = configuration.sites[0]
+        var stopped = makeSite(root, hostname: "stopped.test")
+        stopped.phpSelection = .pinned(UUID())
+        configuration.sites.append(stopped)
+        let plan = try WebConfiguration(configuration, siteIDs: [active.id])
+        #expect(plan.sites.map { $0.site.id } == [active.id])
+        #expect(throws: (any Error).self) { try WebConfiguration(configuration) }
+    }
+
     private func fixture(_ root: URL) throws -> AppConfiguration {
         let runtime = sampleRuntime()
         var configuration = AppConfiguration()

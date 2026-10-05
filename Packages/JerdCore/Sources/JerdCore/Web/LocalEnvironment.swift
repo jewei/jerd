@@ -117,6 +117,35 @@ public actor LocalEnvironment: SiteEnvironmentOperating {
         try await system.configure(setup.request)
     }
 
+    /// Validate before changing HTTPS setup, and keep the previous run available
+    /// for recovery if approval or activation fails.
+    public func approveAndStart(_ configuration: WebConfiguration, setup: HTTPSSetup) async throws {
+        guard !operation else { throw JerdError.unavailable("Wait for the current environment operation.") }
+        stopRequested = false
+        let previous = activeConfiguration
+        let prepared = try await preflight(configuration)
+        try Task.checkCancellation()
+        guard !stopRequested else { throw CancellationError() }
+        do {
+            try await apply(setup)
+            try Task.checkCancellation()
+            guard !stopRequested else { throw CancellationError() }
+            try await ensure(configuration, prepared: prepared)
+        } catch {
+            let failure = error
+            if let previous, !stopRequested {
+                do {
+                    try await Task.detached { [self] in try await restoreRun(previous) }.value
+                } catch is CancellationError {
+                    // An explicit Stop must also prevent recovery from restarting sites.
+                } catch {
+                    throw JerdError.process("Site activation failed: \(failure.localizedDescription) The previous sites could not restart: \(error.localizedDescription)")
+                }
+            }
+            throw failure
+        }
+    }
+
     public func start(site: Site, runtime: DevelopmentRuntime, caddy: CaddyRuntime) async throws {
         try await start(sites: [SiteRuntime(site: site, runtime: runtime)], caddy: caddy)
     }

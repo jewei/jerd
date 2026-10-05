@@ -413,11 +413,21 @@ private actor FakeSystem: SystemIntegrating {
     var waitingForAcquire = false
     var pauseAcquire = false
     var acquireWaiter: CheckedContinuation<Void, Never>?
+    var pauseConfigure = false
+    var waitingForConfigure = false
+    var configureWaiter: CheckedContinuation<Void, Never>?
+    func suspendConfiguration() { pauseConfigure = true }
+    func resumeConfiguration() { configureWaiter?.resume(); configureWaiter = nil }
     func suspendAcquisition() { pauseAcquire = true }
     func resumeAcquisition() { acquireWaiter?.resume(); acquireWaiter = nil }
     init(_ snapshot: SystemSetupStatus) { self.snapshot = snapshot }
     func status() -> SystemSetupStatus { snapshot }
-    func configure(_ request: SystemRegistrationRequest) {
+    func configure(_ request: SystemRegistrationRequest) async {
+        if pauseConfigure {
+            waitingForConfigure = true
+            await withCheckedContinuation { configureWaiter = $0 }
+            pauseConfigure = false
+        }
         snapshot = SystemSetupStatus(hostnames: request.hostnames, installationID: request.installationID,
             certificateSHA256: InstallationCertificate.fingerprint(request.certificateDER), certificateDER: request.certificateDER,
             hostsConfigured: true, trustConfigured: true, trustPolicy: request.trustPolicy)
@@ -440,10 +450,13 @@ private actor FakeEngine: EngineServing {
     var starts = 0
     var startedSiteIDs: Set<UUID> = []
     var preflights = 0
+    var failNextStart = false
+    func rejectNextStart() { failNextStart = true }
     func preflight(_ configuration: WebConfiguration, paths: EnginePaths) { preflights += 1 }
     func start(sites: [SiteRuntime], caddy: CaddyRuntime, paths: EnginePaths,
-               httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets?) {
+               httpsPort: UInt16, httpPort: UInt16, listeningSockets: ListeningSockets?) throws {
         starts += 1
+        if failNextStart { failNextStart = false; throw JerdError.process("Injected startup failure") }
         startedSiteIDs = Set(sites.map { $0.site.id })
         state = .running
     }
@@ -533,6 +546,56 @@ struct EnvironmentTests {
         await #expect(throws: CancellationError.self) { try await environment.restoreRun(plan) }
         #expect(await engine.starts == 2)
         await environment.stop()
+    }
+
+    @Test(arguments: ["success", "failure", "stop"])
+    func selectedSitesSurviveApprovalAndStop(mode: String) async throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = UUID(), der = Data("test CA".utf8)
+        try PrivateFiles.write(Data(identity.uuidString.utf8), to: root.appendingPathComponent("installation-id"))
+        let caDir = root.appendingPathComponent("certificates/pki/authorities/jerd")
+        try PrivateFiles.directory(caDir)
+        try Data("-----BEGIN CERTIFICATE-----\n\(der.base64EncodedString())\n-----END CERTIFICATE-----".utf8)
+            .write(to: caDir.appendingPathComponent("root.crt"))
+        let binary = root.appendingPathComponent("binary")
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: binary)
+        let system = FakeSystem(SystemSetupStatus(hostname: "one.test", installationID: identity,
+            certificateSHA256: InstallationCertificate.fingerprint(der), certificateDER: der,
+            hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS))
+        let engine = FakeEngine()
+        let environment = LocalEnvironment(directory: root, system: system, engine: engine, probe: FakeProbe(), commands: NoListeners())
+        let runtime = DevelopmentRuntime(cliPath: binary.path, fpmPath: binary.path, version: "8.5.11", architectures: [.current], cliExtensions: [], fpmExtensions: [])
+        let caddy = CaddyRuntime(path: binary.path, version: "2.11.4", architectures: [.current])
+        let secondRoot = root.appendingPathComponent("second")
+        try PrivateFiles.directory(secondRoot)
+        let one = makeSite(root, hostname: "one.test"), two = makeSite(secondRoot, hostname: "two.test")
+        let first = WebConfiguration(sites: [SiteRuntime(site: one, runtime: runtime)], caddy: caddy)
+        let both = WebConfiguration(sites: first.sites + [SiteRuntime(site: two, runtime: runtime)], caddy: caddy)
+        try await environment.ensure(first)
+        let setup = HTTPSSetup(sites: [one, two], request: SystemRegistrationRequest(installationID: identity,
+            hostnames: [one.hostname, two.hostname], certificateDER: der, trustPolicy: .serverTLS))
+        if mode == "failure" {
+            await engine.rejectNextStart()
+            await #expect(throws: (any Error).self) { try await environment.approveAndStart(both, setup: setup) }
+            #expect(await environment.snapshot().siteIDs == [one.id])
+        } else if mode == "stop" {
+            await system.suspendConfiguration()
+            let task = Task { try await environment.approveAndStart(both, setup: setup) }
+            while await !system.waitingForConfigure { await Task.yield() }
+            await environment.requestStop()
+            await system.resumeConfiguration()
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(await engine.starts == 1)
+            #expect(await environment.snapshot().siteIDs.isEmpty == true)
+        } else {
+            try await environment.approveAndStart(both, setup: setup)
+            #expect(await environment.snapshot().siteIDs == [one.id, two.id])
+            try await environment.ensure(WebConfiguration(sites: [both.sites[1]], caddy: caddy))
+            #expect(await environment.snapshot().siteIDs == [two.id])
+        }
+        await environment.stop()
+        #expect(await environment.snapshot().siteIDs.isEmpty == true)
     }
 
     @Test(arguments: [false, true], [CertificateTrustPolicy.hostnames, .serverTLS])
