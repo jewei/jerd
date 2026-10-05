@@ -129,8 +129,9 @@ public actor CloudflaredConnector: TunnelConnecting {
         let process = try await processes.start(request, log: ProcessLogFile(url: instance.logFile))
         guard let processID = await processes.processID(of: process) else {
             // Without a PID the child is not owned, so this stop only releases the supervisor entry.
+            // A crash at start can pass on a later try, so the failure is marked as retryable.
             _ = await processes.stop(process, policy: stopPolicy)
-            throw JerdError.processFailed(TunnelMessage.exitedEarly)
+            throw TunnelRetryableError(.processFailed(TunnelMessage.exitedEarly))
         }
         let handle = TunnelConnectorHandle(
             registrationID: launch.registration.id, process: process, processID: processID,

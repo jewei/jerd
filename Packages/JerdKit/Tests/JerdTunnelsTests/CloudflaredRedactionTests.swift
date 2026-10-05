@@ -7,7 +7,7 @@ import Testing
 
 /// Runs the real process layer with a fake `cloudflared` script that prints its environment.
 /// No tunnel starts and nothing leaves the Mac; the user's own cloudflared is never used.
-@Suite struct CloudflaredRedactionTests {
+@Suite(.timeLimit(.minutes(1))) struct CloudflaredRedactionTests {
     private static let script = """
         #!/bin/sh
         if [ "$1" = "--version" ]; then echo "cloudflared version 2026.9.3 (built today)"; exit 0; fi
@@ -33,10 +33,9 @@ import Testing
         let handle = try await connector.connect(
             TunnelLaunch(runtime: runtime, registration: registration, token: token))
         let instance = folder.layout.instance(registration.id)
-        let printed = await eventually { text(instance.logFile).contains("home=") }
+        await waitUntil { text(instance.logFile).contains("home=") }
         try await connector.disconnect(handle)
         let log = text(instance.logFile)
-        #expect(printed)
         #expect(log.contains("token=\(LogRedactor.marker)\n"))
         #expect(log.contains("args=tunnel --config \(instance.configurationFile.path) --no-autoupdate"))
         #expect(log.contains("home=\(instance.homeDirectory.path)\n"))
