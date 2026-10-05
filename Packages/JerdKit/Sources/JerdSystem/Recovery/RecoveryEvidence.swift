@@ -12,8 +12,3 @@ struct RecoveryEvidence: Sendable {
     /// True when the recorded trust is confirmed present.
     let trustPresent: Bool
 }
-
-/// The message of a failed read, kept as evidence.
-struct RecoveryReadFailure: Error, Equatable, Sendable {
-    let message: String
-}

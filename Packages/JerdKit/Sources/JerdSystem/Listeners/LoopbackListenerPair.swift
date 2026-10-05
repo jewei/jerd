@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import os
 
 /// The HTTP and HTTPS listeners on IPv4 loopback that the helper binds and passes to the app.
 ///
@@ -12,6 +13,8 @@ public struct LoopbackListenerPair: Sendable {
 
     public let http: FileHandle
     public let https: FileHandle
+    /// Shared by copies: a closed `FileHandle` raises an exception when its descriptor is read.
+    private let closed = OSAllocatedUnfairLock(initialState: false)
 
     public init(http: FileHandle, https: FileHandle) {
         self.http = http
@@ -41,15 +44,24 @@ public struct LoopbackListenerPair: Sendable {
     }
 
     /// The bound ports. Both handles must be listening IPv4 loopback TCP sockets.
+    /// - Throws: `.invalid` after `close()`, or when a handle is not such a socket.
     public func ports() throws -> (http: UInt16, https: UInt16) {
-        (
-            try LoopbackSocket.listeningPort(of: http.fileDescriptor),
-            try LoopbackSocket.listeningPort(of: https.fileDescriptor)
-        )
+        try closed.withLock { isClosed in
+            guard !isClosed else { throw JerdError.invalid("The loopback listeners are closed.") }
+            return (
+                try LoopbackSocket.listeningPort(of: http.fileDescriptor),
+                try LoopbackSocket.listeningPort(of: https.fileDescriptor)
+            )
+        }
     }
 
-    /// Closes both listeners. A handle that is already closed is ignored.
+    /// Closes both listeners once. Later calls do nothing.
     public func close() {
+        let first = closed.withLock { isClosed in
+            defer { isClosed = true }
+            return !isClosed
+        }
+        guard first else { return }
         try? http.close()
         try? https.close()
     }
