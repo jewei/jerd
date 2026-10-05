@@ -8,8 +8,10 @@ let strictSettings: [SwiftSetting] = [
     .enableUpcomingFeature("ExistentialAny"),
 ]
 
+// Every library target keeps a README.md beside its sources. SwiftPM must not treat it as a resource.
 func module(_ name: String, _ dependencies: [Target.Dependency] = [], resources: [Resource]? = nil) -> Target {
-    .target(name: name, dependencies: dependencies, resources: resources, swiftSettings: strictSettings)
+    .target(name: name, dependencies: dependencies, exclude: ["README.md"], resources: resources,
+            swiftSettings: strictSettings)
 }
 
 func tests(_ name: String, _ dependencies: [Target.Dependency], resources: [Resource]? = nil) -> Target {
@@ -33,8 +35,8 @@ let package = Package(
         .systemLibrary(name: "CArchive"),
 
         // Foundation layers
-        .target(name: "JerdFoundation", exclude: ["README.md"], swiftSettings: strictSettings),
-        .target(name: "JerdProcess", dependencies: ["JerdFoundation"], exclude: ["README.md"], swiftSettings: strictSettings),
+        module("JerdFoundation"),
+        module("JerdProcess", ["JerdFoundation"]),
         module("JerdManifest", ["JerdFoundation"]),
         module("JerdArchive", ["CArchive", "JerdFoundation"]),
 
@@ -57,7 +59,7 @@ let package = Package(
         module("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
 
         // Interface
-        .target(name: "JerdDesign", exclude: ["README.md"], swiftSettings: strictSettings),
+        module("JerdDesign"),
         module("JerdUI", [
             "JerdDesign", "JerdFoundation", "JerdProcess", "JerdManifest", "JerdRuntimes", "JerdSystem",
             "JerdWeb", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
