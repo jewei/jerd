@@ -9,8 +9,12 @@ public enum DevMain {
     }
 
     /// Runs `./dev` with the arguments after the program name and returns the process exit status.
+    /// SIGINT, SIGTERM, and SIGHUP stop every running child group and end `./dev` with 128 plus the
+    /// signal number.
     public static func run(arguments: [String]) async -> Int32 {
-        await run(arguments: arguments, output: StandardTextOutput())
+        let output = StandardTextOutput()
+        SignalForwarder.installLive(output: output)
+        return await run(arguments: arguments, output: output)
     }
 
     static func run(arguments: [String], output: any TextOutput) async -> Int32 {

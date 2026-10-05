@@ -4,19 +4,22 @@ enum OutputMode: Sendable {
     case capture
     /// Also print every line when it arrives.
     case stream
-    /// Also print the lines that the predicate accepts, for example only compiler diagnostics.
-    case streamMatching(@Sendable (String) -> Bool)
+    /// Also print the lines that the filter accepts. Each channel starts with its own copy of the filter.
+    case streamFiltered(any LineFiltering)
 
-    func shouldPrint(_ line: String) -> Bool {
-        switch self {
-        case .capture: false
-        case .stream: true
-        case .streamMatching(let accepts): accepts(line)
-        }
+    /// Also print the lines that the predicate accepts, for example only compiler diagnostics.
+    static func streamMatching(_ accepts: @escaping @Sendable (String) -> Bool) -> OutputMode {
+        .streamFiltered(PredicateLineFilter(accepts: accepts))
     }
 
     var prints: Bool {
         if case .capture = self { return false }
         return true
+    }
+
+    /// The filter for one channel, or `nil` when the mode prints every line or none.
+    var filter: (any LineFiltering)? {
+        if case .streamFiltered(let filter) = self { return filter }
+        return nil
     }
 }

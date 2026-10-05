@@ -18,7 +18,7 @@ enum TestStep {
             testTargets: testTargets, filter: filter, environment: environment)
         let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
-            throw DevFailure.checkFailed("JerdKit tests failed with exit status \(result.status).")
+            throw DevFailure.checkFailed("JerdKit tests \(result.failureSummary).")
         }
         let scope = testTargets.isEmpty ? "all JerdKit test targets" : testTargets.joined(separator: ", ")
         let integration =
@@ -32,7 +32,7 @@ enum TestStep {
             repository: context.repository, toolchain: context.toolchain, filter: filter, environment: environment)
         let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
-            throw DevFailure.checkFailed("Tools tests failed with exit status \(result.status).")
+            throw DevFailure.checkFailed("Tools tests \(result.failureSummary).")
         }
         context.console.success("Tools tests passed.")
     }
