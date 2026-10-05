@@ -60,6 +60,7 @@ struct ProcessGroupTests {
         _ = try groups.start(commandLine: "a") { 4242 }
         let forwarder = SignalForwarder(groups: groups, gracePeriod: .milliseconds(50))
         #expect(forwarder.interrupt(by: SIGTERM) == 143)
+        #expect(groups.stopSignal == SIGTERM)
         let signals = sent.withLock { $0 }
         #expect(signals.map(\.0) == [4242, 4242])
         #expect(signals.map(\.1) == [SIGTERM, SIGKILL])

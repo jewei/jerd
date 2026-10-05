@@ -14,7 +14,9 @@ public enum DevMain {
     public static func run(arguments: [String]) async -> Int32 {
         let output = StandardTextOutput()
         SignalForwarder.installLive(output: output)
-        return await run(arguments: arguments, output: output)
+        let status = await run(arguments: arguments, output: output)
+        // The forwarder ends `./dev` itself, but the command can finish first once its child stopped.
+        return ChildProcessGroups.shared.stopSignal.map { 128 + $0 } ?? status
     }
 
     static func run(arguments: [String], output: any TextOutput) async -> Int32 {

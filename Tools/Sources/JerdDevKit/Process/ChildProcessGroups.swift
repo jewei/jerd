@@ -7,7 +7,8 @@ import os
 final class ChildProcessGroups: Sendable {
     private struct State {
         var groups: Set<pid_t> = []
-        var isStopping = false
+        /// The signal that stops `./dev`. No new child starts after it.
+        var stopSignal: Int32?
     }
 
     /// The groups of the live runner. `SignalForwarder.installLive` signals these groups.
@@ -25,7 +26,7 @@ final class ChildProcessGroups: Sendable {
     /// stopping `./dev` cannot begin its next step.
     func start(commandLine: String, _ start: @Sendable () throws -> pid_t) throws -> pid_t {
         try state.withLock { state in
-            guard !state.isStopping else {
+            guard state.stopSignal == nil else {
                 throw InvocationFailure.launchFailed(
                     commandLine: commandLine, reason: "./dev is stopping after a signal.")
             }
@@ -46,9 +47,14 @@ final class ChildProcessGroups: Sendable {
     /// Sends the signal to every running group. With `stopStarting`, no new child starts after this.
     func signalAll(_ signal: Int32, stopStarting: Bool = false) {
         state.withLock { state in
-            if stopStarting { state.isStopping = true }
+            if stopStarting, state.stopSignal == nil { state.stopSignal = signal }
             state.groups.forEach { sendSignal($0, signal) }
         }
+    }
+
+    /// The signal that stops `./dev`, or `nil`. `DevMain` then ends with 128 plus this number.
+    var stopSignal: Int32? {
+        state.withLock { $0.stopSignal }
     }
 
     var running: Set<pid_t> {
