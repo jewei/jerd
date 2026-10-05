@@ -9,7 +9,8 @@ import Testing
 
     @Test func theItemUsesTheCompatibleServiceAndUppercaseAccount() {
         let item = TunnelKeychainItem(id: UUID(uuidString: "c52b93c8-ad2f-4f26-9252-9195bb7e236a") ?? UUID())
-        #expect(TunnelKeychainItem.service == "dev.jerd.cloudflared.tunnel-token")
+        #expect(TunnelKeychainItem.tokenService == "dev.jerd.cloudflared.tunnel-token")
+        #expect(item.service == TunnelKeychainItem.tokenService)
         #expect(item.account == "C52B93C8-AD2F-4F26-9252-9195BB7E236A")
         let query = SystemKeychain.query(item)
         #expect(query[kSecClass as String] as? String == kSecClassGenericPassword as String)
