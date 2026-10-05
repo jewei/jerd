@@ -1,0 +1,5 @@
+# actionlint knows only the general-availability runner labels. `xcode-27` is GitHub's preview image
+# with Xcode 27 (https://github.com/actions/runner-images/issues/14404).
+self-hosted-runner:
+  labels:
+    - xcode-27

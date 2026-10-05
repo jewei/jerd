@@ -1,0 +1,92 @@
+name: CI
+
+# CI runs exactly `./dev check`. Run the same command locally before you push.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The XcodeGen release archive for the version in Tools/xcodegen-version.
+  XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+
+jobs:
+  check:
+    name: ./dev check
+    # The newest GitHub-hosted image with the Xcode in .xcode-version (Xcode 27, Swift 6.4).
+    # It is a preview image. The fallback is macos-26 with Xcode 26.6 (Swift 6.3).
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          version="$(cat .xcode-version)"
+          sudo xcode-select --switch "/Applications/Xcode_${version}.app"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          version="$(cat Tools/xcodegen-version)"
+          archive="$RUNNER_TEMP/xcodegen.zip"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            --output "$archive" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${version}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  ${archive}" | shasum --algorithm 256 --check
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
+      - name: Restore build caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/SourcePackages
+            Tools/.build
+            Packages/JerdKit/.build
+          # Keyed on the Xcode version, the package manifests, and the resolved files.
+          key: build-${{ runner.os }}-xcode-${{ hashFiles('.xcode-version') }}-${{ hashFiles('project.yml', '**/Package.swift', '**/Package.resolved', '!**/.build/**') }}
+          restore-keys: |
+            build-${{ runner.os }}-xcode-${{ hashFiles('.xcode-version') }}-
+
+      - name: Check prerequisites
+        run: ./dev doctor
+
+      - name: Run ./dev check
+        run: ./dev check
+
+  runtime-integration:
+    name: Runtime integration tests
+    # Requires prepared runtimes. This job is a disabled skeleton until `./dev runtimes prepare`
+    # exists. Then remove `false &&` to run it on manual dispatch only, never on every pull request.
+    if: false && github.event_name == 'workflow_dispatch'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: sudo xcode-select --switch "/Applications/Xcode_$(cat .xcode-version).app"
+
+      - name: Prepare runtimes
+        # Downloads and verifies every pinned runtime into .build/runtimes/payloads.
+        run: ./dev runtimes prepare
+
+      - name: Run integration tests
+        # The runtimes command will set the JERD_* paths from the prepared payloads.
+        run: ./dev test --integration web,database,mail,storage
