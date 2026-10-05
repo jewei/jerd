@@ -120,6 +120,26 @@ import os
         #expect(fixture.fetcher.requests.isEmpty)
     }
 
+    @Test func mysqlArchiveNeedsAValidOracleSignatureEvenWithADigest() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let archive = Data("mysql archive".utf8)
+        let url = try URL.runtime("https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz")
+        let signature = try URL.runtime(url.absoluteString + ".asc")
+        let fetcher = FakeFetcher([url: archive, signature: Data("-----BEGIN PGP SIGNATURE-----\nAAAA\n".utf8)])
+        let release = RuntimeRelease(
+            kind: .mysql, version: "8.4.11", artifact: .archive(url, size: .exact(Int64(archive.count))),
+            archiveSHA256: FileDigest.hexSHA256(of: archive), signatureURL: signature,
+            releasePage: try .runtime("https://dev.mysql.com/downloads/mysql/8.4.html"), architecture: .arm64)
+        let installer = RuntimeInstaller(
+            directory: folder.url, fetcher: fetcher, commands: ScriptedCommandRunner(),
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+        await #expect(throws: JerdError.invalid(PinnedRSAKey.mysqlRelease2025.failureMessage)) {
+            try await installer.install(release)
+        }
+        #expect(fetcher.requests == [url, signature])
+    }
+
     @Test func abandonedStagingFoldersAreRemoved() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
