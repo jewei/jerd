@@ -25,6 +25,7 @@ struct Repository: Equatable, Sendable {
     var sourcePackages: URL { path(".build/SourcePackages") }
     var snapshots: URL { path(".build/snapshots") }
     var runtimes: URL { path(".build/runtimes") }
+    var logs: URL { path(".build/logs") }
 
     /// The path relative to the root, for messages. Paths outside the root stay absolute.
     func relativePath(of url: URL) -> String {

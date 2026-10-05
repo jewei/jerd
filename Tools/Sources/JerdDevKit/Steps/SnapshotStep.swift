@@ -11,6 +11,7 @@ enum SnapshotStep {
             throw DevFailure.usage("The snapshot renderer refused the arguments. See its message above.")
         }
         guard result.succeeded else {
+            FailureLog.report(result, name: "snapshots", showsTail: true, context: context)
             throw DevFailure.checkFailed("The snapshot renderer \(result.failureSummary).")
         }
         context.console.success("Snapshots are in this folder:")

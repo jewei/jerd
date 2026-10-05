@@ -6,9 +6,12 @@ enum Stage: CaseIterable, Sendable {
     case kitTests
     case toolTests
     case debugBuild
+    /// Release compiles with other settings (optimization, whole-module compilation, dead-code
+    /// stripping), so CI must build it too. CI has no runtimes, so this build allows missing payloads.
+    case releaseBuild
 
     static let lint: [Stage] = [.formatCheck, .projectCheck, .repositoryPolicies]
-    static let check: [Stage] = lint + [.kitTests, .toolTests, .debugBuild]
+    static let check: [Stage] = lint + [.kitTests, .toolTests, .debugBuild, .releaseBuild]
 
     var title: String {
         switch self {
@@ -18,6 +21,7 @@ enum Stage: CaseIterable, Sendable {
         case .kitTests: "JerdKit tests"
         case .toolTests: "Tools tests"
         case .debugBuild: "Debug build"
+        case .releaseBuild: "Release build (no runtimes)"
         }
     }
 
@@ -28,7 +32,12 @@ enum Stage: CaseIterable, Sendable {
         case .repositoryPolicies: try PolicyStep.run(context)
         case .kitTests: try await TestStep.kit(context, testTargets: [], filter: nil, groups: [])
         case .toolTests: try await TestStep.tools(context, filter: nil)
-        case .debugBuild: try await BuildStep.run(context, options: BuildOptions(verbose: context.console.verbose))
+        case .debugBuild:
+            try await BuildStep.run(context, options: BuildOptions(verbose: context.console.verbose))
+        case .releaseBuild:
+            let options = BuildOptions(
+                configuration: .release, allowsMissingRuntimes: true, verbose: context.console.verbose)
+            try await BuildStep.run(context, options: options)
         }
     }
 

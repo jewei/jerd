@@ -4,7 +4,7 @@ import ArgumentParser
 struct CheckCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "check",
-        abstract: "Run everything that CI runs: lint, tests, and the Debug build.")
+        abstract: "Run everything that CI runs: lint, tests, and the Debug and Release builds.")
 
     @OptionGroup var options: GlobalOptions
 

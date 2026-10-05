@@ -6,6 +6,7 @@ enum CleanPlan {
         var targets = [
             repository.derivedData,
             repository.snapshots,
+            repository.logs,
             repository.path("Packages/JerdKit/.build"),
             repository.path("Tools/.build"),
         ]

@@ -18,6 +18,9 @@ enum BuildPlan {
             arguments.append("-quiet")
         }
         arguments += signingSettings(options.signing)
+        if options.allowsMissingRuntimes {
+            arguments.append("JERD_REQUIRE_RUNTIMES=NO")
+        }
         arguments.append("build")
         return Invocation(
             executable: toolchain.xcodebuild, arguments: arguments,

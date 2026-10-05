@@ -6,6 +6,8 @@ struct Toolchain: Equatable, Sendable {
     var xcrun: URL
     var xcodebuild: URL
     var git: URL
+    /// Reads the architectures of the built executables.
+    var lipo: URL
     /// `nil` when XcodeGen is not installed. Only `generate` and `lint` need it.
     var xcodegen: URL?
     /// `nil` when the GitHub CLI is not installed. Only release publishing needs it.
@@ -19,6 +21,7 @@ struct Toolchain: Equatable, Sendable {
             xcrun: URL(filePath: "/usr/bin/xcrun"),
             xcodebuild: URL(filePath: "/usr/bin/xcodebuild"),
             git: URL(filePath: "/usr/bin/git"),
+            lipo: URL(filePath: "/usr/bin/lipo"),
             xcodegen: ExecutableLocator.find("xcodegen", searchPath: path, isExecutable: isExecutable),
             gh: ExecutableLocator.find("gh", searchPath: path, isExecutable: isExecutable)
         )

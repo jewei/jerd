@@ -10,6 +10,7 @@ enum TestFixtures {
         xcrun: URL(filePath: "/usr/bin/xcrun"),
         xcodebuild: URL(filePath: "/usr/bin/xcodebuild"),
         git: URL(filePath: "/usr/bin/git"),
+        lipo: URL(filePath: "/usr/bin/lipo"),
         xcodegen: URL(filePath: "/opt/tools/xcodegen"),
         gh: nil)
 
