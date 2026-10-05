@@ -33,8 +33,8 @@ let package = Package(
         .systemLibrary(name: "CArchive"),
 
         // Foundation layers
-        module("JerdFoundation"),
-        module("JerdProcess", ["JerdFoundation"]),
+        .target(name: "JerdFoundation", exclude: ["README.md"], swiftSettings: strictSettings),
+        .target(name: "JerdProcess", dependencies: ["JerdFoundation"], exclude: ["README.md"], swiftSettings: strictSettings),
         module("JerdManifest", ["JerdFoundation"]),
         module("JerdArchive", ["CArchive", "JerdFoundation"]),
 
