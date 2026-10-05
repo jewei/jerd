@@ -57,7 +57,7 @@ let package = Package(
         module("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
 
         // Interface
-        module("JerdDesign"),
+        .target(name: "JerdDesign", exclude: ["README.md"], swiftSettings: strictSettings),
         module("JerdUI", [
             "JerdDesign", "JerdFoundation", "JerdProcess", "JerdManifest", "JerdRuntimes", "JerdSystem",
             "JerdWeb", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
