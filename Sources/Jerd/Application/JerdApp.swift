@@ -356,7 +356,9 @@ final class WorkspaceDetailController: NSViewController {
 
     private func layoutSelectedPage() {
         guard pages.indices.contains(selectedIndex) else { return }
-        pages[selectedIndex].view.frame = view.bounds
+        // The split view can extend behind the unified window toolbar.
+        // Keep fixed page headers inside the unobscured content area.
+        pages[selectedIndex].view.frame = view.safeAreaRect
     }
 
     @objc func selectNextTabViewItem(_ sender: Any?) {
