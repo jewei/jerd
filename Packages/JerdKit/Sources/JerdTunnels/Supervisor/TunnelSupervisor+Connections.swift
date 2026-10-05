@@ -13,21 +13,20 @@ extension TunnelSupervisor {
         guard !isActive(id) else { throw JerdError.unavailable(TunnelMessage.alreadyActive) }
         guard configuration.runtime != nil else { throw JerdError.unavailable(TunnelMessage.runtimeMissing) }
         let generation = makeGeneration()
-        apply(.connectRequested(generation, restartOnFailure: registration.restartOnFailure), to: id)
-        let launch = Task { await self.launch(id, generation) }
-        work[id] = TunnelWork(generation: generation, task: launch)
-        let progress = await launch.value
-        // Only the owner of this generation may clear or replace the slot.
-        if work[id]?.generation == generation { work[id] = nil }
+        let first = apply(.connectRequested(generation, restartOnFailure: registration.restartOnFailure), to: id)
+        let launch = Task { await self.perform(first, id, generation) }
+        slots.store(TunnelWork(generation: generation, task: launch), for: id)
+        let progress = await launch.value ?? .launchFailed(TunnelFailure(CancellationError()))
+        slots.clear(id, generation: generation)
         let step = apply(.progress(generation, progress), to: id)
         if case .launchFailed(let failure) = progress { throw failure.error }
         guard isCurrent(generation, id) else { throw JerdError.unavailable(TunnelMessage.cancelled) }
         let monitor = Task { await self.drive(id, generation, from: step) }
-        work[id] = TunnelWork(generation: generation, task: monitor)
+        slots.store(TunnelWork(generation: generation, task: monitor), for: id)
     }
 
-    /// Stops the connector gracefully. Concurrent Stops share one operation, and a new Connect
-    /// waits until it is done. A connector that does not stop stays owned, and the error is thrown.
+    /// Stops the connector gracefully. Concurrent Stops share one operation, and a new Connect is
+    /// refused until it is done. A connector that does not stop stays owned, and the error is thrown.
     public func stop(id: UUID) async throws {
         if let running = stops[id] { return try await running.task.value }
         let ticket = UUID()
@@ -44,7 +43,7 @@ extension TunnelSupervisor {
         shuttingDown = true
         defer { shuttingDown = false }
         let order = configuration.tunnels.map(\.id)
-        let extra = Set(handles.keys).union(work.keys).subtracting(order)
+        let extra = Set(handles.keys).union(slots.ids).subtracting(order)
         let ids = order + extra.sorted { $0.uuidString < $1.uuidString }
         let failures = await withTaskGroup(of: (Int, String?).self) { group in
             for (index, id) in ids.enumerated() {
@@ -84,7 +83,7 @@ extension TunnelSupervisor {
     /// Ends the generation, waits for its work, then stops the owned connector.
     private func performStop(_ id: UUID) async throws {
         apply(.stopRequested, to: id)
-        if let current = work.removeValue(forKey: id) {
+        if let current = slots.take(id) {
             current.cancel()
             await current.finished()
         }

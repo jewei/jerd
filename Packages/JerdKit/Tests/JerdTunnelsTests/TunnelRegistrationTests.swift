@@ -42,12 +42,28 @@ import Testing
         }
     }
 
-    /// Fix of spec E 7.1.20: earlier builds accepted IPv4 literals other than 127.0.0.1.
+    /// Fix of spec E 7.1.20: earlier builds accepted IPv4 literals other than 127.0.0.1. A new or
+    /// edited registration refuses them; the stored rule of earlier builds still accepts them.
     @Test(arguments: ["10.0.0.1", "192.168.1.20", "8.8.8.8", "example.123"])
-    func anIPv4LiteralIsNotAPublicHostname(_ hostname: String) {
-        #expect(throws: JerdError.invalid(TunnelMessage.invalidHostname)) {
+    func anIPv4LiteralIsNotAPublicHostname(_ hostname: String) throws {
+        #expect(throws: JerdError.invalid(TunnelMessage.addressHostname)) {
             try registration(hostname: hostname).validate()
         }
+        try registration(hostname: hostname).validateStored()
+        #expect(
+            TunnelSnapshot(registration: registration(hostname: hostname), state: .stopped).settingsIssue
+                == TunnelMessage.addressHostname)
+    }
+
+    @Test(arguments: ["127.0.0.1", "localhost", "app.localhost", "https://example.com", ""])
+    func theStoredRuleStillRefusesWhatEarlierBuildsRefused(_ hostname: String) {
+        #expect(throws: JerdError.invalid(TunnelMessage.invalidHostname)) {
+            try registration(hostname: hostname).validateStored()
+        }
+    }
+
+    @Test func aValidRegistrationHasNoSettingsIssue() {
+        #expect(TunnelSnapshot(registration: registration(), state: .stopped).settingsIssue == nil)
     }
 
     @Test(arguments: ["1password.example.com", "123.example.com", "a-b.example.co"])

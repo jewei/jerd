@@ -17,15 +17,21 @@ public struct TunnelReconnectPolicy: Equatable, Sendable {
     public let retryDelays: [Duration]
     /// How long a connection must stay ready before the backoff starts again at the first delay.
     public let stableConnection: Duration
+    /// A connector that exits this soon after its launch, before any ready check, failed to start.
+    public let quickExit: Duration
+    /// After this many failed starts in a row, the retries stop and the user must act.
+    public let failedStartLimit: Int
 
-    /// An empty delay list becomes `[60 s]`.
+    /// An empty delay list becomes `[60 s]`. A failed-start limit below 1 becomes 1.
     public init(
         checkInterval: Duration = .seconds(5), retryDelays: [Duration] = standardRetryDelays,
-        stableConnection: Duration = .seconds(30)
+        stableConnection: Duration = .seconds(30), quickExit: Duration = .seconds(15), failedStartLimit: Int = 5
     ) {
         self.checkInterval = checkInterval
         self.retryDelays = retryDelays.isEmpty ? [.seconds(60)] : retryDelays
         self.stableConnection = stableConnection
+        self.quickExit = quickExit
+        self.failedStartLimit = max(failedStartLimit, 1)
     }
 
     /// The next lifecycle and step after `event`, at time `now`.
@@ -35,7 +41,7 @@ public struct TunnelReconnectPolicy: Equatable, Sendable {
         switch event {
         case .connectRequested(let generation, let restartOnFailure):
             let next = TunnelLifecycle(state: .starting, generation: generation, restartOnFailure: restartOnFailure)
-            return TunnelTransition(next, .launch)
+            return TunnelTransition(next, .launch(after: .zero))
         case .stopRequested:
             return TunnelTransition(TunnelLifecycle(state: .stopping), .idle)
         case .stopFinished(let error):

@@ -3,15 +3,15 @@ import JerdFoundation
 import JerdTunnels
 import Testing
 
-@Suite struct TunnelSupervisorStopTests {
+@Suite(.timeLimit(.minutes(1))) struct TunnelSupervisorStopTests {
     @Test func stopDuringAnInFlightLaunchLeavesNoProcess() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
         await fixture.connector.hold("connect")
         let starting = Task { try await fixture.supervisor.start(id: fixture.id) }
-        #expect(await eventually { await fixture.connector.waiting("connect") == 1 })
+        await fixture.connector.waitForHeld("connect", count: 1)
         let stopping = Task { try await fixture.supervisor.stop(id: fixture.id) }
-        #expect(await fixture.reach(.stopping))
+        await fixture.reach(.stopping)
         await fixture.connector.release("connect")
         await #expect(throws: JerdError.unavailable(TunnelMessage.cancelled)) { try await starting.value }
         try await stopping.value
@@ -21,24 +21,25 @@ import Testing
         #expect(fixture.clock.pendingDelays.isEmpty)
     }
 
-    /// Fix of spec E 7.1.1: a late launch cleared the task slot of a newer Connect, so Stop could not
-    /// cancel the newer launch. The slot is now keyed by generation.
-    @Test func aLateLaunchCannotClearTheSlotOfANewerConnect() async throws {
+    /// A Stop during a launch, then a new Connect that is also stopped during its launch: each Stop
+    /// reaches its own launch. The slot rule itself (spec E 7.1.1) is proved by `TunnelWorkSlotsTests`,
+    /// because the actor cannot be made to resume the late launch after the newer Connect.
+    @Test func eachStopReachesTheLaunchOfItsOwnConnect() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
         await fixture.connector.hold("connect")
         let first = Task { try await fixture.supervisor.start(id: fixture.id) }
-        #expect(await eventually { await fixture.connector.waiting("connect") == 1 })
+        await fixture.connector.waitForHeld("connect", count: 1)
         let stopping = Task { try await fixture.supervisor.stop(id: fixture.id) }
-        #expect(await fixture.reach(.stopping))
+        await fixture.reach(.stopping)
         await fixture.connector.hold("connect")
         await fixture.connector.release("connect")
         try await stopping.value
         let second = Task { try await fixture.supervisor.start(id: fixture.id) }
-        #expect(await eventually { await fixture.connector.waiting("connect") == 1 })
+        await fixture.connector.waitForHeld("connect", count: 1)
         _ = await first.result
         let stoppingSecond = Task { try await fixture.supervisor.stop(id: fixture.id) }
-        #expect(await fixture.reach(.stopping))
+        await fixture.reach(.stopping)
         await fixture.connector.release("connect")
         await #expect(throws: JerdError.unavailable(TunnelMessage.cancelled)) { try await second.value }
         try await stoppingSecond.value
@@ -54,7 +55,7 @@ import Testing
         try await fixture.startAndSettle()
         await fixture.connector.hold("disconnect")
         let first = Task { try await fixture.supervisor.stop(id: fixture.id) }
-        #expect(await eventually { await fixture.connector.waiting("disconnect") == 1 })
+        await fixture.connector.waitForHeld("disconnect", count: 1)
         let second = Task { try await fixture.supervisor.stop(id: fixture.id) }
         await #expect(throws: JerdError.unavailable(TunnelMessage.alreadyActive)) {
             try await fixture.supervisor.start(id: fixture.id)
@@ -98,9 +99,9 @@ import Testing
         await fixture.connector.hold("readiness")
         await fixture.connector.setHeldReadinessResult(.unexpectedListener)
         try await fixture.supervisor.start(id: fixture.id)
-        #expect(await eventually { await fixture.connector.waiting("readiness") == 1 })
+        await fixture.connector.waitForHeld("readiness", count: 1)
         let stopping = Task { try await fixture.supervisor.stop(id: fixture.id) }
-        #expect(await fixture.reach(.stopping))
+        await fixture.reach(.stopping)
         await #expect(throws: JerdError.unavailable(TunnelMessage.alreadyActive)) {
             try await fixture.supervisor.start(id: fixture.id)
         }
@@ -109,7 +110,7 @@ import Testing
         #expect(await fixture.state() == .stopped)
         await fixture.connector.setReadiness(.ready)
         try await fixture.supervisor.start(id: fixture.id)
-        #expect(await fixture.reach(.connected))
+        await fixture.reach(.connected)
         #expect(await fixture.connector.disconnects.count == 1)
         #expect(await fixture.processID() == 30_001)
         try await fixture.supervisor.stopAll()
@@ -141,7 +142,7 @@ import Testing
         try await fixture.supervisor.start(id: second.id)
         await fixture.connector.hold("disconnect", count: 2)
         let quitting = Task { try await fixture.supervisor.stopAll() }
-        #expect(await eventually { await fixture.connector.waiting("disconnect") == 2 })
+        await fixture.connector.waitForHeld("disconnect", count: 2)
         await #expect(throws: JerdError.unavailable(TunnelMessage.busy)) {
             try await fixture.supervisor.start(id: fixture.id)
         }
