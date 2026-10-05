@@ -64,7 +64,7 @@ package struct SnapshotCommand {
     }
 
     private func render(_ entries: [SnapshotEntry], options: SnapshotOptions) async -> SnapshotExitStatus {
-        let folder = SnapshotOutputFolder(url: URL(fileURLWithPath: options.output, isDirectory: true))
+        let folder = SnapshotOutputFolder(url: URL(fileURLWithPath: options.output))
         let renderer = SnapshotRenderer()
         var count = 0
         do {
@@ -79,7 +79,8 @@ package struct SnapshotCommand {
             host.writeError("Snapshots failed: \(error)")
             return .failure
         }
-        host.write("Rendered \(count) snapshots in \(folder.url.path(percentEncoded: false))")
+        let kind = options.contrast == .increased ? "Increase Contrast snapshots" : "snapshots"
+        host.write("Rendered \(count) \(kind) in \(folder.url.path(percentEncoded: false))")
         guard options.contrast == .standard else { return .success }
         return finishStandardPass(entries, options: options, folder: folder)
     }
