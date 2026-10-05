@@ -12,7 +12,29 @@ command list, see [AGENTS.md](../AGENTS.md#commands) or run `./dev help`.
    headers. A command with more than one step ends with a summary.
 
 Exit status: 0 success, 1 a check failed, 2 usage error, 3 a prerequisite is
-missing. `--verbose` shows each underlying command line.
+missing, 128 plus the signal number after SIGINT, SIGTERM, or SIGHUP.
+`--verbose` shows each underlying command line. `--json` prints one summary
+object on standard output and sends every other line to standard error:
+
+```json
+{"command":"lint","exitStatus":0,"message":null,"status":"ok","steps":[{"messages":[{"level":"ok","text":"…"}],"seconds":0.2,"status":"ok","title":"Format check"}]}
+```
+
+Each child process leads its own process group. A time limit sends SIGTERM and
+then SIGKILL to the whole group, and a signal to `./dev` goes to every running
+group. A failed quiet step writes its full output to `.build/logs/<step>.log`;
+CI uploads that folder when `./dev check` fails.
+
+## Builds
+
+Every build checks the built app: the update feed URL and public key in
+`Info.plist`, the Sparkle keys, and arm64-only executables (`ARCHS = arm64` in
+`Configuration/Base.xcconfig`, because the runtime payloads are arm64 only).
+
+A Release build requires a file in `.build/runtimes/payloads/<Group>` for every
+runtime group in `Runtimes/` with a pin file. `./dev check` and CI build Release
+with `--allow-missing-runtimes`, which turns this gate off for an unsigned check
+build only. The check of receipts and file digests comes with JerdManifest.
 
 ## Pinned versions
 
