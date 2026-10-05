@@ -53,6 +53,7 @@ holds only `Placeholder.swift` is not built yet.
 | `JerdUI` | Navigation, feature view models, screens, and the port protocols that the UI needs |
 | `JerdLive` | Live implementations of the UI ports, app bootstrap, and the staged shutdown |
 | `JerdUIFixtures` | In-memory port implementations and sample data for previews, tests, and snapshots |
+| `JerdSnapshotSupport` | Offscreen snapshot rendering, the snapshot catalog, and the component gallery; never linked into the app |
 | `JerdSnapshots` | Renders every page with fixtures to PNG files |
 
 ## Patterns
