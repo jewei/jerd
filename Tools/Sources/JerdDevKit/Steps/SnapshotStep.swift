@@ -3,7 +3,9 @@ enum SnapshotStep {
     static func run(_ context: DevContext, pages: [String]) async throws {
         let invocation = SnapshotPlan.invocation(
             repository: context.repository, toolchain: context.toolchain, pages: pages)
-        let result = try await context.run(invocation, output: .stream)
+        let output: OutputMode =
+            context.console.verbose ? .stream : .streamMatching { !SwiftPMOutput.isProgress($0) }
+        let result = try await context.run(invocation, output: output)
         guard result.succeeded else {
             throw DevFailure.checkFailed("The snapshot renderer failed with exit status \(result.status).")
         }

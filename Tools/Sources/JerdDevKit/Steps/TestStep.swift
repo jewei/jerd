@@ -16,7 +16,7 @@ enum TestStep {
         let invocation = TestPlan.kitTests(
             repository: context.repository, toolchain: context.toolchain,
             testTargets: testTargets, filter: filter, environment: environment)
-        let result = try await context.run(invocation, output: .stream)
+        let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
             throw DevFailure.checkFailed("JerdKit tests failed with exit status \(result.status).")
         }
@@ -30,10 +30,15 @@ enum TestStep {
         let environment = try TestEnvironment.make(inherited: context.environment, groups: [])
         let invocation = TestPlan.toolTests(
             repository: context.repository, toolchain: context.toolchain, filter: filter, environment: environment)
-        let result = try await context.run(invocation, output: .stream)
+        let result = try await context.run(invocation, output: outputMode(context))
         guard result.succeeded else {
             throw DevFailure.checkFailed("Tools tests failed with exit status \(result.status).")
         }
         context.console.success("Tools tests passed.")
+    }
+
+    /// Every line in verbose mode; otherwise failures, diagnostics, and the final count.
+    static func outputMode(_ context: DevContext) -> OutputMode {
+        context.console.verbose ? .stream : .streamMatching(TestPlan.showsInQuietMode)
     }
 }

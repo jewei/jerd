@@ -4,10 +4,12 @@ import Testing
 
 @Suite("Source length policy")
 struct SourceLengthPolicyTests {
+    /// `⏎` stands for a line break, so that each test case shows on one line in the test log.
     @Test(
         "counts lines as an editor shows them",
-        arguments: [("", 0), ("a", 1), ("a\n", 1), ("a\nb", 2), ("a\nb\n", 2), ("\n\n", 2)])
+        arguments: [("", 0), ("a", 1), ("a⏎", 1), ("a⏎b", 2), ("a⏎b⏎", 2), ("⏎⏎", 2)])
     func countsLines(text: String, count: Int) {
+        let text = text.replacingOccurrences(of: "⏎", with: "\n")
         #expect(SourceLengthPolicy.lineCount(of: text) == count)
     }
 
