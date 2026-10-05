@@ -23,6 +23,14 @@ struct LayoutTokenTests {
         #expect(abs(columns.sectionInset * 2 + columns.contentWidth - width) <= 1)
     }
 
+    @Test(
+        "Card content starts on the same text column as the page title and form rows",
+        arguments: [620.0, 760, 980])
+    func cardContentSharesTextColumn(width: CGFloat) {
+        let columns = PageMetrics.columns(forWidth: width)
+        #expect(columns.sectionInset + PageMetrics.cardInset == columns.textInset)
+    }
+
     @Test("A narrow page uses only the system form inset")
     func narrowPageHasNoExtraMargin() {
         let columns = PageMetrics.columns(forWidth: 620)
@@ -66,12 +74,13 @@ struct LayoutTokenTests {
         #expect(Opacity.cardStrokeIncreasedContrast > Opacity.cardStroke)
     }
 
-    @Test("Every sheet size has an ideal height at least its minimum height")
+    @Test("Every sheet size has a maximum height at least its minimum, under the smallest window")
     func sheetSizes() {
         for size in [SheetSize.compact, .standard, .wide] {
-            #expect(size.idealHeight >= size.minimumHeight)
+            #expect(size.maximumHeight >= size.minimumHeight)
+            #expect(size.maximumHeight < WindowMetrics.minimumSize.height)
         }
-        #expect(SheetSize(width: 400, minimumHeight: 300, idealHeight: 100).idealHeight == 300)
+        #expect(SheetSize(width: 400, minimumHeight: 300, maximumHeight: 100).maximumHeight == 300)
         #expect(SheetSize.compact.width < SheetSize.standard.width)
         #expect(SheetSize.standard.width < SheetSize.wide.width)
     }
