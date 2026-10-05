@@ -1,8 +1,24 @@
 # Verification record
 
 The checks below ran on Apple Silicon, macOS 27.0.1, Xcode 27.0, and Swift 6.4.
-The latest check date is 2026-10-02. Commands are in [Run tests](Testing.md).
+The latest check date is 2026-10-05. Commands are in [Run tests](Testing.md).
 Earlier detailed records remain in Git history.
+
+## Site controls and header layout
+
+The 158 default core tests and unsigned Debug build passed. New cases cover
+selected site runs, edits that keep stopped sites stopped, startup failure after
+HTTPS approval, and Stop during approval. One full run encountered an occupied
+temporary database test port; the subsequent full run passed.
+
+Native captures show the site header below the toolbar at standard and minimum
+window sizes in light and dark modes. Long names, a running site, and a stopped
+site beside a running site were checked. The compact navigation check passed
+selection, sidebar, scroll, and editor retention checks.
+
+Three independent reviews covered code, architecture, and performance. Agreed
+findings were fixed. The helper reconnect command was reviewed and built, but
+was not used on the installed helper. No hosts or trust settings were changed.
 
 ## App update checks
 

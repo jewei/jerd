@@ -8,6 +8,7 @@ import ServiceManagement
 final class SitePresentation {
     var editingSite: Site?
     var removingSetup = false
+    var reconnectingHelper = false
     var addingTunnel = false
 }
 
@@ -24,6 +25,8 @@ struct ContentView: View {
                            status: status.title, tone: status.tone, dimmed: !site.isEnabled)
                     .tag(WorkspaceSelection.site(site.id))
                     .contextMenu {
+                        siteActions(site)
+                        Divider()
                         Button("Open in browser", systemImage: "safari") { model.open(site) }
                             .disabled(model.isBusy || !model.runningSiteIDs.contains(site.id) || model.environmentState != .running)
                         Button("Show in Finder", systemImage: "folder") {
@@ -92,6 +95,7 @@ struct ContentView: View {
             .help("Manage runtimes")
         Menu("System setup", systemImage: "lock.shield") {
             Button("Login Items & Extensions") { SMAppService.openSystemSettingsLoginItems() }
+            Button("Reconnect helper…") { presentation.reconnectingHelper = true }
             Button("Remove system setup…") { presentation.removingSetup = true }
         }
         .help("System setup")
@@ -127,11 +131,16 @@ struct ContentView: View {
                     if let site = removingSite { model.remove(site) }
                     removingSite = nil
                 }
-            } message: { Text("Jerd will remove this site’s registered host. Other enabled sites will restart. The CA remains trusted while other hosts are registered. The project directory and its files will remain on disk.") }
+            } message: { Text("Jerd will remove this site’s registered host. Other running sites will restart. The CA remains trusted while other hosts are registered. The project directory and its files will remain on disk.") }
         .confirmationDialog("Remove Jerd system setup?", isPresented: $presentation.removingSetup) {
             Button("Remove system setup", role: .destructive) { model.removeSystemSetup() }
         } message: {
             Text("Jerd will stop the environment, remove its host entries and CA certificate, then unregister its helper. Site records and project files will remain.")
+        }
+        .confirmationDialog("Reconnect the Jerd helper?", isPresented: $presentation.reconnectingHelper) {
+            Button("Reconnect helper") { model.reconnectHelper() }
+        } message: {
+            Text("Jerd will stop its sites and register its system helper again. macOS can ask for approval. Existing hosts, certificate settings, and project files will remain. Start your sites after reconnection.")
         }
     }
 
@@ -182,14 +191,22 @@ struct ContentView: View {
                 Section { InlineMessage(message) }
             }
             Section {
+                ControlRow("Site", detail: site.isEnabled ? nil : "Enable this site before starting it.") {
+                    StatusBadge(title: status.title, tone: status.tone)
+                    siteActions(site)
+                }
+            } header: { Text("This site") } footer: {
+                Text("Start adds this site to the running sites. Stop removes only this site. Changes briefly restart the shared PHP and HTTPS services.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            Section {
                 ControlRow("Environment") {
                     StatusBadge(title: model.stateLabel, tone: model.isBusy ? .busy : model.environmentState.tone)
-                    environmentActions(site)
+                    environmentActions
                 }
                 if let message = model.operationMessage { InlineMessage(message, kind: .info) }
             } header: { Text("All sites") } footer: {
-                Text((site.isEnabled ? "" : "Enable this site to start it or set up HTTPS. ") +
-                     "These controls apply to every enabled site. Ready means PHP-FPM and HTTPS passed their checks. Project code is not checked.")
+                Text("Start all includes every enabled site. Stop all stops every running site. Ready means PHP-FPM and HTTPS passed their checks. Project code is not checked.")
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section("Project") {
@@ -248,15 +265,21 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder private func environmentActions(_ site: Site) -> some View {
+    @ViewBuilder private func siteActions(_ site: Site) -> some View {
+        if model.runningSiteIDs.contains(site.id) {
+            Button("Stop site", systemImage: "stop.fill") { model.stop(site) }
+                .disabled(model.isBusy)
+        } else {
+            Button(model.hasSetup(site) ? "Start site" : "Start site…", systemImage: "play.fill") { model.start(site) }
+                .disabled(!site.isEnabled || model.isBusy)
+        }
+    }
+
+    @ViewBuilder private var environmentActions: some View {
+        Button("Start all sites", systemImage: "play.fill") { model.start() }
+            .disabled(model.isBusy || !model.configuration.sites.contains { $0.isEnabled && !model.runningSiteIDs.contains($0.id) })
         if !model.runningSiteIDs.isEmpty || model.isBusy {
             Button("Stop all sites") { model.stop() }.disabled(!model.canStop)
-        } else if model.hasSetup(site) {
-            Button("Start all sites", systemImage: "play.fill") { model.start() }
-                .primaryAction(site.isEnabled && !model.isBusy)
-        } else {
-            Button("Enable HTTPS…", systemImage: "lock.shield") { model.prepareHTTPS() }
-                .primaryAction(site.isEnabled && !model.isBusy)
         }
     }
 

@@ -18,7 +18,9 @@ new process group, a clean signal mask, an explicit environment, and closed
 inherited file descriptors. Only the two approved listener descriptors reach
 Caddy, at descriptors 3 and 4. Commands use executable URLs and argument arrays.
 
-One Caddy process routes all enabled hostnames. The engine groups sites by
+One Caddy process routes the selected running hostnames. Start all selects every
+enabled site; individual Start and Stop controls change the active subset without
+changing saved enable settings. The engine groups sites by
 runtime ID and starts one PHP-FPM master per runtime, each with its own Unix
 socket and generated settings. Sites that select the same runtime share that
 group. All roots, runtimes, and generated settings are checked before startup.

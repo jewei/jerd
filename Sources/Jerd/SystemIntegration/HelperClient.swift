@@ -23,13 +23,24 @@ actor HelperClient: SystemIntegrating {
         switch service.status {
         case .enabled: return
         case .requiresApproval:
-            throw JerdError.unavailable("Allow Jerd in System Settings → General → Login Items & Extensions, then select Enable HTTPS again.")
+            throw JerdError.unavailable("Allow Jerd in System Settings → General → Login Items & Extensions, then retry the operation.")
         default:
             throw JerdError.unavailable("The Jerd helper is not enabled. Use a signed app in a stable location and check Login Items & Extensions.")
         }
     }
 
     func isEnabled() -> Bool { SMAppService.daemon(plistName: SystemService.plistName).status == .enabled }
+
+    /// Called only after explicit approval in the app. Keep hosts and trust intact.
+    func reconnectAfterApproval() async throws {
+        _ = try SystemService.currentTeamID()
+        invalidate()
+        let service = SMAppService.daemon(plistName: SystemService.plistName)
+        if service.status == .enabled || service.status == .requiresApproval {
+            try await service.unregister()
+        }
+        try registerAfterApproval()
+    }
 
     func status() async throws -> SystemSetupStatus {
         guard isEnabled() else { return SystemSetupStatus() }
@@ -139,7 +150,11 @@ actor HelperClient: SystemIntegrating {
         return try await HelperReply<Value>.wait(cancellation: cancellation, timeout: timeout, onTimeout: { [weak self, id = connectionID] in
             if let id { await self?.didInvalidate(id) }
         }) { reply in
-            let remote = connection.remoteObjectProxyWithErrorHandler { @Sendable error in reply.resolve(.failure(error)) }
+            let remote = connection.remoteObjectProxyWithErrorHandler { @Sendable error in
+                let detail = error as NSError
+                reply.resolve(.failure(JerdError.unavailable(
+                    "Jerd could not communicate with its system helper. Choose System setup → Reconnect helper… and approve reconnection. Existing hosts and certificate settings will remain. (\(detail.domain) \(detail.code))")))
+            }
             guard let proxy = remote as? any JerdHelperProtocol else {
                 reply.resolve(.failure(JerdError.unavailable("The helper interface is unavailable.")))
                 return

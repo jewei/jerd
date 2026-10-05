@@ -39,6 +39,7 @@ final class AppModel {
     private var preparedAfterEdit: HTTPSSetup?
     private var preparedSiteChange: PreparedSiteChange?
     private var preparedSelection: UUID?
+    private var pendingRunSiteIDs: Set<UUID>?
     private var canCancelWork = true
     private(set) var stopInProgress = false
     private(set) var operationMessage: String?
@@ -203,6 +204,7 @@ final class AppModel {
     func discardPreparedSetup() {
         guard !isBusy else { return }
         preparedSiteChange = nil; preparedSelection = nil; preparedAfterEdit = nil
+        pendingRunSiteIDs = nil
     }
 
     func remove(_ site: Site) {
@@ -291,18 +293,15 @@ final class AppModel {
     }
 
     private func prepareSetup() async throws -> HTTPSSetup {
-        for site in enabledSites { _ = try configuration.runtime(for: site) }
         guard let caddy = configuration.caddy else { throw JerdError.unavailable("Caddy is unavailable. Check PHP and Caddy settings.") }
         return try await environment.prepare(sites: enabledSites, caddy: caddy)
     }
 
-    func prepareHTTPS() {
-        perform { self.preparedSiteChange = nil; self.pendingSetup = try await self.prepareSetup() }
-    }
-
     func approveHTTPS(_ setup: HTTPSSetup) {
+        let requestedSiteIDs = pendingRunSiteIDs
         perform(cancellable: false, message: "Applying HTTPS setup. Complete or cancel the macOS approval prompt…") {
             try await self.helper.registerAfterApproval()
+            guard !self.stopInProgress, !self.isShuttingDown else { return }
             if let change = self.preparedSiteChange {
                 self.configuration = try await self.siteChanges.approve(change)
                 if let selection = self.preparedSelection { self.selectedSiteID = selection }
@@ -311,9 +310,8 @@ final class AppModel {
                 guard Set(setup.request.hostnames) == Set(self.enabledSites.map(\.hostname)) else {
                     throw JerdError.invalid("The enabled sites changed. Review HTTPS setup again.")
                 }
-                try await self.environment.apply(setup)
-                self.systemStatus = try await self.helper.status()
-                try await self.startEnvironment()
+                let plan = try WebConfiguration(self.configuration, siteIDs: requestedSiteIDs)
+                try await self.environment.approveAndStart(plan, setup: setup)
             }
             self.systemStatus = try await self.helper.status()
             self.pendingSetup = nil
@@ -321,8 +319,29 @@ final class AppModel {
     }
 
     func start() { perform(message: "Checking PHP-FPM and HTTPS…") { try await self.startEnvironment() } }
+
+    func start(_ site: Site) {
+        perform(message: "Starting \(site.displayName)…") {
+            let running = await self.environment.runningConfiguration()
+            let ids = Set(running?.sites.map { $0.site.id } ?? []).union([site.id])
+            try await self.startEnvironment(siteIDs: ids)
+        }
+    }
+
+    func stop(_ site: Site) {
+        perform(message: "Stopping \(site.displayName)…") {
+            let running = await self.environment.runningConfiguration()
+            let ids = Set(running?.sites.map { $0.site.id } ?? []).subtracting([site.id])
+            if ids.isEmpty { await self.stopEnvironment() }
+            else { try await self.startEnvironment(siteIDs: ids) }
+        }
+    }
+
     func stop() {
         guard canStop else { return }
+        pendingRunSiteIDs = nil
+        pendingSetup = nil
+        preparedSiteChange = nil; preparedSelection = nil; preparedAfterEdit = nil
         let previous = work
         if canCancelWork { previous?.cancel() }
         updates.cancelInstall()
@@ -350,6 +369,14 @@ final class AppModel {
         }
     }
 
+    func reconnectHelper() {
+        perform(cancellable: false, message: "Reconnecting the helper. Complete any macOS approval prompt…") {
+            await self.stopEnvironment()
+            try await self.helper.reconnectAfterApproval()
+            self.systemStatus = try await self.helper.status()
+        }
+    }
+
     func inspectSystemRecovery() {
         perform {
             if await self.helper.isEnabled() { self.systemStatus = try await self.helper.status() }
@@ -368,12 +395,17 @@ final class AppModel {
         }
     }
 
-    private func startEnvironment() async throws {
-        let sites = enabledSites
+    private func startEnvironment(siteIDs: Set<UUID>? = nil) async throws {
+        let sites = enabledSites.filter { siteIDs?.contains($0.id) ?? true }
         guard !sites.isEmpty else { throw JerdError.invalid("Enable at least one registered site.") }
+        if let siteIDs, Set(sites.map(\.id)) != siteIDs {
+            throw JerdError.invalid("The selected sites changed or are disabled. Select the sites again.")
+        }
         let selections = try sites.map { SiteRuntime(site: $0, runtime: try configuration.runtime(for: $0)) }
         guard let caddy = configuration.caddy else { throw JerdError.unavailable("Caddy is unavailable.") }
         if !sites.allSatisfy(hasSetup) {
+            preparedSiteChange = nil
+            pendingRunSiteIDs = siteIDs
             pendingSetup = try await prepareSetup()
             selectedSection = .sites
             return
