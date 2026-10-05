@@ -1,9 +1,3 @@
-/// One of the two output streams of a process.
-enum OutputChannel: Hashable, Sendable {
-    case standardOutput
-    case standardError
-}
-
 /// How the runner treats the output of a child while it runs. It always captures the output.
 enum OutputMode: Sendable {
     /// Keep the output for the result and print nothing.
