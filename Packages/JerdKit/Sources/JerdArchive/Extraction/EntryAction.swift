@@ -10,22 +10,3 @@ package enum EntryAction: Sendable, Equatable {
     /// A selected regular file to write now from the entry data.
     case writeFile(FileWrite)
 }
-
-/// One regular file to write, with its mode and the byte limit that its data must respect.
-package struct FileWrite: Sendable, Equatable {
-    package let path: RelativePath
-    /// 0700 when the entry has any execute bit, otherwise 0600.
-    package let mode: mode_t
-    /// The declared size. The data must have exactly this size. Nil when the archive does not record it.
-    package let declaredSize: Int64?
-    /// The most bytes that the data may have.
-    package let byteLimit: Int64
-    /// The error when the data has more than `byteLimit` bytes.
-    package let limitFailure: JerdError
-}
-
-/// A link to materialize: copy the extracted regular file `source` to `path`.
-package struct LinkCopy: Sendable, Equatable {
-    package let path: RelativePath
-    package let source: RelativePath
-}
