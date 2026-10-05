@@ -17,7 +17,6 @@ extension EngineRunner {
     func stopOwned(failure: String? = nil) async {
         await monitor.cancel()
         guard let current = run else { return }
-        run = nil
         for token in current.stopOrder {
             _ = await services.processes.stop(token, policy: Self.stopPolicy(for: token, in: current))
         }
@@ -30,6 +29,8 @@ extension EngineRunner {
             // Only stale sockets of this run remain; a failed removal leaves a private empty folder.
             try? FileManager.default.removeItem(at: current.layout.socketDirectory)
         }
+        // The run ends only now, so a waiter that asks during the stop learns the outcome.
+        run = nil
         finish(current.id, failure: failure)
     }
 }
