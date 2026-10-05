@@ -64,7 +64,7 @@ struct FileStepTests {
             ])
     }
 
-    @Test("Markdown policy files are root documents, Docs, and Tools, without symbolic links")
+    @Test("Markdown policy files are root documents, Docs, Tools, Apps, and module READMEs, without links")
     func findsMarkdownFiles() throws {
         let root = try TestFixtures.temporaryFolder()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -73,10 +73,29 @@ struct FileStepTests {
         try TestFixtures.write("c", to: "Tools/README.md", in: root)
         try TestFixtures.write("d", to: "Tools/.build/checkouts/x/README.md", in: root)
         try TestFixtures.write("e", to: "Apps/Notes.md", in: root)
+        try TestFixtures.write("f", to: "Packages/JerdKit/Sources/JerdWeb/README.md", in: root)
+        try TestFixtures.write("g", to: "Runtimes/Development/vendor/x/README.md", in: root)
         try FileManager.default.createSymbolicLink(
             atPath: root.appending(path: "CLAUDE.md").path, withDestinationPath: "AGENTS.md")
         let files = try RepositoryPolicy.markdownFiles(in: Repository(root: root))
-        #expect(files == ["AGENTS.md", "Docs/Build.md", "Tools/README.md"])
+        #expect(
+            files == [
+                "AGENTS.md", "Docs/Build.md", "Tools/README.md", "Apps/Notes.md",
+                "Packages/JerdKit/Sources/JerdWeb/README.md",
+            ])
+    }
+
+    @Test("the live link lookup compares the exact letter case of every component")
+    func comparesExactCase() throws {
+        let root = try TestFixtures.temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try TestFixtures.write("# Title", to: "Docs/Architecture.md", in: root)
+        let files = RepositoryFiles(repository: Repository(root: root))
+        #expect(files.exists("Docs/Architecture.md"))
+        #expect(files.exists("Docs"))
+        #expect(!files.exists("docs/Architecture.md"))
+        #expect(!files.exists("Docs/architecture.md"))
+        #expect(files.markdown(at: "Docs/Architecture.md") == "# Title")
     }
 
     @Test("a policy whose file is missing reports the file and fails the step")
