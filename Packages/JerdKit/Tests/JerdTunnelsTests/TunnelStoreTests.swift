@@ -44,6 +44,51 @@ import Testing
         #expect(text(layout.previousSettingsFile) == Self.golden)
     }
 
+    /// Settings that an earlier build wrote with an IP address as hostname. That build accepted it;
+    /// the current Save refuses it (spec E 7.1.20).
+    static let goldenAddressHostname = """
+        {
+          "schemaVersion" : 1,
+          "tunnels" : [
+            {
+              "hostname" : "10.0.0.1",
+              "id" : "32394787-9B89-41AE-A065-57520475754A",
+              "metricsPort" : 20241,
+              "name" : "Office",
+              "restartOnFailure" : true,
+              "startOnLaunch" : true
+            }
+          ]
+        }
+        """
+
+    /// Fix of review tunnels-r1 L-3: the stricter hostname rule made such a file unreadable, and
+    /// every tunnel was blocked. It now loads, saves to the same bytes, and asks for an edit.
+    @Test func earlierSettingsWithAnAddressHostnameLoadAndAskForAnEdit() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let layout = folder.layout
+        try OwnedDirectory.create(layout.root)
+        try AtomicFile.write(Data(Self.goldenAddressHostname.utf8), to: layout.settingsFile)
+        let store = TunnelStore(layout: layout)
+        let loaded = try store.load()
+        try store.save(loaded)
+        #expect(text(layout.settingsFile) == Self.goldenAddressHostname)
+        let secrets = FakeSecretStore()
+        let supervisor = TunnelSupervisor(layout: layout, secrets: secrets, connector: FakeConnector())
+        let configuration = try await supervisor.load()
+        let old = try #require(configuration.tunnels.first)
+        await secrets.set(TokenSamples.valid, id: old.id)
+        #expect(await supervisor.snapshots().first?.settingsIssue == TunnelMessage.addressHostname)
+        await #expect(throws: JerdError.invalid(TunnelMessage.addressHostname)) { try await supervisor.save(old) }
+        let other = TunnelRegistration(name: "Other", hostname: "other.example.com", metricsPort: 20_242)
+        try await supervisor.save(other, token: TokenSamples.other)
+        var fixed = old
+        fixed.hostname = "office.example.com"
+        try await supervisor.save(fixed)
+        #expect(await supervisor.snapshots().allSatisfy { $0.settingsIssue == nil })
+    }
+
     @Test func anAbsentFileLoadsAsEmptySettingsWithoutWriting() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
