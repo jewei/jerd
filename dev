@@ -1,9 +1,13 @@
 #!/bin/sh
-# Runs the jerd-dev tool from Tools/. SwiftPM builds it in release mode into Tools/.build and
-# rebuilds it only when the Tools sources change. Run `./dev help` for the commands.
+# Runs the jerd-dev tool from Tools/. SwiftPM builds it in release mode into Tools/.build/dev and
+# rebuilds it only when the Tools sources change. The tool has its own build folder, so that the
+# debug build of `./dev test --tools` does not make the next `./dev` call rebuild the tool.
+# Run `./dev help` for the commands.
 set -eu
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+scratch="$root/Tools/.build/dev"
+tool="$scratch/release/jerd-dev"
 
 developer_dir=$(xcode-select --print-path 2>/dev/null || true)
 if [ -z "$developer_dir" ] || [ ! -x "$developer_dir/usr/bin/xcodebuild" ]; then
@@ -14,14 +18,14 @@ if [ -z "$developer_dir" ] || [ ! -x "$developer_dir/usr/bin/xcodebuild" ]; then
 	exit 3
 fi
 
-if [ ! -x "$root/Tools/.build/release/jerd-dev" ]; then
+if [ ! -x "$tool" ]; then
 	echo "Building the jerd-dev tool. The first build takes about one minute." >&2
 fi
-if ! /usr/bin/xcrun swift build --package-path "$root/Tools" --configuration release \
-	--product jerd-dev --quiet >&2; then
+if ! /usr/bin/xcrun swift build --package-path "$root/Tools" --scratch-path "$scratch" \
+	--configuration release --product jerd-dev --quiet >&2; then
 	echo "error: Could not build the jerd-dev tool. See the compiler output above." >&2
 	exit 1
 fi
 
 cd "$root"
-exec "$root/Tools/.build/release/jerd-dev" "$@"
+exec "$tool" "$@"

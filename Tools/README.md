@@ -6,8 +6,8 @@ command list, see [AGENTS.md](../AGENTS.md#commands) or run `./dev help`.
 ## How `./dev` runs
 
 1. The `dev` shim finds the repository root and checks that Xcode is selected.
-2. SwiftPM builds `jerd-dev` in release mode into `Tools/.build`. It builds
-   again only when a Tools source changes.
+2. SwiftPM builds `jerd-dev` in release mode into `Tools/.build/dev`. It builds
+   again only when a Tools source changes. The test build uses another folder.
 3. The tool runs from the repository root. Each command prints `==>` step
    headers. A command with more than one step ends with a summary.
 
