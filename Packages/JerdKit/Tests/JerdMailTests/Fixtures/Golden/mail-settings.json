@@ -1,0 +1,10 @@
+{
+  "runtime" : {
+    "id" : "mailpit-1.31.3-arm64",
+    "path" : "/Users/me/Library/Application Support/Jerd/mail-runtimes/mailpit-1.31.3-arm64",
+    "version" : "1.31.3"
+  },
+  "schemaVersion" : 1,
+  "smtpPort" : 1026,
+  "webPort" : 8026
+}

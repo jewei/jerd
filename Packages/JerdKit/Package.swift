@@ -84,7 +84,7 @@ let package = Package(
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
         tests("JerdServiceKit", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
         tests("JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
-        tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
+        tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
         tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
         tests("JerdDesign", []),
