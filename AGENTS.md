@@ -6,16 +6,25 @@ change a module boundary.
 
 ## Commands
 
-Run every task through `./dev` from the repository root.
+Run every task through `./dev`. It works from any folder in the repository.
 
 | Command | Purpose |
 | --- | --- |
-| `./dev check` | Run everything CI runs: lint, all unit tests, and the app build |
-| `./dev test [TARGET...]` | Run unit tests, for example `./dev test JerdWeb` |
-| `./dev build` | Build the unsigned Debug app |
-| `./dev format` | Format all Swift code; `./dev lint` checks it |
+| `./dev check` | Run everything CI runs: lint, JerdKit tests, Tools tests, and the Debug build |
+| `./dev test [TARGET...] [--filter X]` | Run JerdKit unit tests, for example `./dev test JerdWeb` |
+| `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests; see [Tools](Tools/README.md) |
+| `./dev test --tools` | Run the tests of the `./dev` tool |
+| `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default) and print its path |
 | `./dev snapshots [PAGE...]` | Render UI pages to PNG files in `.build/snapshots` |
-| `./dev help` | List every command, including runtime and release commands |
+| `./dev format [--check]` | Format all Swift code with swift-format |
+| `./dev lint` | Check the format, `generate --check`, and the repository policies |
+| `./dev generate [--check]` | Generate `Jerd.xcodeproj` from `project.yml` |
+| `./dev doctor` | Check Xcode, Swift, swift-format, XcodeGen, and `gh`, with install hints |
+| `./dev clean [--all]` | Remove build output; `--all` also removes packages and runtimes |
+| `./dev help [COMMAND]` | List every command, or show the options of one command |
+
+Add `--verbose` to a command to see each underlying command line. Exit status:
+0 success, 1 a check failed, 2 usage error, 3 a prerequisite is missing.
 
 For quick loops inside the package, `swift test --package-path Packages/JerdKit
 --filter JerdWebTests` also works.
