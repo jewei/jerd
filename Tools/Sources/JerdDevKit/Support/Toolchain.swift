@@ -1,17 +1,17 @@
 import Foundation
 
 /// The absolute URLs of the external programs. Planning functions read them, so tests use fixed paths.
-public struct Toolchain: Equatable, Sendable {
+struct Toolchain: Equatable, Sendable {
     /// Runs `swift` and `swift-format` from the selected Xcode.
-    public var xcrun: URL
-    public var xcodebuild: URL
-    public var git: URL
+    var xcrun: URL
+    var xcodebuild: URL
+    var git: URL
     /// `nil` when XcodeGen is not installed. Only `generate` and `lint` need it.
-    public var xcodegen: URL?
+    var xcodegen: URL?
     /// `nil` when the GitHub CLI is not installed. Only release publishing needs it.
-    public var gh: URL?
+    var gh: URL?
 
-    public init(xcrun: URL, xcodebuild: URL, git: URL, xcodegen: URL?, gh: URL?) {
+    init(xcrun: URL, xcodebuild: URL, git: URL, xcodegen: URL?, gh: URL?) {
         self.xcrun = xcrun
         self.xcodebuild = xcodebuild
         self.git = git

@@ -8,7 +8,12 @@ public enum DevMain {
         case exit(ExitStatus, message: String)
     }
 
-    public static func run(arguments: [String], output: any TextOutput = StandardTextOutput()) async -> Int32 {
+    /// Runs `./dev` with the arguments after the program name and returns the process exit status.
+    public static func run(arguments: [String]) async -> Int32 {
+        await run(arguments: arguments, output: StandardTextOutput())
+    }
+
+    static func run(arguments: [String], output: any TextOutput) async -> Int32 {
         switch parse(arguments) {
         case .exit(let status, let message):
             output.write(message + "\n", to: status == .success ? .standardOutput : .standardError)

@@ -1,5 +1,5 @@
 /// The stable exit codes of `./dev`. CI and scripts depend on these values.
-public enum ExitStatus: Int32, Sendable, CaseIterable {
+enum ExitStatus: Int32, Sendable, CaseIterable {
     case success = 0
     case checkFailed = 1
     case usage = 2

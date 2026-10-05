@@ -1,15 +1,15 @@
 import Foundation
 
 /// One planned external command: an absolute executable and an argument array, never a shell line.
-public struct Invocation: Equatable, Sendable {
-    public var executable: URL
-    public var arguments: [String]
+struct Invocation: Equatable, Sendable {
+    var executable: URL
+    var arguments: [String]
     /// The complete child environment, or `nil` to inherit the environment of `./dev`.
-    public var environment: [String: String]?
-    public var workingDirectory: URL?
-    public var timeout: Duration
+    var environment: [String: String]?
+    var workingDirectory: URL?
+    var timeout: Duration
 
-    public init(
+    init(
         executable: URL,
         arguments: [String],
         environment: [String: String]? = nil,
@@ -24,7 +24,7 @@ public struct Invocation: Equatable, Sendable {
     }
 
     /// The command as a user can paste it into a terminal. Only for display; the runner never uses a shell.
-    public var commandLine: String {
+    var commandLine: String {
         ([executable.path] + arguments).map(Self.quotedForDisplay).joined(separator: " ")
     }
 

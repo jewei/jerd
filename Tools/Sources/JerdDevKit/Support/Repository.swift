@@ -2,10 +2,10 @@ import Foundation
 
 /// The repository root and every path that the tool uses. All paths come from the root, so the
 /// tool works the same from any working directory.
-public struct Repository: Equatable, Sendable {
-    public let root: URL
+struct Repository: Equatable, Sendable {
+    let root: URL
 
-    public init(root: URL) {
+    init(root: URL) {
         self.root = root.standardizedFileURL
     }
 

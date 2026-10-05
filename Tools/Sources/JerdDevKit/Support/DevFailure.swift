@@ -1,9 +1,9 @@
 /// A failure that ends a command with a stable exit status and a message that the user can act on.
-public struct DevFailure: Error, Equatable, Sendable, CustomStringConvertible {
-    public let status: ExitStatus
-    public let message: String
+struct DevFailure: Error, Equatable, Sendable, CustomStringConvertible {
+    let status: ExitStatus
+    let message: String
 
-    public var description: String { message }
+    var description: String { message }
 
     static func checkFailed(_ message: String) -> DevFailure {
         DevFailure(status: .checkFailed, message: message)

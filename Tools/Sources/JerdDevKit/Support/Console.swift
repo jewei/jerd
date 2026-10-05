@@ -1,10 +1,10 @@
 /// Writes the tool's own lines in one style: `==>` step headers, indented details, and `$` command
 /// lines in verbose mode. Errors go to standard error; everything else goes to standard output.
-public struct Console: Sendable {
-    public let output: any TextOutput
-    public let verbose: Bool
+struct Console: Sendable {
+    let output: any TextOutput
+    let verbose: Bool
 
-    public init(output: any TextOutput, verbose: Bool) {
+    init(output: any TextOutput, verbose: Bool) {
         self.output = output
         self.verbose = verbose
     }

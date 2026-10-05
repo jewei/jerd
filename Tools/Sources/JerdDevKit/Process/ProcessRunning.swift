@@ -1,5 +1,5 @@
 /// Runs external commands. `ProcessRunner` is the live type; tests use a recording fake.
-public protocol ProcessRunning: Sendable {
+protocol ProcessRunning: Sendable {
     /// Runs the command to its end. Throws `InvocationFailure` only when the command cannot start
     /// or passes its time limit. A non-zero exit status is part of the result.
     func run(_ invocation: Invocation, output: OutputMode) async throws -> InvocationResult

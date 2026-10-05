@@ -2,7 +2,7 @@ import Foundation
 
 /// Runs external commands with Foundation `Process`: an absolute executable, an argument array,
 /// separate output pipes, and a hard time limit. It never uses a shell.
-public struct ProcessRunner: ProcessRunning {
+struct ProcessRunner: ProcessRunning {
     private let output: any TextOutput
     private let killDelay: Duration
     private let drainLimit: Duration
@@ -11,13 +11,13 @@ public struct ProcessRunner: ProcessRunning {
     ///   - killDelay: How long a timed-out child has to stop after SIGTERM before it gets SIGKILL.
     ///   - drainLimit: How long to wait for the rest of the output after the child exits. A grandchild
     ///     that keeps a pipe open must not block the tool.
-    public init(output: any TextOutput, killDelay: Duration = .seconds(5), drainLimit: Duration = .seconds(2)) {
+    init(output: any TextOutput, killDelay: Duration = .seconds(5), drainLimit: Duration = .seconds(2)) {
         self.output = output
         self.killDelay = killDelay
         self.drainLimit = drainLimit
     }
 
-    public func run(_ invocation: Invocation, output mode: OutputMode) async throws -> InvocationResult {
+    func run(_ invocation: Invocation, output mode: OutputMode) async throws -> InvocationResult {
         let (events, continuation) = AsyncStream.makeStream(of: ProcessRunState.Event.self)
         let standardOutput = OutputCollector(channel: .standardOutput, mode: mode, output: output)
         let standardError = OutputCollector(channel: .standardError, mode: mode, output: output)

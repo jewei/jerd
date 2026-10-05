@@ -1,17 +1,17 @@
 /// Why an external command did not succeed. Every case keeps the command line for the report.
-public enum InvocationFailure: Error, Equatable, Sendable, CustomStringConvertible {
+enum InvocationFailure: Error, Equatable, Sendable, CustomStringConvertible {
     case launchFailed(commandLine: String, reason: String)
     case timedOut(commandLine: String, limit: Duration)
     case exited(commandLine: String, status: Int32, standardErrorTail: String)
 
-    public var commandLine: String {
+    var commandLine: String {
         switch self {
         case .launchFailed(let commandLine, _), .timedOut(let commandLine, _), .exited(let commandLine, _, _):
             commandLine
         }
     }
 
-    public var description: String {
+    var description: String {
         switch self {
         case .launchFailed(let commandLine, let reason):
             return "Could not start \(commandLine): \(reason)"

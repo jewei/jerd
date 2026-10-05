@@ -3,7 +3,7 @@ import Foundation
 /// An opt-in group of integration tests that need real runtimes. Each group has switch variables that
 /// `./dev test --integration` sets, and path variables that the user passes through for now.
 /// `./dev runtimes prepare` will compute the paths from `.build/runtimes/payloads` later.
-public enum IntegrationGroup: String, CaseIterable, Sendable {
+enum IntegrationGroup: String, CaseIterable, Sendable {
     case web
     case database
     case mail
