@@ -76,9 +76,9 @@ struct ReleaseInputsTests {
     @Test("The Developer ID requirement names the team and the Developer ID marker")
     func requirementNamesTheTeam() throws {
         let identity = try SigningIdentity(identity: "I", team: ReleaseFixtures.team)
-        #expect(identity.requirement.hasPrefix("=anchor apple generic"))
-        #expect(identity.requirement.contains("leaf[subject.OU] = \"ABCDE12345\""))
-        #expect(identity.requirement.contains("field.1.2.840.113635.100.6.1.13"))
+        #expect(SigningIdentity.requirement(team: identity.team).hasPrefix("=anchor apple generic"))
+        #expect(SigningIdentity.requirement(team: identity.team).contains("leaf[subject.OU] = \"ABCDE12345\""))
+        #expect(SigningIdentity.requirement(team: identity.team).contains("field.1.2.840.113635.100.6.1.13"))
     }
 
     @Test("A release must exceed every published build and version")

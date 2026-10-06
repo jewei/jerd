@@ -16,8 +16,9 @@ struct SigningIdentity: Equatable, Sendable {
         self.team = team
     }
 
-    /// The Developer ID requirement of every signed file. A leading `=` makes codesign read it inline.
-    var requirement: String {
+    /// The Developer ID requirement of every signed file of `team`. A leading `=` makes codesign read it
+    /// inline; the OID marks a Developer ID Application certificate.
+    static func requirement(team: String) -> String {
         "=anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
             + " and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
     }
