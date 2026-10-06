@@ -32,7 +32,8 @@ extension TunnelsModel {
         sheet = nil
     }
 
-    /// Saves the registration and its token. It never connects. A failure shows in the editor.
+    /// Saves the registration and its token. It never connects. A failure shows in the editor
+    /// while it is open, else on the page; only a save from the open editor shows the tunnel.
     @discardableResult
     public func save(_ editor: TunnelEditorModel) -> Task<Void, Never>? {
         guard canChange, editor.canSave, let registration = editor.registration else { return nil }
@@ -43,17 +44,29 @@ extension TunnelsModel {
             do {
                 try await port.save(registration, token: token)
                 editor.clearToken()
-                if sheet?.editor === editor { sheet = nil }
+                operation = .idle
                 startupFailures[registration.id] = nil
-                shell.show(.item(.tunnel(registration.id)))
+                if sheet?.editor === editor {
+                    sheet = nil
+                    shell.show(.item(.tunnel(registration.id)))
+                }
             } catch {
-                editor.failure = ErrorText.message(for: error)
+                reportEditorFailure(ErrorText.message(for: error), editor: editor)
             }
-            operation = .idle
             await refresh()
         }
         currentWork = task
         return task
+    }
+
+    /// A failed save shows in its editor while it is open. After Cancel it shows on the page.
+    private func reportEditorFailure(_ message: String, editor: TunnelEditorModel) {
+        if sheet?.editor === editor {
+            editor.failure = message
+            operation = .idle
+        } else {
+            operation = .failed(message: message)
+        }
     }
 
     /// Runs the confirmed step and clears the confirmation.

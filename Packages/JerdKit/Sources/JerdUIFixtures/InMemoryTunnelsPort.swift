@@ -15,6 +15,8 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     /// When true, Stop leaves the connector running and throws.
     public var stopFails = false
     public var startupFailures: [TunnelStartupFailure] = []
+    /// When set, Save waits at this gate, so a test can cancel the editor during the save.
+    public var saveGate: FixtureGate?
     public var logText = SampleData.tunnelLog
     public var suggestedPortValue: UInt16 = 20_243
     public private(set) var calls: [String] = []
@@ -44,6 +46,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public func suggestedPort() async throws -> UInt16 { suggestedPortValue }
 
     public func save(_ registration: TunnelRegistration, token: String?) async throws {
+        if let saveGate { await saveGate.pass() }
         try record("save \(registration.hostname) token=\(token != nil)")
         if let token { tokens[registration.id] = token }
         if let index = configurationValue.tunnels.firstIndex(where: { $0.id == registration.id }) {
