@@ -64,9 +64,10 @@ struct CommandsAndMenuTests {
     }
 
     @Test("The menu bar menu has open items, feature entries, app commands, and Quit, in order")
-    func menuTree() {
+    func menuTree() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         var quits = 0
         let items = MenuBarMenu.items(for: fixture.state) { quits += 1 }
         let titles = items.compactMap(\.title)
@@ -96,7 +97,7 @@ struct CommandsAndMenuTests {
         let fixture = AppFixture(features: [])
         defer { fixture.removeDefaults() }
         #expect(DashboardCards.sections == [.sites, .databases, .storage, .mail])
-        #expect(DashboardCards.summary(for: .sites, in: fixture.state).summary == "Built in the next work package.")
+        #expect(DashboardCards.summary(for: .databases, in: fixture.state).summary == "Built in the next work package.")
         #expect(RuntimesSummaryRow.detail(defaultPHP: nil) == "View installed versions and check for updates.")
         #expect(
             RuntimesSummaryRow.detail(defaultPHP: RegisteredPHP(id: SampleData.php84ID, version: "8.4.12"))

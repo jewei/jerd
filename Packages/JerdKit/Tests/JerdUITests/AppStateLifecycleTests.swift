@@ -81,8 +81,7 @@ struct AppStateLifecycleTests {
         #expect(fixture.state.alert == .quitCancelled(ShutdownPhase.databases.failureMessage))
         #expect(!fixture.state.appUpdates.isTerminating)
         #expect(fixture.shell.windowRequests == 1)
-        let web = fixture.features.first { $0.section == .sites }
-        #expect(web?.shutdownCount == 0)
+        #expect(await !fixture.sites.calls.contains("stop environment"))
         #expect(fixture.features.first { $0.section == .storage }?.resumeCount == 1)
         #expect(fixture.state.requestTermination { _ in } == .later)
     }

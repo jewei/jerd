@@ -27,7 +27,7 @@ extension FixtureScenario {
                     lastCheck: SampleData.now,
                     result: .failed("The update feed could not be read. Check your network connection.")))
         default:
-            break
+            await prepareSites(fixture)
         }
     }
 
@@ -40,7 +40,7 @@ extension FixtureScenario {
         case .runtimesChecked: return state.runtimes.installation?.progress != nil
         case .advanced: return state.advanced.hasInspected
         case .quitting: return state.shutdown.message == ShutdownPhase.storage.message
-        default: return true
+        default: return isSitesReady(fixture)
         }
     }
 }

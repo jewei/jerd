@@ -13,6 +13,7 @@ public final class AppState {
     public let advanced: AdvancedModel
     public let appUpdates: AppUpdatesModel
     public let clipboard: Clipboard
+    public let sites: SitesModel
     public let shutdown = ShutdownCoordinator()
     /// The service features in section order: Sites, Databases, Storage, Mail.
     public let features: [any WorkspaceFeature]
@@ -44,12 +45,16 @@ public final class AppState {
         clipboard = Clipboard(pasteboard: dependencies.pasteboard)
         windows = dependencies.windows
         workspace = dependencies.workspace
-        self.features = features.sorted { $0.section.rawValue < $1.section.rawValue }
+        sites = Self.makeSites(dependencies, clipboard: clipboard)
+        self.features = ([sites] + features.filter { $0.section != .sites }).sorted {
+            $0.section.rawValue < $1.section.rawValue
+        }
         pollers = self.features.map { feature in
             ServicePoller(policy: feature.pollingPolicy, sleeper: dependencies.sleeper) { [weak feature] in
                 await feature?.refresh()
             }
         }
+        connectSitesShell()
     }
 
     /// The feature that a section shows, if it is built.

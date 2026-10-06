@@ -22,7 +22,9 @@ struct WorkspaceDetail: View {
         switch section {
         case .dashboard:
             DashboardPages(state: state)
-        case .sites, .databases, .storage, .mail:
+        case .sites:
+            SitesSection(state: state, model: state.sites)
+        case .databases, .storage, .mail:
             PlaceholderPage(section: section)
         }
     }
