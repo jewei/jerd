@@ -7,12 +7,21 @@ import JerdProcess
 /// One operation runs at a time (`OperationGate`). A Stop raises the stop epoch: every operation
 /// with an older `StopTicket` ends with `CancellationError` at its next step, and the startup task
 /// is cancelled. The coordinator never restarts an earlier plan; the transaction decides that.
+///
+/// An engine failure that arrives while an operation holds the gate waits in `pendingFailure`.
+/// The operation applies it before it leaves the gate, so no failure is lost (review web-r1 H1).
 public actor EnvironmentCoordinator: EnvironmentCoordinating {
     /// The served state of a successful run.
     struct ActiveRun {
         let plan: ServingPlan
         let stamps: [String: ExecutableStamp]
         let runID: EngineRunID
+    }
+
+    /// A runtime exit of `runID` that the monitor reported while the gate was busy.
+    struct PendingFailure: Equatable {
+        let runID: EngineRunID
+        let message: String
     }
 
     let environment: EnvironmentLayout
@@ -30,6 +39,7 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     var startup: Task<EngineRunID, any Error>?
     var monitor: Task<Void, Never>?
     var consumedTokens: Set<UUID> = []
+    var pendingFailure: PendingFailure?
 
     public init(
         layout: DataLayout, system: any SystemSetupPort, engine: any EngineControlling = EngineRunner(),
@@ -83,8 +93,19 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
         guard !isStopRequested(since: ticket) else { throw CancellationError() }
     }
 
-    /// Takes the gate for one operation, or refuses at once when another one runs.
-    func enterOperation() throws {
+    /// Runs `body` as the one operation, or refuses at once when another one runs. A failure that
+    /// the monitor reported meanwhile ends the run before the gate opens again. No suspension
+    /// point lies between that check and `leave()`, so a later report finds the gate free.
+    func operation<Value: Sendable>(_ body: () async throws -> Value) async throws -> Value {
         guard gate.tryEnter() else { throw JerdError.unavailable("Wait for the current environment operation.") }
+        defer { gate.leave() }
+        let result: Result<Value, any Error>
+        do {
+            result = .success(try await body())
+        } catch {
+            result = .failure(error)
+        }
+        await applyPendingFailure()
+        return try result.get()
     }
 }

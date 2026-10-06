@@ -57,13 +57,29 @@ extension EnvironmentCoordinator {
             await system.releaseListeners()
         }
         active = nil
+        pendingFailure = nil
     }
 
-    /// A runtime of the current run exited: the run ends as failed, unless an operation owns it.
+    /// A runtime of the current run exited: the run ends as failed now, or, while an operation
+    /// holds the gate, when that operation ends (`applyPendingFailure`).
     private func engineFailed(_ runID: EngineRunID, _ failure: String) async {
-        guard active?.runID == runID, gate.tryEnter() else { return }
+        guard active?.runID == runID else { return }
+        guard gate.tryEnter() else {
+            pendingFailure = PendingFailure(runID: runID, message: failure)
+            return
+        }
         defer { gate.leave() }
         await cleanup()
         state = .failed(failure)
+    }
+
+    /// Ends the run as failed when its failure arrived during the operation that ends now. A run
+    /// that the operation already replaced or stopped is not affected.
+    func applyPendingFailure() async {
+        guard let failure = pendingFailure else { return }
+        pendingFailure = nil
+        guard active?.runID == failure.runID else { return }
+        await cleanup()
+        state = .failed(failure.message)
     }
 }
