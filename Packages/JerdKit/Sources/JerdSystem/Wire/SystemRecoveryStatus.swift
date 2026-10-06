@@ -5,7 +5,8 @@ import JerdFoundation
 ///
 /// JSON keys: `id`, `operation`, `phase`, `details`, `canRestore`, `canRemove`, `installationID`,
 /// `certificateDER`, `previousHostnames`, `intendedHostnames`, `policies`. `installationID` and
-/// `certificateDER` are absent only when the recovery record cannot be read; then no action is allowed.
+/// `certificateDER` are nil only when the recovery record cannot be read; then no action is allowed.
+/// On the wire they are always present (see `SystemRecoveryStatus+Codable.swift`).
 public struct SystemRecoveryStatus: Codable, Equatable, Identifiable, Sendable {
     /// The lowercase SHA-256 of the `pending.json` bytes. An approval must name it.
     public let id: String
