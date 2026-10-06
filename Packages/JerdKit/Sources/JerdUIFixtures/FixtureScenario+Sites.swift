@@ -1,4 +1,5 @@
 import Foundation
+import JerdSnapshotSupport
 import JerdTunnels
 import JerdUI
 import JerdWeb
@@ -26,6 +27,8 @@ extension FixtureScenario {
                 environment: EnvironmentSnapshot(
                     state: .failed("PHP-FPM did not answer its private ping within 10 seconds. Check the web logs."),
                     siteIDs: []))
+        case .sitesApproving:
+            return InMemorySitesPort(setup: HTTPSSetupStatus())
         case .sitesSetupRequired:
             return InMemorySitesPort(
                 environment: EnvironmentSnapshot(state: .setupRequired, siteIDs: []), setup: HTTPSSetupStatus())
@@ -56,10 +59,29 @@ extension FixtureScenario {
                     SampleData.docsTunnelID: .failed(
                         "Cloudflare rejected the tunnel token. Edit this tunnel to replace its token.")
                 ])
-        case .sitesStopped, .tunnelStopped:
+        case .sitesStopped, .tunnelStopped, .sitesApproving:
             return InMemoryTunnelsPort(configuration: stoppedTunnels)
+        case .tunnelSettingsIssue:
+            var configuration = stoppedTunnels
+            configuration.tunnels[1].hostname = "203.0.113.10"
+            return InMemoryTunnelsPort(configuration: configuration)
+        case .tunnelSiteRemoved:
+            var configuration = stoppedTunnels
+            configuration.tunnels[1].siteID = SampleData.removedSiteID
+            configuration.tunnels[1].originURL = nil
+            return InMemoryTunnelsPort(configuration: configuration)
         default:
             return InMemoryTunnelsPort()
+        }
+    }
+
+    /// The window appearances of a scenario. The Sites and tunnel pages with tinted banners and
+    /// badges also render with Increase Contrast.
+    var snapshotAppearances: [SnapshotAppearance] {
+        switch self {
+        case .sitesRunning, .sitesSetupRequired, .sitesRecovery, .tunnelFailed, .tunnelConnected:
+            SnapshotAppearance.allCases
+        default: SnapshotAppearance.standard
         }
     }
 
@@ -67,7 +89,8 @@ extension FixtureScenario {
     var sitesDestination: Destination {
         switch self {
         case .tunnelConnected: .item(.tunnel(SampleData.previewTunnelID))
-        case .tunnelStopped, .tunnelFailed: .item(.tunnel(SampleData.docsTunnelID))
+        case .tunnelStopped, .tunnelFailed, .tunnelSettingsIssue, .tunnelSiteRemoved:
+            .item(.tunnel(SampleData.docsTunnelID))
         case .sitesDisabled: .item(.site(SampleData.legacyID))
         default: .section(.sites)
         }
@@ -80,6 +103,14 @@ extension FixtureScenario {
         case .sitesBusy, .dashboardBusy:
             await fixture.sites.configure { $0.suspendsChanges = true }
             fixture.state.sites.startAll()
+        case .sitesApproving:
+            await fixture.sites.configure { $0.approvalGate = FixtureGate() }
+            let sites = fixture.state.sites
+            await sites.startAll()?.value
+            if let approval = sites.sheet?.approval {
+                sites.approve(approval)
+                sites.cancelApproval()
+            }
         default:
             break
         }
@@ -89,6 +120,7 @@ extension FixtureScenario {
     func isSitesReady(_ fixture: AppFixture) -> Bool {
         switch self {
         case .sitesBusy, .dashboardBusy: fixture.state.sites.operation.isWorking
+        case .sitesApproving: fixture.state.sites.runningApprovalID != nil
         default: true
         }
     }

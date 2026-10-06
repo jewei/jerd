@@ -13,7 +13,7 @@ extension SnapshotCatalog {
             let host = ScenarioHost(scenario)
             let sizes = SnapshotSize.windowSizes + (scenario.showsFullPage ? [Self.fullPage] : [])
             add(
-                scenario.rawValue, sizes: sizes, isReady: { host.isReady },
+                scenario.rawValue, sizes: sizes, appearances: scenario.snapshotAppearances, isReady: { host.isReady },
                 view: {
                     JerdWorkspace(state: host.fixture.state)
                         .task { await host.prepare() }

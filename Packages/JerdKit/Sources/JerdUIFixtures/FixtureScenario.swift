@@ -28,9 +28,12 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case sitesRecovery = "sites-recovery"
     case sitesLoadFailed = "sites-load-failed"
     case sitesLong = "sites-long"
+    case sitesApproving = "sites-approving"
     case tunnelConnected = "tunnel-connected"
     case tunnelStopped = "tunnel-stopped"
     case tunnelFailed = "tunnel-failed"
+    case tunnelSettingsIssue = "tunnel-settings-issue"
+    case tunnelSiteRemoved = "tunnel-site-removed"
 
     /// Long pages also render at a tall size, so every section can be reviewed.
     public var showsFullPage: Bool {
