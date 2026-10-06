@@ -6,7 +6,7 @@ import JerdServiceKit
 /// Owns the database registry and one independent `ManagedInstance` per registered service.
 ///
 /// Rules:
-/// - Every call except `load` requires a loaded registry.
+/// - Every call except `load`, `snapshot`, and `stopAll` requires a loaded registry.
 /// - Instances start and stop independently and in parallel. Each has its own lock and record.
 /// - Edit, Remove, and Restore of one service exclude each other and its start and stop.
 /// - Remove keeps every data file. Restore registers retained data again under its original ID.
