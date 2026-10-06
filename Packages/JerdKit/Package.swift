@@ -74,7 +74,8 @@ let package = Package(
                 "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
             ],
             resources: [.copy("Resources/AppIcons")]),
-        // Snapshot rendering and the component gallery. Only JerdSnapshots and tests import it; it never ships.
+        // Snapshot rendering and the component gallery. Only JerdSnapshots, JerdUIFixtures, and tests import it;
+        // it never ships.
         module("JerdSnapshotSupport", ["JerdDesign"]),
         .executableTarget(name: "JerdSnapshots",
                           dependencies: ["JerdUI", "JerdUIFixtures", "JerdDesign", "JerdSnapshotSupport"],

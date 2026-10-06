@@ -30,9 +30,6 @@ reviewable alone.
 
 ## Targets
 
-The table describes the target design of the rewrite. A target whose folder
-holds only `Placeholder.swift` is not built yet.
-
 | Target | Responsibility |
 | --- | --- |
 | `JerdFoundation` | `JerdError`, safe private files, atomic writes, instance locks, versioned JSON documents, the data layout, `.test` hostnames, secrets, digests, safe relative paths |
@@ -70,7 +67,7 @@ fakes. View models depend only on ports.
 **Explicit state machines.** Every long-running component has a named state
 enum and one function that changes it: managed instances, the environment
 coordinator, the site change transaction, the setup transaction, tunnels,
-and the release publisher of the planned `./dev release` command.
+and the release publisher of `./dev release`.
 
 **One owner per file.** Each saved file has exactly one type that reads and
 writes it. That type keeps the exact compatible encoding and the backup copy.
