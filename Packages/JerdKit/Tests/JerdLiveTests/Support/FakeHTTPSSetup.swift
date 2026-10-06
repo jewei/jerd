@@ -16,6 +16,7 @@ actor FakeHTTPSSetup: HTTPSSetupControlling {
     var removalFailure: JerdError?
 
     func fail(_ error: JerdError) { current = .failure(error) }
+    func setStatus(_ status: HTTPSSetupStatus) { current = .success(status) }
     func failRemoval(_ error: JerdError) { removalFailure = error }
 
     func status() throws -> HTTPSSetupStatus { try current.get() }

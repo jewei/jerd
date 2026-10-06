@@ -62,6 +62,46 @@ struct LiveSitesPortTests {
         #expect(await harness.port.isWaiting(approval))
     }
 
+    /// Every setup of one installation has the same ID, so the port keys changes by its own ID.
+    @Test func twoWaitingChangesOfOneInstallationKeepSeparateApprovals() async throws {
+        let harness = try Harness()
+        _ = try await harness.queueApproval(hostnames: ["shop.test"])
+        _ = try await harness.queueApproval(hostnames: ["shop.test", "blog.test"])
+        guard case .needsApproval(let first) = try await harness.port.run([SampleWeb.siteID]),
+            case .needsApproval(let second) = try await harness.port.run([SampleWeb.siteID])
+        else { throw JerdError.invalid("No approval.") }
+
+        await harness.port.discard(first)
+
+        #expect(first.id != second.id)
+        #expect(await !harness.port.isWaiting(first))
+        #expect(await harness.port.isWaiting(second))
+    }
+
+    @Test func removedHostnamesComeFromTheStatusThatTheHelperReportsNow() async throws {
+        let harness = try Harness(status: HTTPSSetupStatus(hostnames: ["shop.test"]))
+        _ = try await harness.queueApproval(hostnames: ["shop.test"])
+        await harness.gateway.setStatus(HTTPSSetupStatus(hostnames: ["gone.test", "shop.test"]))
+
+        guard case .needsApproval(let approval) = try await harness.port.run([SampleWeb.siteID]) else {
+            throw JerdError.invalid("No approval.")
+        }
+
+        #expect(approval.removedHostnames == ["gone.test"])
+    }
+
+    @Test func anUnreadableStatusShowsNoRemovals() async throws {
+        let harness = try Harness()
+        _ = try await harness.queueApproval(hostnames: ["shop.test"])
+        await harness.gateway.fail(.unavailable("The helper did not answer."))
+
+        guard case .needsApproval(let approval) = try await harness.port.run([SampleWeb.siteID]) else {
+            throw JerdError.invalid("No approval.")
+        }
+
+        #expect(approval.removedHostnames.isEmpty)
+    }
+
     @Test func approveRegistersTheHelperBeforeTheTransactionContinues() async throws {
         let harness = try Harness()
         let saved = try await harness.queueApproval(hostnames: ["shop.test"])
