@@ -189,6 +189,21 @@ private final class RecordingStartSteps: SetupPhaseRunning, InitializerRunning {
         #expect(steps.initializers.count == 1)
     }
 
+    @Test func aRedisFirstStartNeedsNoSocketFolderBeforeItsMarker() async throws {
+        let harness = try DatabaseHarness()
+        let id = UUID()
+        let runtime = harness.runtime(.redis)
+        let service = DatabaseService(id: id, name: "Local", runtimeID: runtime.id, port: 23_000)
+        // A socket folder cannot be made here, so only the server plan can fail.
+        let longRoot = URL(fileURLWithPath: "/" + String(repeating: "d", count: 80), isDirectory: true)
+        let blocked = DatabaseServiceDefinition(
+            service: service, runtime: runtime, layout: harness.layout, temporaryRoot: longRoot)
+        await #expect(throws: DatabaseMessages.socketFolder) { _ = try await prepare(blocked, harness) }
+        #expect(exists(blocked.engine.files.layout.initializedMarkerFile))
+        // The next start finds initialized data, not an interrupted initialization.
+        _ = try await prepare(definition(harness, .redis, id: id), harness)
+    }
+
     @Test func aSocketFolderMustFitTheSocketPathLimit() throws {
         let long = URL(fileURLWithPath: "/" + String(repeating: "d", count: 80), isDirectory: true)
         #expect(throws: DatabaseMessages.socketFolder) { _ = try DatabaseSocketFolder.create(in: long) }

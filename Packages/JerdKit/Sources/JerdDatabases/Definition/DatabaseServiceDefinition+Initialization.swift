@@ -25,11 +25,11 @@ extension DatabaseServiceDefinition {
         } else {
             try OwnedDirectory.create(files.data, within: files.root)
         }
-        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot)
-        guard let setup = engine.setupPhase(credentials, sockets: sockets) else {
-            try FileManager.default.removeItem(at: sockets)
-            return
-        }
+        // Only a setup phase needs a socket folder. Redis has none, so nothing can fail between
+        // its data folder and its marker.
+        let sockets = DatabaseSocketFolder.newPath(in: temporaryRoot)
+        guard let setup = engine.setupPhase(credentials, sockets: sockets) else { return }
+        try DatabaseSocketFolder.create(at: sockets)
         let plan = LaunchPlan(
             request: setup.server, ports: [],
             readiness: DatabaseReadiness.check(
