@@ -56,7 +56,7 @@ public struct NavigationState: Equatable, Sendable {
         setSidebarVisible(!isSidebarVisible(in: section))
     }
 
-    /// Records a sidebar change of the current section, for example from the split view.
+    /// Records a sidebar change of the current section, for example from the sidebar button.
     public mutating func setSidebarVisible(_ isVisible: Bool) {
         guard section.hasSidebar else { return }
         if isVisible {

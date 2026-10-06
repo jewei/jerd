@@ -7,12 +7,6 @@ struct WorkspaceSidebar: View {
 
     var body: some View {
         content
-            // The workspace has its own `SidebarToggle`, which is off on Mail. The system
-            // toggle goes only when it is removed on the sidebar column, not on the split view.
-            .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(
-                min: WindowMetrics.sidebarMinimumWidth, ideal: WindowMetrics.sidebarIdealWidth,
-                max: WindowMetrics.sidebarMaximumWidth)
     }
 
     /// The feature work packages replace each empty list with their sidebar.

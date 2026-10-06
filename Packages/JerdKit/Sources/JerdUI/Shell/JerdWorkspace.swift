@@ -2,7 +2,7 @@ import JerdDesign
 import SwiftUI
 
 /// The content of the main window: the sidebar toggle, the section picker, the section's
-/// toolbar items, one sidebar and detail split, the retained pages, the operation banner, the
+/// toolbar items, one sidebar and detail split (window-level toolbar, so its items never move), the retained pages, the operation banner, the
 /// copy toast, and the window alert.
 public struct JerdWorkspace: View {
     /// The height of the unified toolbar above the content. The window minimum is a window
@@ -16,15 +16,22 @@ public struct JerdWorkspace: View {
         width: WindowMetrics.minimumSize.width, height: WindowMetrics.minimumSize.height - toolbarHeight)
 
     @Bindable var state: AppState
+    /// The sidebar width, shared by every section.
+    @State private var sidebarWidth = WindowMetrics.sidebarIdealWidth
 
     public init(state: AppState) {
         self.state = state
     }
 
     public var body: some View {
-        NavigationSplitView(columnVisibility: sidebarVisibility) {
-            WorkspaceSidebar(state: state)
-        } detail: {
+        // A plain split, not `NavigationSplitView`: the split view lays out the toolbar per
+        // column, so hiding the sidebar moved the section picker and the sidebar button.
+        HStack(spacing: 0) {
+            if state.navigation.isSidebarVisible(in: state.navigation.section) {
+                WorkspaceSidebar(state: state)
+                    .frame(width: sidebarWidth)
+                SidebarDivider(width: $sidebarWidth)
+            }
             WorkspaceDetail(state: state)
                 .detailColumn(copyFeedback: copyFeedback, operation: operationBanner)
         }
@@ -54,16 +61,6 @@ public struct JerdWorkspace: View {
         }
         .onAppear { state.setWindowVisible(true) }
         .onDisappear { state.setWindowVisible(false) }
-    }
-
-    /// Each section keeps its own sidebar state. A collapse through the split view is saved
-    /// for the current section only.
-    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
-        Binding {
-            state.navigation.isSidebarVisible(in: state.navigation.section) ? .all : .detailOnly
-        } set: { visibility in
-            state.navigation.setSidebarVisible(visibility != .detailOnly)
-        }
     }
 
     private var operationBanner: OperationBanner? {

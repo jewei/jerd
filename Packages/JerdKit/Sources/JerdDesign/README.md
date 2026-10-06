@@ -87,7 +87,7 @@ The symbols differ from the old app on purpose (spec F 4.2 and 8.4):
 Keep the copy feedback state (`CopyFeedbackMessage?`) at the window level, so the
 sidebar, the menus, and the pages can all set it. Apply
 `detailColumn(copyFeedback:operation:)` to the detail column of the
-`NavigationSplitView`. It puts the `OperationBanner` at the bottom edge and draws the
+workspace split. It puts the `OperationBanner` at the bottom edge and draws the
 toast above it. Do not put the toast or the banner on the whole split view: the
 toast then covers the operation message, and the banner covers the sidebar footer.
 
