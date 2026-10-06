@@ -60,6 +60,10 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   journal. A restore flushes the restored items before it removes the journal. Recovery uses the
   names in the journal, so a newer build can recover it.
 - Backups stay until the user deletes them. A journal protects every backup of its service.
+- `runtime-update.json` adds the key `schemaVersion` to the old `{id, names, present}` form, so
+  its bytes differ from older builds. The old keys and value forms stay, and `names` keeps its
+  order, so an older build reads a new journal after a downgrade (tested with a copy of the old
+  struct).
 
 ## Test
 

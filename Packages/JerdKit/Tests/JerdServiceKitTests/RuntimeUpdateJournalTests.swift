@@ -18,6 +18,23 @@ import Testing
         #expect(journal.isValid)
     }
 
+    /// A copy of the journal struct of older builds (`ServiceUpdateBackup.Journal`).
+    private struct OlderBuildJournal: Decodable {
+        let id: UUID
+        let names: [String]
+        let present: Set<String>
+    }
+
+    @Test func anOlderBuildReadsANewJournalAfterADowngrade() throws {
+        let journal = RuntimeUpdateJournal(
+            id: Self.id, names: ["settings.json", "settings.previous.json", "inbox"], present: ["inbox"])
+        let data = try JSONFileFormat.compact.makeEncoder().encode(journal)
+        let old = try JSONDecoder().decode(OlderBuildJournal.self, from: data)
+        #expect(old.id == Self.id)
+        #expect(old.names == ["settings.json", "settings.previous.json", "inbox"])
+        #expect(old.present == ["inbox"])
+    }
+
     @Test func aNewJournalKeepsEveryOldKeyAndAddsTheVersion() throws {
         let journal = RuntimeUpdateJournal(id: Self.id, names: ["settings.json", "data"], present: ["data"])
         let data = try JSONFileFormat.compact.makeEncoder().encode(journal)
