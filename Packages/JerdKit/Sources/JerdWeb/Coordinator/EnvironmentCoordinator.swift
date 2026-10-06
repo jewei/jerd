@@ -29,6 +29,7 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     let engine: any EngineControlling
     let probe: any TrustProbing
     let ports: LoopbackPortGuard
+    let startGate: StartGate
     let temporaryRoot: URL
     let id = UUID()
     let gate = OperationGate()
@@ -44,13 +45,14 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     public init(
         layout: DataLayout, system: any SystemSetupPort, engine: any EngineControlling = EngineRunner(),
         probe: any TrustProbing = SystemTrustProbe(), ports: LoopbackPortGuard = LoopbackPortGuard(),
-        temporaryRoot: URL = FileManager.default.temporaryDirectory
+        startGate: StartGate = StartGate(), temporaryRoot: URL = FileManager.default.temporaryDirectory
     ) {
         environment = layout.environment
         self.system = system
         self.engine = engine
         self.probe = probe
         self.ports = ports
+        self.startGate = startGate
         self.temporaryRoot = temporaryRoot
     }
 

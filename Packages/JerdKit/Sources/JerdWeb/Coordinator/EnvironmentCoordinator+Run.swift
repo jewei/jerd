@@ -9,6 +9,10 @@ extension EnvironmentCoordinator {
         guard let installationID = try InstallationIdentity(environment: environment).read() else {
             throw JerdError.unavailable("Select Enable HTTPS to approve setup for all enabled sites.")
         }
+        // A web process that survived a crash keeps 80 and 443, so the recovery message must come
+        // before the port check (review final-domain-r1 M1). The engine checks again under the lock.
+        try WebProcessRecords(environment: environment, gate: startGate, recorder: ActiveRunRecorder())
+            .requireNoLivePrevious()
         // The helper owns 80 and 443 while it leases them; this check names another app that
         // listens there before the lease (spec B 7.1.13: the only port check, right before use).
         try await ports.requireNoListener(80)

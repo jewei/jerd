@@ -27,10 +27,13 @@ extension ManagedInstance {
         }
     }
 
-    /// The shared start order. Port checks come first, so a conflict creates no file.
+    /// The shared start order. A read-only record check comes first, so a process that survived
+    /// a crash gives the recovery message and not "port occupied" (review final-domain-r1 M1).
+    /// The port checks follow, so a conflict creates no file.
     private func runStartSteps() async throws -> pid_t {
         let definition = definition
         let profile = definition.profile
+        try effects.startGate.requireNoLiveRecord(profile.record)
         for port in profile.ports { try await effects.ports.requireFree(port) }
         try OwnedDirectory.create(profile.folder, within: profile.containingDirectory)
         let clearance = try clearStart(profile)
