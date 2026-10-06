@@ -3,7 +3,8 @@ import Darwin
 /// The lifecycle state of one managed service instance (a database, the mail inbox, or storage).
 ///
 /// `stuck` replaces the old "failed with a PID": the process is still owned, its data lock is
-/// held, and its run record is kept. Only a Stop can leave `stuck`.
+/// held, and its run record is kept. A Stop leaves `stuck`, and so does exit detection when the
+/// kept process and its group ended.
 public enum ServiceState: Equatable, Hashable, Sendable {
     /// No process is owned and no error is shown.
     case stopped

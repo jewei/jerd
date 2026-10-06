@@ -11,6 +11,9 @@ import Darwin
 /// 6. Never-kill policy: `.timedOut`. Kill policy: group `SIGKILL` and a bounded wait for an
 ///    empty group.
 ///
+/// A policy without signals (`StopPolicy.completeExited`) stops after step 3: it gives
+/// `.stopped` for an exited leader with an empty group, and `.timedOut` otherwise.
+///
 /// `SIGCONT` follows each stop signal because a paused process (`SIGSTOP`, a debugger, a job-control
 /// stop) keeps a caught signal pending until it continues. Without it, a paused data service could
 /// never shut down gracefully. `SIGKILL` needs no `SIGCONT`: it also ends a paused process.
@@ -22,6 +25,7 @@ enum StopEngine {
         let state = target.leaderState()
         guard state != .notOwned else { return .notOwned }
         if state.isRunning {
+            guard policy.sendsSignals else { return .timedOut(leaderRunning: true) }
             target.trackDescendants()
             target.signalLeader(policy.signal)
             resume(target)
@@ -30,6 +34,7 @@ enum StopEngine {
         let leaderExited = await target.waitForLeaderExit(until: leaderDeadline)
         guard target.leaderState() != .notOwned else { return .notOwned }
         if leaderExited, !target.mayHaveOtherMembers() { return .stopped }
+        guard policy.sendsSignals else { return timedOut(target) }
         if !leaderExited, policy.escalation == .never { return .timedOut(leaderRunning: true) }
         target.signalGroup(SIGTERM)
         resume(target)

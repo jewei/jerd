@@ -22,12 +22,18 @@ public struct StopPolicy: Equatable, Sendable {
     /// How long the group has after the group `SIGTERM`. Nil means the rest of the leader deadline.
     public let groupTimeout: Duration?
     public let escalation: Escalation
+    /// False for a stop that only completes an exit: no signal goes to any process.
+    public let sendsSignals: Bool
 
-    public init(signal: Int32, leaderTimeout: Duration, groupTimeout: Duration?, escalation: Escalation) {
+    public init(
+        signal: Int32, leaderTimeout: Duration, groupTimeout: Duration?, escalation: Escalation,
+        sendsSignals: Bool = true
+    ) {
         self.signal = signal
         self.leaderTimeout = leaderTimeout
         self.groupTimeout = groupTimeout
         self.escalation = escalation
+        self.sendsSignals = sendsSignals
     }
 
     /// Stops with `signal`, then the group `SIGTERM`, then a bounded group `SIGKILL`.
@@ -43,4 +49,10 @@ public struct StopPolicy: Equatable, Sendable {
     public static func graceful(signal: Int32 = SIGTERM, timeout: Duration = .seconds(30)) -> StopPolicy {
         StopPolicy(signal: signal, leaderTimeout: timeout, groupTimeout: nil, escalation: .never)
     }
+
+    /// Sends no signal and does not wait. The stop completes (`.stopped`) only when the leader
+    /// already exited and no group member remains; otherwise it reports `.timedOut` at once.
+    /// For a kept process that ended after its stop timed out.
+    public static let completeExited = StopPolicy(
+        signal: SIGTERM, leaderTimeout: .zero, groupTimeout: .zero, escalation: .never, sendsSignals: false)
 }

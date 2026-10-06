@@ -41,8 +41,11 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 ## Rules
 
 - A stop is graceful and never sends `SIGKILL`. A timeout gives `stuck`: the process, the lock,
-  and the record stay. Only a later Stop leaves `stuck`. This holds for every owned process: a
-  server, a setup phase, and an initializer (`StartTools.runInitializer`).
+  and the record stay. This holds for every owned process: a server, a setup phase, and an
+  initializer (`StartTools.runInitializer`). A later Stop leaves `stuck`. `refresh()` also
+  leaves it when the kept process ended later and no group member remains (for example a paused
+  server that continued and exited): it sends no signal, and the record and the lock go as after
+  a Stop.
 - A start failure keeps the kind of the error of the failed step.
 - `refresh()` detects an exit, but it never waits for the stop of the group. A user Stop joins
   that stop. An exit stop never makes Quit fail.

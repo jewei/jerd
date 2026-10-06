@@ -40,6 +40,8 @@ package actor FakeProcessController: ProcessControlling {
     private var reapsOnWait = false
     private var heldStops: [CheckedContinuation<Void, Never>] = []
     private var holdingStops = false
+    /// Children whose last stop timed out: a group member is still running.
+    private var keptGroups: Set<ProcessToken> = []
 
     /// - Parameter exitScript: decides for each request if the child exits at once.
     package init(exitScript: ExitScript? = nil) { self.exitScript = exitScript }
@@ -77,11 +79,24 @@ package actor FakeProcessController: ProcessControlling {
             children[token] = nil
             return .notOwned
         }
+        guard policy.sendsSignals else { return completeExit(token, child) }
         let outcome = stopOutcomes.isEmpty ? .stopped : stopOutcomes.removeFirst()
         if outcome != .timedOut(leaderRunning: true), outcome != .timedOut(leaderRunning: false) {
             children[token] = nil
+            keptGroups.remove(token)
+        } else {
+            keptGroups.insert(token)
         }
         return outcome
+    }
+
+    /// A stop without signals completes only an exited child whose group is empty.
+    private func completeExit(_ token: ProcessToken, _ child: Child) -> StopOutcome {
+        guard child.state != .running, !keptGroups.contains(token) else {
+            return .timedOut(leaderRunning: child.state == .running)
+        }
+        children[token] = nil
+        return .stopped
     }
 
     package func stopAll(policy: StopPolicy) async -> [ProcessToken: StopOutcome] {
@@ -108,6 +123,12 @@ package actor FakeProcessController: ProcessControlling {
         for (token, child) in children where child.state == .running {
             children[token]?.state = .exited(status: status)
         }
+    }
+
+    /// Simulates that every kept group member ended and every running child exited.
+    package func endKeptGroups(status: Int32 = 0) {
+        keptGroups = []
+        exitAll(status: status)
     }
 
     package func setStopOutcomes(_ outcomes: [StopOutcome]) { stopOutcomes = outcomes }

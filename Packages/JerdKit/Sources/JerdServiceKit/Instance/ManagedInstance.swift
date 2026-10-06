@@ -9,7 +9,8 @@ import JerdProcess
 /// Rules:
 /// - A start runs the shared safety steps in a fixed order (see `ServiceDefinition`).
 /// - A stop is graceful and never sends `SIGKILL`. A timeout gives `stuck`: the process, its
-///   lock, and its run record stay, and only a later Stop can clear it.
+///   lock, and its run record stay until a later Stop clears them, or until `refresh()` finds
+///   that the kept process and its group ended.
 /// - A stale run record is removed only while the lock is held.
 /// - Exit detection (`refresh()`) never waits for a stop. A user Stop joins a running exit stop,
 ///   so it is never blocked by "busy".
@@ -23,6 +24,9 @@ public actor ManagedInstance {
         case exit(reason: String)
         /// A step inside a start. The start failure path sets the state.
         case startStep
+        /// Exit detection for a kept process that ended. Success gives `stopped`; a remaining
+        /// member keeps `stuck` with this earlier reason.
+        case completeExit(reason: String)
     }
 
     struct PendingStop {
