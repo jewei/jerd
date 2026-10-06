@@ -16,6 +16,7 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
 | `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the bundled payloads. |
+| `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
 | `PinnedPayloadPreparer` | Prepares the pinned payloads for the app bundle (`./dev runtimes prepare`). |
 | `CLICompanionStore`, `CLICompanions` | The only reader and writer of `runtimes/cli-tools.json`. |
 | `ManagedExecutableVerifier` | Proves that a PHP executable is a managed file with its recorded digest. |
@@ -52,6 +53,11 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
 `RuntimePayloads/<group>/<payload ID>/payload-receipt.json` with the payload files. A
 receipt must match its pin; folders without a pin are ignored. Installed folders are
 `<group folder>/<folder ID>/` with the same receipt.
+
+Folders that older builds installed (`<group folder>/<installation ID>/` with
+`jerd-receipt.json` or `receipt.json`) stay in use, because old service records name them.
+Verify one with `LegacyPayloadVerifier` each time before use: exactly the recorded files and
+hashes, and the execute bit of each executable that the database form records.
 
 ## Test
 

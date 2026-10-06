@@ -32,6 +32,8 @@ It depends only on JerdFoundation. It does no network work.
   legacy folders without it are still read.
 - Legacy receipts are read only: `jerd-receipt.json` with `fileSHA256` (development),
   `jerd-receipt.json` with file objects (databases), and `receipt.json` (Mailpit, RustFS).
+  `Format(group:)` names the form of each group. `LegacyPayloadVerifier` in JerdRuntimes
+  uses all three forms to verify old installed folders before use.
 - The feed signature covers the bytes before the last `<!-- sparkle-signatures:` block,
   as in Sparkle 2. The block `length` must equal that byte count.
 - A build must carry exactly the official feed URL and key. Unexpanded build settings fail.

@@ -67,12 +67,7 @@ public actor BundledRuntimeBootstrap {
     /// - Returns: `<group folder>/<name>` of each removed folder.
     @discardableResult
     public func removeAbandonedStaging() -> [String] {
-        let runtimes = layout.runtimes
-        let groups = [
-            runtimes.developmentRuntimesDirectory, runtimes.databaseRuntimesDirectory,
-            runtimes.mailRuntimesDirectory, runtimes.storageRuntimesDirectory,
-        ]
-        return groups.flatMap { directory in
+        PayloadGroup.allCases.map { layout.runtimes.payloadDirectory(for: $0) }.flatMap { directory in
             StagingFolder.removeAbandoned(in: directory).map { "\(directory.lastPathComponent)/\($0)" }
         }
     }
