@@ -1,8 +1,9 @@
 import JerdDesign
 import SwiftUI
 
-/// The HTTPS approval: a failure first, the hostnames, the CA fingerprint that the user compares
-/// in the macOS prompt, then what changes on this Mac and the trust scope. Cancel is always
+/// The HTTPS approval: a failure first, then the scope of the CA trust as a warning, the
+/// hostnames, the CA fingerprint that the user compares in the macOS prompt, and what changes
+/// on this Mac. The failure, the warning, and the fingerprint are visible without scrolling. Cancel is always
 /// enabled; it closes the sheet and never cuts a macOS prompt or a running approval.
 struct HTTPSApprovalSheet: View {
     let model: SitesModel
@@ -19,6 +20,8 @@ struct HTTPSApprovalSheet: View {
             workingMessage: model.operation.workingMessage, cancel: model.closeApproval
         ) {
             SheetTopMessage(message: model.approvalFailure, kind: .error, identifier: "https-approval.error")
+            SheetTopMessage(
+                message: HTTPSApprovalChangesSection.trustWarning, kind: .warning, identifier: "https-approval.trust")
             Section {
                 ApprovalValueRow(label: "Hostnames", value: approval.hostnames.joined(separator: ", "))
                 if !approval.removedHostnames.isEmpty {
