@@ -19,4 +19,9 @@ public struct FeatureAction: Identifiable {
         self.isPrimary = isPrimary
         self.perform = perform
     }
+
+    /// The same action, off. The shell uses it for every feature action during a quit.
+    public func disabled() -> FeatureAction {
+        FeatureAction(id: id, title: title, isEnabled: false, isPrimary: isPrimary, perform: perform)
+    }
 }

@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// Builds the menu bar menu from the feature summaries: open commands, each feature's
-/// entries, the app commands, and Quit.
+/// Builds the menu bar menu from the feature summaries: the running work, open commands, each
+/// feature's entries, the app commands, and Quit. During a quit the first line shows the quit
+/// stage and every feature entry is off, so the menu is useful when no window shows.
 @MainActor
 enum MenuBarMenu {
     static func items(for state: AppState, quit: @escaping @MainActor () -> Void) -> [MenuBarItem] {
-        var items = openItems(for: state)
+        var items = activityItems(for: state) + openItems(for: state)
         for feature in state.features where !feature.menuItems.isEmpty {
             items.append(.divider(id: "divider.\(feature.section.title.lowercased())"))
-            items += feature.menuItems
+            let entries = feature.menuItems
+            items += state.isQuitting ? entries.map { $0.disablingActions() } : entries
         }
         items.append(.divider(id: "divider.app"))
         items += appItems(for: state)
@@ -18,6 +20,12 @@ enum MenuBarMenu {
                 FeatureAction(id: "menu.quit", title: "Quit Jerd", perform: quit),
                 shortcut: CommandShortcut("q", modifiers: .command)))
         return items
+    }
+
+    /// The quit stage or the global work, as a disabled line at the top (spec F 2.5).
+    private static func activityItems(for state: AppState) -> [MenuBarItem] {
+        guard let activity = state.bannerActivity else { return [] }
+        return [.text(activity.message, id: "menu.activity"), .divider(id: "divider.activity")]
     }
 
     private static func openItems(for state: AppState) -> [MenuBarItem] {

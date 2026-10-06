@@ -37,6 +37,18 @@ public struct MenuBarItem: Identifiable {
         MenuBarItem(id: id, kind: .divider)
     }
 
+    /// The same entry with every action off, also inside submenus.
+    public func disablingActions() -> MenuBarItem {
+        switch kind {
+        case .action(let action):
+            MenuBarItem(id: id, kind: .action(action.disabled()), shortcut: shortcut)
+        case .submenu(let title, let items):
+            MenuBarItem(id: id, kind: .submenu(title: title, items: items.map { $0.disablingActions() }))
+        case .text, .divider:
+            self
+        }
+    }
+
     /// The visible title, or nil for a divider.
     public var title: String? {
         switch kind {
