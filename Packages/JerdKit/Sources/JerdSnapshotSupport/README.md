@@ -11,10 +11,12 @@ draw as the active window (`ActiveWindow`).
 ```sh
 ./dev snapshots                    # every entry
 ./dev snapshots gallery-status     # one entry, or every entry named gallery-status-*
-swift run --package-path Packages/JerdKit jerd-snapshots [--output DIR] [--list] [NAME...]
+swift run --package-path Packages/JerdKit jerd-snapshots [--output DIR] [--list] [--check] [NAME...]
 ```
 
-`--filter NAME...` is the same as `NAME` arguments. Exit status: 0 success,
+`--filter NAME...` is the same as `NAME` arguments. `--check` renders each entry once (first
+size and appearance) and writes no file; tests use it to render pages in their own process.
+Exit status: 0 success,
 1 rendering or writing failed, 2 a usage error or an unknown page name.
 
 File names are `<name>-<appearance>-<size>.png`, for example

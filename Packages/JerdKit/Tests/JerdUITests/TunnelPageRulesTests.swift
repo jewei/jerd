@@ -46,6 +46,22 @@ struct TunnelPageRulesTests {
             ])
     }
 
+    @Test("A banner that offers Edit Tunnel… takes it from the header, so the page shows it once")
+    func bannerTakesEditFromHeader() async {
+        let port = InMemoryTunnelsPort(states: [SampleData.docsTunnelID: .failed("Cloudflare rejected the token.")])
+        let harness = await SitesHarness.launched(tunnels: port)
+        let model = harness.model.tunnels
+        #expect(model.nextStep(for: SampleData.docsTunnelID) == .edit)
+        #expect(model.bannerOffersEdit(for: SampleData.docsTunnelID))
+        #expect(!model.bannerOffersEdit(for: SampleData.previewTunnelID))
+
+        var configuration = SampleData.tunnelConfiguration
+        configuration.tunnels[1].hostname = "203.0.113.10"
+        let settings = InMemoryTunnelsPort(configuration: configuration)
+        let issue = await SitesHarness.launched(tunnels: settings)
+        #expect(issue.model.tunnels.bannerOffersEdit(for: SampleData.docsTunnelID))
+    }
+
     @Test("A settings issue banner owns Edit Tunnel…, so the failure banner does not repeat it")
     func settingsIssueOwnsEdit() async {
         var configuration = SampleData.tunnelConfiguration

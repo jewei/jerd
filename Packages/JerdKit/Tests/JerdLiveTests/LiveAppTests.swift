@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import JerdFoundation
 import JerdUI
@@ -52,5 +53,82 @@ struct LiveAppTests {
 
         #expect(live.preparation.launcher == nil)
         #expect(live.preparation.staging.count == 2)
+    }
+
+    /// Spec F 2.9: the pollers use the visible rates only while the app is active. The app
+    /// object posts the activity notifications; the live app must follow them.
+    @Test func theLiveAppFollowsTheActivityThatAppKitReports() throws {
+        let center = NotificationCenter()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let live = LiveApp(
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
+            defaults: try Self.defaults(), notifications: center)
+        live.state.setWindowVisible(true)
+
+        center.post(name: NSApplication.didBecomeActiveNotification, object: NSApplication.shared)
+        #expect(live.state.activity.isActive)
+        #expect(live.state.activity.showsLiveState)
+
+        center.post(name: NSApplication.didResignActiveNotification, object: NSApplication.shared)
+        #expect(!live.state.activity.isActive)
+        #expect(!live.state.activity.showsLiveState)
+    }
+
+    /// A minimized or covered main window shows no live state, so polling slows down.
+    @Test func aHiddenMainWindowSlowsThePollingOfTheLiveApp() throws {
+        let center = NotificationCenter()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let live = LiveApp(
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
+            defaults: try Self.defaults(), notifications: center)
+        live.state.setAppActive(true)
+        live.state.setWindowVisible(true)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 200), styleMask: [.titled], backing: .buffered,
+            defer: true)
+        window.identifier = NSUserInterfaceItemIdentifier(MainWindowPresenter.windowID)
+
+        center.post(name: NSWindow.didChangeOcclusionStateNotification, object: window)
+
+        #expect(!live.state.activity.isWindowVisible)
+        #expect(!live.state.activity.showsLiveState)
+    }
+
+    @Test func onlyTheMainWindowReportsTheWindowVisibility() {
+        let name = NSWindow.didChangeOcclusionStateNotification
+
+        #expect(
+            AppActivityMonitor.change(for: name, windowIdentifier: "main", isWindowVisible: true)
+                == .windowVisible(true))
+        #expect(
+            AppActivityMonitor.change(for: name, windowIdentifier: "main-1", isWindowVisible: false)
+                == .windowVisible(false))
+        #expect(AppActivityMonitor.change(for: name, windowIdentifier: nil, isWindowVisible: false) == nil)
+        #expect(AppActivityMonitor.change(for: name, windowIdentifier: "sheet", isWindowVisible: false) == nil)
+        #expect(
+            AppActivityMonitor.change(
+                for: NSWindow.didResizeNotification, windowIdentifier: "main", isWindowVisible: true)
+                == nil)
+    }
+
+    /// The Dock Quit and logout send the quit Apple Event. The live app must route it to the
+    /// quit that ends the sheets, because AppKit's own handler is dropped while a sheet shows.
+    @Test func theLiveAppRoutesTheQuitAppleEventToTheQuitThatEndsTheSheets() throws {
+        var quits = 0
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let live = LiveApp(
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
+            defaults: try Self.defaults(), notifications: NotificationCenter()
+        ) { quits += 1 }
+
+        live.installQuitEventHandler()
+        defer { live.quitEvents.remove() }
+        let result = QuitAppleEventTests.dispatchQuitEvent()
+
+        #expect(result == noErr)
+        #expect(quits == 1)
     }
 }

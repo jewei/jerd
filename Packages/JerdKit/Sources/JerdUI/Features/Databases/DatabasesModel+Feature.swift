@@ -38,42 +38,52 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
 
     public var summary: FeatureSummary {
         guard !services.isEmpty else {
-            let add = FeatureAction(id: "databases.add", title: "Add Database…", isEnabled: canAdd, isPrimary: canAdd) {
+            let add = FeatureAction(id: "databases.add", title: "Add Database…", isEnabled: canAdd) {
                 [weak self] in
                 guard let self, let engine = availableEngines.first else { return }
                 navigate?(.section(.databases))
                 beginAdd(engine)
             }
-            return FeatureSummary(status: status, summary: "Add MySQL, PostgreSQL, or Redis services.", actions: [add])
+            return FeatureSummary(
+                status: status, summary: "Add MySQL, PostgreSQL, or Redis services.",
+                actions: CardActionRule.actions(.add(add)))
         }
         return FeatureSummary(
             status: status, summary: services.map(\.name).joined(separator: ", "), actions: cardActions)
     }
 
-    /// Start or Stop for each service, as in the menu bar. The first service that can start is
-    /// the next step; Stop is never the next step. A narrow card keeps the next step as a button
-    /// and moves the others into its More menu.
+    /// Start All while a service is stopped, else Stop All (`CardActionRule`). Databases have no
+    /// Open step: each service has its own connection values on its page.
     private var cardActions: [FeatureAction] {
-        let next = services.first { canStart($0.id) }?.id
-        return services.map { controlAction(for: $0, isPrimary: $0.id == next) }
+        if services.contains(where: { !state(of: $0.id).offersStop }) {
+            let start = FeatureAction(
+                id: "databases.start-all", title: "Start All", spokenTitle: "Start All Databases",
+                isEnabled: services.contains { canStart($0.id) }
+            ) { [weak self] in self?.startAll() }
+            return CardActionRule.actions(.start(start))
+        }
+        let stop = FeatureAction(
+            id: "databases.stop-all", title: "Stop All", spokenTitle: "Stop All Databases",
+            isEnabled: services.contains { canStop($0.id) }
+        ) { [weak self] in self?.stopAll() }
+        return CardActionRule.actions(.stop(stop))
     }
 
     public var menuItems: [MenuBarItem] {
         guard !services.isEmpty else { return [] }
-        let items = services.map { MenuBarItem.action(controlAction(for: $0, isPrimary: false)) }
+        let items = services.map { MenuBarItem.action(controlAction(for: $0)) }
         return [.submenu("Databases", id: "databases.menu", items: items)]
     }
 
     /// Stop for a service that runs or did not stop, else Start.
-    private func controlAction(for service: DatabaseService, isPrimary: Bool) -> FeatureAction {
+    private func controlAction(for service: DatabaseService) -> FeatureAction {
         if state(of: service.id).offersStop {
             return FeatureAction(
                 id: "databases.stop.\(service.id)", title: "Stop \(service.name)", isEnabled: canStop(service.id)
             ) { [weak self] in self?.stop(service.id) }
         }
         return FeatureAction(
-            id: "databases.start.\(service.id)", title: "Start \(service.name)", isEnabled: canStart(service.id),
-            isPrimary: isPrimary
+            id: "databases.start.\(service.id)", title: "Start \(service.name)", isEnabled: canStart(service.id)
         ) { [weak self] in self?.start(service.id) }
     }
 

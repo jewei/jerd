@@ -5,7 +5,7 @@ public struct FeatureSummary {
     public let status: DisplayStatus
     /// One or two short lines, for example "2 registered · 2 enabled".
     public let summary: String
-    /// At most one action is primary: the next step.
+    /// The card actions, built with `CardActionRule`: at most two, and one primary next step.
     public let actions: [FeatureAction]
 
     public init(status: DisplayStatus, summary: String, actions: [FeatureAction] = []) {

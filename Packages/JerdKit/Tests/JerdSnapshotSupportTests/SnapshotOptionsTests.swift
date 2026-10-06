@@ -30,6 +30,12 @@ struct SnapshotOptionsTests {
         #expect(options == SnapshotOptions(output: "out", filters: ["gallery", "sites"], listOnly: true))
     }
 
+    @Test("The check option renders without writing files")
+    func check() throws {
+        let options = try SnapshotOptions.parse(["--check", "dashboard"])
+        #expect(options == SnapshotOptions(filters: ["dashboard"], checkOnly: true))
+    }
+
     @Test("The contrast pass option selects the Increase Contrast pass")
     func contrastPass() throws {
         let options = try SnapshotOptions.parse(["--contrast-pass", "--output", "out", "gallery-status"])

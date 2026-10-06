@@ -32,13 +32,16 @@ struct TunnelDetailPage: View {
     private var isActive: Bool { model.isActive(tunnel.id) }
 
     /// The next step: Open in Browser while the connector runs, Edit Tunnel… after a failure or
-    /// with settings that need an edit, else Connect….
-    private var primaryAction: PageAction {
+    /// with settings that need an edit, else Connect…. When a banner already offers Edit
+    /// Tunnel…, the header has no primary action, so the page shows Edit Tunnel… once.
+    private var primaryAction: PageAction? {
         switch model.nextStep(for: tunnel.id) {
         case .open:
             PageAction("Open in Browser", systemImage: "safari", identifier: "tunnel.open") {
                 model.openInBrowser(tunnel)
             }
+        case .edit where model.bannerOffersEdit(for: tunnel.id):
+            nil
         case .edit:
             PageAction(
                 TunnelNextStep.edit.title, systemImage: "pencil", isEnabled: model.canChange && !isQuitting,

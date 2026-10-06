@@ -3,6 +3,10 @@ import JerdRuntimes
 
 /// The words and symbols of the Runtimes page, as pure functions so tests can pin them.
 enum RuntimeCopy {
+    /// The Runtimes check. It differs from the app's "Check for Updates…" (Sparkle), so the two
+    /// visible titles never look like the same command.
+    static let checkTitle = "Check for Runtime Updates"
+
     /// The fixed note under a section, after the check date.
     static func note(_ kind: RuntimeKind) -> String? {
         switch kind {
@@ -54,7 +58,7 @@ enum RuntimeCopy {
     }
 
     /// The one page line before the first check.
-    static let notCheckedMessage = "Updates have not been checked. Select Check for Updates to see new versions."
+    static let notCheckedMessage = "Updates have not been checked. Select \(checkTitle) to see new versions."
 
     /// How the release is verified, for the Release row.
     static func verificationDetail(_ release: RuntimeRelease) -> String {

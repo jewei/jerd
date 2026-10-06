@@ -66,6 +66,7 @@ The symbols differ from the old app on purpose (spec F 4.2 and 8.4):
 | `StatusBadge`, `StatusIndicator` | Status in headers and cards; compact status in sidebar rows. |
 | `ServiceIcon` | A tinted symbol tile next to a title. VoiceOver ignores it. |
 | `SidebarRow`, `SidebarFooter` | Sidebar items, and the one footer: Add button or menu, and a caption. |
+| `CheckResultLabel` | The result of one check: a tinted symbol and primary text, never colored text. |
 | `ValueRow`, `CopyButton` | A read-only value with middle truncation and an optional copy button. Not for paths. |
 | `ActionRow` | A title, optional detail, and trailing buttons in a form. |
 | `PathRow` | Every file or folder path, with Show in Finder. |
@@ -86,7 +87,7 @@ The symbols differ from the old app on purpose (spec F 4.2 and 8.4):
 Keep the copy feedback state (`CopyFeedbackMessage?`) at the window level, so the
 sidebar, the menus, and the pages can all set it. Apply
 `detailColumn(copyFeedback:operation:)` to the detail column of the
-`NavigationSplitView`. It puts the `OperationBanner` at the bottom edge and draws the
+workspace split. It puts the `OperationBanner` at the bottom edge and draws the
 toast above it. Do not put the toast or the banner on the whole split view: the
 toast then covers the operation message, and the banner covers the sidebar footer.
 

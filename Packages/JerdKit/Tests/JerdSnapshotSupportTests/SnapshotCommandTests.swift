@@ -58,6 +58,31 @@ struct SnapshotCommandTests {
         #expect(host.preparedContrast.isEmpty)
     }
 
+    @Test("A check renders the selected entries and writes no file")
+    func checkWritesNothing() async throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let host = RecordingSnapshotHost()
+        let status = await SnapshotCommand(catalog: catalog(["a", "b"]), host: host)
+            .run(arguments: ["--check", "--output", folder.path(percentEncoded: false)])
+        #expect(status == 0)
+        #expect(host.output == ["Checked 2 snapshots"])
+        #expect(host.contrastPassArguments.isEmpty)
+        #expect(try files(in: folder).isEmpty)
+    }
+
+    @Test("A check fails with exit status 1 when an entry does not render")
+    func checkFails() async throws {
+        var catalog = SnapshotCatalog()
+        catalog.add(
+            "never", sizes: [tiny], appearances: [.light], chrome: .content, isReady: { false },
+            view: { Color.green })
+        let host = RecordingSnapshotHost()
+        let status = await SnapshotCommand(catalog: catalog, host: host).run(arguments: ["--check"])
+        #expect(status == 1)
+        #expect(host.errors.first?.contains("never") == true)
+    }
+
     @Test("A positional page name renders only that page")
     func rendersOnePage() async throws {
         let folder = try temporaryFolder()

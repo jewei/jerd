@@ -19,8 +19,7 @@ struct SitesSidebarFooter: View {
     }
 
     private var caption: String? {
-        let count = model.sites.count
-        guard count > 0 else { return nil }
-        return "\(count) \(count == 1 ? "site" : "sites") · \(model.environment.siteIDs.count) running"
+        SidebarCaption.text(
+            count: model.sites.count, singular: "site", plural: "sites", running: model.environment.siteIDs.count)
     }
 }

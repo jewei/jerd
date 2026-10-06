@@ -13,7 +13,7 @@ calls. Pure mappings are `package static` functions with their own tests.
 | `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. |
 | `Services/` | `LiveDatabasesPort`, `LiveMailPort`, `LiveStoragePort`, and the bundled service runtimes. |
 | `Settings/` | Runtimes (`LiveRuntimeInventory`, `RuntimeActivator`), Advanced (`LiveRecoveryPort`, `LiveExecutableRegistrations`, `LiveHTTPSRecovery`), and `LiveCommandLineTools`. |
-| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`), the main window, pasteboard, Finder, open panels, the termination reply, and the pure Sparkle rules (`UpdateCycleMapping`). |
+| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`), the app and window activity for the polling rates (`AppActivityMonitor`), the main window, pasteboard, Finder, open panels, the quit paths that end open sheets first (`ApplicationQuit`, `QuitAppleEventHandler`), the termination reply, and the pure Sparkle rules (`UpdateCycleMapping`). |
 
 ## Wiring rules
 
@@ -41,7 +41,9 @@ calls. Pure mappings are `package static` functions with their own tests.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated
   command-line launcher is refreshed once, off the main actor
   (`LiveConfiguration.refreshesCommandLineLauncher`). A run with another data root never
-  touches the user's launcher.
+  touches the user's launcher, and keeps Jerd's preferences in its own defaults domain
+  (`LiveConfiguration.defaultsSuiteName`), never in the user's `dev.jerd.app`. AppKit still
+  saves the window frame in the standard domain.
 
 ## Test
 

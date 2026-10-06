@@ -10,14 +10,19 @@ public final class LiveApp {
     public let windows: MainWindowPresenter
     public let iconImages: AppIconImages
     let preparation: LaunchPreparation
+    let activity: AppActivityMonitor
+    let quitEvents: QuitAppleEventHandler
 
     /// Builds every port and the root state. Nothing runs and nothing changes on disk until
     /// `launch()`.
     /// - Parameters:
     ///   - defaults: The `dev.jerd.app` defaults domain.
+    ///   - notifications: The center where AppKit reports the app and window activity.
+    ///   - quit: The quit that the quit Apple Event runs; tests pass a recorder.
     public init(
         configuration: LiveConfiguration, updater: any AppUpdating, bundle: Bundle = .main,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard, notifications: NotificationCenter = .default,
+        quit: @escaping @MainActor () -> Void = { ApplicationQuit.request() }
     ) {
         let domain = LiveDomain(configuration: configuration)
         let images = AppIconImages(bundle: bundle)
@@ -34,11 +39,21 @@ public final class LiveApp {
             sites: LiveSitesPort(domain: domain),
             tunnels: LiveTunnelsPort(supervisor: domain.tunnels))
         state = AppState(dependencies: dependencies)
+        activity = AppActivityMonitor(state: state, center: notifications)
+        activity.start(isAppActive: NSApplication.shared.isActive)
+        quitEvents = QuitAppleEventHandler(manager: .shared(), request: quit)
         self.windows = windows
         iconImages = images
         preparation = LaunchPreparation(
             staging: [domain.bootstrap, runtimes],
             launcher: configuration.refreshesCommandLineLauncher ? commandLineTools : nil)
+    }
+
+    /// Routes the quit Apple Event (Dock Quit, logout, restart, shutdown) through the quit that
+    /// ends the sheets first. Call it in `applicationWillFinishLaunching`: AppKit installs its
+    /// own handler before that call.
+    public func installQuitEventHandler() {
+        quitEvents.install()
     }
 
     /// Starts Jerd independent of any window: removes abandoned staging folders and refreshes an

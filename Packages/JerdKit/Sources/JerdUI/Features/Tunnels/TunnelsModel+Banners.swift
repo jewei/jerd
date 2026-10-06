@@ -19,4 +19,10 @@ extension TunnelsModel {
         }
         return shown
     }
+
+    /// True when a banner of the page carries Edit Tunnel…: a failure that an edit can fix, or
+    /// settings that need an edit. The header then does not repeat it.
+    func bannerOffersEdit(for id: UUID) -> Bool {
+        snapshots[id]?.settingsIssue != nil || banners(for: id).contains(where: \.offersEdit)
+    }
 }

@@ -15,4 +15,14 @@ public enum SiteNextStep: Equatable, Sendable {
         case .start(let needsApproval): needsApproval ? "Start Site…" : "Start Site"
         }
     }
+
+    /// The symbol of the header button. Open Advanced stays in Jerd, so it uses the symbol of
+    /// the Advanced page, not an "opens outside" arrow; Open in Browser opens Safari's symbol.
+    public var systemImage: String {
+        switch self {
+        case .recover: DashboardPage.advanced.systemImage
+        case .open: "safari"
+        case .start: "play.fill"
+        }
+    }
 }

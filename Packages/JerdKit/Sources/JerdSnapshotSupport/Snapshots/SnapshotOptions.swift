@@ -1,4 +1,4 @@
-/// The command-line options of `jerd-snapshots [--output DIR] [--list] [NAME...]`.
+/// The command-line options of `jerd-snapshots [--output DIR] [--list] [--check] [NAME...]`.
 /// `./dev snapshots PAGE...` passes page names as positional arguments.
 package struct SnapshotOptions: Equatable, Sendable {
     /// The default output folder, relative to the current directory.
@@ -10,6 +10,8 @@ package struct SnapshotOptions: Equatable, Sendable {
           --output DIR       Write PNG files to DIR (default: \(defaultOutput)).
           --filter NAME...   The same as NAME arguments.
           --list             Print the entry names and sizes, then stop.
+          --check            Render each entry once (its first size and appearance) and write
+                             no file. The exit status says whether every entry rendered.
           --contrast-pass    Render only the Increase Contrast variants. The command starts
                              this pass itself, in a second process.
           --help             Print this help.
@@ -20,16 +22,20 @@ package struct SnapshotOptions: Equatable, Sendable {
     package var output = defaultOutput
     package var filters: [String] = []
     package var listOnly = false
+    /// Render each entry once and write nothing. Tests use it, so the rendering runs in this
+    /// process and never holds the main actor of the test process.
+    package var checkOnly = false
     package var showHelp = false
     package var contrast = SnapshotContrast.standard
 
     package init(
-        output: String = defaultOutput, filters: [String] = [], listOnly: Bool = false, showHelp: Bool = false,
-        contrast: SnapshotContrast = .standard
+        output: String = defaultOutput, filters: [String] = [], listOnly: Bool = false, checkOnly: Bool = false,
+        showHelp: Bool = false, contrast: SnapshotContrast = .standard
     ) {
         self.output = output
         self.filters = filters
         self.listOnly = listOnly
+        self.checkOnly = checkOnly
         self.showHelp = showHelp
         self.contrast = contrast
     }
@@ -51,6 +57,7 @@ package struct SnapshotOptions: Equatable, Sendable {
                 options.filters += names
                 index += names.count
             case "--list": options.listOnly = true
+            case "--check": options.checkOnly = true
             case "--help", "-h": options.showHelp = true
             case "--contrast-pass": options.contrast = .increased
             default:

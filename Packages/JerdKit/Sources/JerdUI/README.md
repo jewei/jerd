@@ -12,7 +12,7 @@ implements them in memory.
 | `App/` | `AppState` (the root model), `AppDependencies` (all ports), `AppInfo`, the staged quit (`ShutdownCoordinator`, `ShutdownPhase`, `ShutdownParticipant`), `AppAlert`. |
 | `Shell/` | `JerdWorkspace` (window content), `NavigationState`, `AppCommands`, `MenuBarContent`, the section picker and toolbar, the sidebar toggle, retained pages, placeholders. |
 | `Shared/` | `OperationState`, `OperationLock`, `ServicePoller`, `PollingPolicy`, `PollingTask`, `Clipboard`, the effect ports, `WorkspaceFeature` with its value types, and the `isQuitting` environment value. |
-| `Features/Dashboard/` | The overview cards and the runtimes row. |
+| `Features/Dashboard/` | The overview cards with their button rule (`CardActionRule`) and the runtimes row. |
 | `Features/Settings/` | Appearance, Runtimes, Advanced (with Command-Line Tools and the shared `RegistrationStore`), and About, each with its model and ports. |
 | `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
@@ -44,10 +44,38 @@ implements them in memory.
 9. Read and change PHP registrations and the default PHP only through
    `AppState.registrations` (`RegistrationStore`), so every page shows the same values.
 
+## Dashboard cards
+
+Every card follows one button rule (`CardActionRule`, tested per card and state in
+`FeatureCardTests`):
+
+| Feature state | Actions, leading to trailing | Primary (the next step) |
+| --- | --- | --- |
+| Nothing registered | Add Site… / Add Database… | Add |
+| Stopped | Start (Sites, Databases: Start All) | Start |
+| Running | Stop (Stop All), then the Open step: Open Site, Open Console, Open Inbox | Open |
+| Running, no Open step (Databases) | Stop All | none |
+
+- At most two actions: the lifecycle action, then the Open step. Stop is never primary.
+- A stopped feature has no Open step. The Open step of Sites opens the first served site in
+  sidebar order; its help and spoken title name the site. The menu bar lists every site.
+- Lifecycle titles on a card are short verbs, because the card title names the subject. The
+  spoken title keeps the subject (`FeatureAction.spokenTitle`, for example "Stop Storage").
+- So both actions stand in one row on every card at the minimum window size, and cards in one
+  row keep one height. Only a larger text size puts them in a column. No card hides an action
+  in a menu.
+- The card's own Open › link shows the feature's page.
+
 ## Sheets and Quit
 
-AppKit does not start a quit while a window shows a sheet, so Quit (⌘Q, the menu bar item,
-or a Sparkle update) first ends every open sheet (`ApplicationQuit.request()` in JerdLive).
+AppKit does not start a quit while a window shows a sheet, so every quit path first ends every
+open sheet (in JerdLive):
+
+| Path | Hook |
+| --- | --- |
+| ⌘Q and the app menu, the menu bar item | `ApplicationQuit.request()` |
+| The Dock menu Quit, logout, restart, shutdown (the quit Apple Event) | `LiveApp.installQuitEventHandler()` in `applicationWillFinishLaunching` (`QuitAppleEventHandler`); it calls `ApplicationQuit.request()` |
+| Sparkle "Install and Relaunch" | `updaterWillRelaunchApplication` calls `ApplicationQuit.endOpenSheets()`; Sparkle then terminates |
 The decision, checked against the macOS Human Interface Guidelines:
 
 - Jerd's sheets are short dialogs: a name, a port, a folder, a token. They are not documents.
@@ -61,7 +89,9 @@ The decision, checked against the macOS Human Interface Guidelines:
   sheet already started is not cut: the staged quit waits for it.
 - Every presenter builds its binding with `SheetBinding`. When SwiftUI or AppKit ends a sheet,
   the binding runs the sheet's own dismissal (`dismissSheet()`, `cancelEditor()`,
-  `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves it.
+  `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves the binding
+  and each dismissal. That AppKit's `endSheet` clears the binding is SwiftUI behavior; the live
+  run checks it.
 - If a sheet ever holds input that is expensive to type again, it asks once, with the same
   alert, from its Cancel and from Quit; never from only one of them.
 
@@ -176,7 +206,9 @@ case mailRunning = "mail-running"   // in the scenario enum, with its navigation
 ```
 
 The images are in `.build/snapshots`, named `<scenario>-<light|dark>-<standard|compact|full>.png`.
-Look at every image after a change. `PageSnapshotTests` renders every scenario. The compact
+Look at every image after a change. `PageSnapshotTests` renders every scenario once with
+`jerd-snapshots --check`, in its own process, so the rendering never holds the main actor of
+the test run. The compact
 images are the minimum window (820 × 540, toolbar included): nothing may be cut off there.
 
 ## Test

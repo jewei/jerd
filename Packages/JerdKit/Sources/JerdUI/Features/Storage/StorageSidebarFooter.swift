@@ -17,7 +17,7 @@ struct StorageSidebarFooter: View {
         .disabled(isQuitting || !model.canAddBucket)
     }
 
-    private var caption: String {
-        model.buckets.count == 1 ? "1 bucket" : "\(model.buckets.count) buckets"
+    private var caption: String? {
+        SidebarCaption.text(count: model.buckets.count, singular: "bucket", plural: "buckets")
     }
 }

@@ -1,10 +1,11 @@
 extension AppState {
-    /// The app became active or inactive. The app delegate reports it.
+    /// The app became active or inactive. `AppActivityMonitor` in JerdLive reports it.
     public func setAppActive(_ isActive: Bool) {
         updateActivity { $0.isActive = isActive }
     }
 
-    /// The main window appeared or closed. The workspace reports it.
+    /// The main window appeared, closed, or changed its occlusion. The workspace and
+    /// `AppActivityMonitor` report it.
     public func setWindowVisible(_ isVisible: Bool) {
         updateActivity { $0.isWindowVisible = isVisible }
     }

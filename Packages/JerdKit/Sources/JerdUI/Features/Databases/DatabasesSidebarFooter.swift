@@ -20,9 +20,9 @@ struct DatabasesSidebarFooter: View {
         }
     }
 
-    private var caption: String {
+    private var caption: String? {
         let running = model.services.filter { model.state(of: $0.id).isRunning }.count
-        let count = model.services.count == 1 ? "1 service" : "\(model.services.count) services"
-        return running > 0 ? "\(count) · \(running) running" : count
+        return SidebarCaption.text(
+            count: model.services.count, singular: "service", plural: "services", running: running)
     }
 }

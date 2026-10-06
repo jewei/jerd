@@ -1,6 +1,7 @@
 import AppKit
 
-/// The Quit command of the app menu and the menu bar item.
+/// Every quit path of Jerd: the app menu, the menu bar item, the quit Apple Event (Dock,
+/// logout, restart, shutdown; `QuitAppleEventHandler`), and a Sparkle relaunch.
 ///
 /// AppKit drops `terminate(_:)` without a call to `applicationShouldTerminate` while a window
 /// shows a sheet, so ⌘Q did nothing while, for example, the HTTPS approval sheet was open (found
@@ -9,8 +10,14 @@ import AppKit
 @MainActor
 public enum ApplicationQuit {
     public static func request() {
-        endSheets(in: NSApp.windows)
+        endOpenSheets()
         NSApp.terminate(nil)
+    }
+
+    /// Ends every open sheet of the app. Sparkle calls `terminate(_:)` itself right after its
+    /// `updaterWillRelaunchApplication` delegate call, so the updater calls only this.
+    public static func endOpenSheets() {
+        endSheets(in: NSApp.windows)
     }
 
     /// Ends each sheet, innermost first, so the windows accept termination.

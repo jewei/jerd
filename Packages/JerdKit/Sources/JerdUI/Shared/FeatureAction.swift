@@ -1,20 +1,24 @@
-/// One action that a feature offers outside its own page: on its dashboard card or in the menu
-/// bar. The feature decides the title and whether the action is the next step.
+/// One action of a feature, shown on its dashboard card and in the menu bar menu. Each surface
+/// decides how to show it.
 public struct FeatureAction: Identifiable {
     /// A stable name for tests and UI tests, for example `sites.start-all`.
     public let id: String
     public let title: String
+    /// The name that VoiceOver speaks. It names the subject also when the visible title is a
+    /// short verb on a card, for example "Stop" speaks "Stop Storage".
+    public let spokenTitle: String
     public let isEnabled: Bool
     /// True for the one next step of a card. A card shows it as the prominent button.
     public let isPrimary: Bool
     public let perform: @MainActor () -> Void
 
     public init(
-        id: String, title: String, isEnabled: Bool = true, isPrimary: Bool = false,
+        id: String, title: String, spokenTitle: String? = nil, isEnabled: Bool = true, isPrimary: Bool = false,
         perform: @escaping @MainActor () -> Void
     ) {
         self.id = id
         self.title = title
+        self.spokenTitle = spokenTitle ?? title
         self.isEnabled = isEnabled
         self.isPrimary = isPrimary
         self.perform = perform
@@ -22,6 +26,20 @@ public struct FeatureAction: Identifiable {
 
     /// The same action, off. The shell uses it for every feature action during a quit.
     public func disabled() -> FeatureAction {
-        FeatureAction(id: id, title: title, isEnabled: false, isPrimary: isPrimary, perform: perform)
+        FeatureAction(
+            id: id, title: title, spokenTitle: spokenTitle, isEnabled: false, isPrimary: isPrimary, perform: perform)
+    }
+
+    /// The same action with a short visible title; VoiceOver keeps the full title.
+    func titled(_ shortTitle: String) -> FeatureAction {
+        FeatureAction(
+            id: id, title: shortTitle, spokenTitle: spokenTitle, isEnabled: isEnabled, isPrimary: isPrimary,
+            perform: perform)
+    }
+
+    /// The same action as the next step of a card, or not.
+    func marked(primary: Bool) -> FeatureAction {
+        FeatureAction(
+            id: id, title: title, spokenTitle: spokenTitle, isEnabled: isEnabled, isPrimary: primary, perform: perform)
     }
 }

@@ -227,6 +227,9 @@ struct SitesModelTests {
         #expect(model.start(SampleData.studio) == nil)
         #expect(model.nextStep(for: SampleData.studio) == .recover)
         #expect(SiteNextStep.recover.title == "Open Advanced")
+        // An in-app step uses the symbol of its page, never the "opens outside" arrow of Open Console.
+        #expect(SiteNextStep.recover.systemImage == DashboardPage.advanced.systemImage)
+        #expect(!SiteNextStep.recover.systemImage.contains("arrow.up"))
         model.openAdvanced()
         #expect(harness.recorder.shown == [.dashboard(.advanced)])
         #expect(await !harness.sites.calls.contains { $0.hasPrefix("apply") || $0.hasPrefix("run") })
