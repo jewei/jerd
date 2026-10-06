@@ -3,10 +3,12 @@ import Foundation
 import JerdFoundation
 
 extension RuntimeUpdateTransaction {
-    /// Copies every existing named item to `runtime-backups/<UUID>/`, then writes the journal.
+    /// Copies every existing named item to `runtime-backups/<UUID>/`, flushes the copies to the
+    /// drive, then writes the journal.
     ///
-    /// A crash before the journal write leaves only an unused backup folder. A symbolic link at a
-    /// name, also a dangling one, stops the update.
+    /// A crash before the journal write leaves only an unused backup folder. A journal never
+    /// names a copy that a power loss can make incomplete. A symbolic link at a name, also a
+    /// dangling one, stops the update.
     public func beginBackup(holding lease: MaintenanceLease) async throws -> RuntimeUpdateJournal {
         try requireLease(lease)
         guard !isPending else { throw JerdError.unavailable(Self.pendingMessage) }
@@ -20,6 +22,7 @@ extension RuntimeUpdateTransaction {
             try await ServiceDataCopier.copy(source, to: folder.appendingPathComponent(name))
             present.append(name)
         }
+        try await flushData(present.map { folder.appendingPathComponent($0) }, [folder, backupsDirectory])
         let journal = RuntimeUpdateJournal(id: id, names: names, present: present)
         try MarkerFile.write(journal, to: journalFile)
         return journal
@@ -35,7 +38,8 @@ extension RuntimeUpdateTransaction {
     ///
     /// Every backup tree is validated before anything moves. Current items are moved (never
     /// deleted) into `failed-attempt-<UUID>/` in the backup folder. A restore that a crash
-    /// interrupts can run again: the journal stays until the last step.
+    /// interrupts can run again: the journal stays until the restored items are flushed to the
+    /// drive.
     public func restore(holding lease: MaintenanceLease) async throws {
         try requireLease(lease)
         guard isPending else { return }
@@ -58,6 +62,7 @@ extension RuntimeUpdateTransaction {
                 try await ServiceDataCopier.copy(folder.appendingPathComponent(name), to: target)
             }
         }
+        try await flushData(journal.present.map { root.appendingPathComponent($0) }, [failed, root])
         try AtomicFile.remove(journalFile)
     }
 

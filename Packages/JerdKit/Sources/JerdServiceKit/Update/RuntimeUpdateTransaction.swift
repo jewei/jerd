@@ -42,6 +42,11 @@ public struct RuntimeUpdateTransaction: Sendable {
     /// The items that a new journal covers, for example `["settings.json", "inbox"]`.
     public let names: [String]
     public let messages: Messages
+    /// Flushes copied trees and their folders before the journal changes. Tests replace it to
+    /// check the order of the steps.
+    var flushData: @Sendable (_ trees: [URL], _ folders: [URL]) async throws -> Void = { trees, folders in
+        try await ServiceDataCopier.flush(trees, folders: folders)
+    }
 
     public init(
         root: URL, journalFile: URL, backupsDirectory: URL, lockFile: URL, names: [String], messages: Messages

@@ -55,8 +55,10 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   `LaunchPlan.didStop` runs, so a service can release resources that are not files, for example
   a URL session.
 - A maintenance lease keeps the lock from the first step to the last, also during a restore.
-- A runtime update copies each named item (an APFS clone when possible) off the actor before it
-  writes the journal. Recovery uses the names in the journal, so a newer build can recover it.
+- A runtime update copies each named item (an APFS clone when possible) off the actor, and
+  flushes the copies to the drive (`fsync` on each item, then `F_FULLFSYNC`) before it writes the
+  journal. A restore flushes the restored items before it removes the journal. Recovery uses the
+  names in the journal, so a newer build can recover it.
 - Backups stay until the user deletes them. A journal protects every backup of its service.
 
 ## Test
