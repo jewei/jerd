@@ -1,4 +1,5 @@
 import Foundation
+import JerdManifest
 import Testing
 
 @testable import JerdDevKit
@@ -36,6 +37,22 @@ struct AppcastPolicyTests {
         let edited = Self.committedFeed.replacingOccurrences(
             of: "<language>en</language>", with: "<language>de</language>\n")
         #expect(findings(edited) == ["The signed length does not match the feed. Sign the feed again."])
+    }
+
+    @Test("reports an edit of the same length through the Ed25519 signature")
+    func reportsSameLengthEdit() {
+        let edited = Self.committedFeed.replacingOccurrences(of: "Jerd updates", with: "Jerd Updates")
+        #expect(
+            findings(edited) == [
+                "The app update feed signature does not match the Jerd key. Sign the feed again with sign_update."
+            ])
+    }
+
+    @Test("reports a feed that another key signed")
+    func reportsAnotherKey() throws {
+        let other = try AppcastVerifier(publicKey: Data(repeating: 7, count: 32))
+        let messages = AppcastPolicy.keyFindings(Data(Self.committedFeed.utf8)) { other }.map(\.message)
+        #expect(messages.count == 1)
     }
 
     @Test("reports a feed without a signature block")

@@ -7,7 +7,7 @@ struct LintCommand: DevSubcommand {
         abstract: "Check format, project generation, and repository policies.",
         discussion: """
             Policies: the Sparkle keys in Info.plist, the Sparkle version pin, the app update feed URL and \
-            public key, the appcast.xml structure and signature block, source files of 300 lines or fewer, \
+            public key, the appcast.xml structure and its Ed25519 signature with the public key, source files of 300 lines or fewer, \
             and relative links in Markdown documents.
             """)
 

@@ -36,10 +36,41 @@ struct TestEnvironmentTests {
     func refusesMissingPaths() {
         #expect(
             throws: DevFailure.missingPrerequisite(
-                "The web integration tests need JERD_PHP_FPM, JERD_CADDY. "
-                    + "Set each one to an absolute runtime path. See Tools/README.md.")
+                "The web integration tests need JERD_PHP_CLI, JERD_PHP_FPM, JERD_CADDY. "
+                    + "Run ./dev runtimes prepare, or set each one to an absolute runtime path.")
         ) {
             try TestEnvironment.make(inherited: ["JERD_PHP_CLI": "/r/php", "JERD_PHP_FPM": ""], groups: [.web])
+        }
+    }
+
+    @Test("takes the paths of a group from the prepared payloads")
+    func usesPreparedPaths() throws {
+        let environment = try TestEnvironment.make(inherited: ["JERD_MAIL_RUNTIME": ""], groups: [.mail]) { group in
+            group == .mail ? ["JERD_MAIL_RUNTIME": "/p/mail/mailpit-1"] : [:]
+        }
+        #expect(environment["JERD_MAIL_RUNTIME"] == "/p/mail/mailpit-1")
+        #expect(environment["JERD_MAIL_INTEGRATION"] == "1")
+    }
+
+    @Test("explicit paths of a group win over the prepared payloads")
+    func explicitPathsWin() throws {
+        let environment = try TestEnvironment.make(inherited: webPaths, groups: [.web]) { _ in
+            Issue.record("The payloads must not be read.")
+            return [:]
+        }
+        #expect(environment["JERD_CADDY"] == "/r/caddy")
+    }
+
+    @Test("a missing payload names both ways to provide the runtime")
+    func missingPayloadNamesBothWays() {
+        #expect(
+            throws: DevFailure.missingPrerequisite(
+                "The mailpit payload is not prepared. Or set JERD_MAIL_RUNTIME to absolute paths of trusted local runtimes."
+            )
+        ) {
+            try TestEnvironment.make(inherited: [:], groups: [.mail]) { _ in
+                throw DevFailure.missingPrerequisite("The mailpit payload is not prepared.")
+            }
         }
     }
 
