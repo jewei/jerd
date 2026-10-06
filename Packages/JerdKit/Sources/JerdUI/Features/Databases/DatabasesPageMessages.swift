@@ -21,7 +21,7 @@ struct DatabasesPageMessages: View {
         if let service {
             ServiceStateBanner(
                 state: model.state(of: service.id), subject: service.name, stopTitle: "Stop Service",
-                identifier: "database")
+                identifier: "database", files: model.files[service.id], openLog: { model.openLog(service.id) })
         }
         if let message = model.operation.workingMessage {
             InlineMessage(message, kind: .info, style: .banner, identifier: "databases.working")

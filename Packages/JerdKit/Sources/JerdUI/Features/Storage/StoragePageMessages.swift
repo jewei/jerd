@@ -17,7 +17,9 @@ struct StoragePageMessages: View {
             MissingRuntimeBanner(
                 copy: Self.runtimeCopy, setupFailure: model.runtimeSetupFailure, showRuntimes: model.showRuntimes)
         }
-        ServiceStateBanner(state: model.state, subject: "Storage", stopTitle: "Stop Storage", identifier: "storage")
+        ServiceStateBanner(
+            state: model.state, subject: "Storage", stopTitle: "Stop Storage", identifier: "storage",
+            files: model.files, openLog: model.openLog)
         if let message = model.cancelledSaveMessage {
             InlineMessage(message, kind: .info, style: .banner, identifier: "storage.cancelled-save")
         }
