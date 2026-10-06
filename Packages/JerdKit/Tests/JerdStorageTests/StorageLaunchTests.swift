@@ -72,6 +72,28 @@ import os
         #expect(manager.launch.current == nil)
     }
 
+    @Test func aReapOutsideJerdEndsTheSession() async throws {
+        let harness = try await StorageHarness()
+        let (manager, sessions) = try await manager(harness)
+        try await manager.start()
+        await harness.processes.setStopOutcomes([.notOwned])
+        try await manager.stop()
+        #expect(sessions.ended == 1 && manager.launch.current == nil)
+    }
+
+    /// A stop timeout keeps the process, so its launch and session stay until a later Stop.
+    @Test func aStopTimeoutKeepsTheSessionUntilARetryStops() async throws {
+        let harness = try await StorageHarness()
+        let (manager, sessions) = try await manager(harness)
+        try await manager.start()
+        await harness.processes.setStopOutcomes([.timedOut(leaderRunning: true)])
+        let timedOut = JerdError.processFailed(ServiceMessages.stopTimedOut(name: "RustFS", timeout: .seconds(30)))
+        await #expect(throws: timedOut) { try await manager.stop() }
+        #expect(sessions.ended == 0 && manager.launch.current != nil)
+        try await manager.stop()
+        #expect(sessions.ended == 1 && manager.launch.current == nil)
+    }
+
     @Test func aRestartUsesANewSessionAndEndsTheOldOne() async throws {
         let harness = try await StorageHarness()
         let (manager, sessions) = try await manager(harness)
