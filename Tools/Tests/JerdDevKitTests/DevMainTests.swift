@@ -82,6 +82,18 @@ struct DevMainTests {
         #expect(output.standardError.contains("Usage: dev"))
     }
 
+    @Test("--json after an unknown command still names the command, not --json")
+    func unknownCommandWithJSON() async throws {
+        let output = RecordingTextOutput()
+        #expect(await DevMain.run(arguments: ["nope", "--json"], output: output) == ExitStatus.usage.rawValue)
+        let lines = output.standardOutput.split(separator: "\n")
+        #expect(lines.count == 1)
+        let summary = try JSONDecoder().decode(RunReport.Summary.self, from: Data(output.standardOutput.utf8))
+        #expect(summary.message == "Unexpected argument 'nope'")
+        #expect(output.standardError.contains("'nope'") && !output.standardError.contains("--json"))
+        #expect(DevMain.removingJSON(["test", "--json", "--", "--json"]) == ["test", "--", "--json"])
+    }
+
     @Test("a usage error without --json prints nothing on standard output")
     func usageErrorsWithoutJSON() async {
         let output = RecordingTextOutput()
@@ -159,6 +171,8 @@ struct DevMainTests {
             #expect(help.contains("  \(command) "))
         }
         #expect(help.contains("128 plus the signal number"))
+        // ArgumentParser wraps the text itself; a hard line break would split the sentence.
+        #expect(DevCommand.configuration.discussion.contains("a prerequisite is missing, 128 plus"))
         #expect(help.contains("Add --json"))
         #expect(DevCommand.helpMessage(for: CheckCommand.self).contains("dev check [<subcommand>]"))
     }
