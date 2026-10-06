@@ -10,10 +10,9 @@ import os
 final class DatabaseHarness: Sendable {
     let directory: TemporaryDirectory
     let layout: DatabasesLayout
-    let processes = FakeProcessController()
+    let processes: FakeProcessController
     let lsof: EngineLsof
     let commands: ScriptedCommands
-    let initializer: ScriptedCommands
     let system = FakeSystem()
     let runtimes: [DatabaseRuntime]
     private let script = OSAllocatedUnfairLock(initialState: Script())
@@ -21,7 +20,9 @@ final class DatabaseHarness: Sendable {
     struct Script {
         var versionOutput: String?
         var clientOutput: CommandResult?
-        var initializerStatus: Int32 = 0
+        /// The exit status of `initdb` and `mysqld --initialize-insecure`. Nil keeps them running.
+        var initializerStatus: Int32? = 0
+        /// The initializer output. `{password}` stands for the saved password.
         var initializerOutput = ""
         /// When set, every client probe waits for this gate.
         var clientGate: Gate?
@@ -36,20 +37,16 @@ final class DatabaseHarness: Sendable {
                 id: "\(engine.rawValue)-test", engine: engine, version: engine == .postgresql ? "18.6" : "8.4.11",
                 path: directory.url.appendingPathComponent("runtimes/\(engine.rawValue)").path)
         }
-        let processes = processes
+        let script = script
+        let processes = FakeProcessController { request in
+            try Self.initializerExit(request, script: script.withLock { $0 })
+        }
+        self.processes = processes
         let lsof = EngineLsof(processes: processes)
         self.lsof = lsof
-        let script = script
         let runtimes = runtimes
         commands = ScriptedCommands { request in
             try await Self.answer(request, lsof: lsof, runtimes: runtimes, script: script.withLock { $0 })
-        }
-        initializer = ScriptedCommands { request in
-            let current = script.withLock { $0 }
-            if current.initializerStatus == 0, let data = Self.dataFolder(in: request.arguments) {
-                try FileManager.default.createDirectory(atPath: data, withIntermediateDirectories: false)
-            }
-            return CommandResult(status: current.initializerStatus, output: current.initializerOutput)
         }
     }
 
@@ -69,7 +66,7 @@ final class DatabaseHarness: Sendable {
     }
 
     func manager() -> DatabaseManager {
-        DatabaseManager(layout: layout, effects: effects(), initializationCommands: initializer)
+        DatabaseManager(layout: layout, effects: effects())
     }
 
     /// A loaded manager with the three test runtimes.
@@ -94,7 +91,30 @@ final class DatabaseHarness: Sendable {
         return CommandResult(status: 0, output: name == "redis-cli" ? "PONG\n" : "42\n")
     }
 
-    private static func dataFolder(in arguments: [String]) -> String? {
+    /// True for `initdb` and `mysqld --initialize-insecure`.
+    static func isInitializer(_ request: ProcessRequest) -> Bool {
+        request.executable.lastPathComponent == "initdb" || request.arguments.contains("--initialize-insecure")
+    }
+
+    /// The scripted end of an initializer child. A successful one creates the data folder.
+    private static func initializerExit(
+        _ request: ProcessRequest, script: Script
+    ) throws -> FakeProcessController.ScriptedExit? {
+        guard isInitializer(request), let status = script.initializerStatus else { return nil }
+        if status == 0, let data = dataFolder(in: request.arguments) {
+            try FileManager.default.createDirectory(atPath: data, withIntermediateDirectories: false)
+        }
+        var output = script.initializerOutput
+        if output.contains("{password}") {
+            let file = request.workingDirectory.appendingPathComponent("credentials.json")
+            output = output.replacingOccurrences(
+                of: "{password}", with: try DatabaseCredentials.read(from: file).password)
+        }
+        return FakeProcessController.ScriptedExit(status: status, output: output)
+    }
+
+    /// The data folder argument of an initializer request.
+    static func dataFolder(in arguments: [String]) -> String? {
         if let value = arguments.first(where: { $0.hasPrefix("--datadir=") }) { return String(value.dropFirst(10)) }
         if let index = arguments.firstIndex(of: "-D") { return arguments[index + 1] }
         return nil

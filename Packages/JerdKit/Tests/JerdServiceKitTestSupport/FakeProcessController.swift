@@ -37,10 +37,12 @@ package actor FakeProcessController: ProcessControlling {
     /// Text that each start writes to the log.
     private var logOutput = ""
     private var exitScript: ExitScript?
+    private var reapsOnWait = false
     private var heldStops: [CheckedContinuation<Void, Never>] = []
     private var holdingStops = false
 
-    package init() {}
+    /// - Parameter exitScript: decides for each request if the child exits at once.
+    package init(exitScript: ExitScript? = nil) { self.exitScript = exitScript }
 
     package func start(_ request: ProcessRequest, log: ProcessLogFile) async throws -> ProcessToken {
         requests.append(request)
@@ -61,8 +63,12 @@ package actor FakeProcessController: ProcessControlling {
         return child.pid
     }
 
-    /// Answers at once: a running child counts as a timeout.
-    package func waitForExit(of token: ProcessToken, timeout: Duration) async -> ProcessState { state(of: token) }
+    /// Answers at once: a running child counts as a timeout. With `setReapsOnWait(true)`,
+    /// something outside the supervisor reaps the child during the wait.
+    package func waitForExit(of token: ProcessToken, timeout: Duration) async -> ProcessState {
+        if reapsOnWait { children[token]?.state = .notOwned }
+        return state(of: token)
+    }
 
     package func stop(_ token: ProcessToken, policy: StopPolicy) async -> StopOutcome {
         stopPolicies.append(policy)
@@ -111,6 +117,8 @@ package actor FakeProcessController: ProcessControlling {
     package func setLogOutput(_ text: String) { logOutput = text }
 
     package func setExitScript(_ script: ExitScript?) { exitScript = script }
+
+    package func setReapsOnWait(_ value: Bool) { reapsOnWait = value }
 
     /// Makes later stops wait until `releaseStops()`.
     package func holdStops() { holdingStops = true }

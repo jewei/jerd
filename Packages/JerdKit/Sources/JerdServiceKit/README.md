@@ -11,7 +11,8 @@ It depends only on JerdFoundation and JerdProcess. Tunnels do not use it.
 | `ManagedInstance` | One data folder, one lock, at most one owned process, and the state machine. |
 | `ServiceState`, `ServiceEvent` | The states and events. `ServiceState.applying(_:)` is the one transition rule. |
 | `ServiceProfile`, `ServiceMessages` | Names, folders, ports, the stop signal, and the user messages. |
-| `LaunchPlan`, `ReadinessCheck` | The process to start, its loopback ports, its probe, its secrets, and its temporary items. |
+| `LaunchPlan`, `ReadinessCheck` | The process to start, its loopback ports, its probe, its secrets, its temporary items, and its stop hook. |
+| `InitializerPlan`, `StartTools` | A one-shot process of a first start (for example `initdb`), and the owned steps that a definition can run. |
 | `OwnedServiceProcess`, `ServiceLog` | A started process with its record, and the rotated, redacted server log. |
 | `ServiceEffects`, `TimeKeeping` | The ports for processes, commands, listeners, run records, and the clock. |
 | `VersionProbe`, `VersionRule` | Require the registered version in the output of the runtime binary. |
@@ -30,7 +31,8 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 2. The instance folder exists (mode 0700). The lock is taken.
 3. The start gate clears the run record. It removes a stale record only with the lock held.
 4. The runtime binary reports the registered version.
-5. The definition checks the data identity, the credentials, and the first initialization.
+5. The definition checks the data identity, the credentials, and the first initialization. An
+   initializer or a setup phase runs as an owned process with a run record and the lock held.
 6. The process starts, and its run record is saved.
 7. The probe passes, the process owns exactly its loopback listeners and no UDP socket, and it
    is still alive.
@@ -38,7 +40,8 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 ## Rules
 
 - A stop is graceful and never sends `SIGKILL`. A timeout gives `stuck`: the process, the lock,
-  and the record stay. Only a later Stop leaves `stuck`.
+  and the record stay. Only a later Stop leaves `stuck`. This holds for every owned process: a
+  server, a setup phase, and an initializer (`StartTools.runInitializer`).
 - A start failure keeps the kind of the error of the failed step.
 - `refresh()` detects an exit, but it never waits for the stop of the group. A user Stop joins
   that stop. An exit stop never makes Quit fail.

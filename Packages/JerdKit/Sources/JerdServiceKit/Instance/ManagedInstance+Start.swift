@@ -35,8 +35,9 @@ extension ManagedInstance {
         try OwnedDirectory.create(profile.folder, within: profile.containingDirectory)
         let clearance = try clearStart(profile)
         try await definition.versionProbe.verify(using: effects.commands)
-        let setup = SetupPhaseRunner(instance: self, clearance: clearance)
-        let plan = try await definition.prepareStart(StartTools(commands: effects.commands, setup: setup))
+        let steps = StartStepRunner(instance: self, clearance: clearance)
+        let tools = StartTools(commands: effects.commands, setup: steps, initializer: steps)
+        let plan = try await definition.prepareStart(tools)
         let owned = try await removingSecretFiles(of: plan) {
             let owned = try await launch(plan, clearance: clearance)
             try await awaitReadiness(of: owned)
@@ -86,10 +87,10 @@ extension ManagedInstance {
 
     /// Runs `step` (a launch and its readiness check), then removes the secret files of `plan`,
     /// also when the step fails. A failed removal fails the step, or is added to its error.
-    func removingSecretFiles(
-        of plan: LaunchPlan, during step: () async throws -> OwnedServiceProcess
-    ) async throws -> OwnedServiceProcess {
-        let outcome: Result<OwnedServiceProcess, any Error>
+    func removingSecretFiles<Value: Sendable>(
+        of plan: LaunchPlan, during step: () async throws -> Value
+    ) async throws -> Value {
+        let outcome: Result<Value, any Error>
         do {
             outcome = .success(try await step())
         } catch {

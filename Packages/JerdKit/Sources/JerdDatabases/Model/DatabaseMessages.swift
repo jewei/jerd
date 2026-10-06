@@ -72,6 +72,7 @@ public enum DatabaseMessages {
         "Database initialization was interrupted. The partial data was preserved. "
             + "Inspect the data folder before creating a new service.")
     static let initializationFailed = "Database initialization failed:"
+    static let initializationTimedOut = "Database initialization timed out."
     static let socketFolder = JerdError.invalid("Cannot create a private database socket directory.")
     static let readinessTimedOut = "Database readiness timed out."
     static let noResponse = "No response from the database."

@@ -15,15 +15,9 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
     public let engine: any DatabaseEngineDefinition
     public let profile: ServiceProfile
     let temporaryRoot: URL
-    let initializationCommands: any CommandRunning
 
-    /// - Parameters:
-    ///   - temporaryRoot: where socket folders are made (`$TMPDIR` in the app).
-    ///   - initializationCommands: runs the initializer. Its cleanup must be graceful.
-    public init(
-        service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL,
-        initializationCommands: any CommandRunning
-    ) {
+    /// - Parameter temporaryRoot: where socket folders are made (`$TMPDIR` in the app).
+    public init(service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL) {
         let instance = layout.instance(service.id)
         engine = Self.engine(runtime: runtime, service: service, files: DatabaseInstanceFiles(layout: instance))
         profile = ServiceProfile(
@@ -31,7 +25,6 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
             log: ServiceLog(file: instance.logFile, previousFile: instance.previousLogFile), ports: [service.port],
             stopSignal: runtime.engine.stopSignal, messages: DatabaseMessages.instance)
         self.temporaryRoot = temporaryRoot
-        self.initializationCommands = initializationCommands
     }
 
     /// The engine definition for the engine of `runtime`.

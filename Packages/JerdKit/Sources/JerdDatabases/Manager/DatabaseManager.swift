@@ -15,7 +15,6 @@ public actor DatabaseManager {
     let layout: DatabasesLayout
     let effects: ServiceEffects
     let temporaryRoot: URL
-    let initializationCommands: any CommandRunning
     let registry: DatabaseRegistry
     var configuration = DatabaseConfiguration()
     var instances: [UUID: ManagedInstance] = [:]
@@ -26,17 +25,15 @@ public actor DatabaseManager {
     /// - Parameters:
     ///   - layout: `<root>/databases`.
     ///   - temporaryRoot: where socket folders are made.
-    ///   - initializationCommands: runs `initdb` and `mysqld --initialize-insecure`. The default
-    ///     stops a timed-out initializer gracefully, never with `SIGKILL`.
+    ///
+    /// `initdb` and `mysqld --initialize-insecure` run as owned processes of the instance through
+    /// `effects`, so a timeout never kills them and never releases the lock.
     public init(
-        layout: DatabasesLayout, effects: ServiceEffects,
-        temporaryRoot: URL = FileManager.default.temporaryDirectory,
-        initializationCommands: any CommandRunning = CommandRunner(cleanupPolicy: .graceful())
+        layout: DatabasesLayout, effects: ServiceEffects, temporaryRoot: URL = FileManager.default.temporaryDirectory
     ) {
         self.layout = layout
         self.effects = effects
         self.temporaryRoot = temporaryRoot
-        self.initializationCommands = initializationCommands
         registry = DatabaseRegistry(layout: layout)
     }
 
@@ -108,7 +105,7 @@ public actor DatabaseManager {
     func definition(for service: DatabaseService) throws -> DatabaseServiceDefinition {
         DatabaseServiceDefinition(
             service: service, runtime: try configuration.runtime(for: service), layout: layout,
-            temporaryRoot: temporaryRoot, initializationCommands: initializationCommands)
+            temporaryRoot: temporaryRoot)
     }
 
     /// The instance of `service`, created on first use.

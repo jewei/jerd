@@ -11,7 +11,7 @@ final class InstanceHarness: Sendable {
     static let secret = "s3cr3t-password-value"
 
     let directory: TemporaryDirectory
-    let processes = FakeProcessController()
+    let processes: FakeProcessController
     let lsof: FakeLsof
     let commands: ScriptedCommands
     let clock = FakeTimeKeeper()
@@ -22,8 +22,10 @@ final class InstanceHarness: Sendable {
     let id = UUID()
     private let version = OSAllocatedUnfairLock(initialState: "server 1.2.3")
 
-    init(ports: [UInt16] = [41_001]) throws {
+    /// - Parameter exitScript: decides which fake children exit at once, for example an initializer.
+    init(ports: [UInt16] = [41_001], exitScript: FakeProcessController.ExitScript? = nil) throws {
         directory = try TemporaryDirectory()
+        processes = FakeProcessController(exitScript: exitScript)
         self.ports = ports
         lsof = FakeLsof(processes: processes, servicePorts: Set(ports))
         let version = version

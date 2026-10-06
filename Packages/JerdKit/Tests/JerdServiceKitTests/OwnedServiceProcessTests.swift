@@ -18,7 +18,7 @@ import Testing
             folder = directory.path("instance")
         }
 
-        func instance(executable: URL, signal: Int32) -> ManagedInstance {
+        func instance(executable: URL, signal: Int32, initializer: InitializerPlan? = nil) -> ManagedInstance {
             let lsof = PIDLsof(ports: [41_002])
             let commands = ScriptedCommands { request in
                 if request.executable.lastPathComponent == "lsof" { return lsof.answer(request.arguments) }
@@ -28,7 +28,9 @@ import Testing
             let effects = ServiceEffects(
                 processes: supervisor, commands: commands, ports: LoopbackPortGuard(commands: commands, probe: probe),
                 stopTimeout: .milliseconds(300))
-            return ManagedInstance(definition: definition(executable, signal), effects: effects)
+            var definition = definition(executable, signal)
+            definition.initializer = initializer
+            return ManagedInstance(definition: definition, effects: effects)
         }
 
         private func definition(_ executable: URL, _ signal: Int32) -> FakeServiceDefinition {
@@ -87,6 +89,37 @@ import Testing
             _ = await setup.supervisor.stopAll(policy: .forceful())
             throw error
         }
+    }
+
+    @Test func aTimedOutInitializerThatIgnoresSIGTERMStaysOwnedLockedAndRecorded() async throws {
+        let setup = try Setup()
+        defer { setup.directory.remove() }
+        let fixture = try await Fixtures.shared.executable("graceful-process")
+        // The limit leaves time for the first launch of a new binary, so that the fixture
+        // ignores SIGTERM before the stop sends it.
+        let initializer = InitializerPlan(
+            request: ProcessRequest(executable: fixture, workingDirectory: setup.folder), timeout: .seconds(2),
+            timeoutMessage: "The fixture initializer timed out.")
+        let instance = setup.instance(executable: fixture, signal: SIGTERM, initializer: initializer)
+        await #expect(throws: (any Error).self) { try await instance.start() }
+        // The process stays owned (not reaped), so its PID cannot be reused before the Stop.
+        let pid = try #require(await instance.processID)
+        guard case .stuck(pid, let reason) = await instance.state else {
+            kill(pid, SIGINT)
+            Issue.record("Expected a stuck initializer, got \(await instance.state)")
+            return
+        }
+        #expect(reason.hasPrefix("The fixture initializer timed out. Fixture did not stop within"))
+        #expect(kill(pid, 0) == 0)
+        let record = setup.folder.appendingPathComponent("active-run.json")
+        #expect(try ActiveRunRecordFile.read(record).processID == pid)
+        #expect(!isLockFree(setup.folder.appendingPathComponent("service.lock")))
+        // The fixture ends on SIGINT. A Stop then releases the lock and the record.
+        kill(pid, SIGINT)
+        try await instance.stop()
+        #expect(await instance.state == .stopped)
+        #expect(!exists(record))
+        #expect(isLockFree(setup.folder.appendingPathComponent("service.lock")))
     }
 
     @Test func aGracefulTimeoutKeepsTheProcessAliveAndOwned() async throws {
