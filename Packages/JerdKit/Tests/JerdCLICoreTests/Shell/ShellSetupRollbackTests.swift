@@ -71,13 +71,14 @@ import Testing
         try harness.fixture.directory.file("home/.zprofile", "edited after the setup\n")
         try harness.fixture.directory.file("home/.zshrc", zshrc.updated)
         let backup = harness.layout.shellBackupsDirectory.appendingPathComponent("20260304-050607-000000")
-        await #expect { try await harness.installer().restore([zshrc, profile], after: failure, backup: backup) }
-            throws: { error in
-                let message = (error as? JerdError)?.message ?? ""
-                return (error as? JerdError)?.kind == .partialChange && message.contains(harness.zprofile.path)
-                    && message.contains(backup.appendingPathComponent(".zprofile").path)
-                    && !message.contains(harness.zshrc.path)
-            }
+        await #expect {
+            try await harness.installer().restore([zshrc, profile], after: failure, backup: backup)
+        } throws: { error in
+            let message = (error as? JerdError)?.message ?? ""
+            return (error as? JerdError)?.kind == .partialChange && message.contains(harness.zprofile.path)
+                && message.contains(backup.appendingPathComponent(".zprofile").path)
+                && !message.contains(harness.zshrc.path)
+        }
         #expect(text(harness.zprofile) == "edited after the setup\n")
         #expect(text(harness.zshrc) == "export B=2\n")
     }

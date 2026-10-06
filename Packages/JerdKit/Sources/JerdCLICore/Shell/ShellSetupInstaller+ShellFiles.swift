@@ -94,7 +94,8 @@ extension ShellSetupInstaller {
             do {
                 try restore(change)
             } catch {
-                let original = change.original == nil ? nil : backup?.appendingPathComponent(change.file.lastPathComponent)
+                let original =
+                    change.original == nil ? nil : backup?.appendingPathComponent(change.file.lastPathComponent)
                 let source = original.map { " Its original is in \($0.path)." } ?? ""
                 kept.append("Jerd did not restore \(change.file.path): \(FailureDetail.describe(error))\(source)")
             }

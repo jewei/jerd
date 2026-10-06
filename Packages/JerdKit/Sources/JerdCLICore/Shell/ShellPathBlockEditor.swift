@@ -80,7 +80,8 @@ enum ShellPathBlockEditor {
     }
 
     private static func isLineStart(_ index: Int, in bytes: [UInt8]) -> Bool {
-        index == 0 || bytes[index - 1] == lineFeed || (index == byteOrderMark.count && bytes.starts(with: byteOrderMark))
+        index == 0 || bytes[index - 1] == lineFeed
+            || (index == byteOrderMark.count && bytes.starts(with: byteOrderMark))
     }
 
     private static func occurrences(of marker: String, in bytes: [UInt8]) -> [Int] {

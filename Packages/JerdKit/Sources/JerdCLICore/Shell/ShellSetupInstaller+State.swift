@@ -5,7 +5,8 @@ import JerdFoundation
 extension ShellSetupInstaller {
     /// The current setup state. Reads only; anything that cannot be read counts as not installed.
     public func state() -> CommandLineToolsState {
-        guard let copy = Self.readRegularFile(binDirectory.appendingPathComponent(Self.launcherName), followLinks: false),
+        guard
+            let copy = Self.readRegularFile(binDirectory.appendingPathComponent(Self.launcherName), followLinks: false),
             CLICommand.allCases.allSatisfy({ hasCommandLink($0.rawValue) }), hasPathBlock()
         else { return .notInstalled }
         // Without a readable launcher in the app, the copy cannot be judged; keep it.

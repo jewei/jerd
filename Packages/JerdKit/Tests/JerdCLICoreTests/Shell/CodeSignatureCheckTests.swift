@@ -10,7 +10,8 @@ import Testing
 
     /// A copy of `/usr/bin/true` with a fresh ad hoc signature, like a local Debug launcher.
     private static func adHocLauncher(in directory: TemporaryDirectory) throws -> URL {
-        let file = try directory.file("JerdCLI", try Data(contentsOf: URL(fileURLWithPath: "/usr/bin/true")), mode: 0o700)
+        let file = try directory.file(
+            "JerdCLI", try Data(contentsOf: URL(fileURLWithPath: "/usr/bin/true")), mode: 0o700)
         let codesign = Process()
         codesign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
         codesign.arguments = ["--sign", "-", "--force", file.path]
