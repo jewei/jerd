@@ -5,7 +5,8 @@ import os
 @testable import JerdDevKit
 
 /// Process groups, signal forwarding, and output collection. The real-process tests start small
-/// system programs without a shell, and find leftover processes by a unique argument.
+/// system programs (one test uses a shell trap as a SIGTERM handler), and find leftover processes
+/// by a unique argument.
 @Suite("Process groups and signals")
 struct ProcessGroupTests {
     /// A unique `sleep` duration, so that `ps` finds only the process of this test.
@@ -51,6 +52,29 @@ struct ProcessGroupTests {
         kill(group, SIGKILL)
         let result = try await running.value
         #expect(result.status == 128 + SIGKILL)
+    }
+
+    @Test("the time limit continues a paused group, so a child that handles SIGTERM ends on its own")
+    func timeLimitContinuesPausedGroup() async throws {
+        let groups = ChildProcessGroups()
+        let runner = ProcessRunner(output: RecordingTextOutput(), killDelay: .seconds(4), groups: groups)
+        // A shell trap stands for a test runner that cleans up on SIGTERM and exits 0.
+        let command = Invocation(
+            executable: URL(filePath: "/bin/sh"),
+            arguments: ["-c", "trap 'exit 0' TERM; while :; do /bin/sleep 0.05; done"],
+            timeout: .seconds(1))
+        let running = Task { try await runner.run(command, output: .capture) }
+        while groups.running.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let group = try #require(groups.running.first)
+        // Give the shell time to set its trap, then pause the whole group before the time limit.
+        try await Task.sleep(for: .milliseconds(300))
+        kill(-group, SIGSTOP)
+        let result = try await running.value
+        #expect(result.exceededTimeLimit != nil)
+        // Without SIGCONT, the paused shell keeps SIGTERM pending and gets SIGKILL after the delay.
+        #expect(result.status == 0)
     }
 
     @Test("only an exit, a kill, or a core dump ends a child")
