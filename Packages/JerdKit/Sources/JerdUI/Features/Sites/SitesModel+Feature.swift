@@ -46,7 +46,7 @@ extension SitesModel: WorkspaceFeature {
                         isEnabled: environment.siteIDs.contains(site.id) && !isBusy
                     ) { [weak self] in self?.openInBrowser(site) }))
         }
-        if let runAction = runAllAction(primary: false) { items.append(.action(runAction)) }
+        if let runAction = runAllAction { items.append(.action(runAction)) }
         items += tunnels.menuItems
         return items
     }
@@ -67,26 +67,39 @@ extension SitesModel: WorkspaceFeature {
         return text
     }
 
+    /// Add Site… without sites; else Start All, or Stop All and Open Site while sites run
+    /// (`CardActionRule`).
     private var cardActions: [FeatureAction] {
         guard !configuration.sites.isEmpty || operation.isWorking else {
-            return [
-                FeatureAction(id: "sites.add", title: "Add Site…", isEnabled: canChange, isPrimary: true) {
-                    [weak self] in
-                    self?.shell.show(.section(.sites))
-                    self?.beginAdd()
-                }
-            ]
+            let add = FeatureAction(id: "sites.add", title: "Add Site…", isEnabled: canChange) { [weak self] in
+                self?.shell.show(.section(.sites))
+                self?.beginAdd()
+            }
+            return CardActionRule.actions(.add(add))
         }
-        return runAllAction(primary: true).map { [$0] } ?? []
+        guard let run = runAllAction else { return [] }
+        guard showsStopAll else {
+            // "Start All Sites…" asks for HTTPS approval first; the short title keeps the ellipsis.
+            return CardActionRule.actions(.start(run.titled(run.title.hasSuffix("…") ? "Start All…" : "Start All")))
+        }
+        return CardActionRule.actions(.stop(run.titled("Stop All")), open: openSiteAction)
+    }
+
+    /// Opens the first served site in sidebar order in the browser. The help and the spoken
+    /// title name the site; the menu bar menu lists every served site.
+    private var openSiteAction: FeatureAction? {
+        guard let site = configuration.sites.first(where: { environment.siteIDs.contains($0.id) }) else { return nil }
+        return FeatureAction(
+            id: "sites.card.open", title: "Open Site", spokenTitle: "Open \(site.displayName)", isEnabled: !isBusy
+        ) { [weak self] in self?.openInBrowser(site) }
     }
 
     /// Stop All Sites while sites run or work runs, else Start All Sites.
-    private func runAllAction(primary: Bool) -> FeatureAction? {
+    private var runAllAction: FeatureAction? {
         if showsStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
         guard !enabledSiteIDs.isEmpty else { return nil }
         return FeatureAction(
-            id: "sites.start-all", title: startAllTitle, isEnabled: canChange && hasStoppedEnabledSite,
-            isPrimary: primary
+            id: "sites.start-all", title: startAllTitle, isEnabled: canChange && hasStoppedEnabledSite
         ) { [weak self] in self?.startAll() }
     }
 

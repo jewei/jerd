@@ -1,18 +1,16 @@
 import JerdDesign
 import SwiftUI
 
-/// The dashboard card of one section, from its feature summary. The actions stand in one row.
-/// When a narrow card cannot fit them, the next step stays a button and the others move
-/// into a More menu, so cards in one row keep one height. A card never drops an action and
-/// never truncates a button title.
+/// The dashboard card of one section, from its feature summary. `CardActionRule` keeps the
+/// actions short, so they stand in one row on every card at the minimum window size; only a
+/// larger text size puts them in a column. A card never drops an action, never hides one in a
+/// menu, and never truncates a button title.
 struct FeatureCard: View {
     /// How the actions stand, in the order the card tries them.
     enum ActionLayout: CaseIterable {
-        /// Every action as a button.
+        /// Every action as a button, in one row.
         case row
-        /// The primary action (else the first) as a button, the others in a More menu.
-        case overflow
-        /// Every action as a button, one per line, for very narrow cards.
+        /// Every action as a button, one per line.
         case column
     }
 
@@ -33,59 +31,23 @@ struct FeatureCard: View {
         }
     }
 
-    /// Which actions show as buttons and which go into the More menu. Together they are
-    /// always every action, in order.
-    static func arrangement(
-        of actions: [FeatureAction], in layout: ActionLayout
-    ) -> (buttons: [FeatureAction], menu: [FeatureAction]) {
+    @ViewBuilder func actions(in layout: ActionLayout) -> some View {
         switch layout {
-        case .row, .column: return (actions, [])
-        case .overflow:
-            // The next step stays a button: the primary action, else the first one.
-            guard let kept = actions.first(where: \.isPrimary) ?? actions.first else { return ([], []) }
-            return ([kept], actions.filter { $0.id != kept.id })
-        }
-    }
-
-    @ViewBuilder private func actions(in layout: ActionLayout) -> some View {
-        let arrangement = Self.arrangement(of: summary.actions, in: layout)
-        switch layout {
-        case .row, .overflow:
-            HStack(spacing: Spacing.small) {
-                buttons(arrangement.buttons)
-                if !arrangement.menu.isEmpty {
-                    moreMenu(arrangement.menu)
-                }
-            }
+        case .row:
+            HStack(spacing: Spacing.small) { buttons }
         case .column:
-            VStack(alignment: .leading, spacing: Spacing.small) { buttons(arrangement.buttons) }
+            VStack(alignment: .leading, spacing: Spacing.small) { buttons }
         }
     }
 
-    private func buttons(_ actions: [FeatureAction]) -> some View {
-        ForEach(actions) { action in
+    private var buttons: some View {
+        ForEach(summary.actions) { action in
             Button(action.title, action: action.perform)
                 .primaryActionStyle(isPrimary: action.isPrimary, isEnabled: action.isEnabled)
                 .fixedSize()
+                .help(action.spokenTitle == action.title ? "" : action.spokenTitle)
+                .accessibilityLabel(action.spokenTitle)
                 .accessibilityIdentifier(action.id)
         }
-    }
-
-    private func moreMenu(_ actions: [FeatureAction]) -> some View {
-        Menu {
-            ForEach(actions) { action in
-                Button(action.title, action: action.perform)
-                    .disabled(!action.isEnabled)
-                    .accessibilityIdentifier(action.id)
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("More \(section.title) actions")
-        .accessibilityLabel("More \(section.title) actions")
-        .accessibilityIdentifier(AccessibilityIdentifier.make("dashboard", section.title, "more"))
     }
 }

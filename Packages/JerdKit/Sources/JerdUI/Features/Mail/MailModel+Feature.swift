@@ -20,27 +20,33 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
             hasRuntime
             ? "SMTP port \(settings.smtpPort) · Web port \(settings.webPort)"
             : "Mailpit is not installed. Install it in Runtimes."
-        return FeatureSummary(status: status, summary: text, actions: [lifecycleAction, inboxAction])
+        return FeatureSummary(status: status, summary: text, actions: cardActions)
+    }
+
+    /// Start, or Stop and Open Inbox while Mailpit runs (`CardActionRule`).
+    private var cardActions: [FeatureAction] {
+        guard state.offersStop else { return CardActionRule.actions(.start(lifecycleAction.titled("Start"))) }
+        return CardActionRule.actions(.stop(lifecycleAction.titled("Stop")), open: inboxAction)
     }
 
     public var menuItems: [MenuBarItem] {
         [.submenu("Mail", id: "mail.menu", items: [.action(inboxAction), .action(lifecycleAction)])]
     }
 
-    /// Start when stopped, Stop while a process is owned. Start is the next step when stopped.
+    /// Start when stopped, Stop while a process is owned.
     var lifecycleAction: FeatureAction {
         if state.offersStop {
             return FeatureAction(id: "mail.stop", title: "Stop Mail", isEnabled: canStop) { [weak self] in
                 self?.stop()
             }
         }
-        return FeatureAction(id: "mail.start", title: "Start Mail", isEnabled: canStart, isPrimary: canStart) {
+        return FeatureAction(id: "mail.start", title: "Start Mail", isEnabled: canStart) {
             [weak self] in self?.start()
         }
     }
 
     var inboxAction: FeatureAction {
-        FeatureAction(id: "mail.inbox", title: "Open Inbox", isEnabled: canOpenInbox, isPrimary: canOpenInbox) {
+        FeatureAction(id: "mail.inbox", title: "Open Inbox", isEnabled: canOpenInbox) {
             [weak self] in self?.openInbox()
         }
     }

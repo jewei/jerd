@@ -38,11 +38,11 @@ struct MailModelTests {
         let fixture = await launched(stoppedMail())
         defer { fixture.removeDefaults() }
         let model = fixture.state.mail
-        #expect(model.lifecycleAction.isPrimary)
+        #expect(model.summary.actions.map(\.isPrimary) == [true])
         await model.start()?.value
         #expect(model.state.isRunning)
-        #expect(model.inboxAction.isPrimary)
-        #expect(!model.lifecycleAction.isPrimary)
+        #expect(model.summary.actions.map(\.id) == ["mail.stop", "mail.inbox"])
+        #expect(model.summary.actions.map(\.isPrimary) == [false, true])
         model.openInbox()
         #expect(fixture.shell.openedURLs == [model.settings.inboxURL])
     }

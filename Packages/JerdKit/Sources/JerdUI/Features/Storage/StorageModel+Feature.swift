@@ -28,7 +28,13 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         let count = buckets.count == 1 ? "1 bucket" : "\(buckets.count) buckets"
         let text =
             hasRuntime ? "\(count) · S3 port \(settings.apiPort)" : "RustFS is not installed. Install it in Runtimes."
-        return FeatureSummary(status: status, summary: text, actions: [lifecycleAction, consoleAction])
+        return FeatureSummary(status: status, summary: text, actions: cardActions)
+    }
+
+    /// Start, or Stop and Open Console while RustFS runs (`CardActionRule`).
+    private var cardActions: [FeatureAction] {
+        guard state.offersStop else { return CardActionRule.actions(.start(lifecycleAction.titled("Start"))) }
+        return CardActionRule.actions(.stop(lifecycleAction.titled("Stop")), open: consoleAction)
     }
 
     public var menuItems: [MenuBarItem] {
@@ -41,15 +47,15 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
                 self?.stop()
             }
         }
-        return FeatureAction(id: "storage.start", title: "Start Storage", isEnabled: canStart, isPrimary: canStart) {
+        return FeatureAction(id: "storage.start", title: "Start Storage", isEnabled: canStart) {
             [weak self] in self?.start()
         }
     }
 
     var consoleAction: FeatureAction {
-        FeatureAction(
-            id: "storage.console", title: "Open Console", isEnabled: canOpenConsole, isPrimary: canOpenConsole
-        ) { [weak self] in self?.openConsole() }
+        FeatureAction(id: "storage.console", title: "Open Console", isEnabled: canOpenConsole) { [weak self] in
+            self?.openConsole()
+        }
     }
 
     public func launch() async {

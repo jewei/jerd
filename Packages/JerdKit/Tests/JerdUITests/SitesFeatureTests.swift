@@ -8,14 +8,15 @@ import Testing
 @Suite("Sites feature", .timeLimit(.minutes(1)))
 @MainActor
 struct SitesFeatureTests {
-    @Test("The card shows the count of running sites and tunnels, and Stop All Sites")
+    @Test("The card shows the count of running sites and tunnels, Stop All, and Open Site")
     func runningCard() async {
         let running = EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID, SampleData.northwindID])
         let harness = await SitesHarness.launched(sites: InMemorySitesPort(environment: running))
         let summary = harness.model.summary
         #expect(summary.status.label == "2 running")
         #expect(summary.summary == "3 registered · 2 enabled · 1/2 tunnels connected")
-        #expect(summary.actions.map(\.title) == ["Stop All Sites"])
+        #expect(summary.actions.map(\.title) == ["Stop All", "Open Site"])
+        #expect(summary.actions.map(\.spokenTitle) == ["Stop All Sites", "Open Studio"])
     }
 
     @Test("Without sites the card offers Add Site… as the next step, which opens the editor in Sites")

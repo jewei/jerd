@@ -12,7 +12,7 @@ implements them in memory.
 | `App/` | `AppState` (the root model), `AppDependencies` (all ports), `AppInfo`, the staged quit (`ShutdownCoordinator`, `ShutdownPhase`, `ShutdownParticipant`), `AppAlert`. |
 | `Shell/` | `JerdWorkspace` (window content), `NavigationState`, `AppCommands`, `MenuBarContent`, the section picker and toolbar, the sidebar toggle, retained pages, placeholders. |
 | `Shared/` | `OperationState`, `OperationLock`, `ServicePoller`, `PollingPolicy`, `PollingTask`, `Clipboard`, the effect ports, `WorkspaceFeature` with its value types, and the `isQuitting` environment value. |
-| `Features/Dashboard/` | The overview cards and the runtimes row. |
+| `Features/Dashboard/` | The overview cards with their button rule (`CardActionRule`) and the runtimes row. |
 | `Features/Settings/` | Appearance, Runtimes, Advanced (with Command-Line Tools and the shared `RegistrationStore`), and About, each with its model and ports. |
 | `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
@@ -43,6 +43,28 @@ implements them in memory.
    `AppState.operationLock`: one such operation at a time, and the quit waits for it.
 9. Read and change PHP registrations and the default PHP only through
    `AppState.registrations` (`RegistrationStore`), so every page shows the same values.
+
+## Dashboard cards
+
+Every card follows one button rule (`CardActionRule`, tested per card and state in
+`FeatureCardTests`):
+
+| Feature state | Actions, leading to trailing | Primary (the next step) |
+| --- | --- | --- |
+| Nothing registered | Add Site… / Add Database… | Add |
+| Stopped | Start (Sites, Databases: Start All) | Start |
+| Running | Stop (Stop All), then the Open step: Open Site, Open Console, Open Inbox | Open |
+| Running, no Open step (Databases) | Stop All | none |
+
+- At most two actions: the lifecycle action, then the Open step. Stop is never primary.
+- A stopped feature has no Open step. The Open step of Sites opens the first served site in
+  sidebar order; its help and spoken title name the site. The menu bar lists every site.
+- Lifecycle titles on a card are short verbs, because the card title names the subject. The
+  spoken title keeps the subject (`FeatureAction.spokenTitle`, for example "Stop Storage").
+- So both actions stand in one row on every card at the minimum window size, and cards in one
+  row keep one height. Only a larger text size puts them in a column. No card hides an action
+  in a menu.
+- The card's own Open › link shows the feature's page.
 
 ## Sheets and Quit
 
