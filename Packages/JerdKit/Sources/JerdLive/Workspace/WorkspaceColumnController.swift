@@ -1,18 +1,14 @@
 import AppKit
 
-/// One column of the main window's split. Its background fills the whole column, also under the
-/// unified toolbar; the hosted SwiftUI content stays inside the safe area, so fixed page headers
-/// and the first sidebar row start below the toolbar.
+/// One column of the main window's split. Its view fills the whole column, also under the
+/// unified toolbar, and draws nothing; the hosted SwiftUI content stays inside the safe area,
+/// so fixed page headers and the first sidebar row start below the toolbar.
 @MainActor
 final class WorkspaceColumnController: NSViewController {
     private let content: NSViewController
-    private let background: NSVisualEffectView.Material?
 
-    /// - Parameter background: The material of the column, for example `.sidebar`; nil for the
-    ///   window background of the detail column.
-    init(content: NSViewController, background: NSVisualEffectView.Material?) {
+    init(content: NSViewController) {
         self.content = content
-        self.background = background
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -22,15 +18,7 @@ final class WorkspaceColumnController: NSViewController {
     }
 
     override func loadView() {
-        if let background {
-            let effect = NSVisualEffectView()
-            effect.material = background
-            effect.blendingMode = .behindWindow
-            effect.state = .followsWindowActiveState
-            view = effect
-        } else {
-            view = NSView()
-        }
+        view = NSView()
         addChild(content)
         view.addSubview(content.view)
     }
