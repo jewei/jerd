@@ -18,6 +18,11 @@ extension SitesModel {
         workspace.reveal(URL(fileURLWithPath: site.projectPath, isDirectory: true))
     }
 
+    /// Shows the document root in Finder.
+    public func revealDocumentRoot(_ site: Site) {
+        workspace.reveal(URL(fileURLWithPath: site.documentRoot, isDirectory: true))
+    }
+
     /// Copies the site address. The toast shows in the window from any page or menu.
     public func copyAddress(_ site: Site) {
         clipboard.copy("https://\(site.hostname)", confirmation: "Copied site URL")

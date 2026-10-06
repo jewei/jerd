@@ -18,6 +18,12 @@ extension SitesModel {
         !isShuttingDown && (!environment.siteIDs.isEmpty || operation.isWorking || environment.state == .starting)
     }
 
+    /// True when a Start can run: a change can start and no interrupted HTTPS setup waits for
+    /// recovery, which blocks every site change.
+    public var canStart: Bool {
+        canChange && setup?.hasPendingRecovery != true
+    }
+
     /// True when the site's hostname is covered by the approved HTTPS setup. Its Start then
     /// needs no approval sheet.
     public func isApproved(_ site: Site) -> Bool {

@@ -16,7 +16,7 @@ extension SitesModel: WorkspaceFeature {
     public var bannerActivity: BannerActivity? {
         guard let message = operation.workingMessage else { return nil }
         guard case .working(_, true) = operation else { return BannerActivity(message: message) }
-        return BannerActivity(message: message, stop: stopAllAction(id: "sites.banner.stop", title: "Stop Sites"))
+        return BannerActivity(message: message, stop: stopAllAction(id: "sites.banner.stop", title: "Stop All Sites"))
     }
 
     public var menuItems: [MenuBarItem] {
@@ -70,7 +70,7 @@ extension SitesModel: WorkspaceFeature {
         if canStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
         guard !enabledSiteIDs.isEmpty else { return nil }
         return FeatureAction(
-            id: "sites.start-all", title: "Start All Sites", isEnabled: canChange && hasStoppedEnabledSite,
+            id: "sites.start-all", title: "Start All Sites", isEnabled: canStart && hasStoppedEnabledSite,
             isPrimary: primary
         ) { [weak self] in self?.startAll() }
     }
