@@ -76,9 +76,12 @@ public struct SheetScaffold<Content: View>: View {
     }
 
     @ViewBuilder private var form: some View {
+        // A scrolled form must not draw over the heading: the grouped form's scroll view lets
+        // content run past its top edge, so the scaffold clips it to its own frame.
         let form = Form { content }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
+            .clipped()
         if #available(macOS 15, *) {
             // A form scrolls, so its own ideal height is not its content height on every macOS
             // version. Measure the content and ask for exactly that height.
