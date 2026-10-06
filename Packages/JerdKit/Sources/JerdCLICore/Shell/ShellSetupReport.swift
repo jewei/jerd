@@ -12,7 +12,7 @@ public struct ShellSetupReport: Equatable, Sendable {
     /// existing file changed.
     public let backupDirectory: URL?
 
-    public init(binDirectory: URL, changedFiles: [URL], unchangedFiles: [URL], backupDirectory: URL?) {
+    package init(binDirectory: URL, changedFiles: [URL], unchangedFiles: [URL], backupDirectory: URL?) {
         self.binDirectory = binDirectory
         self.changedFiles = changedFiles
         self.unchangedFiles = unchangedFiles

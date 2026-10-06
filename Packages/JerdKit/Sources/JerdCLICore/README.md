@@ -53,7 +53,9 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
   file that appears during the setup stays. A failure restores the files already replaced,
   but only while they still have the setup's bytes; an edited file stays, and the error
   names it and its backup.
-- The launcher copy `bin/JerdCLI` (0700) must have a valid code signature. The links
+- The launcher copy `bin/JerdCLI` (0700) must have a valid code signature from the app's
+  signer (`CodeSignatureCheck.forRunningApp()`): for a signed app, `anchor apple generic` with
+  the app's Team ID; for an ad hoc or unsigned development app, only an ad hoc launcher. The links
   `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a
   crashed run (`.zshrc.jerd-tmp`, `.JerdCLI-next`, `.php-next`).
 
