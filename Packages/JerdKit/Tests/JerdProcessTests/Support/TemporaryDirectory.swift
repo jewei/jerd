@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import Testing
 
 /// A private temporary folder for one test. The name can contain spaces and non-ASCII text.
 struct TemporaryDirectory {
@@ -13,7 +14,15 @@ struct TemporaryDirectory {
 
     func path(_ relative: String) -> URL { url.appendingPathComponent(relative) }
 
-    func remove() { try? FileManager.default.removeItem(at: url) }
+    /// Removes the folder after the guard against leaked fixtures: a process that still runs in the
+    /// folder fails the test and is killed, so no fixture outlives the test run.
+    func remove() {
+        let survivors = FixtureReaper.reap(in: url)
+        if !survivors.isEmpty {
+            Issue.record("Fixture processes \(survivors) outlived their test. They were killed.")
+        }
+        try? FileManager.default.removeItem(at: url)
+    }
 }
 
 /// The bytes of a file, or nil when it cannot be read.
