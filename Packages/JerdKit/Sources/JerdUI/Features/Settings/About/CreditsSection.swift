@@ -21,7 +21,7 @@ struct CreditsSection: View {
                             }
                         }
                         .help(credit.address)
-                        .accessibilityLabel("\(credit.name), \(credit.role)")
+                        .accessibilityLabel(Self.linkLabel(credit))
                     }
                 }
             }
@@ -32,5 +32,11 @@ struct CreditsSection: View {
                 "Made by Jerd contributors. These projects belong to their respective authors. Their license terms apply. License notices are included with the managed runtimes."
             )
         }
+    }
+
+    /// The spoken name of a credit link: the project only. The row value reads the role, so
+    /// VoiceOver says each once.
+    static func linkLabel(_ credit: Credit) -> String {
+        credit.name
     }
 }

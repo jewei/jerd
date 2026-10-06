@@ -1,9 +1,20 @@
 import JerdDesign
 import SwiftUI
 
-/// The content of the main window: the section picker, one sidebar and detail split, the
-/// retained pages, the operation banner, the copy toast, and the window alert.
+/// The content of the main window: the sidebar toggle, the section picker, the section's
+/// toolbar items, one sidebar and detail split, the retained pages, the operation banner, the
+/// copy toast, and the window alert.
 public struct JerdWorkspace: View {
+    /// The height of the unified toolbar above the content. The window minimum is a window
+    /// size, so the content may use only what the toolbar leaves.
+    static let toolbarHeight: CGFloat = 52
+
+    /// The smallest content: the minimum window less the toolbar. The app scene uses
+    /// `.windowResizability(.contentMinSize)`, so the window never gets smaller than
+    /// `WindowMetrics.minimumSize` and never clips the bottom of a page or a sidebar footer.
+    static let minimumContentSize = CGSize(
+        width: WindowMetrics.minimumSize.width, height: WindowMetrics.minimumSize.height - toolbarHeight)
+
     @Bindable var state: AppState
 
     public init(state: AppState) {
@@ -18,16 +29,22 @@ public struct JerdWorkspace: View {
                 .detailColumn(copyFeedback: copyFeedback, operation: operationBanner)
         }
         .removingToolbarTitle()
-        .toolbar(removing: state.navigation.canToggleSidebar ? nil : .sidebarToggle)
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                SidebarToggle(state: state)
+            }
             ToolbarItem(placement: .principal) {
                 SectionPicker(state: state)
             }
+            ToolbarItemGroup(placement: .primaryAction) {
+                SectionToolbar(state: state)
+            }
         }
+        .environment(\.isQuitting, state.isQuitting)
         .transaction(value: state.navigation.section) { transaction in
             transaction.animation = nil
         }
-        .frame(minWidth: WindowMetrics.minimumSize.width, minHeight: WindowMetrics.minimumSize.height)
+        .frame(minWidth: Self.minimumContentSize.width, minHeight: Self.minimumContentSize.height)
         .alert(
             state.alert?.title ?? "", isPresented: isAlertPresented, presenting: state.alert
         ) { _ in

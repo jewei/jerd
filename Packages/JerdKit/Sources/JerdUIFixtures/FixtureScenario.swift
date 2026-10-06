@@ -32,7 +32,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     @MainActor
     public func makeFixture() -> AppFixture {
         let fixture = AppFixture(
-            suiteName: "dev.jerd.fixtures.snapshot", runtimes: runtimeInventory(), advanced: advancedPorts(),
+            runtimes: runtimeInventory(), advanced: advancedPorts(),
             features: SampleFeatures.all(variant), services: InMemoryServicePorts(variant), updater: updater()
         ) { defaults in
             if self == .appearanceHidden {
@@ -76,7 +76,11 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
 
     @MainActor
     private func advancedPorts() -> InMemoryAdvancedPorts {
-        guard self == .advanced else { return InMemoryAdvancedPorts() }
+        switch self {
+        case .dashboardEmpty, .advancedEmpty: return InMemoryAdvancedPorts()
+        case .advanced: break
+        default: return InMemoryAdvancedPorts(registrations: SampleData.registrations)
+        }
         return InMemoryAdvancedPorts(
             findings: SampleData.findings, backups: SampleData.backups, registrations: SampleData.registrations,
             httpsStatus: SampleData.httpsRecovery)

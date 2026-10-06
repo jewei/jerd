@@ -13,7 +13,7 @@ struct RuntimeSection: View {
 
     var body: some View {
         Section {
-            if kind == .php, !model.inventory.php.isEmpty {
+            if kind == .php, !model.registeredPHP.isEmpty {
                 PHPDefaultRows(model: model)
             } else {
                 ValueRow("Version", value: versionsText)
@@ -38,7 +38,9 @@ struct RuntimeSection: View {
         } header: {
             Text(kind.title)
         } footer: {
-            FormFooter(RuntimeCopy.footer(kind, checkedAt: checkedText))
+            if let footer = RuntimeCopy.footer(kind, checkedAt: checkedText) {
+                FormFooter(footer)
+            }
         }
     }
 

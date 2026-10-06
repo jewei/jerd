@@ -96,7 +96,10 @@ toast then covers the operation message, and the banner covers the sidebar foote
 `SheetSize.minimumHeight` and `maximumHeight`. Longer content scrolls. Do not set a
 sheet height in a page. On macOS 15 and later the scaffold measures its form; on
 macOS 14 it uses the ideal height that the system form reports. While
-`workingMessage` shows, Confirm is disabled and Cancel stays enabled. A destructive
+`workingMessage` shows, Confirm is disabled and Cancel stays enabled. Return presses the
+confirm button by default; pass `returnKey: .cancel` to make a plain Done or Close the
+default button, or `.none` for no Return shortcut. A destructive confirm never gets Return,
+and Escape always cancels. A destructive
 confirm uses the plain push button label, because red text on a gray bezel is
 hard to read.
 

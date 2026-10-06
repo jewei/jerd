@@ -19,7 +19,7 @@ struct OverviewPage: View {
                         }
                     }
                 }
-                RuntimesSummaryRow(defaultPHP: state.runtimes.inventory.defaultPHP) {
+                RuntimesSummaryRow(defaultPHPVersion: state.registrations.defaultPHP?.version) {
                     state.navigation.show(.dashboard(.runtimes))
                 }
             }

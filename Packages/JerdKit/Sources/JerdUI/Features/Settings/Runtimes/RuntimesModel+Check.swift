@@ -36,6 +36,6 @@ extension RuntimesModel {
     func apply(_ check: RuntimeUpdateCheck) {
         checks[check.kind] = check
         selections[check.kind] = RuntimeSelectionPolicy.selection(
-            after: check, current: selections[check.kind], defaultPHPVersion: inventory.defaultPHP?.version)
+            after: check, current: selections[check.kind], defaultPHPVersion: registry.defaultPHP?.version)
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The runtimes row under the dashboard cards: the default PHP and a link to Runtimes.
 struct RuntimesSummaryRow: View {
-    let defaultPHP: RegisteredPHP?
+    let defaultPHPVersion: String?
     let manage: @MainActor () -> Void
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -13,7 +13,7 @@ struct RuntimesSummaryRow: View {
             VStack(alignment: .leading, spacing: Spacing.hairline) {
                 Text("Runtimes")
                     .textRole(.cardTitle)
-                Text(Self.detail(defaultPHP: defaultPHP))
+                Text(Self.detail(defaultPHPVersion: defaultPHPVersion))
                     .textRole(.detail)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -34,10 +34,10 @@ struct RuntimesSummaryRow: View {
     }
 
     /// The detail line, with the default PHP when one is registered.
-    static func detail(defaultPHP: RegisteredPHP?) -> String {
+    static func detail(defaultPHPVersion: String?) -> String {
         let base = "View installed versions and check for updates."
-        guard let defaultPHP else { return base }
-        return "PHP \(defaultPHP.version) is the default. \(base)"
+        guard let defaultPHPVersion else { return base }
+        return "PHP \(defaultPHPVersion) is the default. \(base)"
     }
 
     private var shape: RoundedRectangle {

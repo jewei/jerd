@@ -11,10 +11,17 @@ public final class InMemoryFeature: WorkspaceFeature, ShutdownParticipant {
     public var summary: FeatureSummary
     public var menuItems: [MenuBarItem]
     public var bannerActivity: BannerActivity?
+    /// The File › New command of the section, or nil.
+    public var newItemAction: FeatureAction?
+    /// More polling loops, like Sites with its tunnels. Set them before `AppState` is built.
+    public var extraPollingPolicies: [PollingPolicy] = []
+    public private(set) var extraRefreshCount = 0
     public var pollingPolicy: PollingPolicy
     public let shutdownPhase: ShutdownPhase
     /// What `shutdown()` returns. Nil makes it wait until its task is cancelled.
     public var stopsSafely: Bool?
+    /// While true, `launch()` waits after it starts, like a first launch that installs runtimes.
+    public var holdsLaunch = false
     public private(set) var launchCount = 0
     public private(set) var refreshCount = 0
     public private(set) var shutdownCount = 0
@@ -36,9 +43,21 @@ public final class InMemoryFeature: WorkspaceFeature, ShutdownParticipant {
 
     public var shutdownParticipants: [any ShutdownParticipant] { [self] }
 
+    public var pollingTasks: [PollingTask] {
+        let main = PollingTask(policy: pollingPolicy) { [weak self] in await self?.refresh() }
+        return [main]
+            + extraPollingPolicies.map { policy in
+                PollingTask(policy: policy) { [weak self] in self?.extraRefreshCount += 1 }
+            }
+    }
+
     public func launch() async {
         launchCount += 1
         journal?.record("\(section.title.lowercased()).launch")
+        while holdsLaunch, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        journal?.record("\(section.title.lowercased()).launched")
     }
 
     public func refresh() async {

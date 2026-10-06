@@ -13,4 +13,9 @@ public struct FeatureSummary {
         self.summary = summary
         self.actions = actions
     }
+
+    /// The same summary with every action off.
+    public func disablingActions() -> FeatureSummary {
+        FeatureSummary(status: status, summary: summary, actions: actions.map { $0.disabled() })
+    }
 }

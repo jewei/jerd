@@ -50,6 +50,7 @@ struct AppStateLifecycleTests {
     func quitSucceeds() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         var replies: [Bool] = []
         #expect(fixture.state.requestTermination { replies.append($0) } == .later)
         #expect(fixture.state.appUpdates.isTerminating)

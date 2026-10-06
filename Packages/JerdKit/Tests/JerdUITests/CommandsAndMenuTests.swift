@@ -97,9 +97,9 @@ struct CommandsAndMenuTests {
         defer { fixture.removeDefaults() }
         #expect(DashboardCards.sections == [.sites, .databases, .storage, .mail])
         #expect(DashboardCards.summary(for: .sites, in: fixture.state).summary == "Built in the next work package.")
-        #expect(RuntimesSummaryRow.detail(defaultPHP: nil) == "View installed versions and check for updates.")
+        #expect(RuntimesSummaryRow.detail(defaultPHPVersion: nil) == "View installed versions and check for updates.")
         #expect(
-            RuntimesSummaryRow.detail(defaultPHP: RegisteredPHP(id: SampleData.php84ID, version: "8.4.12"))
+            RuntimesSummaryRow.detail(defaultPHPVersion: "8.4.12")
                 == "PHP 8.4.12 is the default. View installed versions and check for updates.")
     }
 }

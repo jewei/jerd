@@ -22,6 +22,10 @@ struct RuntimesPage: View {
                     "Installing \(installation.kind.title). Other runtime changes wait until it finishes.", kind: .info,
                     style: .banner, identifier: "runtimes.installing")
             }
+            if model.checks.isEmpty, !model.isChecking {
+                InlineMessage(
+                    RuntimeCopy.notCheckedMessage, kind: .info, style: .banner, identifier: "runtimes.not-checked")
+            }
             OperationFailureBanner(operation: model.operation, identifier: "runtimes.error") {
                 model.dismissFailure()
             }
@@ -30,6 +34,8 @@ struct RuntimesPage: View {
                 RuntimeSection(model: model, kind: kind)
             }
         }
+        // Advanced and the services can change what is installed, so read it each time.
+        .task { await model.load() }
     }
 
     private var checkAction: PageAction {

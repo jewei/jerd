@@ -5,10 +5,12 @@ import SwiftUI
 /// reads each tile as a selectable button.
 struct IconPicker: View {
     @Bindable var model: AppearanceModel
-    private let columns = [GridItem(.adaptive(minimum: 120), spacing: Spacing.medium)]
+    /// One column per design, so the four tiles share the full width of the section.
+    static let columns = Array(
+        repeating: GridItem(.flexible(), spacing: Spacing.medium), count: AppIconChoice.allCases.count)
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: Spacing.medium) {
+        LazyVGrid(columns: Self.columns, spacing: Spacing.medium) {
             ForEach(AppIconChoice.allCases) { choice in
                 IconTile(
                     choice: choice, image: model.image(for: choice), isSelected: model.icon == choice

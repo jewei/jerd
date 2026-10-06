@@ -33,8 +33,10 @@ extension RuntimesModel {
                 Task { @MainActor in self?.show(progress, for: kind) }
             }
             try Task.checkCancellation()
-            installation?.isActivating = true
-            try await port.activate(build, useAsDefault: useAsDefault)
+            try await lock.runWhenFree("Putting \(kind.title) \(build.version) into use…") { [self] in
+                installation?.isActivating = true
+                try await port.activate(build, useAsDefault: useAsDefault)
+            }
             messages[kind] = RuntimeCopy.installedMessage(kind, version: build.version, useAsDefault: useAsDefault)
         } catch is CancellationError {
             messages[kind] = RuntimeCopy.cancelledMessage

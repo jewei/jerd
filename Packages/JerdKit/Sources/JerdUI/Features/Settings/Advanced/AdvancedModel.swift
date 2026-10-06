@@ -12,7 +12,6 @@ import Observation
 public final class AdvancedModel {
     public internal(set) var findings: [RecoveryFinding] = []
     public internal(set) var backups: [RetainedBackup] = []
-    public internal(set) var registrations = LocalRuntimeRegistrations()
     public internal(set) var httpsRecovery: SystemRecoveryStatus?
     /// True after the first inspection, so empty sections can say that nothing was found.
     public internal(set) var hasInspected = false
@@ -25,11 +24,19 @@ public final class AdvancedModel {
     @ObservationIgnored let https: any HTTPSRecoveryPort
     @ObservationIgnored let panels: any FilePanelPresenting
     @ObservationIgnored let workspace: any WorkspaceOpening
+    /// The shared lock: every step of this page holds it, so it never runs at the same time as
+    /// site work, a runtime activation, or the default PHP change, and the quit waits for it.
+    @ObservationIgnored let lock: OperationLock
+    /// The registrations, shared with Runtimes and the dashboard.
+    public let registry: RegistrationStore
 
     public init(
         recovery: any RecoveryPort, executables: any ExecutableRegistrationPort, https: any HTTPSRecoveryPort,
-        panels: any FilePanelPresenting, workspace: any WorkspaceOpening
+        panels: any FilePanelPresenting, workspace: any WorkspaceOpening, registry: RegistrationStore? = nil,
+        lock: OperationLock = OperationLock()
     ) {
+        self.lock = lock
+        self.registry = registry ?? RegistrationStore(port: executables)
         self.recovery = recovery
         self.executables = executables
         self.https = https
@@ -37,14 +44,18 @@ public final class AdvancedModel {
         self.workspace = workspace
     }
 
-    /// True while no operation runs, so a new one can start.
-    public var isIdle: Bool { !operation.isWorking }
+    /// The PHP and Caddy registrations, from the shared store.
+    public var registrations: LocalRuntimeRegistrations { registry.registrations }
+
+    /// True when a step can start: no work holds the shared lock and no quit runs.
+    public var isIdle: Bool { lock.isFree }
 
     /// Reads the registrations and the HTTPS recovery report. Records and backups wait for
-    /// the user's inspection, because an inspection reads every saved service record.
+    /// the user's inspection, because an inspection reads every saved service record. The
+    /// page calls it each time it appears.
     public func load() async {
         do {
-            registrations = try await executables.registrations()
+            try await registry.reload()
             httpsRecovery = try await https.pendingRecovery()
         } catch {
             operation = .failed(message: ErrorText.message(for: error))
@@ -87,7 +98,7 @@ public final class AdvancedModel {
     ) -> Task<Void, Never>? {
         guard isIdle else { return nil }
         operation = .working(message)
-        return Task {
+        return lock.run(message) { [self] in
             do {
                 try await work(self)
                 operation = .idle
