@@ -27,16 +27,24 @@ import Testing
         await expectRefusal(harness) { $0 == "PHP 8.5: The installed PHP executable failed verification." }
     }
 
-    @Test func pinnedRuntimeIsVerifiedToo() async throws {
+    @Test func changedPinnedManagedRuntimeIsRefused() async throws {
         let harness = try ShellSetupHarness()
         defer { harness.remove() }
-        let loose = try harness.fixture.directory.file("elsewhere/php", "loose", mode: 0o700)
-        let other = harness.fixture.runtime("8.3", cliPath: loose.path)
+        let other = try harness.fixture.installPHP("8.3")
+        try Data("changed PHP".utf8).write(to: URL(fileURLWithPath: other.cliPath))
         let site = try harness.fixture.site("app", project: "code/app", selection: .pinned(other.id))
         try harness.fixture.saveDefault(harness.php, sites: [site], others: [other])
-        await expectRefusal(harness) {
-            $0 == "PHP 8.3: Select a managed Jerd PHP runtime before setting up its CLI command."
-        }
+        await expectRefusal(harness) { $0 == "PHP 8.3: The installed PHP executable failed verification." }
+    }
+
+    @Test func managedRuntimeWithoutAReceiptIsRefused() async throws {
+        let harness = try ShellSetupHarness()
+        defer { harness.remove() }
+        let loose = try harness.fixture.directory.file(
+            "home/Library/Application Support/Jerd/runtimes/php-loose/php", "loose", mode: 0o700)
+        let other = harness.fixture.runtime("8.3", cliPath: loose.path)
+        try harness.fixture.saveDefault(other)
+        await expectRefusal(harness) { $0.hasPrefix("PHP 8.3: ") }
     }
 
     @Test func unusedUnmanagedRuntimeDoesNotBlockTheSetup() async throws {

@@ -37,8 +37,13 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
   Jerd's `bin` folder once. A missing or empty `PATH` becomes `/usr/bin:/bin`.
 - Errors go to standard error as `Jerd: <message>`, with exit status 1. After `execv`,
   the exit status is PHP's.
-- The setup checks everything before it writes. Every runtime that a command can select
-  (the default and each site pin) must be a verified managed build.
+- Runtime trust, one rule (`CLIRuntimeOrigin`). A managed runtime (below `runtimes/` or
+  `runtime-updates/`, installed by Jerd with a receipt) is verified against its receipt when
+  the shell setup runs; a failure stops the setup. An imported runtime (anywhere else) is
+  trusted, because the user chose it explicitly, and never blocks the setup. The launcher does
+  not hash a runtime on each call (cost); it checks only that the selected executable is a
+  regular file that the user can run.
+- The setup checks everything before it writes.
 - The setup edits the existing `.zprofile` and `.zshrc`, or creates `.zshrc` (mode 0600)
   when neither exists. It never replaces a symbolic link, a hard link, a file of another
   user, a non-UTF-8 file, or a malformed block. User bytes around the block stay.

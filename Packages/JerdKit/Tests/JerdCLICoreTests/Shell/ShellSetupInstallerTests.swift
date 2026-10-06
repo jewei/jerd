@@ -136,4 +136,25 @@ import Testing
         _ = try await harness.installer().install()
         #expect(linkText(harness.bin.appendingPathComponent("php")) == "JerdCLI")
     }
+
+    /// Review cli-r1 M2: an imported PHP that a site pins is the user's choice and never blocks the setup.
+    @Test func importedPinnedRuntimeIsTrusted() async throws {
+        let harness = try ShellSetupHarness()
+        defer { harness.remove() }
+        let local = try harness.fixture.directory.file("opt/php-custom/bin/php", "custom build", mode: 0o755)
+        let imported = harness.fixture.runtime("8.4.custom", cliPath: local.path)
+        let site = try harness.fixture.site("other", project: "code/other", selection: .pinned(imported.id))
+        try harness.fixture.saveDefault(harness.php, sites: [site], others: [imported])
+        _ = try await harness.installer().install()
+        #expect(linkText(harness.bin.appendingPathComponent("php")) == "JerdCLI")
+    }
+
+    @Test func importedDefaultRuntimeIsTrusted() async throws {
+        let harness = try ShellSetupHarness()
+        defer { harness.remove() }
+        let local = try harness.fixture.directory.file("opt/php/bin/php", "custom build", mode: 0o755)
+        try harness.fixture.saveDefault(harness.fixture.runtime("8.4.custom", cliPath: local.path))
+        _ = try await harness.installer().install()
+        #expect(contents(harness.bin.appendingPathComponent("JerdCLI")) == ShellSetupHarness.launcherBytes)
+    }
 }
