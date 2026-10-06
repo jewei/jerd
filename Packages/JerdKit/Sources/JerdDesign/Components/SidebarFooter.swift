@@ -4,6 +4,11 @@ import SwiftUI
 /// optional caption, such as "2 sites · 1 running", on the trailing side.
 /// Place it with `.safeAreaInset(edge: .bottom)` on the sidebar list.
 public struct SidebarFooter<MenuItems: View>: View {
+    /// The height of the footer row below its divider. The Add button and the Add menu have
+    /// different natural heights, so the row fixes one: the footer line then stays in place
+    /// when the user changes section.
+    public static var rowHeight: CGFloat { 36 }
+
     private let addTitle: String
     private let caption: String?
     private let action: (@MainActor () -> Void)?
@@ -32,7 +37,7 @@ public struct SidebarFooter<MenuItems: View>: View {
                 }
             }
             .padding(.horizontal, Spacing.medium)
-            .padding(.vertical, Spacing.small)
+            .frame(minHeight: Self.rowHeight)
         }
     }
 
