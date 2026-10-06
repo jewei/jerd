@@ -18,6 +18,9 @@ public final class AppState {
     public let mail: MailModel
     public let commandLineTools: CommandLineToolsModel
     public let shutdown = ShutdownCoordinator()
+    /// The one lock for system and configuration work. Sites, Runtimes, Advanced, and the
+    /// command-line tools share it; the staged quit closes it first and waits for its work.
+    public let operationLock = OperationLock()
     /// The service features in section order: Sites, Databases, Storage, Mail.
     public let features: [any WorkspaceFeature]
     /// The one window alert: a cancelled quit or a failed system setup.
@@ -43,10 +46,11 @@ public final class AppState {
         appearance = AppearanceModel(
             defaults: AppearanceDefaults(dependencies.defaults), presence: dependencies.presence,
             images: dependencies.iconImages)
-        runtimes = RuntimesModel(port: dependencies.runtimes)
+        runtimes = RuntimesModel(port: dependencies.runtimes, lock: operationLock)
         advanced = AdvancedModel(
             recovery: dependencies.recovery, executables: dependencies.executables,
-            https: dependencies.httpsRecovery, panels: dependencies.filePanels, workspace: dependencies.workspace)
+            https: dependencies.httpsRecovery, panels: dependencies.filePanels, workspace: dependencies.workspace,
+            lock: operationLock)
         appUpdates = AppUpdatesModel(updater: dependencies.updater)
         clipboard = Clipboard(pasteboard: dependencies.pasteboard)
         windows = dependencies.windows
@@ -55,7 +59,7 @@ public final class AppState {
         databases = DatabasesModel(port: services.databases, clipboard: clipboard, workspace: workspace)
         storage = StorageModel(port: services.storage, clipboard: clipboard, workspace: workspace)
         mail = MailModel(port: services.mail, clipboard: clipboard, workspace: workspace)
-        commandLineTools = CommandLineToolsModel(port: services.commandLineTools)
+        commandLineTools = CommandLineToolsModel(port: services.commandLineTools, lock: operationLock)
         let builtFeatures: [any WorkspaceFeature] = [databases, storage, mail]
         self.features = (features + builtFeatures).sorted { $0.section.rawValue < $1.section.rawValue }
         connectServiceNavigation()

@@ -14,6 +14,8 @@ public actor InMemoryAdvancedPorts: RecoveryPort, ExecutableRegistrationPort, HT
     public var httpsStatus: SystemRecoveryStatus?
     /// When set, every changing call throws this message.
     public var failure: String?
+    /// While true, every changing call waits, like a recovery that waits for a graceful stop.
+    public var isHeld = false
     public private(set) var calls: [String] = []
 
     public init(
@@ -36,6 +38,7 @@ public actor InMemoryAdvancedPorts: RecoveryPort, ExecutableRegistrationPort, HT
     public func pendingRecovery() async throws -> SystemRecoveryStatus? { httpsStatus }
 
     public func recoverProcess(_ id: String) async throws {
+        await waitWhileHeld()
         try record("recover \(id)")
         findings.removeAll { $0.id == id }
     }
@@ -61,6 +64,12 @@ public actor InMemoryAdvancedPorts: RecoveryPort, ExecutableRegistrationPort, HT
     public func recover(_ status: SystemRecoveryStatus, action: SystemRecoveryAction) async throws {
         try record("recover HTTPS \(action.rawValue)")
         httpsStatus = nil
+    }
+
+    private func waitWhileHeld() async {
+        while isHeld, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
     }
 
     private func record(_ call: String) throws {

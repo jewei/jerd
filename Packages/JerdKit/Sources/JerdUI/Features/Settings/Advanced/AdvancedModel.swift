@@ -25,11 +25,15 @@ public final class AdvancedModel {
     @ObservationIgnored let https: any HTTPSRecoveryPort
     @ObservationIgnored let panels: any FilePanelPresenting
     @ObservationIgnored let workspace: any WorkspaceOpening
+    /// The shared lock: every step of this page holds it, so it never runs at the same time as
+    /// site work, a runtime activation, or the default PHP change, and the quit waits for it.
+    @ObservationIgnored let lock: OperationLock
 
     public init(
         recovery: any RecoveryPort, executables: any ExecutableRegistrationPort, https: any HTTPSRecoveryPort,
-        panels: any FilePanelPresenting, workspace: any WorkspaceOpening
+        panels: any FilePanelPresenting, workspace: any WorkspaceOpening, lock: OperationLock = OperationLock()
     ) {
+        self.lock = lock
         self.recovery = recovery
         self.executables = executables
         self.https = https
@@ -37,8 +41,8 @@ public final class AdvancedModel {
         self.workspace = workspace
     }
 
-    /// True while no operation runs, so a new one can start.
-    public var isIdle: Bool { !operation.isWorking }
+    /// True when a step can start: no work holds the shared lock and no quit runs.
+    public var isIdle: Bool { lock.isFree }
 
     /// Reads the registrations and the HTTPS recovery report. Records and backups wait for
     /// the user's inspection, because an inspection reads every saved service record.
@@ -87,7 +91,7 @@ public final class AdvancedModel {
     ) -> Task<Void, Never>? {
         guard isIdle else { return nil }
         operation = .working(message)
-        return Task {
+        return lock.run(message) { [self] in
             do {
                 try await work(self)
                 operation = .idle

@@ -12,16 +12,20 @@ public final class CommandLineToolsModel {
     public var isConfirming = false
 
     @ObservationIgnored let port: any CommandLineToolsPort
+    /// The shared lock: the installation holds it, and the quit waits for it.
+    @ObservationIgnored let lock: OperationLock
 
-    public init(port: any CommandLineToolsPort) {
+    public init(port: any CommandLineToolsPort, lock: OperationLock = OperationLock()) {
         self.port = port
+        self.lock = lock
     }
 
     public func load() async {
         state = await port.state()
     }
 
-    public var canInstall: Bool { state != nil && !operation.isWorking }
+    /// True when the installation can start: the state is known and no work holds the lock.
+    public var canInstall: Bool { state != nil && !operation.isWorking && lock.isFree }
 
     /// The button title for the current state.
     public var actionTitle: String {
@@ -52,9 +56,10 @@ public final class CommandLineToolsModel {
     public func install() -> Task<Void, Never>? {
         isConfirming = false
         guard canInstall else { return nil }
-        operation = .working("Installing the command-line tools…")
+        let message = "Installing the command-line tools…"
+        operation = .working(message)
         report = []
-        return Task {
+        return lock.run(message) { [self] in
             do {
                 report = try await port.install()
                 operation = .idle

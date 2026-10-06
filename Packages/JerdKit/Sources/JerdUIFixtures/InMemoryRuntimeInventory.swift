@@ -12,6 +12,8 @@ public actor InMemoryRuntimeInventory: RuntimeInventory {
     public var installBehavior: InstallBehavior
     public var activationFailure: String?
     public var defaultFailure: String?
+    /// While true, `setDefaultPHP` waits, like a change that restarts PHP-FPM.
+    public var holdsDefaultChange = false
     public private(set) var checkedKinds: [RuntimeKind] = []
     public private(set) var installed: [RuntimeRelease] = []
     public private(set) var activations: [(build: InstalledBuild, useAsDefault: Bool)] = []
@@ -69,6 +71,9 @@ public actor InMemoryRuntimeInventory: RuntimeInventory {
 
     public func setDefaultPHP(_ id: UUID) async throws {
         defaultRequests.append(id)
+        while holdsDefaultChange, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
         if let defaultFailure { throw JerdError.invalid(defaultFailure) }
         inventory.defaultPHPID = id
     }

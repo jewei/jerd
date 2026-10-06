@@ -62,7 +62,7 @@ extension AppState {
     /// takes part only after its launch finished, so `shutdown()` never comes before `launch()`.
     var shutdownParticipants: [any ShutdownParticipant] {
         let launched = features.filter { launchedSections.contains($0.section) }
-        return [runtimes] + launched.flatMap(\.shutdownParticipants)
+        return [operationLock, runtimes] + launched.flatMap(\.shutdownParticipants)
     }
 
     private func finishTermination(_ outcome: ShutdownOutcome) {
