@@ -1,7 +1,8 @@
 import JerdDesign
 import SwiftUI
 
-/// Add Site and Edit Site. Cancel always closes the sheet and never stops other work.
+/// Add Site and Edit Site. Cancel always closes the sheet and never stops other work. A
+/// failure, or the reason why Save is off, shows first.
 struct SiteEditorSheet: View {
     let model: SitesModel
     @Bindable var editor: SiteEditorModel
@@ -18,6 +19,11 @@ struct SiteEditorSheet: View {
             workingMessage: model.operation.workingMessage ?? (editor.isInspecting ? "Inspecting the project…" : nil),
             cancel: model.cancelEditor
         ) {
+            if let failure = editor.failure {
+                SheetTopMessage(message: failure, kind: .error, identifier: "site-editor.error")
+            } else {
+                SheetTopMessage(message: editor.saveRequirement, kind: .info, identifier: "site-editor.requirement")
+            }
             SiteEditorProjectSection(editor: editor)
             SiteEditorRootSection(editor: editor)
             Section("Runtime") {
@@ -27,9 +33,6 @@ struct SiteEditorSheet: View {
                     }
                 }
                 Toggle("Include when starting all sites", isOn: $editor.isEnabled)
-            }
-            if let failure = editor.failure {
-                InlineMessage(failure, kind: .error, identifier: "site-editor.error")
             }
         }
     }

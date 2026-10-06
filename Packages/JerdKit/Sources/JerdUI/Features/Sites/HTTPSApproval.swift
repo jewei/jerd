@@ -18,8 +18,9 @@ public struct HTTPSApproval: Identifiable, Equatable, Sendable {
         self.fingerprint = fingerprint
     }
 
-    /// The sheet title, for example "Enable HTTPS for 2 sites?".
+    /// The sheet title, for example "Enable HTTPS for 3 hostnames?". It counts hostnames, not the
+    /// sites that start, because the approval also covers disabled and stopped sites.
     public var title: String {
-        hostnames.count == 1 ? "Enable HTTPS for 1 site?" : "Enable HTTPS for \(hostnames.count) sites?"
+        hostnames.count == 1 ? "Enable HTTPS for \(hostnames[0])?" : "Enable HTTPS for \(hostnames.count) hostnames?"
     }
 }

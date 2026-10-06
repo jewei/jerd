@@ -92,6 +92,18 @@ public final class SiteEditorModel: Identifiable {
             && (isRootConfirmed || !requiresConfirmation) && !isInspecting
     }
 
+    /// Why Save is off, or nil. An invalid hostname says so at its field; an inspection shows
+    /// its own progress.
+    public var saveRequirement: String? {
+        guard !canSave, !isInspecting, hostnameMessage == nil else { return nil }
+        let missing = SaveRequirement.missing([
+            (projectPath, "a project folder"), (displayName, "a display name"), (hostname, "a hostname"),
+            (documentRoot, "a document root"),
+        ])
+        if !missing.isEmpty { return SaveRequirement.enter(missing) }
+        return "To save, confirm the document root under Document Root."
+    }
+
     /// The site that Save sends. The core validates and normalizes it again.
     public var draft: Site {
         var site = original
@@ -144,19 +156,22 @@ public final class SiteEditorModel: Identifiable {
     }
 
     /// Reads the project files and uses the suggested document root. It never runs project
-    /// code, and it blocks no other site work.
+    /// code, and it blocks no other site work. A result for a folder that the user changed
+    /// meanwhile is dropped, so it never sets the root of another folder.
     public func inspect() async {
         guard !projectPath.isEmpty, !isInspecting else { return }
         isInspecting = true
         defer { isInspecting = false }
+        let inspected = projectPath
         do {
-            let result = try await port.suggestDocumentRoot(projectPath: projectPath)
+            let result = try await port.suggestDocumentRoot(projectPath: inspected)
+            guard projectPath == inspected else { return }
             suggestion = result
             documentRoot = result.path
             clearConfirmation()
             failure = nil
         } catch {
-            failure = ErrorText.message(for: error)
+            if projectPath == inspected { failure = ErrorText.message(for: error) }
         }
     }
 

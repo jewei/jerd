@@ -1,8 +1,9 @@
 import JerdDesign
 import SwiftUI
 
-/// The HTTPS approval: the hostnames, what changes on this Mac, the trust scope, and the CA
-/// fingerprint. Cancel is always enabled; it closes the sheet and never cuts a macOS prompt.
+/// The HTTPS approval: a failure first, the hostnames, the CA fingerprint that the user compares
+/// in the macOS prompt, then what changes on this Mac and the trust scope. Cancel is always
+/// enabled; it closes the sheet and never cuts a macOS prompt or a running approval.
 struct HTTPSApprovalSheet: View {
     let model: SitesModel
     let approval: HTTPSApproval
@@ -17,30 +18,21 @@ struct HTTPSApprovalSheet: View {
             },
             workingMessage: model.operation.workingMessage, cancel: model.closeApproval
         ) {
-            Section("Hostnames") {
-                ForEach(approval.hostnames, id: \.self) { hostname in
-                    Text(hostname).font(TextRole.code.font).textSelection(.enabled)
-                }
-            }
-            if !approval.removedHostnames.isEmpty {
-                Section("Setup Removed For") {
-                    ForEach(approval.removedHostnames, id: \.self) { hostname in
-                        Text(hostname).font(TextRole.code.font).textSelection(.enabled)
-                    }
-                }
-            }
-            HTTPSApprovalChangesSection()
+            SheetTopMessage(message: model.approvalFailure, kind: .error, identifier: "https-approval.error")
             Section {
-                ValueRow("CA SHA-256", value: approval.fingerprint, isCode: true)
+                ApprovalValueRow(label: "Hostnames", value: approval.hostnames.joined(separator: ", "))
+                if !approval.removedHostnames.isEmpty {
+                    ApprovalValueRow(
+                        label: "Setup removed for", value: approval.removedHostnames.joined(separator: ", "))
+                }
+                ApprovalValueRow(label: "CA SHA-256", value: approval.fingerprint)
                 ActionRow("Helper approval", detail: "Allow the Jerd helper if macOS asks for it.") {
                     Button("Open Login Items & Extensions") { model.openLoginItems() }
                 }
             } footer: {
                 FormFooter("Use Remove System Setup to remove these host entries and the certificate later.")
             }
-            if let failure = model.approvalFailure {
-                InlineMessage(failure, kind: .error, identifier: "https-approval.error")
-            }
+            HTTPSApprovalChangesSection()
         }
     }
 }
