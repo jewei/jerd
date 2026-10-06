@@ -42,6 +42,29 @@ import Testing
         }
     }
 
+    /// Review web-r1 L4: a waiting ping holds no thread of the cooperative pool. Twice as many
+    /// silent pings as the pool has threads must still let another task run at once.
+    @Test func waitingPingsLeaveTheCooperativePoolFree() async throws {
+        let server = try FakeFPMServer(.silent)
+        defer { server.stop() }
+        let count = ProcessInfo.processInfo.activeProcessorCount * 2
+        let pings = Task {
+            await withTaskGroup(of: Void.self) { group in
+                for _ in 0..<count {
+                    group.addTask { _ = try? await FastCGIPing(timeout: .seconds(4)).ping(socket: server.socket) }
+                }
+            }
+        }
+        let started = ContinuousClock.now
+        try await Task.sleep(for: .milliseconds(200))
+        let answer = await Task.detached { 6 * 7 }.value
+        let elapsed = ContinuousClock.now - started
+        pings.cancel()
+        await pings.value
+        #expect(answer == 42)
+        #expect(elapsed < .seconds(2), "Another task waited \(elapsed) for a thread.")
+    }
+
     @Test func cancellationStopsTheWait() async throws {
         let server = try FakeFPMServer(.silent)
         defer { server.stop() }

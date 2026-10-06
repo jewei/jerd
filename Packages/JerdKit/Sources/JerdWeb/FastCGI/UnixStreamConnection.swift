@@ -2,13 +2,16 @@ import Darwin
 import Foundation
 import JerdFoundation
 
-/// A non-blocking Unix stream socket with one deadline, for the FPM ping.
+/// A non-blocking Unix stream socket with one deadline and one cancel signal, for the FPM ping.
 struct UnixStreamConnection {
     private let descriptor: Int32
     private let deadline: ContinuousClock.Instant
+    private let cancellation: PingCancellation
 
     /// Connects to `path`. `EAGAIN` (a full backlog) is retried until the deadline.
-    static func open(path: String, deadline: ContinuousClock.Instant) throws -> UnixStreamConnection {
+    static func open(
+        path: String, deadline: ContinuousClock.Instant, cancellation: PingCancellation
+    ) throws -> UnixStreamConnection {
         var address = sockaddr_un()
         let bytes = Array(path.utf8)
         guard bytes.count < MemoryLayout.size(ofValue: address.sun_path), !bytes.contains(0) else {
@@ -21,7 +24,8 @@ struct UnixStreamConnection {
             let descriptor = try makeSocket()
             switch connect(descriptor, &address) {
             case 0:
-                let connection = UnixStreamConnection(descriptor: descriptor, deadline: deadline)
+                let connection = UnixStreamConnection(
+                    descriptor: descriptor, deadline: deadline, cancellation: cancellation)
                 do {
                     try connection.wait(for: Int16(POLLOUT))
                     try connection.requireConnected()
@@ -33,7 +37,7 @@ struct UnixStreamConnection {
             case EAGAIN:
                 Darwin.close(descriptor)
                 guard ContinuousClock.now < deadline else { throw timedOut }
-                try Task.checkCancellation()
+                try cancellation.check()
                 usleep(UInt32(FastCGIPing.slice) * 1_000)
             default:
                 Darwin.close(descriptor)
@@ -72,7 +76,7 @@ struct UnixStreamConnection {
 
     private func wait(for event: Int16) throws {
         while ContinuousClock.now < deadline {
-            try Task.checkCancellation()
+            try cancellation.check()
             var item = pollfd(fd: descriptor, events: event, revents: 0)
             let result = poll(&item, 1, FastCGIPing.slice)
             if result < 0, errno == EINTR { continue }
