@@ -15,6 +15,10 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case databaseRuntimeMissing = "database-runtime-missing"
     case databasesLoadFailed = "databases-load-failed"
     case databasesLong = "databases-long"
+    /// The user cancelled Edit while its save still runs: the page says why Edit is off.
+    case databaseCancelledSave = "database-cancelled-save"
+    /// A quit waits for storage: the Databases controls are off before their own stage.
+    case databaseQuitting = "database-quitting"
     case databaseEditor = "database-editor"
     case databaseEditorInvalid = "database-editor-invalid"
     case retainedDatabases = "retained-databases"
@@ -34,6 +38,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case mailStuck = "mail-stuck"
     case mailNoRuntime = "mail-no-runtime"
     case mailPorts = "mail-ports"
+    /// A quit waits for storage: the Mail controls are off before their own stage.
+    case mailQuitting = "mail-quitting"
     case advancedCommandLineTools = "advanced-command-line-tools"
 
     /// The kind of snapshot: a full window or one sheet alone.
@@ -65,7 +71,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         case .databases, .databasesLong, .databaseEditor, .databaseEditorInvalid, .retainedDatabases,
             .restoreDatabase:
             .item(.database(SampleServices.studioID))
-        case .databaseStopped, .databaseFailed, .databaseStarting, .databaseRuntimeMissing:
+        case .databaseStopped, .databaseFailed, .databaseStarting, .databaseRuntimeMissing,
+            .databaseCancelledSave, .databaseQuitting:
             .item(.database(SampleServices.reportingID))
         case .databaseStuck: .item(.database(SampleServices.cacheID))
         case .databasesEmpty, .databasesNoRuntimes, .databasesLoadFailed: .section(.databases)
@@ -74,7 +81,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))
-        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailPorts: .section(.mail)
+        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailPorts, .mailQuitting: .section(.mail)
         case .advancedCommandLineTools: .dashboard(.advanced)
         }
     }
