@@ -1,6 +1,6 @@
 /// One folder of `runtime-updates/`: a usable build, or a folder that cannot be used and why.
 ///
-/// One bad folder does not hide the others (fixes P-I2).
+/// One bad folder does not hide the others.
 public enum ManagedRuntimeListing: Hashable, Sendable {
     case runtime(ManagedRuntime)
     /// A folder with a receipt that cannot be read, or that belongs to another architecture.

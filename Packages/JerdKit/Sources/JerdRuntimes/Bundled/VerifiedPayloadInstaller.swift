@@ -3,7 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdManifest
 
-/// Installs one bundled payload into a private folder (rules B6/B8, DB5/DB6, ML4/ML5, ST3/ST4 in one place).
+/// Installs one bundled payload into a private folder. It is the one install rule for every payload group.
 ///
 /// The target folder is `<directory>/<folder ID>`. An existing target is verified and used, never
 /// replaced. Otherwise the bundle copy is verified (exact file set, hashes, executable flags), the

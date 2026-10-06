@@ -31,8 +31,8 @@ struct ReadinessChecks: Sendable {
         throw JerdError.processFailed("PHP-FPM did not create its socket. See fpm.log.")
     }
 
-    /// Checks verified HTTPS for every site in parallel, within one budget for all of them
-    /// (spec B 7.1.14). The first failure cancels the other checks.
+    /// Checks verified HTTPS for every site in parallel, within one budget for all of them.
+    /// The first failure cancels the other checks.
     func waitForHTTPS(
         _ plan: EngineStartPlan, running: @escaping Liveness, checkpoint: @escaping Checkpoint
     ) async throws {

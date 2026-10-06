@@ -2,9 +2,9 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 
-/// Mounts a disk image read-only, verifies the signed app on it, and always ejects it (rule I10).
+/// Mounts a disk image read-only, verifies the signed app on it, and always ejects it.
 ///
-/// The eject uses `diskutil eject <mount point>` (RT-8). macOS 27 prints a deprecation warning for
+/// The eject uses `diskutil eject <mount point>`. macOS 27 prints a deprecation warning for
 /// `hdiutil detach` and names this form as its replacement; `diskutil eject` exists on every
 /// supported macOS (14 and later). For a path that is not a mount point it fails and ejects nothing.
 /// `hdiutil attach` stays: macOS 27 also marks it deprecated, but its replacement

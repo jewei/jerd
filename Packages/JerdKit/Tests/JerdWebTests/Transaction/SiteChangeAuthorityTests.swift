@@ -4,7 +4,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review web-r1 M2: S3 uses the complete approval rule, CA included, and a rollback that finds
+/// The approval check uses the complete approval rule, CA included, and a rollback that finds
 /// the previous run still serving reports no restart problem.
 @Suite struct SiteChangeAuthorityTests {
     enum Mismatch: CaseIterable {
@@ -50,7 +50,7 @@ import Testing
         #expect(await harness.store.saves == 0)
     }
 
-    /// Review web-r1 L5: a failure after `removeHostnames` gives the removed hostname back.
+    /// A failure after `removeHostnames` gives the removed hostname back.
     @Test func aFailureAfterRemovingAHostnameRestoresTheHostnameAndTheRun() async throws {
         let harness = try await TransactionHarness(sites: ["demo.test", "two.test"])
         defer { harness.remove() }

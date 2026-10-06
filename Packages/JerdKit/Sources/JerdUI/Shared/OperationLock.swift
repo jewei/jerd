@@ -3,7 +3,7 @@ import Observation
 /// The one lock for work that changes the system or the shared configuration: site and HTTPS
 /// setup changes, process recovery, backup deletion, PHP and Caddy registrations, the default
 /// PHP, runtime activation, and the command-line tools. Only one such operation runs at a
-/// time, as with the old global busy lock (spec F 2.8). The staged quit closes the lock first
+/// time, as with the old global busy lock. The staged quit closes the lock first
 /// and waits for the work that holds it (stage `siteWork`).
 @MainActor
 @Observable

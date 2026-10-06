@@ -6,7 +6,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review web-r1 L6: the old layout kept the first pool in `configuration/` and `logs/fpm.log`.
+/// The old layout kept the first pool in `configuration/` and `logs/fpm.log`.
 @Suite struct LegacyPoolFilesTests {
     /// The `php.ini` that the old app wrote for its first pool.
     static let oldINI = """

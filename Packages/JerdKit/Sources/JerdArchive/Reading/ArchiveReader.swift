@@ -30,7 +30,7 @@ package final class ArchiveReader {
 
     deinit { archive_read_free(handle) }
 
-    /// Refuses a system library older than the headers this module was written against (P-A4).
+    /// Refuses a system library older than the headers this module was written against.
     package static func requireSupportedLibrary(version: Int32) throws {
         guard version >= minimumLibraryVersion else { throw ArchiveFailure.libraryUnsupported }
     }

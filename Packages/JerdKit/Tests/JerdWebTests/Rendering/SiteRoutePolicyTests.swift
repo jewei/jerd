@@ -92,7 +92,7 @@ import Testing
         }
     }
 
-    /// Review web-r1 C1: FPM gets path info only as `PATH_INFO`, never a `PATH_TRANSLATED`.
+    /// FPM gets path info only as `PATH_INFO`, never a `PATH_TRANSLATED`.
     @Test func pathInfoReachesPHPOnlyAsPathInfo() throws {
         let routes = try SiteRoutePolicy.routes(for: try CaddySamples.appendixSites()[1])
         let handlers = try #require(try Self.object(routes[4])["handle"]?.arrayValue)
@@ -108,7 +108,7 @@ import Testing
         #expect(PHPIniPolicy.fpm.contains("\ncgi.fix_pathinfo = 1\n"))
     }
 
-    /// Review web-r1 M1: the PHP route compares the script's name on disk case-sensitively.
+    /// The PHP route compares the script's name on disk case-sensitively.
     @Test func thePHPRouteRequiresTheExactLowercaseNameOnDisk() throws {
         let routes = try SiteRoutePolicy.routes(for: try CaddySamples.appendixSites()[1])
         let match = try #require(try Self.object(routes[5])["match"]?.arrayValue?.first?.objectValue)

@@ -5,7 +5,7 @@ import JerdProcess
 import JerdRuntimes
 import Testing
 
-/// Opt-in check of the real disk image commands (RT-8): `JERD_DISK_IMAGE=1`. It creates a 2 MB
+/// Opt-in check of the real disk image commands: `JERD_DISK_IMAGE=1`. It creates a 2 MB
 /// image in a temporary folder, attaches and ejects it with the production arguments, and fails
 /// when the eject stops working or prints a deprecation warning on a new macOS.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["JERD_DISK_IMAGE"] == "1"))

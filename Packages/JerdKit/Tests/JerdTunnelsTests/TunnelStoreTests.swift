@@ -45,7 +45,7 @@ import Testing
     }
 
     /// Settings that an earlier build wrote with an IP address as hostname. That build accepted it;
-    /// the current Save refuses it (spec E 7.1.20).
+    /// the current Save refuses it.
     static let goldenAddressHostname = """
         {
           "schemaVersion" : 1,
@@ -62,7 +62,7 @@ import Testing
         }
         """
 
-    /// Fix of review tunnels-r1 L-3: the stricter hostname rule made such a file unreadable, and
+    /// Regression test: the stricter hostname rule made such a file unreadable, and
     /// every tunnel was blocked. It now loads, saves to the same bytes, and asks for an edit.
     @Test func earlierSettingsWithAnAddressHostnameLoadAndAskForAnEdit() async throws {
         let folder = try TemporaryDirectory()
@@ -160,7 +160,7 @@ import Testing
         }
     }
 
-    /// Fix of spec E 7.1.19: the picker and the installer gave one runtime three different ID forms.
+    /// Regression test: the picker and the installer gave one runtime three different ID forms.
     @Test func everyCheckedRuntimeGetsTheVersionID() throws {
         let runtime = TunnelRuntime(version: "2026.9.3", directory: URL(fileURLWithPath: "/opt/jerd/cloudflared"))
         #expect(runtime.id == "cloudflared-2026.9.3")

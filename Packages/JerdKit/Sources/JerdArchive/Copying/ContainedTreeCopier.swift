@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 
-/// Copies a folder tree, for example from a mounted disk image, without leaving an allowed root (spec D I11).
+/// Copies a folder tree, for example from a mounted disk image, without leaving an allowed root.
 ///
 /// Each node is resolved through its links. The resolved path must stay under the resolved `root`.
 /// Links are materialized: the copy holds regular files and folders only. Folder link cycles and

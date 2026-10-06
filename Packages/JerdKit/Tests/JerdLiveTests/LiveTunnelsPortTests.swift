@@ -45,7 +45,7 @@ struct LiveTunnelsPortTests {
         #expect(await supervisor.calls == ["useRuntime /runtimes/cloudflared/cloudflared"])
     }
 
-    /// Review final-domain-r1 L3: Stop is written to the app log, as Connect is.
+    /// Stop is written to the app log, as Connect is.
     @Test func stopAndStopAllAreWrittenToTheAppLogLikeConnect() async throws {
         let start = Date().addingTimeInterval(-1)
         let port = LiveTunnelsPort(supervisor: RecordingTunnelSupervisor())

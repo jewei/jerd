@@ -8,7 +8,7 @@ import JerdSystem
 /// Status calls run at once. Changing calls run in arrival order, and a call that waits in the queue
 /// after the connection closed is not started. Listener calls have their own queue: they keep their
 /// order, but never wait behind a change, because a change can wait for a macOS approval prompt
-/// while the app gives acquire and release only 20 seconds (fixed review M1). During a change the
+/// while the app gives acquire and release only 20 seconds. During a change the
 /// service refuses them at once, as the old helper did. Errors cross the wire as text with a stable
 /// code (`HelperWireError`).
 final class HelperSession: NSObject, JerdHelperProtocol, Sendable {

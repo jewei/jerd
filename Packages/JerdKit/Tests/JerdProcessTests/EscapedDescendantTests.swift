@@ -4,7 +4,7 @@ import JerdFoundation
 import JerdProcess
 import Testing
 
-/// Fixed review M1 (spec A 7 #9): a descendant that calls `setsid` is found by its parent chain.
+/// Regression test: a descendant that calls `setsid` is found by its parent chain.
 @Suite struct EscapedDescendantTests {
     private func startController(
         _ arguments: [String] = [], in folder: TemporaryDirectory, using supervisor: ProcessSupervisor

@@ -65,7 +65,7 @@ import Testing
         }
     }
 
-    /// RT-7: an interrupted `./dev runtimes prepare` leaves staging folders in the group folders of the output.
+    /// An interrupted `./dev runtimes prepare` leaves staging folders in the group folders of the output.
     @Test func abandonedStagingFoldersOfTheOutputAreRemoved() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

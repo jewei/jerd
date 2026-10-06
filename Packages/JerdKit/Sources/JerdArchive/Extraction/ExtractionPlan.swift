@@ -1,7 +1,7 @@
 import Foundation
 import JerdFoundation
 
-/// The pure rules of a safe extraction (spec D A3–A14), applied one entry header at a time.
+/// The pure rules of a safe extraction, applied one entry header at a time.
 ///
 /// The plan never touches files. The extractor gives it each header in archive order, executes
 /// the returned action, reports the bytes it wrote, and finally asks for the link copies.
@@ -15,7 +15,7 @@ package struct ExtractionPlan: Sendable {
     var links: [RelativePath: RelativePath] = [:]
     /// The bytes written for each extracted regular file.
     var fileSizes: [RelativePath: Int64] = [:]
-    /// Bytes written or reserved for selected output (P-A2: unselected entries do not count).
+    /// Bytes written or reserved for selected output (unselected entries do not count).
     package internal(set) var outputBytes: Int64 = 0
 
     package init(policy: ExtractionPolicy) {
@@ -90,7 +90,7 @@ package struct ExtractionPlan: Sendable {
                 path: name, mode: mode, declaredSize: size, byteLimit: size,
                 limitFailure: ArchiveFailure.exceedsDeclaredSize, modificationTime: header.modificationTime)
         }
-        // P-A1: an entry without a recorded size may stream up to the smaller of both limits.
+        // An entry without a recorded size may stream up to the smaller of both limits.
         let fileLimited = policy.fileSizeLimit <= remaining
         return FileWrite(
             path: name, mode: mode, declaredSize: nil, byteLimit: max(0, min(policy.fileSizeLimit, remaining)),

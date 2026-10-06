@@ -25,7 +25,7 @@ folder, and the keychain. It depends only on JerdFoundation.
 
 ## App-only and root-only code
 
-One target holds three kinds of code (review L6). Keep the boundary when you add a file:
+One target holds three kinds of code. Keep the boundary when you add a file:
 
 | Kind | Folders | Linked by |
 | --- | --- | --- |

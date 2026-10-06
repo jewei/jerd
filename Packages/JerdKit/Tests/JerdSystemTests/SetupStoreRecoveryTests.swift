@@ -91,7 +91,7 @@ import Testing
         #expect(harness.record(.pending) == nil && harness.record(.recoveryCopy) != nil)
     }
 
-    /// Fixed review L1: an external mapping of a recorded hostname does not block a recovery removal,
+    /// Regression test: an external mapping of a recorded hostname does not block a recovery removal,
     /// because the removal adds no hostname. A restore that would add a mapped hostname is refused.
     @Test func anExternalMappingBlocksOnlyARestoreThatAddsItsHostname() async throws {
         let plain = StoreHarness.originalHosts
@@ -137,7 +137,7 @@ import Testing
         #expect(harness.hosts == Data())
     }
 
-    /// Fixed problem 14: a corrupt journal gives a report that names the file; nothing is changed.
+    /// Regression test: a corrupt journal gives a report that names the file; nothing is changed.
     @Test func aCorruptJournalGivesASpecificReportAndIsPreserved() async throws {
         let harness = try StoreHarness(hosts: Data("keep".utf8))
         defer { harness.remove() }
@@ -172,7 +172,7 @@ import Testing
         #expect(report.installationID == nil && !report.canRemove)
     }
 
-    /// Fixed problem 15: a missing or changed backup is reported but does not block a restore.
+    /// Regression test: a missing or changed backup is reported but does not block a restore.
     @Test func aMissingBackupDoesNotBlockRestore() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
@@ -188,7 +188,7 @@ import Testing
             ))
     }
 
-    /// Fixed problem 2: a second attempt keeps the first copy of the journal.
+    /// Regression test: a second attempt keeps the first copy of the journal.
     @Test func aRetryKeepsTheFirstJournalCopy() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
@@ -210,7 +210,7 @@ import Testing
         #expect(harness.record(.recoveryCopy) == original)
     }
 
-    /// Fixed problem 16: policies have one stable order.
+    /// Regression test: policies have one stable order.
     @Test func recoveryPoliciesAreSorted() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }

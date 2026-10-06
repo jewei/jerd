@@ -7,7 +7,7 @@ import JerdManifest
 package struct PHPPreparer: RuntimePreparing {
     package init() {}
 
-    /// The CLI and FPM names of a PHP version, for example `php-native-8.5` (from the version, never fixed; P-B1).
+    /// The CLI and FPM names of a PHP version, for example `php-native-8.5` (from the version, never fixed).
     package static func executables(version: String) throws -> (cli: String, fpm: String) {
         guard let parsed = RuntimeVersion(version) else {
             throw JerdError.invalid("The update metadata is incomplete or invalid.")

@@ -4,7 +4,7 @@ import JerdManifest
 /// Compares the files of a folder with the files that a receipt records.
 ///
 /// Finder metadata (`.DS_Store`) is skipped on both sides, so a receipt that records one still
-/// matches a folder with or without it (RT-3).
+/// matches a folder with or without it.
 public enum PayloadComparison {
     /// The paths that a message names at most.
     public static let reportedPathLimit = 8

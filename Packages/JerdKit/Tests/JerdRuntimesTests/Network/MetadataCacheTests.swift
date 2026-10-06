@@ -34,7 +34,7 @@ import os
         while await cache.waiterCount(for: url) != count { try await Task.sleep(for: .milliseconds(1)) }
     }
 
-    /// RT-2: a cancelled waiter stops waiting at once, and the fetch goes on for the waiter that remains.
+    /// A cancelled waiter stops waiting at once, and the fetch goes on for the waiter that remains.
     @Test func cancelledWaiterDoesNotCancelTheSharedFetchOfTheOthers() async throws {
         let url = testURL()
         let fetcher = GatedFetcher(Data("shared".utf8))

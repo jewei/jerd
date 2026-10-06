@@ -3,7 +3,7 @@ import Foundation
 /// The files of one PHP-FPM master: `php/<runtime UUID>/` and its socket.
 ///
 /// The folder is keyed by the runtime ID, so the files of a runtime stay in one place when the
-/// site order changes (spec B 7.5).
+/// site order changes.
 public struct PoolLayout: Equatable, Hashable, Sendable {
     public let runtimeID: UUID
     /// `environment/php/<runtime UUID>/`.

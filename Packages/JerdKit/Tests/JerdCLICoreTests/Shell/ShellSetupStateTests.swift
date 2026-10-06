@@ -4,7 +4,7 @@ import Testing
 
 @testable import JerdCLICore
 
-/// Review cli-r1 M3 and L6: the state that the app shows, and the launcher refresh at app launch.
+/// The state that the app shows, and the launcher refresh at app launch.
 @Suite struct ShellSetupStateTests {
     private static let newLauncher = Data("newer test launcher".utf8)
 

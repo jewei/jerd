@@ -3,7 +3,7 @@ import JerdFoundation
 import JerdTunnels
 import Testing
 
-/// Fix of review tunnels-r1 H-1: a tunnel that failed by itself kept its finished monitor in the
+/// Regression test: a tunnel that failed by itself kept its finished monitor in the
 /// work slot, so Connect, Edit, Remove, and a runtime change were refused until the user selected
 /// Stop. Each terminal failure must now leave the tunnel free at once.
 @Suite(.timeLimit(.minutes(1))) struct TunnelSupervisorRecoveryTests {
@@ -50,7 +50,7 @@ import Testing
         try await fixture.expectNoStopNeeded()
     }
 
-    /// Fix of review tunnels-r1 L-1: the rejection is only in the last output, which reaches the log
+    /// Regression test: the rejection is only in the last output, which reaches the log
     /// when Jerd collects the exited connector. The retries must stop.
     @Test func aRejectionInTheLateOutputOfAnExitedConnectorStopsTheRetries() async throws {
         let fixture = try await SupervisorFixture()
@@ -65,7 +65,7 @@ import Testing
         try await fixture.expectNoStopNeeded()
     }
 
-    /// Fix of review tunnels-r1 L-2 at the supervisor level: five quick exits in a row end the retries.
+    /// Regression test at the supervisor level: five quick exits in a row end the retries.
     @Test func aConnectorThatExitsAfterEachStartStopsAfterFiveStarts() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }

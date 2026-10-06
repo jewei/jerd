@@ -17,7 +17,7 @@ struct SnapshotCommandTests {
         return catalog
     }
 
-    /// A new folder for one test. The test removes it in a `defer` (review final-domain-r1 L2).
+    /// A new folder for one test. The test removes it in a `defer`.
     private func temporaryFolder() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appending(path: "jerd-snapshots-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

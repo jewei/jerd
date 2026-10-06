@@ -4,7 +4,7 @@ import JerdFoundation
 /// `./dev release bump`: sets the next version in `Configuration/Version.xcconfig` and moves the
 /// unreleased notes of `CHANGELOG.md` under that version. It does not commit: the change goes through
 /// a normal pull request before `prepare`, so the notarized app is built from the exact commit that
-/// the release tag names (fixes spec G 8.1 #6 for the version change, #11, and #12).
+/// the release tag names.
 struct VersionBump: Sendable {
     let environment: ReleaseEnvironment
 

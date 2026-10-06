@@ -6,7 +6,7 @@ import JerdProcess
 ///
 /// Every change first stops the run through the coordinator (the helper changes hosts and trust
 /// under it). The gateway checks no ports: the coordinator checks 80 and 443 right before it
-/// leases them, which is the one place where they matter (spec B 7.1.13).
+/// leases them, which is the one place where they matter.
 public actor SystemSetupGateway: SystemSetupManaging {
     private let environment: EnvironmentLayout
     private let system: any SystemSetupPort

@@ -48,7 +48,7 @@ import Testing
         #expect(text(harness.zshrc) == "now\n")
     }
 
-    /// Review cli-r1 L4: a new startup file is committed with `RENAME_EXCL`.
+    /// A new startup file is committed with `RENAME_EXCL`.
     @Test func newFileThatAppearsBeforeTheRenameIsNotOverwritten() throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }
@@ -62,7 +62,7 @@ import Testing
         #expect(isAbsent(stage))
     }
 
-    /// Review cli-r1 L4: the rollback restores only a file that still has the setup's bytes.
+    /// The rollback restores only a file that still has the setup's bytes.
     @Test func rollbackKeepsAFileThatTheUserEditedAfterTheReplacement() async throws {
         let harness = try ShellSetupHarness(zshrc: nil)
         defer { harness.remove() }

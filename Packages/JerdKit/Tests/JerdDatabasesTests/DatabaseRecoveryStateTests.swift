@@ -8,7 +8,7 @@ import Testing
 
 @testable import JerdDatabases
 
-/// Review final-domain-r1 M1: a database server that survived a crash is not shown as Stopped, and
+/// A database server that survived a crash is not shown as Stopped, and
 /// its Start names process recovery, not the occupied port.
 @Suite struct DatabaseRecoveryStateTests {
     @Test func aSurvivingServerOfAnEarlierRunIsShownAndNamedByStart() async throws {

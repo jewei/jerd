@@ -148,7 +148,7 @@ import Testing
         #expect(fixture.lockIsFree())
     }
 
-    /// Fix of spec E 7.1.4: a new connector run erased the output of the run before it.
+    /// Regression test: a new connector run erased the output of the run before it.
     @Test func aNewLaunchKeepsTheOutputOfTheRunBefore() async throws {
         let fixture = try ConnectorFixture()
         defer { fixture.folder.remove() }

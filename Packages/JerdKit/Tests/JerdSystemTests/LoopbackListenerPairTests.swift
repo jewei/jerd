@@ -24,7 +24,7 @@ import os
     @Test func refusesHandlesThatAreNotListeningLoopbackSockets() throws {
         let message = JerdError.invalid("Expected a listening IPv4 loopback TCP socket.")
         #expect(throws: message) { try LoopbackListenerPair(http: .nullDevice, https: .nullDevice).ports() }
-        // Fixed spec B problem 20: a bound socket that does not listen is refused too.
+        // Regression test: a bound socket that does not listen is refused too.
         let descriptor = socket(AF_INET, SOCK_STREAM, 0)
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         var address = sockaddr_in()
@@ -81,7 +81,7 @@ import os
         close(accepted)
     }
 
-    /// The probe finds a loopback listener and nothing on a closed port (review L2: no wildcard bind).
+    /// The probe finds a loopback listener and nothing on a closed port (no wildcard bind).
     @Test func theProbeFindsALoopbackListenerOnly() throws {
         let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
         let port = try pair.ports().http
@@ -90,7 +90,7 @@ import os
         #expect(!LoopbackSocket.accepts(port: port))
     }
 
-    /// Fixed problem 10 and review L3: the kernel refuses the first bind atomically when any listener,
+    /// Regression test: the kernel refuses the first bind atomically when any listener,
     /// also a wildcard one, holds the port; the probe then names the other listener.
     @Test func aBusyFixedPortIsRefusedWithTheListenerMessage() throws {
         let blocker = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
@@ -104,7 +104,7 @@ import os
         }
     }
 
-    /// Fixed review L3: a free port is bound without a check-then-bind probe, so no listener can
+    /// Regression test: a free port is bound without a check-then-bind probe, so no listener can
     /// appear between a check and the bind.
     @Test func aFreeFixedPortIsBoundWithoutTheProbe() throws {
         let port = try freePort()
@@ -118,7 +118,7 @@ import os
         #expect(probed.withLock { $0 }.isEmpty)
     }
 
-    /// Review L3: a port that only lingering connections hold is probed, then bound again.
+    /// A port that only lingering connections hold is probed, then bound again.
     @Test func aPortHeldOnlyByLingeringConnectionsIsBoundAgain() throws {
         let port = try freePort()
         try lingerConnections(on: port)

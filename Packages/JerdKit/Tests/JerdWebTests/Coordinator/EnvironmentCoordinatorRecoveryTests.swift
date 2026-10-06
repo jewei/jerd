@@ -6,7 +6,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review final-domain-r1 M1: after a crash, a web process of the earlier run still holds 80 and
+/// After a crash, a web process of the earlier run still holds 80 and
 /// 443. A start must name process recovery, not "port occupied".
 @Suite struct EnvironmentCoordinatorRecoveryTests {
     @Test func aLiveEarlierWebProcessGivesTheRecoveryMessageBeforeThePortCheck() async throws {
@@ -41,7 +41,7 @@ import Testing
         #expect(await harness.engine.starts == 0)
     }
 
-    /// Review final-domain-r1 L1: Stop shows a surviving web process, and a later start retries
+    /// Stop shows a surviving web process, and a later start retries
     /// the stop first and does not start while the process lives.
     @Test func aSurvivingWebProcessFailsTheStopAndBlocksTheNextStart() async throws {
         let harness = try CoordinatorHarness()

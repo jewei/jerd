@@ -1,8 +1,8 @@
 import Foundation
 import JerdManifest
 
-/// Checks the candidate feed with the public key only, so any Mac and CI can run it (fixes spec G
-/// 8.1 #25): the feed signature, exactly one item of this build with the release values, and the
+/// Checks the candidate feed with the public key only, so any Mac and CI can run it:
+/// the feed signature, exactly one item of this build with the release values, and the
 /// signature and length of the disk image.
 struct CandidateFeedCheck: Sendable {
     /// The official verifier in a release; tests use a verifier of a test key.

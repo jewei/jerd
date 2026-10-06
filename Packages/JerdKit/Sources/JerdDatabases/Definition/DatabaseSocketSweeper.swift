@@ -4,7 +4,7 @@ import JerdProcess
 import JerdServiceKit
 
 /// Removes the socket folders of earlier runs that ended without a stop, for example after a
-/// crash of Jerd (spec E 7.2.4).
+/// crash of Jerd.
 ///
 /// A folder is removed only when every check proves that no process uses it:
 /// - it is a real `jerd-db-*` folder with an owner marker of this user;

@@ -70,7 +70,7 @@ import Testing
         #expect(await ProcessRecoveryService(layout: layout).inspect().isEmpty)
     }
 
-    /// Fixed review L8: a linked web record file is skipped, like a linked instance folder.
+    /// Regression test: a linked web record file is skipped, like a linked instance folder.
     @Test func aLinkedWebRecordFileIsSkipped() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

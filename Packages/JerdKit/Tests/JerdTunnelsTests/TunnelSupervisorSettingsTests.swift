@@ -122,7 +122,7 @@ import Testing
         try await fixture.supervisor.remove(id: fixture.id)
     }
 
-    /// Fix of spec E 7.1.19: the runtime ID no longer depends on how the runtime was chosen.
+    /// Regression test: the runtime ID no longer depends on how the runtime was chosen.
     @Test func aRuntimeIsSavedWithItsVersionIDAndIsLockedWhileConnected() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }

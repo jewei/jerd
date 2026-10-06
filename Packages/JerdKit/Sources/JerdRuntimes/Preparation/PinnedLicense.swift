@@ -2,7 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdManifest
 
-/// A license text that Jerd copies into a payload, fetched from a fixed URL and checked by SHA-256 (fixes P-I4).
+/// A license text that Jerd copies into a payload, fetched from a fixed URL and checked by SHA-256.
 ///
 /// The licenses of these projects do not change between releases, so one reviewed copy serves
 /// every version. A changed text fails the installation instead of shipping unreviewed content.

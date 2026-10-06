@@ -5,7 +5,7 @@ import JerdFoundation
 /// A private `.install-<UUID>` folder beside the final payload folders. The final rename stays on one volume.
 ///
 /// The folder is locked (`flock`) while any copy of this value lives, so `removeAbandoned(in:)`
-/// never removes a folder that an installation in this or another process still uses (RT-7).
+/// never removes a folder that an installation in this or another process still uses.
 public struct StagingFolder: Sendable {
     /// The name prefix of every staging folder. Listings skip hidden names.
     public static let prefix = ".install-"
@@ -38,7 +38,7 @@ public struct StagingFolder: Sendable {
         try? FileManager.default.removeItem(at: url)
     }
 
-    /// Removes staging folders that a crash or a kill left behind (fixes P-I6).
+    /// Removes staging folders that a crash or a kill left behind.
     ///
     /// Only a real folder that the current user owns and that nobody holds locked is removed. A
     /// folder in use, a link, and a file with the prefix stay. Safe to call at any time.

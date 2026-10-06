@@ -23,7 +23,7 @@ struct WebProcessRecords: Sendable {
 
     /// Refuses while a recorded process of an earlier run may live. It needs no lock and changes
     /// no file, so the coordinator runs it before its port checks: an orphaned Caddy still holds
-    /// 80 and 443 after a crash (review final-domain-r1 M1).
+    /// 80 and 443 after a crash.
     func requireNoLivePrevious() throws {
         guard FileProbe.presence(at: environment.processesDirectory).mayExist else { return }
         for location in try savedLocations() { try gate.requireNoLiveRecord(location) }

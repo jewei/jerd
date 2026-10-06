@@ -5,7 +5,7 @@ import SwiftUI
 /// The line between the sidebar and the detail column. Dragging it resizes the sidebar within
 /// `WindowMetrics.sidebarMinimumWidth…sidebarMaximumWidth`. The workspace uses its own split,
 /// not `NavigationSplitView`, because the split view moves the toolbar items with the sidebar
-/// column (spec F 2.6: the section picker and the sidebar button never move).
+/// column (the section picker and the sidebar button never move).
 struct SidebarDivider: View {
     @Binding var width: CGFloat
     @State private var dragStartWidth: CGFloat?

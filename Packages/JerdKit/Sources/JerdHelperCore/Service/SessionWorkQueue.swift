@@ -1,7 +1,7 @@
 /// Runs one kind of request of one session (changes, or listener calls) one at a time, in arrival order.
 ///
 /// Earlier helpers started an unstructured task per message, so two messages of one connection
-/// could run out of order (problem 20). Read-only status calls do not use this queue, so a status
+/// could run out of order. Read-only status calls do not use this queue, so a status
 /// call is never stuck behind an approval prompt.
 final class SessionWorkQueue: Sendable {
     typealias Job = @Sendable () async -> Void

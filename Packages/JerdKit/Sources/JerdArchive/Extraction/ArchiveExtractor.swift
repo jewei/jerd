@@ -40,7 +40,7 @@ public enum ArchiveExtractor {
         return ExtractionReport(files: files.sorted(), outputBytes: plan.outputBytes)
     }
 
-    /// A13: writes the current entry data. It may not exceed its limit and must match its declared size.
+    /// Writes the current entry data. It may not exceed its limit and must match its declared size.
     private static func writeData(
         _ write: FileWrite, from reader: ArchiveReader, into destination: URL, buffer: UnsafeMutableRawBufferPointer
     ) throws -> Int64 {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The toolbar button that shows or hides the sidebar of the current section (spec F 2.6). It
+/// The toolbar button that shows or hides the sidebar of the current section. It
 /// replaces the system toggle, which `toolbar(removing:)` does not hide for one section only:
 /// Mail has no sidebar, so there the button is off and says why.
 struct SidebarToggle: View {

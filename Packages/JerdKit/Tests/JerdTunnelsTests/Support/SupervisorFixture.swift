@@ -68,7 +68,7 @@ struct SupervisorFixture {
     }
 
     /// Proves that a tunnel that failed by itself needs no Stop: a runtime change, an edit with a
-    /// new token, Connect, and Remove all work at once (spec E 3.6.3.5 and 3.6.5.2).
+    /// new token, Connect, and Remove all work at once.
     func expectNoStopNeeded() async throws {
         try await supervisor.useRuntime(at: URL(fileURLWithPath: "/runtimes/new/cloudflared"))
         try await supervisor.save(registration, token: TokenSamples.rotated)

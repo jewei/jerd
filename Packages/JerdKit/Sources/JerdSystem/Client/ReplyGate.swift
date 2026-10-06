@@ -7,7 +7,7 @@ import os
 ///
 /// States: unregistered → waiting → finished, or unregistered → resolved → finished (a result that
 /// arrives before registration). `send` is never called once the gate is resolved, also not after a
-/// cancellation between registration and sending (fixed problem 17).
+/// cancellation between registration and sending.
 public final class ReplyGate<Value: Sendable>: Sendable {
     /// What task cancellation does to a waiting call.
     public enum CancellationPolicy: Sendable {

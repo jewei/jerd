@@ -55,7 +55,7 @@ struct LiveAppTests {
         #expect(live.preparation.staging.count == 2)
     }
 
-    /// Spec F 2.9: the pollers use the visible rates only while the app is active. The app
+    /// The pollers use the visible rates only while the app is active. The app
     /// object posts the activity notifications; the live app must follow them.
     @Test func theLiveAppFollowsTheActivityThatAppKitReports() throws {
         let center = NotificationCenter()

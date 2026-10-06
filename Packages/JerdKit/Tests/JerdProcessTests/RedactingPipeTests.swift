@@ -39,7 +39,7 @@ import Testing
         #expect(pipe.writeFailure == SystemError.describe(EBADF))
     }
 
-    /// Fixed review L4 (spec A 7 #21): a process outside the group that still holds the writer after
+    /// Regression test: a process outside the group that still holds the writer after
     /// `finish` can still write. Its late output does not reach the log.
     @Test func aWriterThatOutlivesFinishGetsNoBrokenPipe() async throws {
         let folder = try TemporaryDirectory()

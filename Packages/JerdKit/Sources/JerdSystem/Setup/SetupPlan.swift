@@ -51,7 +51,7 @@ struct SetupPlan: Sendable {
     }
 
     /// Removes the trust and the CA. Any failure can leave the trust partly removed, so the
-    /// recorded trust is always installed again (fixed problem 6: only after this step ran).
+    /// recorded trust is always installed again (only after this step ran).
     func removeTrustStep(_ recorded: CertificateTrust) -> SetupStep {
         let trust = trust
         return SetupStep(
@@ -68,7 +68,7 @@ struct SetupPlan: Sendable {
             })
     }
 
-    /// Writes the new registration. The undo writes back the exact earlier bytes (fixed problem 5).
+    /// Writes the new registration. The undo writes back the exact earlier bytes.
     func writeRegistrationStep(_ bytes: Data, previousBytes: Data?) -> SetupStep {
         let directory = directory
         return SetupStep(

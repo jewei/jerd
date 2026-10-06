@@ -42,7 +42,7 @@ component gallery are in [JerdSnapshotSupport](../JerdSnapshotSupport/README.md)
 
 ### Status and message symbols
 
-The symbols differ from the old app on purpose (spec F 4.2 and 8.4):
+The symbols differ from the old app on purpose:
 
 | Tone or kind | Symbol | Color | Reason |
 | --- | --- | --- | --- |

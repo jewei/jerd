@@ -10,11 +10,11 @@ extension EnvironmentCoordinator {
             throw JerdError.unavailable("Select Enable HTTPS to approve setup for all enabled sites.")
         }
         // A web process that survived a crash keeps 80 and 443, so the recovery message must come
-        // before the port check (review final-domain-r1 M1). The engine checks again under the lock.
+        // before the port check. The engine checks again under the lock.
         try WebProcessRecords(environment: environment, gate: startGate, recorder: ActiveRunRecorder())
             .requireNoLivePrevious()
         // The helper owns 80 and 443 while it leases them; this check names another app that
-        // listens there before the lease (spec B 7.1.13: the only port check, right before use).
+        // listens there before the lease (the only port check, right before use).
         try await ports.requireNoListener(80)
         try await ports.requireNoListener(443)
         let leased = try await system.acquireListeners()
@@ -40,7 +40,7 @@ extension EnvironmentCoordinator {
         }
     }
 
-    /// Checks all hostnames in parallel (spec B 7.1.14); the first failure ends the check.
+    /// Checks all hostnames in parallel; the first failure ends the check.
     private func checkTrust(_ hostnames: [String]) async throws {
         let probe = probe
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -51,7 +51,7 @@ extension EnvironmentCoordinator {
 
     /// Stops the engine and returns the listeners. The state is left to the caller.
     /// - Returns: the engine failure when a web process is still running after the stop (its run,
-    ///   records, and lock stay in the engine), or nil (review final-domain-r1 L1).
+    ///   records, and lock stay in the engine), or nil.
     @discardableResult
     func cleanup() async -> String? {
         monitor?.cancel()

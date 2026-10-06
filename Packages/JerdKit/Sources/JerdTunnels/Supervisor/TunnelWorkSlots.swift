@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Work clears only its own slot: `clear(_:generation:)` does nothing when the slot holds the work
 /// of another generation. Earlier builds cleared a shared slot after an `await`, so a late task
-/// could erase the task of a newer Connect, and Stop could no longer cancel it (spec E 7.1.1).
+/// could erase the task of a newer Connect, and Stop could no longer cancel it.
 package struct TunnelWorkSlots: Sendable {
     private var slots: [UUID: TunnelWork] = [:]
 

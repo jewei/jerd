@@ -91,14 +91,14 @@ import Testing
         ("a\r\n" + start + "\r\nexport PATH=/old:$PATH\r\n" + end + "\r\nb\r\n", "a\r\n" + block + "b\r\n"),
     ]
 
-    /// Review cli-r1 L1: a CRLF file gets one blank line in its own style, and its bytes stay.
+    /// A CRLF file gets one blank line in its own style, and its bytes stay.
     @Test(arguments: lineEndCases)
     func crlfFilesKeepTheirLineEnds(original: String, expected: String) throws {
         #expect(try Self.apply(original) == expected)
         #expect(try Self.apply(expected) == expected)
     }
 
-    /// Review cli-r1 L1: a byte order mark stays, and a file with the exact block does not change.
+    /// A byte order mark stays, and a file with the exact block does not change.
     @Test func byteOrderMarkStays() throws {
         let original = Self.bom + Array("export A=1\n".utf8)
         let once = try Self.apply(original)

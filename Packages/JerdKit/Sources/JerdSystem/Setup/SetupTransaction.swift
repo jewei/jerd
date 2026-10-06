@@ -9,7 +9,7 @@ import JerdFoundation
 /// every undo succeeded and no step asked to keep it; then the original error is thrown. Otherwise the
 /// journal stays with a phase that names what was rolled back, and the error is `.partialChange`.
 /// A failed commit undoes nothing: every step is applied, so the journal stays with an "Applied"
-/// phase for a recovery to finish (fixed review L5).
+/// phase for a recovery to finish.
 struct SetupTransaction {
     let directory: RootRecordDirectory
     var journal: SetupJournal

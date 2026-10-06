@@ -42,7 +42,7 @@ import Testing
         }
     }
 
-    /// Fix of spec E 7.1.20: earlier builds accepted IPv4 literals other than 127.0.0.1. A new or
+    /// Regression test: earlier builds accepted IPv4 literals other than 127.0.0.1. A new or
     /// edited registration refuses them; the stored rule of earlier builds still accepts them.
     @Test(arguments: ["10.0.0.1", "192.168.1.20", "8.8.8.8", "example.123"])
     func anIPv4LiteralIsNotAPublicHostname(_ hostname: String) throws {

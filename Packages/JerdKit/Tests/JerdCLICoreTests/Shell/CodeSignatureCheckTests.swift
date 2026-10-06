@@ -24,14 +24,14 @@ import Testing
 
     private static func isInvalid(_ error: any Error) -> Bool { (error as? JerdError)?.kind == .invalid }
 
-    /// Review cli-r1 L3: a development app accepts its ad hoc launcher.
+    /// A development app accepts its ad hoc launcher.
     @Test func adHocLauncherPassesForAnAdHocApp() throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }
         try Self.adHoc.checkSignature(of: try Self.adHocLauncher(in: directory))
     }
 
-    /// Review cli-r1 L3: a signed app refuses a launcher that any other signer, also ad hoc, made.
+    /// A signed app refuses a launcher that any other signer, also ad hoc, made.
     @Test func adHocLauncherIsRefusedForATeamSignedApp() throws {
         let directory = try TemporaryDirectory()
         defer { directory.remove() }
@@ -39,7 +39,7 @@ import Testing
         #expect { try Self.team.checkSignature(of: launcher) } throws: { Self.isInvalid($0) }
     }
 
-    /// Review cli-r1 L3: an Apple-signed tool has no matching Team ID, and it is not ad hoc.
+    /// An Apple-signed tool has no matching Team ID, and it is not ad hoc.
     @Test func validSignatureOfAnotherSignerIsRefused() {
         let tool = URL(fileURLWithPath: "/usr/bin/true")
         #expect { try Self.team.checkSignature(of: tool) } throws: { Self.isInvalid($0) }
@@ -70,7 +70,7 @@ import Testing
         #expect(!CodeSignatureCheck.isTeamIdentifier("abcde12345"))
     }
 
-    /// Review cli-r1 L3: the app's own signature selects the rule; ad hoc only without a Team ID.
+    /// The app's own signature selects the rule; ad hoc only without a Team ID.
     @Test func signerFollowsTheAppSignature() {
         #expect(SigningInformation(teamIdentifier: "ABCDE12345", isAdHoc: false).signer == .team("ABCDE12345"))
         #expect(SigningInformation(teamIdentifier: nil, isAdHoc: true).signer == .adHoc)

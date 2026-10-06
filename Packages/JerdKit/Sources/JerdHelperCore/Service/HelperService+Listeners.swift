@@ -8,7 +8,7 @@ extension HelperService {
     /// again; another connection is refused while the lease exists.
     ///
     /// The setup must be ready for serving: hosts and trust configured with the server TLS policy,
-    /// no interrupted or running transaction (fixed problem 11). A connection that closes while the
+    /// no interrupted or running transaction. A connection that closes while the
     /// setup is checked gets no lease.
     func acquire(owner: uid_t, connection: UUID, lifetime: SessionLifetime) async throws -> LoopbackListenerPair {
         try lifetime.check()

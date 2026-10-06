@@ -3,7 +3,7 @@ import JerdFoundation
 
 @testable import JerdWeb
 
-/// The inputs of spec B Appendix A and of the loopback golden file.
+/// The inputs of the old generator's sample output and of the loopback golden file.
 enum CaddySamples {
     static let installationID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
     static let storage = URL(fileURLWithPath: "/Users/u/Library/Application Support/Jerd/environment/certificates")

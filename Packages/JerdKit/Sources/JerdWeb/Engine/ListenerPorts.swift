@@ -10,7 +10,7 @@ public enum ListenerPorts {
         (try port(of: listeners.http.fileDescriptor), try port(of: listeners.https.fileDescriptor))
     }
 
-    /// The TCP state must be LISTEN, not only bound (spec B 7.1.20). macOS does not support
+    /// The TCP state must be LISTEN, not only bound. macOS does not support
     /// `SO_ACCEPTCONN` for `getsockopt`, so the state comes from `TCP_CONNECTION_INFO`.
     static func port(of descriptor: Int32) throws -> UInt16 {
         var address = sockaddr_in()

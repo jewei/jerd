@@ -9,7 +9,7 @@ import JerdWeb
 
 /// Every runtime record that an owner saves now: the site configuration, the database,
 /// mail, storage, and tunnel runtimes, and the CLI tools record. The Runtimes page derives
-/// the versions in use and the managed builds in use from it (spec D U5 and U6).
+/// the versions in use and the managed builds in use from it.
 package struct RuntimeRecords: Equatable, Sendable {
     package var sites: AppConfiguration
     package var databases: [DatabaseRuntime]

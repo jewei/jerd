@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The JSON result is read from standard output only, also when `notarytool` exits with a non-zero
 /// status for an `Invalid` result. Then the issues log is fetched before the release stops, so the
-/// reason is always kept (fixes spec G 8.1 #3).
+/// reason is always kept.
 struct Notarizer: Sendable {
     let shell: ReleaseShell
     let credentials: NotaryCredentials

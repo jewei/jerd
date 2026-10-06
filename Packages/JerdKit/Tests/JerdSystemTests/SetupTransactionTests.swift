@@ -62,7 +62,7 @@ import os
         #expect(transaction.journal.phase == "done b")
     }
 
-    /// Fixed review L5: when only the journal deletion fails, no applied step is undone. The journal
+    /// Regression test: when only the journal deletion fails, no applied step is undone. The journal
     /// stays with an "Applied" phase, and the error is a partial change.
     @Test func aFailedCommitKeepsEveryStepAndTheJournal() async throws {
         let folder = try TemporaryDirectory()
@@ -158,7 +158,7 @@ import os
         #expect(try phase(directory) == "b needs recovery. Rolled back: a.")
     }
 
-    /// Fixed problem 5: the registration undo writes the exact earlier bytes, not a re-encoded record.
+    /// Regression test: the registration undo writes the exact earlier bytes, not a re-encoded record.
     @Test func registrationUndoRestoresTheExactEarlierBytes() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

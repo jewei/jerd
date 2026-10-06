@@ -161,7 +161,7 @@ import os
         #expect(opener.opened.withLock { $0 } == 3)
     }
 
-    /// Fixed review M1: a 20-second call that times out does not drop the one shared link while a
+    /// Regression test: a 20-second call that times out does not drop the one shared link while a
     /// change on it waits for macOS approval. Without a waiting change, a timeout still drops it.
     @Test func aTimeoutKeepsTheLinkWhileAChangeWaitsForApproval() async throws {
         let (client, opener) = client(FakeHelper())

@@ -2,7 +2,7 @@ import Foundation
 import JerdManifest
 
 /// Runs the JerdKit tests with every integration group against the signed payloads inside the
-/// candidate app. The paths come from the receipts, not from file names (fixes spec G 8.1 #20).
+/// candidate app. The paths come from the receipts, not from file names.
 struct ReleaseRuntimeTests: Sendable {
     let shell: ReleaseShell
     let layout: CandidateLayout

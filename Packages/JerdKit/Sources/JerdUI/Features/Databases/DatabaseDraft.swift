@@ -15,7 +15,7 @@ public struct DatabaseDraft: Equatable, Sendable {
     public var runtimeID: String?
     public private(set) var name: String
     public private(set) var portText: String
-    /// True after the user typed a name, so an engine change keeps it (spec F 7.2.7).
+    /// True after the user typed a name, so an engine change keeps it.
     public private(set) var hasCustomName = false
     /// True after the user typed a port, so a late suggestion never replaces it.
     public private(set) var hasCustomPort = false

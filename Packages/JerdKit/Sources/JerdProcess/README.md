@@ -54,12 +54,11 @@ checks loopback listeners. It depends only on JerdFoundation.
 
 ## Decisions and known gaps
 
-- The redaction marker is `[redacted]`, not the `[REDACTED]` of spec A 4.4. Old builds used
-  `[redacted]` in messages and `[REDACTED]` in logs; Jerd now uses one marker everywhere. No
-  code parses a log, so no saved data depends on the marker.
-- `InstanceLock.acquire` creates a missing lock file, also in recovery (spec A 7 #18 is kept on
-  purpose). Recovery runs only for a folder that has a record, and the lock file is the
-  exclusion with managers and with old builds. Without it, a record could not be recovered.
+- The redaction marker is `[redacted]` everywhere. Old builds used `[redacted]` in messages
+  and `[REDACTED]` in logs. No code parses a log, so no saved data depends on the marker.
+- `InstanceLock.acquire` creates a missing lock file, also in recovery. This is on purpose.
+  Recovery runs only for a folder that has a record. The lock file is the exclusion with
+  managers and with old builds. Without it, a record could not be recovered.
 - A descendant that leaves the group is found only while its parent runs. When a leader exits
   before a stop or a recovery starts, `launchd` adopts its children and nothing links them to
   the record. A start then sees only the leader's group.

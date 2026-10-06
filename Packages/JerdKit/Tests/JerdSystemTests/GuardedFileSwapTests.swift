@@ -42,7 +42,7 @@ import Testing
         #expect(read == value)
     }
 
-    /// Fixed problem 13: the new file gets a new modification time, so resolvers see the change.
+    /// Regression test: the new file gets a new modification time, so resolvers see the change.
     @Test func replaceSetsANewModificationTime() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
@@ -90,7 +90,7 @@ import Testing
         }
     }
 
-    /// Fixed problem 1: a held lock gives a bounded wait and a `.locked` error, never a hang.
+    /// Regression test: a held lock gives a bounded wait and a `.locked` error, never a hang.
     @Test func aHeldLockTimesOutInsteadOfBlocking() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

@@ -51,7 +51,7 @@ import Testing
         #expect(consent.requests.withLock { $0 }.count == 1)
     }
 
-    /// Fixed problem 4: an item that this call added is deleted on any failure, also an interruption.
+    /// Regression test: an item that this call added is deleted on any failure, also an interruption.
     @Test(arguments: [FakeConsent.Answer.interrupted, .status(errSecAuthFailed)])
     func aFailedApprovalDeletesTheItemThisCallAdded(answer: FakeConsent.Answer) async throws {
         let keychain = FakeKeychain()

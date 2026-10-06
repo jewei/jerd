@@ -7,7 +7,7 @@ import Testing
 @testable import JerdSnapshotSupport
 @testable import JerdUI
 
-/// Spec F 2.6: the section picker and the sidebar button keep their place during navigation,
+/// The section picker and the sidebar button keep their place during navigation,
 /// also on Mail, which has no sidebar, and when the user hides a sidebar.
 @Suite("Toolbar positions", .serialized)
 @MainActor

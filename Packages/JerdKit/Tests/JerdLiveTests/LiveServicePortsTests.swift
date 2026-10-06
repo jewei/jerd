@@ -201,7 +201,7 @@ struct LiveServicePortsTests {
 
     // MARK: Launch
 
-    /// Spec F 2.10: a launch loads services and installs runtimes, but never starts one.
+    /// A launch loads services and installs runtimes, but never starts one.
     @Test func loadsInstallRuntimesButNeverStartAService() async throws {
         let temporary = try TemporaryDirectory()
         defer { temporary.remove() }

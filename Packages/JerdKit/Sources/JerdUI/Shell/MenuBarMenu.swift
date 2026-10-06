@@ -22,7 +22,7 @@ enum MenuBarMenu {
         return items
     }
 
-    /// The quit stage or the global work, as a disabled line at the top (spec F 2.5).
+    /// The quit stage or the global work, as a disabled line at the top.
     private static func activityItems(for state: AppState) -> [MenuBarItem] {
         guard let activity = state.bannerActivity else { return [] }
         return [.text(activity.message, id: "menu.activity"), .divider(id: "divider.activity")]

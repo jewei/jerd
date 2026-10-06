@@ -1,7 +1,7 @@
 import JerdDesign
 import SwiftUI
 
-/// The toolbar items of the Storage section (spec F 3.4): Refresh Buckets and the storage ports.
+/// The toolbar items of the Storage section: Refresh Buckets and the storage ports.
 struct StorageToolbar: View {
     let model: StorageModel
     @Environment(\.isQuitting) private var isQuitting

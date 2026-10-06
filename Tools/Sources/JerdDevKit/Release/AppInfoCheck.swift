@@ -4,7 +4,7 @@ import JerdManifest
 /// The Info.plist rules of a release app. Pure: it reads a decoded dictionary.
 ///
 /// The app has the official bundle ID, feed URL, and key, every Sparkle key of the policy (also the
-/// automatic-check, automatic-update, and profiling keys; fixes spec G 8.1 #17), the explicit minimum
+/// automatic-check, automatic-update, and profiling keys), the explicit minimum
 /// macOS version, and the release version.
 struct AppInfoCheck: Sendable {
     let minimumMacOS: ReleaseVersion

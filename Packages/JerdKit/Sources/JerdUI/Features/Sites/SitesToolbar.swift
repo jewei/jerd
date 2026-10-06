@@ -1,7 +1,7 @@
 import JerdDesign
 import SwiftUI
 
-/// The Sites toolbar (spec F 3.2.2): progress, Runtimes, and the System Setup menu. Retry Load
+/// The Sites toolbar: progress, Runtimes, and the System Setup menu. Retry Load
 /// is on the page, not here, so the toolbar fits the compact window in every state.
 struct SitesToolbar: View {
     let model: SitesModel

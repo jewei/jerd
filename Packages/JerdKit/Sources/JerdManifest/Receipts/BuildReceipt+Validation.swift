@@ -1,7 +1,7 @@
 import JerdFoundation
 
 extension BuildReceipt {
-    /// Rule I14: schema 1, parseable versions, a valid archive digest, 1 to 50 000 safe paths with
+    /// Schema 1, parseable versions, a valid archive digest, 1 to 50 000 safe paths with
     /// valid digests, and both executables recorded.
     public func validate() throws {
         guard schemaVersion == Self.currentSchemaVersion,
@@ -28,7 +28,7 @@ extension BuildReceipt {
         "\(kind.rawValue)-\(releaseVersion)-\(architecture.rawValue)"
     }
 
-    /// Rule I15: a build folder must have the current or the legacy name of its receipt.
+    /// A build folder must have the current or the legacy name of its receipt.
     public func matchesFolderName(_ name: String, architecture: CPUArchitecture) -> Bool {
         let legacy = Self.legacyFolderName(kind: kind, releaseVersion: releaseVersion, architecture: architecture)
         return name == legacy || name == "\(legacy)-\(archiveSHA256)"

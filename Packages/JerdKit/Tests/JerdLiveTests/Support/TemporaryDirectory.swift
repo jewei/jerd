@@ -3,7 +3,7 @@ import Foundation
 import JerdFoundation
 
 /// A private temporary folder for one test. The test removes it with `defer { folder.remove() }`,
-/// so the folder goes away also when the test fails (review final-domain-r1 L2).
+/// so the folder goes away also when the test fails.
 struct TemporaryDirectory {
     let url: URL
 

@@ -9,7 +9,7 @@ import JerdProcess
 /// is cancelled. The coordinator never restarts an earlier plan; the transaction decides that.
 ///
 /// An engine failure that arrives while an operation holds the gate waits in `pendingFailure`.
-/// The operation applies it before it leaves the gate, so no failure is lost (review web-r1 H1).
+/// The operation applies it before it leaves the gate, so no failure is lost.
 public actor EnvironmentCoordinator: EnvironmentCoordinating {
     /// The served state of a successful run.
     struct ActiveRun {

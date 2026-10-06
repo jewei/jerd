@@ -2,7 +2,7 @@ import Foundation
 import JerdFoundation
 import Testing
 
-/// Fixed review system-r1 L7: one hosts rule for the app check and the helper.
+/// Regression test: one hosts rule for the app check and the helper.
 ///
 /// The app rule of old builds (`HostsFile.hasConflict`) accepted `::1` and any `127.0.0.1` line
 /// inside the markers, also an unpaired BEGIN marker. The helper rule (`HostsDocument`) accepted only
