@@ -1,5 +1,6 @@
 extension SitesModel {
-    /// Starts site work under the shared lock. The operation shows its message at once; `body`
+    /// Starts site or system setup work under the shared lock. Callers that change sites check
+    /// `canChange` first; system setup steps need only `canChangeSystem`. The operation shows its message at once; `body`
     /// sets the final state. The quit may cancel stoppable work: the cancellation then asks
     /// the port to stop the change at its next step.
     /// - Returns: The task, or nil when a change cannot start now.
@@ -7,7 +8,7 @@ extension SitesModel {
     func startWork(
         _ message: String, canStop: Bool = false, _ body: @escaping @MainActor () async -> Void
     ) -> Task<Void, Never>? {
-        guard canChange else { return nil }
+        guard canChangeSystem else { return nil }
         let port = port
         let task = lock.run(message, canCancel: canStop) { [self] in
             await withTaskCancellationHandler {
@@ -30,7 +31,8 @@ extension SitesModel {
     func perform(
         _ message: String, canStop: Bool = false, _ work: @escaping @MainActor (SitesModel) async throws -> Void
     ) -> Task<Void, Never>? {
-        startWork(message, canStop: canStop) { [self] in
+        guard canChange else { return nil }
+        return startWork(message, canStop: canStop) { [self] in
             do {
                 try await work(self)
                 operation = .idle

@@ -93,7 +93,8 @@ struct SitesModelTests {
         await harness.model.startAll()?.value
         let approval = try #require(harness.model.sheet?.approval)
         #expect(approval.hostnames == ["legacy-blog.test", "northwind.test", "studio.test"])
-        #expect(approval.title == "Enable HTTPS for 3 sites?")
+        #expect(approval.title == "Enable HTTPS for 3 hostnames?")
+        #expect(HTTPSApproval(hostnames: ["studio.test"], fingerprint: "ab").title == "Enable HTTPS for studio.test?")
         #expect(harness.model.environment.siteIDs.isEmpty)
         await harness.model.approve(approval)?.value
         #expect(harness.model.sheet == nil)
@@ -209,15 +210,43 @@ struct SitesModelTests {
         #expect(harness.model.systemSetupState == .approvalRequired)
     }
 
-    @Test("A pending HTTPS recovery blocks Start and links to Advanced")
-    func recoveryBlocksStart() async {
+    @Test("A pending HTTPS recovery blocks every site change and makes Open Advanced the next step")
+    func recoveryBlocksChanges() async {
         var setup = SampleData.approvedSetup
         setup.hasPendingRecovery = true
         let harness = await SitesHarness.launched(sites: InMemorySitesPort(setup: setup))
-        #expect(harness.model.systemSetupState == .recoveryPending)
-        #expect(harness.model.systemSetupState?.opensAdvanced == true)
-        #expect(!harness.model.canStart)
-        #expect(harness.model.canChange)
+        let model = harness.model
+        #expect(model.systemSetupState == .recoveryPending)
+        #expect(!model.canChange)
+        #expect(model.canChangeSystem)
+        model.beginEdit(SampleData.studio)
+        #expect(model.sheet == nil)
+        model.requestRemoval(SampleData.studio)
+        #expect(model.confirmation == nil)
+        #expect(model.setEnabled(SampleData.studio, false) == nil)
+        #expect(model.start(SampleData.studio) == nil)
+        #expect(model.nextStep(for: SampleData.studio) == .recover)
+        #expect(SiteNextStep.recover.title == "Open Advanced")
+        model.openAdvanced()
+        #expect(harness.recorder.shown == [.dashboard(.advanced)])
+        #expect(await !harness.sites.calls.contains { $0.hasPrefix("apply") || $0.hasPrefix("run") })
+    }
+
+    @Test("Start Site and Start All Sites end with … only when a site still needs approval for this CA")
+    func startTitles() async {
+        let harness = await SitesHarness.launched()
+        #expect(harness.model.nextStep(for: SampleData.studio) == .start(needsApproval: false))
+        #expect(harness.model.startAllTitle == "Start All Sites")
+        await harness.sites.configure {
+            $0.authority = InstallationAuthority(installationID: UUID(), fingerprint: "ab")
+        }
+        await harness.model.settle()
+        #expect(!harness.model.isApproved(SampleData.studio))
+        #expect(harness.model.nextStep(for: SampleData.studio) == .start(needsApproval: true))
+        #expect(harness.model.nextStep(for: SampleData.studio).title == "Start Site…")
+        #expect(harness.model.startAllTitle == "Start All Sites…")
+        await harness.model.startAll()?.value
+        #expect(harness.model.sheet?.approval != nil)
     }
 
     @Test("Copy writes the address and shows the window toast; links open and reveal")

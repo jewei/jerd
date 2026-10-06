@@ -10,6 +10,10 @@ extension SampleData {
     public static let docsTunnelID = UUID(uuidString: "90415263-7E8F-4091-82A3-B4C5D6E7F809") ?? UUID()
     /// The SHA-256 of the sample installation CA.
     public static let caFingerprint = "9f2c4be17a03d5e86c41f0b29d7a3e5c18b06f4d2a97e3c50b1d8f6a4c2e9b70"
+    /// The ID of the sample installation.
+    public static let installationID = UUID(uuidString: "A1B2C3D4-E5F6-4071-8293-A4B5C6D7E8F9") ?? UUID()
+    /// The sample installation CA, as an approval names it.
+    public static let authority = InstallationAuthority(installationID: installationID, fingerprint: caFingerprint)
 
     public static let studio = Site(
         id: studioID, displayName: "Studio", projectPath: "\(user)/Projects/studio",
@@ -30,7 +34,8 @@ extension SampleData {
 
     /// A setup that approves every sample hostname.
     public static let approvedSetup = HTTPSSetupStatus(
-        hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], certificateSHA256: caFingerprint,
+        hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], installationID: installationID,
+        certificateSHA256: caFingerprint,
         hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS)
 
     /// Many sites with long names, for truncation.

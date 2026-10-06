@@ -12,6 +12,8 @@ public final class SitesModel {
     public internal(set) var environment = EnvironmentSnapshot(state: .stopped, siteIDs: [])
     /// What the helper reports, or nil before the first read or when the read failed.
     public internal(set) var setup: HTTPSSetupStatus?
+    /// The local CA of this installation. An approval for another CA does not count.
+    public internal(set) var authority: InstallationAuthority?
     /// Why the HTTPS setup could not be read, shown in the system setup banner.
     public internal(set) var setupReadFailure: String?
     /// True after the saved sites were read.
@@ -61,9 +63,17 @@ public final class SitesModel {
     /// True while a site operation runs or Jerd quits. Every site action is then disabled.
     public var isBusy: Bool { operation.isWorking || isShuttingDown }
 
-    /// True when a change can start: the sites are loaded, no site work runs, and no other
-    /// page holds the shared lock or quits.
-    public var canChange: Bool { isLoaded && !isBusy && lock.isFree }
+    /// True when a change can start: the sites are loaded, no site work runs, no other page
+    /// holds the shared lock or quits, and no interrupted HTTPS setup waits for recovery (the
+    /// site transaction refuses every change until then).
+    public var canChange: Bool { canChangeSystem && !needsRecovery }
+
+    /// True when a system setup step can start (Reconnect Helper, Remove System Setup). These
+    /// steps go to the helper, not the site transaction, so a pending recovery does not block them.
+    public var canChangeSystem: Bool { isLoaded && !isBusy && lock.isFree }
+
+    /// True while an interrupted HTTPS setup waits for recovery in Advanced.
+    public var needsRecovery: Bool { setup?.hasPendingRecovery == true }
 
     /// Reads the saved sites, the environment, and the HTTPS setup, then the tunnels.
     public func launch() async {
@@ -71,10 +81,13 @@ public final class SitesModel {
         await tunnels.launch()
     }
 
+    /// True after a failed load, while no load or other site work runs.
+    public var canRetryLoad: Bool { !isLoaded && !isBusy }
+
     /// Reads the saved sites again after a failed load.
     @discardableResult
     public func retryLoad() -> Task<Void, Never>? {
-        guard !isLoaded, !isBusy else { return nil }
+        guard canRetryLoad else { return nil }
         let task = Task { await loadSites() }
         currentWork = task
         return task
@@ -112,9 +125,11 @@ public final class SitesModel {
     func readSetup() async {
         do {
             setup = try await port.setupStatus()
+            authority = try await port.localAuthority()
             setupReadFailure = nil
         } catch {
             setup = nil
+            authority = nil
             setupReadFailure = ErrorText.message(for: error)
         }
     }

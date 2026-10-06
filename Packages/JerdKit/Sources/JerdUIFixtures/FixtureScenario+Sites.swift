@@ -14,8 +14,9 @@ extension FixtureScenario {
         case .dashboardLong, .sitesLong:
             let ids = Set(SampleData.longSiteConfiguration.sites.prefix(12).map(\.id))
             let setup = HTTPSSetupStatus(
-                hostnames: SampleData.longSiteConfiguration.sites.map(\.hostname), hostsConfigured: true,
-                trustConfigured: true, trustPolicy: .serverTLS)
+                hostnames: SampleData.longSiteConfiguration.sites.map(\.hostname),
+                installationID: SampleData.installationID, certificateSHA256: SampleData.caFingerprint,
+                hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS)
             return InMemorySitesPort(
                 configuration: SampleData.longSiteConfiguration, environment: running(ids), setup: setup)
         case .sitesStopped, .sitesBusy, .dashboardBusy, .sitesDisabled:

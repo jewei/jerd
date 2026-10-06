@@ -18,6 +18,12 @@ extension SitesModel {
         !environment.siteIDs.isEmpty || operation.isWorking || environment.state == .starting
     }
 
+    /// True when the All Sites row of a site page shows Stop All Sites. While stoppable work
+    /// runs, the operation banner owns that button, so the page never shows it twice.
+    public var showsStopAllOnPage: Bool {
+        showsStopAll && !(operation.isWorking && canStopAll)
+    }
+
     /// True when Stop All Sites can run now. Work that changes the Mac (an HTTPS approval, a
     /// system setup step, a removal) cannot end at a next step, so Stop waits until it ends.
     public var canStopAll: Bool {
@@ -30,16 +36,10 @@ extension SitesModel {
         return false
     }
 
-    /// True when a Start can run: a change can start and no interrupted HTTPS setup waits for
-    /// recovery, which blocks every site change.
-    public var canStart: Bool {
-        canChange && setup?.hasPendingRecovery != true
-    }
-
-    /// True when the site's hostname is covered by the approved HTTPS setup. Its Start then
-    /// needs no approval sheet.
+    /// True when the approved HTTPS setup covers the site's hostname for this installation's
+    /// CA, the same rule as the site transaction. Its Start then needs no approval sheet.
     public func isApproved(_ site: Site) -> Bool {
-        setup.map { ApprovalPredicate.covers($0, hostnames: [site.hostname]) } ?? false
+        setup.map { ApprovalPredicate.approves($0, hostnames: [site.hostname], authority: authority) } ?? false
     }
 
     /// Serves every enabled site.

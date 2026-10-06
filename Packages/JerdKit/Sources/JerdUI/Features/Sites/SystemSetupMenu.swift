@@ -21,5 +21,5 @@ struct SystemSetupMenu: View {
         .accessibilityIdentifier("sites.system-setup-menu")
     }
 
-    private var canChange: Bool { model.canChange && !isQuitting }
+    private var canChange: Bool { model.canChangeSystem && !isQuitting }
 }
