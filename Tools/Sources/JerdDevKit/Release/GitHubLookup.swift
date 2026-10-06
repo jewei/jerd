@@ -27,7 +27,7 @@ enum GitHubLookup {
     static let releaseFilter = ".[] | {tag: .tag_name, draft: .draft, target: .target_commitish}"
 
     /// The reference whose name is exactly `refs/tags/<tag>`. `matching-refs` is a prefix search, so
-    /// `v0.1.0` also returns `v0.1.0-rc1`; only the exact name counts (fixes spec G 8.1 #7).
+    /// `v0.1.0` also returns `v0.1.0-rc1`; only the exact name counts.
     static func exactTag(_ tag: String, in output: String) throws -> Reference? {
         try lines(output, as: Reference.self).first { $0.ref == "refs/tags/\(tag)" }
     }

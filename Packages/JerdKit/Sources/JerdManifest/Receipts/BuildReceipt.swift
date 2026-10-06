@@ -43,7 +43,7 @@ public struct BuildReceipt: Codable, Equatable, Sendable {
         self.files = Dictionary(uniqueKeysWithValues: files.map { ($0.key.string, $0.value) })
     }
 
-    /// Decodes and validates receipt bytes (rule I14).
+    /// Decodes and validates receipt bytes.
     /// - Throws: `.invalid` with the user message of an invalid receipt.
     public static func decode(_ data: Data) throws -> BuildReceipt {
         guard data.count < sizeLimit else { throw JerdError.invalid("The update receipt is too large.") }

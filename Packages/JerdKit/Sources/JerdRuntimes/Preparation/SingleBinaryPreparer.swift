@@ -7,7 +7,7 @@ import JerdManifest
 ///
 /// Caddy and Mailpit archives carry `LICENSE` and `README.md`. cloudflared and RustFS archives
 /// carry only the binary, so their license comes from a pinned copy. A RustFS binary that links
-/// Homebrew's `liblzma` gets the reviewed XZ library beside it (P-I1).
+/// Homebrew's `liblzma` gets the reviewed XZ library beside it.
 package struct SingleBinaryPreparer: RuntimePreparing {
     package init() {}
 

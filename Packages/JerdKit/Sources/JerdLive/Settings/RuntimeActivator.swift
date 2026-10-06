@@ -6,7 +6,7 @@ import JerdRuntimes
 import JerdStorage
 import JerdWeb
 
-/// Puts an installed managed build into use with its owner (spec D U7). PHP and Caddy go
+/// Puts an installed managed build into use with its owner. PHP and Caddy go
 /// through the site change transaction; every other kind goes to its service owner.
 package struct RuntimeActivator: Sendable {
     let owners: any RuntimeOwning

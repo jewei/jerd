@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @Suite struct DataIdentityGuardTests {
@@ -13,7 +14,7 @@ import Testing
         mismatch: .invalid("Different version."), untracked: .invalid("Untracked data."))
 
     @Test func untouchedDataGetsTheExpectedIdentity() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let guardian = DataIdentityGuard(file: directory.path("runtime.json"), messages: Self.messages)
         try guardian.admit(Identity(runtime: "a"), dataIsUntouched: true)
@@ -23,7 +24,7 @@ import Testing
     }
 
     @Test func dataWithoutAnIdentityIsNeverAdopted() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let guardian = DataIdentityGuard(file: directory.path("runtime.json"), messages: Self.messages)
         #expect(throws: JerdError.invalid("Untracked data.")) {
@@ -33,7 +34,7 @@ import Testing
     }
 
     @Test func anotherIdentityIsRefusedAndKept() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let guardian = DataIdentityGuard(file: directory.path("runtime.json"), messages: Self.messages)
         try guardian.admit(Identity(runtime: "a"), dataIsUntouched: true)
@@ -45,7 +46,7 @@ import Testing
     }
 
     @Test func anUnreadableIdentityIsCorruptAndPreserved() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try write("{broken", to: directory.path("runtime.json"))
         let guardian = DataIdentityGuard(file: directory.path("runtime.json"), messages: Self.messages)
@@ -59,7 +60,7 @@ import Testing
         mismatch: .corrupt("Marker mismatch."), interrupted: .corrupt("Interrupted."))
 
     @Test func aMatchingMarkerWithCompleteDataIsInitialized() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let marker = InitializationMarker(file: directory.path("initialized.json"), messages: Self.markerMessages)
         #expect(
@@ -72,7 +73,7 @@ import Testing
     }
 
     @Test func aMarkerWithMissingDataOrAnotherIdentityIsRefused() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let marker = InitializationMarker(file: directory.path("initialized.json"), messages: Self.markerMessages)
         try marker.write(Identity(runtime: "a"))
@@ -85,7 +86,7 @@ import Testing
     }
 
     @Test func partialDataWithoutAMarkerIsNeverInitializedAgain() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let marker = InitializationMarker(file: directory.path("initialized.json"), messages: Self.markerMessages)
         #expect(throws: JerdError.corrupt("Interrupted.")) {
@@ -99,7 +100,7 @@ import Testing
     }
 
     @Test func dataFolderChecksDoNotFollowLinks() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try FileManager.default.createDirectory(at: directory.path("real"), withIntermediateDirectories: false)
         try FileManager.default.createSymbolicLink(

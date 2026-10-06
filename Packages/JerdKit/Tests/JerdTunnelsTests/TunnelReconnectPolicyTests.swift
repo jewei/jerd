@@ -34,7 +34,7 @@ import Testing
         #expect(transitions[1].step == .check(after: .zero))
     }
 
-    /// Fix of spec E 7.1.18: the first connection showed "Reconnecting…".
+    /// Regression test: the first connection showed "Reconnecting…".
     @Test func theFirstConnectionShowsConnectingAndALostOneShowsReconnecting() {
         let transitions = run(
             launchedEvents + [progress(.probed(.waiting)), progress(.probed(.ready)), progress(.probed(.waiting))])
@@ -134,7 +134,7 @@ import Testing
         }
     }
 
-    /// Fix of spec E 7.1.2: a retry that hit a permanent error showed "Reconnecting…" forever.
+    /// Regression test: a retry that hit a permanent error showed "Reconnecting…" forever.
     @Test func aRetryRetriesOnlyTransientFailures() {
         let retrying = run(launchedEvents + [progress(.probed(.exited)), progress(.reaped(.stopped))]).last?.lifecycle
         let permanent: [JerdError] = [
@@ -157,7 +157,7 @@ import Testing
         }
     }
 
-    /// Fix of review tunnels-r1 L-2: a process failure was always retried, also a permanent one.
+    /// Regression test: a process failure was always retried, also a permanent one.
     @Test func processFailuresAreRetriedOnlyWhenTheConnectorMarksThem() {
         let retrying = run(launchedEvents + [progress(.probed(.exited)), progress(.reaped(.stopped))]).last?.lifecycle
         let permanent: [JerdError] = [
@@ -176,7 +176,7 @@ import Testing
         #expect(marked.error == .processFailed(TunnelMessage.exitedEarly))
     }
 
-    /// Fix of review tunnels-r1 L-2: a connector that exited at each launch was retried forever.
+    /// Regression test: a connector that exited at each launch was retried forever.
     @Test func aConnectorThatExitsSoonAfterEachStartStopsAfterFiveFailedStarts() {
         let crash: [TunnelEvent] = [progress(.probed(.exited)), progress(.reaped(.stopped))]
         let events = launchedEvents + crash + Array(repeating: [progress(.launched)] + crash, count: 4).flatMap { $0 }

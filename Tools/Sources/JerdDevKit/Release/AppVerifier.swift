@@ -9,7 +9,7 @@ struct AppVerifier: Sendable {
         var identifier: SignatureVerifier.IdentifierRule
     }
 
-    /// The executables that must contain only arm64 (fixes spec G 8.1 #16: not only the main one).
+    /// The executables that must contain only arm64 (not only the main one).
     static let arm64Executables = [
         "Contents/MacOS/Jerd", "Contents/MacOS/JerdCLI", "Contents/Library/LaunchServices/JerdHelper",
     ]

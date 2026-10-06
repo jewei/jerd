@@ -1,6 +1,6 @@
 # JerdCLICore
 
-JerdCLICore supplies the `php`, `composer`, and `laravel` commands. It selects the PHP
+JerdCLICore gives the `php`, `composer`, and `laravel` commands. It selects the PHP
 runtime of the registered project that contains the working folder, prepares the CLI INI,
 and runs PHP. It also installs the commands for zsh. It depends on JerdFoundation,
 JerdRuntimes, and JerdWeb. `Apps/JerdCLI/main.swift` only calls `CLILauncher`.
@@ -52,10 +52,10 @@ The "Install Command-Line Tools" control in Dashboard > Advanced calls `install(
   the exit status is PHP's.
 - Runtime trust, one rule (`CLIRuntimeOrigin`). A managed runtime (below `runtimes/` or
   `runtime-updates/`, installed by Jerd with a receipt) is verified against its receipt when
-  the shell setup runs; a failure stops the setup. An imported runtime (anywhere else) is
+  the shell setup runs. A failure stops the setup. An imported runtime (anywhere else) is
   trusted, because the user chose it explicitly, and never blocks the setup. The launcher does
-  not hash a runtime on each call (cost); it checks only that the selected executable is a
-  regular file that the user can run.
+  not hash a runtime on each call, because that is slow. It checks only that the selected
+  executable is a regular file that the user can run.
 - The setup checks everything before it writes.
 - The setup edits the existing `.zprofile` and `.zshrc`, or creates `.zshrc` (mode 0600)
   when neither exists. It never replaces a symbolic link, a hard link, a file of another
@@ -64,11 +64,12 @@ The "Install Command-Line Tools" control in Dashboard > Advanced calls `install(
 - Originals go to `shell-backups/<YYYYmmdd-HHMMSS-ffffff>/` (0700, files 0600). Each file
   is replaced atomically with its mode. A new `.zshrc` is created with `RENAME_EXCL`, so a
   file that appears during the setup stays. A failure restores the files already replaced,
-  but only while they still have the setup's bytes; an edited file stays, and the error
+  but only while they still have the setup's bytes. An edited file stays, and the error
   names it and its backup.
 - The launcher copy `bin/JerdCLI` (0700) must have a valid code signature from the app's
-  signer (`CodeSignatureCheck.forRunningApp()`): for a signed app, `anchor apple generic` with
-  the app's Team ID; for an ad hoc or unsigned development app, only an ad hoc launcher. The links
+  signer (`CodeSignatureCheck.forRunningApp()`). For a signed app, the rule is
+  `anchor apple generic` with the app's Team ID. For an ad hoc or unsigned development app,
+  only an ad hoc launcher passes. The links
   `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a
   crashed run (`.zshrc.jerd-tmp`, `.JerdCLI-next`, `.php-next`).
 

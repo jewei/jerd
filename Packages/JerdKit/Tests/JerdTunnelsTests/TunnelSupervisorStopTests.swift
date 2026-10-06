@@ -22,7 +22,7 @@ import Testing
     }
 
     /// A Stop during a launch, then a new Connect that is also stopped during its launch: each Stop
-    /// reaches its own launch. The slot rule itself (spec E 7.1.1) is proved by `TunnelWorkSlotsTests`,
+    /// reaches its own launch. The slot rule itself is proved by `TunnelWorkSlotsTests`,
     /// because the actor cannot be made to resume the late launch after the newer Connect.
     @Test func eachStopReachesTheLaunchOfItsOwnConnect() async throws {
         let fixture = try await SupervisorFixture()
@@ -133,7 +133,7 @@ import Testing
         #expect(await fixture.secrets.values.count == 2)
     }
 
-    /// Fix of spec E 7.3.4: Quit stopped tunnels one after another, up to 30 s each.
+    /// Regression test: Quit stopped tunnels one after another, up to 30 s each.
     @Test func stopAllStopsEveryConnectorAtTheSameTime() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }

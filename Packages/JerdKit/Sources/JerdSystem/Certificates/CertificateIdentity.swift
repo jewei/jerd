@@ -48,7 +48,7 @@ public enum CertificateIdentity {
         return certificate
     }
 
-    /// Both normalized names must exist and be equal (fixed problem 19: two missing names do not match).
+    /// Both normalized names must exist and be equal (two missing names do not match).
     private static func isSelfIssued(_ certificate: SecCertificate) -> Bool {
         guard let issuer = SecCertificateCopyNormalizedIssuerSequence(certificate),
             let subject = SecCertificateCopyNormalizedSubjectSequence(certificate)

@@ -5,7 +5,7 @@ import Foundation
 /// Archive signing leaves Sparkle's tools with their upstream signatures, so they are signed again in
 /// Sparkle's documented order, innermost first. Every signature names its identifier: Sparkle keeps
 /// the identifier that it had, and the launcher keeps `dev.jerd.cli` instead of the file name
-/// `JerdCLI` that a plain `--force` signature would give (fixes spec G 8.1 #2).
+/// `JerdCLI` that a plain `--force` signature would give.
 struct AppSigner: Sendable {
     /// The Sparkle parts below `Contents/Frameworks/Sparkle.framework`, in signing order.
     static let sparkleParts = [

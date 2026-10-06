@@ -4,6 +4,7 @@ import JerdFoundation
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @Suite struct BackupRetentionServiceTests {
@@ -15,7 +16,7 @@ import Testing
         let second = UUID()
 
         init() throws {
-            directory = try TemporaryDirectory()
+            directory = try TemporaryDirectory(" service kit ü")
             layout = DataLayout(root: directory.url.appendingPathComponent("Jerd"))
             for folder in [layout.root, layout.storage.root, layout.storage.runtimeBackupsDirectory] {
                 try OwnedDirectory.create(folder)

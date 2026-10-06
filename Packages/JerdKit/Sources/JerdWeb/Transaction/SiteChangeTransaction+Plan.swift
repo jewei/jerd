@@ -31,7 +31,7 @@ extension SiteChangeTransaction {
         }
         advance(to: .preparing)
         let token = try await prepare(plan, running: running, reusing: prepared, ticket: ticket)
-        // The full rule, the CA included (review web-r1 M2): a regenerated or missing CA leads to
+        // The full rule, the CA included: a regenerated or missing CA leads to
         // an approval, whose `prepare` creates or loads the CA, instead of a failed activation.
         if let plan, approved == nil,
             !ApprovalPredicate.approves(

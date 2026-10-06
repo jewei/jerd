@@ -85,7 +85,7 @@ import Testing
         }
     }
 
-    /// Fixed review M2: for a committed setup, a deleted section counts as removed; a changed one does not.
+    /// Regression test: for a committed setup, a deleted section counts as removed; a changed one does not.
     @Test func aRecordedSectionThatIsGoneCountsAsRemoved() throws {
         let plain = Data("127.0.0.1 localhost\n".utf8)
         #expect(try HostsSection.replacing(in: plain, with: [], recorded: hosts("demo.test")) == plain)
@@ -114,7 +114,7 @@ import Testing
         }
     }
 
-    /// Fixed problem 12: a section that configure accepts is also reported as configured.
+    /// Regression test: a section that configure accepts is also reported as configured.
     @Test(arguments: [
         "# BEGIN JERD\n127.0.0.1 a.test\n127.0.0.1 b.test\n# END JERD\n127.0.0.1 localhost\n",
         "127.0.0.1 localhost\r\n# BEGIN JERD\r\n127.0.0.1 a.test\r\n127.0.0.1 b.test\r\n# END JERD\r\n",

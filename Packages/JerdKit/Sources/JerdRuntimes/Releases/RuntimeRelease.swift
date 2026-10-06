@@ -16,7 +16,7 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     public let architecture: CPUArchitecture
     /// The lowest macOS major version that the package supports, when the publisher states one.
     public let minimumOSMajor: Int?
-    /// The reviewed signature file of a pinned release: its size limit and SHA-256 (RT-4). Nil for
+    /// The reviewed signature file of a pinned release: its size limit and SHA-256. Nil for
     /// catalog releases, whose signature is limited by `RuntimePipeline.signatureLimit` only.
     public let pinnedSignature: PinnedFile?
 

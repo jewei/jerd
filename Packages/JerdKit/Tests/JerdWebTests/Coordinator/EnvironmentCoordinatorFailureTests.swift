@@ -4,7 +4,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review web-r1 H1: an engine failure while an operation holds the gate is never lost.
+/// An engine failure while an operation holds the gate is never lost.
 ///
 /// Each test holds the fake engine inside an operation, crashes the run, and waits until the
 /// coordinator has recorded the failure. Only then does the operation continue, so the failure

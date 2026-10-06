@@ -28,7 +28,7 @@ extension ManagedInstance {
     }
 
     /// The shared start order. A read-only record check comes first, so a process that survived
-    /// a crash gives the recovery message and not "port occupied" (review final-domain-r1 M1).
+    /// a crash gives the recovery message and not "port occupied".
     /// The port checks follow, so a conflict creates no file.
     private func runStartSteps() async throws -> pid_t {
         let definition = definition

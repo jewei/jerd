@@ -61,7 +61,7 @@ import Testing
         #expect(await harness.engine.starts == 1)
     }
 
-    /// Review web-r1 M2: keeping a run activates nothing, so a later CA change does not refuse
+    /// Keeping a run activates nothing, so a later CA change does not refuse
     /// it. A rollback can then keep the run that a refused activation never stopped.
     @Test(arguments: [false, true])
     func aHealthyEquivalentRunIsKeptAfterTheLocalCAChanged(_ removeCA: Bool) async throws {

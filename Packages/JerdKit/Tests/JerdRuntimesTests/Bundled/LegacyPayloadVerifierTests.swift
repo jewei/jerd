@@ -5,7 +5,7 @@ import JerdManifest
 import JerdRuntimes
 import Testing
 
-/// RT-6: payload folders that an older Jerd installed are verified with their own receipt form before use.
+/// Payload folders that an older Jerd installed are verified with their own receipt form before use.
 @Suite struct LegacyPayloadVerifierTests {
     /// The golden folders: the exact receipt forms of the old tools (indent 2, sorted keys, extra keys).
     private static let golden: [(PayloadGroup, String, [String])] = [

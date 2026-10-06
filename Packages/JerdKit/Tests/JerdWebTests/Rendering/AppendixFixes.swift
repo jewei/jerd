@@ -3,7 +3,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// The documented changes from spec B Appendix A (the old generator's output) to the new routes.
+/// The documented changes from the output of the old generator (`CaddySamples`) to the new routes.
 ///
 /// Each step names one fix. Applied to the old JSON, they must give the new JSON exactly, so no
 /// other change can hide in the routes.
@@ -12,9 +12,9 @@ enum AppendixFixes {
     ///
     /// - Parameter wellKnown: the new `.well-known` route of the same site.
     static func apply(to routes: NSMutableArray, wellKnown: Any) throws {
-        // Spec B 7.1.2: existing visible files below `/.well-known/` are served (route 3).
+        // Existing visible files below `/.well-known/` are served (route 3).
         routes.insert(wellKnown, at: 2)
-        // Review web-r1 C1: the front controller keeps its path info for `PATH_INFO`.
+        // The front controller keeps its path info for `PATH_INFO`.
         let rewrite = try #require(try handlers(of: routes[4]).firstObject)
         let handlers = try handlers(of: routes[4])
         handlers.removeAllObjects()
@@ -26,19 +26,19 @@ enum AppendixFixes {
     }
 
     private static func fixPHPRoute(_ route: NSMutableDictionary) throws {
-        // Review web-r1 M1: the on-disk name must end in lowercase `.php`.
+        // The on-disk name must end in lowercase `.php`.
         let match = try #require((route["match"] as? NSArray)?.firstObject as? NSMutableDictionary)
         match["file"] = ["try_files": [SiteRoutePolicy.exactScriptPattern], "try_policy": "first_exist"]
         let proxy = try #require(try handlers(of: route).firstObject as? NSMutableDictionary)
         let transport = try #require(proxy["transport"] as? NSMutableDictionary)
-        // Spec B 7.1.1: Caddy waits longer than PHP (35 s instead of 15 s).
+        // Caddy waits longer than PHP (35 s instead of 15 s).
         #expect(transport["read_timeout"] as? Int == 15_000_000_000)
         transport["read_timeout"] = 35_000_000_000
-        // Review web-r1 C1: path info reaches PHP only as `PATH_INFO`, never as a file path.
+        // Path info reaches PHP only as `PATH_INFO`, never as a file path.
         transport["env"] = ["PATH_INFO": "{http.vars.\(SiteRoutePolicy.pathInfoVariable)}"]
     }
 
-    /// Review web-r1 L1: `.pht`, `.phps`, and `.phpt` are PHP-like; the static server hides more.
+    /// `.pht`, `.phps`, and `.phpt` are PHP-like; the static server hides more.
     private static func replacePatternsAndHiddenFiles(in value: Any) {
         if let array = value as? NSArray {
             for item in array { replacePatternsAndHiddenFiles(in: item) }

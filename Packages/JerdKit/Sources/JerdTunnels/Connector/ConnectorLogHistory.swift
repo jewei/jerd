@@ -5,7 +5,7 @@ import JerdProcess
 /// Keeps the output of earlier connector runs when a new run starts.
 ///
 /// The process supervisor empties `server.log` at each launch. Earlier builds lost the output of a
-/// crashed connector at the automatic restart (spec E 7.1.4). Before each launch, this type appends
+/// crashed connector at the automatic restart. Before each launch, this type appends
 /// the current log to `server.previous.log` (bounded to 4 MiB) and marks the boundary.
 package struct ConnectorLogHistory: Sendable {
     /// The most bytes that the history file keeps.

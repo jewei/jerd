@@ -5,7 +5,7 @@ import os
 /// The app-side gate of reverse trust calls. Each operation opens its own scope and gets a token;
 /// only that token can close it, and a second operation cannot open a scope while one is open.
 ///
-/// This fixes the shared scope slot (problem 8): an operation can no longer replace or clear
+/// This fixes the shared scope slot: an operation can no longer replace or clear
 /// the scope of another operation.
 public final class ConsentGate: Sendable {
     private struct Open: Sendable {

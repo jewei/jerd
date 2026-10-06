@@ -30,10 +30,12 @@ package struct ArchiveEntryHeader: Sendable, Equatable {
     package var hardlinkTarget: String?
     /// The permission bits (`0o7777`).
     package var permissions: UInt32
+    /// The modification time, or nil when the archive does not record it.
+    package var modificationTime: EntryTimestamp?
 
     package init(
         path: String, type: FileType, size: Int64?, symlinkTarget: String? = nil, hardlinkTarget: String? = nil,
-        permissions: UInt32 = 0o644
+        permissions: UInt32 = 0o644, modificationTime: EntryTimestamp? = nil
     ) {
         self.path = path
         self.type = type
@@ -41,5 +43,6 @@ package struct ArchiveEntryHeader: Sendable, Equatable {
         self.symlinkTarget = symlinkTarget
         self.hardlinkTarget = hardlinkTarget
         self.permissions = permissions
+        self.modificationTime = modificationTime
     }
 }

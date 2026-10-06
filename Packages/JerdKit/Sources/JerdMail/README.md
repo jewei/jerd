@@ -37,7 +37,7 @@ All paths come from `MailLayout` in JerdFoundation. Folders have mode 0700 and f
 - After a successful start, a missing database is refused, never replaced with an empty one.
 - Edit checks the run record with the inbox lock held.
 - Exit detection never blocks Stop. Stop and Quit keep every message.
-- A runtime update checks the inbox first without a write, keeps the lock for the whole
+- A runtime update checks the inbox first without a write. It keeps the lock for the whole
   transaction, and keeps its backup until the user deletes it in Advanced.
 
 ## Test
@@ -46,8 +46,8 @@ All paths come from `MailLayout` in JerdFoundation. Folders have mode 0700 and f
 swift test --package-path Packages/JerdKit --filter JerdMailTests
 ```
 
-The default tests use fake processes, a fake `lsof`, scripted Mailpit answers, golden files from
-older builds, and a small HTTP server on a loopback port. The opt-in test starts a real Mailpit:
+The default tests use fake processes, a fake `lsof`, and scripted Mailpit answers. They also
+use golden files from older builds and a small HTTP server on a loopback port. The opt-in test starts a real Mailpit:
 
 ```sh
 JERD_MAIL_INTEGRATION=1 JERD_MAIL_RUNTIME=<folder with mailpit 1.31.3> \

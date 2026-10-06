@@ -61,6 +61,13 @@ struct CommandPlanTests {
                 "swift", "run", "--package-path", "/work/jerd/Packages/JerdKit", "-c", "debug", "jerd-snapshots",
                 "--output", "/work/jerd/.build/snapshots", "Sites",
             ])
+        let list = SnapshotPlan.invocation(repository: repository, toolchain: toolchain, pages: [], listOnly: true)
+        #expect(list.arguments.suffix(3) == ["--output", "/work/jerd/.build/snapshots", "--list"])
+        guard case .command(let command) = DevMain.parse(["snapshots", "--list"]) else {
+            Issue.record("./dev snapshots --list must parse.")
+            return
+        }
+        #expect((command as? SnapshotsCommand)?.list == true)
     }
 
     @Test("cleans build folders, and with --all also packages and runtimes")

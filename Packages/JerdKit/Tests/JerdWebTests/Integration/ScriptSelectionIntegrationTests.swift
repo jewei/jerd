@@ -1,11 +1,12 @@
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @testable import JerdWeb
 
-/// The attack requests of review web-r1 (C1, M1, L1) against real PHP-FPM and Caddy.
+/// Requests that try to run a script other than the routed one, against real PHP-FPM and Caddy.
 ///
 /// Every target script prints `TARGET-` and `EXECUTED` joined at run time, so its source text never
 /// contains the marker. A response that contains the marker proves that PHP ran the target.
@@ -47,7 +48,7 @@ struct ScriptSelectionIntegrationTests {
 
     /// The requests and their outcomes. A path-info request never runs the file it names.
     static let attacks: [Attack] = [
-        // C1: path info into public storage (uploads) and into private folders.
+        // Path info into public storage (uploads) and into private folders.
         Attack(
             host: laravel, path: "/index.php/storage/upload.php",
             outcome: .frontController(pathInfo: "/storage/upload.php")),
@@ -68,7 +69,7 @@ struct ScriptSelectionIntegrationTests {
         Attack(host: projectRoot, path: "/index.php/upper.PHP", outcome: .frontController(pathInfo: "/upper.PHP")),
         Attack(host: projectRoot, path: "/index.php/../vendor/pkg/run.php", outcome: .notFound, pathAsIs: true),
         Attack(host: projectRoot, path: "/valid.php/../vendor/pkg/run.php", outcome: .notFound, pathAsIs: true),
-        // M1: the on-disk name decides, also on a case-insensitive volume.
+        // The on-disk name decides, also on a case-insensitive volume.
         Attack(host: projectRoot, path: "/upper.PHP", outcome: .notFound),
         Attack(host: projectRoot, path: "/upper.php", outcome: .notFound),
         Attack(host: projectRoot, path: "/UPPER.php", outcome: .notFound),
@@ -79,7 +80,7 @@ struct ScriptSelectionIntegrationTests {
         Attack(host: projectRoot, path: "/odd%5B1%5D.php", outcome: .script("odd[1].php")),
         Attack(host: projectRoot, path: "/odd%5B2%5D.php", outcome: .frontController(pathInfo: "")),
         Attack(host: projectRoot, path: "/odd%5B3%5D.php", outcome: .frontController(pathInfo: "")),
-        // L1: other PHP-like extensions are neither run nor served as source.
+        // Other PHP-like extensions are neither run nor served as source.
         Attack(host: projectRoot, path: "/script.pht", outcome: .notFound),
         Attack(host: projectRoot, path: "/script.phps", outcome: .notFound),
         Attack(host: projectRoot, path: "/script.phpt", outcome: .notFound),

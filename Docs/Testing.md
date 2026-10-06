@@ -18,15 +18,30 @@ absolute path of a trusted local runtime. The variables of each group are in
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 
+## Temporary folders
+
+Every test target uses the one `TemporaryDirectory` of the test-only target
+`JerdTestSupport` (`Packages/JerdKit/Tests/JerdTestSupport`). Do not add another
+copy. Add `JerdTestSupport` to the dependencies of a new test target instead.
+
+```swift
+let folder = try TemporaryDirectory(" café")  // optional suffix, to test quoting
+defer { folder.remove() }
+```
+
+The folder has mode 0700 and a canonical path (`/private/var/…`). Its helpers
+are `path`, `folder`, `file`, and `names(withPrefix:)`. The free functions
+`contents` and `text` read a file. Helpers that only one target needs stay in
+that target, for example `TemporaryDirectory+Layout.swift` in `JerdLiveTests`.
+
 ## Fixture processes
 
 Some tests start small C fixtures, for example `graceful-process`, which ignores
 SIGTERM. Each fixture runs with its working folder in the temporary folder of its
-test. `TemporaryDirectory.remove()` (in `JerdProcessTests` and
-`JerdServiceKitTestSupport`) finds each process that still runs in that folder.
-It waits 5 seconds, kills each process that did not stop, and records a test
-issue. Thus a test that fails before its Stop does not leave a fixture running,
-and a test that leaves a fixture running fails.
+test. `TemporaryDirectory.remove()` finds each process that still runs in that
+folder. It waits 5 seconds, kills each process that did not stop, and records a
+test issue. Thus a test that fails before its Stop does not leave a fixture
+running, and a test that leaves a fixture running fails.
 
 ## Signed XPC check
 

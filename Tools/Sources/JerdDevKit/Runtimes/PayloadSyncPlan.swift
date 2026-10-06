@@ -2,7 +2,7 @@ import Foundation
 
 /// Plans how the embed phase makes `Jerd.app/Contents/Resources/RuntimePayloads` equal to the verified
 /// payloads: one `rsync --delete` per payload folder, so unchanged files are not copied again on
-/// every build (fixes spec G 8.1 #24), and the removal of every folder that no current pin names.
+/// every build, and the removal of every folder that no current pin names.
 enum PayloadSyncPlan {
     /// Copies changed files of `source` into `destination` and removes files that `source` lacks.
     /// Finder metadata is never copied; installation ignores it too.

@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdProcess
@@ -85,7 +86,7 @@ import Testing
         #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
     }
 
-    /// Fixed spec A 7 #11, tested at last (review L11): libproc can return -1 and set `errno`.
+    /// Regression test: libproc can return -1 and set `errno`.
     @Test func aMinusOneResultIsReadFromErrno() {
         #expect(AuditedSignaller.errorNumber(returned: -1, errno: ESRCH) == ESRCH)
         #expect(AuditedSignaller.errorNumber(returned: 0, errno: EPERM) == 0)

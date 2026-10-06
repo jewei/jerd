@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 import Testing
 
 @testable import JerdDevKit
@@ -6,8 +7,11 @@ import Testing
 @Suite("Argument parsing and exit status")
 struct DevMainTests {
     private func exitStatus(_ arguments: [String]) -> ExitStatus? {
-        if case .exit(let status, _) = DevMain.parse(arguments) { return status }
-        return nil
+        switch DevMain.parse(arguments) {
+        case .help: .success
+        case .usageError: .usage
+        case .command: nil
+        }
     }
 
     @Test(
@@ -33,8 +37,8 @@ struct DevMainTests {
 
     @Test("every usage error has one format: the message, the usage of the command, and the help hint")
     func formatsUsageErrors() {
-        guard case .exit(_, let unknown) = DevMain.parse(["help", "nope"]),
-            case .exit(_, let option) = DevMain.parse(["format", "--fix"])
+        guard case .usageError(let unknown, _, _) = DevMain.parse(["help", "nope"]),
+            case .usageError(let option, _, _) = DevMain.parse(["format", "--fix"])
         else {
             Issue.record("Both arguments must be usage errors.")
             return
@@ -56,6 +60,53 @@ struct DevMainTests {
             return
         }
         #expect(try #require(parsed as? any DevSubcommand).options.json)
+    }
+
+    @Test(
+        "--json prints one usage summary for parse and validation errors",
+        arguments: [
+            (["build", "--sign", "X", "--json"], "build"),
+            (["test", "--integration", "bogus", "--json"], "test"),
+            (["release", "prepare", "--json"], "release prepare"),
+            (["runtimes", "prepare", "nope", "--json"], "runtimes prepare"),
+            (["nope", "--json"], "dev"),
+        ])
+    func usageErrorsWithJSON(arguments: [String], command: String) async throws {
+        let output = RecordingTextOutput()
+        let status = await DevMain.run(arguments: arguments, output: output)
+        #expect(status == ExitStatus.usage.rawValue)
+        let summary = try JSONDecoder().decode(RunReport.Summary.self, from: Data(output.standardOutput.utf8))
+        #expect(summary.command == command)
+        #expect(summary.status == "usage" && summary.exitStatus == 2 && summary.steps.isEmpty)
+        #expect(summary.message.map { !$0.isEmpty && !$0.contains("Usage:") } == true)
+        #expect(output.standardError.contains("Usage: dev"))
+    }
+
+    @Test("a usage error without --json prints nothing on standard output")
+    func usageErrorsWithoutJSON() async {
+        let output = RecordingTextOutput()
+        #expect(await DevMain.run(arguments: ["build", "--sign", "X"], output: output) == 2)
+        #expect(output.standardOutput.isEmpty)
+        #expect(!DevMain.requestsJSON(["test", "--", "--json"]))
+    }
+
+    @Test(
+        "the summary names the full command path",
+        arguments: [
+            (["release", "status", "/nonexistent-jerd-release", "--json"], "release status")
+        ])
+    func summaryCommandPath(arguments: [String], command: String) async throws {
+        guard case .command(let parsed) = DevMain.parse(arguments) else {
+            Issue.record("The arguments must parse.")
+            return
+        }
+        let output = RecordingTextOutput()
+        _ = await DevMain.execute(parsed, output: output)
+        let summary = try JSONDecoder().decode(RunReport.Summary.self, from: Data(output.standardOutput.utf8))
+        #expect(summary.command == command)
+        #expect(UsageMessage.commandPath(ReleasePrepareCommand.self) == "release prepare")
+        #expect(UsageMessage.commandPath(DevCommand.self) == "dev")
+        #expect(UsageMessage.commandPath(RuntimesPrepareCommand.self) == "runtimes prepare")
     }
 
     @Test("parses each command with its options")
@@ -107,5 +158,8 @@ struct DevMainTests {
         for command in ["check", "test", "build", "snapshots", "format", "lint", "generate", "doctor", "clean"] {
             #expect(help.contains("  \(command) "))
         }
+        #expect(help.contains("128 plus the signal number"))
+        #expect(help.contains("Add --json"))
+        #expect(DevCommand.helpMessage(for: CheckCommand.self).contains("dev check [<subcommand>]"))
     }
 }

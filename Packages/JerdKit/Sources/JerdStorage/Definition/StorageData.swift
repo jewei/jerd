@@ -80,7 +80,7 @@ struct StorageData: Sendable {
         return try StoredCredentials.read(from: layout.credentialsFile).credentials
     }
 
-    /// A pure hash compare of the raw file bytes (spec 3.4.6.d). The credentials are decoded only
+    /// A pure hash compare of the raw file bytes. The credentials are decoded only
     /// after it passes, so a changed credential file is reported as changed data.
     private func requireUnchangedIfInitialized(for runtime: StorageRuntime) throws {
         guard FileProbe.presence(at: layout.initializedMarkerFile).mayExist else { return }

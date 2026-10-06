@@ -4,7 +4,7 @@ import JerdFoundation
 /// One site edit, Start, or Stop of sites as a transaction: plan, prepare, ask for approval when
 /// needed, change the system setup, save, activate, and on failure roll back once.
 ///
-/// It is the only owner of rollback (spec B 7.1.7): the coordinator never restarts a previous
+/// It is the only owner of rollback: the coordinator never restarts a previous
 /// run, so a failure restarts the previous run once and reports once. Every step carries the
 /// `StopTicket` from the start, so a Stop during any step ends the change and prevents a restart.
 public actor SiteChangeTransaction {
@@ -80,7 +80,7 @@ public actor SiteChangeTransaction {
     }
 
     /// Runs one change. Its stop ticket is taken before its first suspension, so a Stop at any
-    /// later moment ends it (review web-r1 L2).
+    /// later moment ends it.
     private func exclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
         guard !busy else { throw JerdError.unavailable("Wait for the current site edit.") }
         busy = true

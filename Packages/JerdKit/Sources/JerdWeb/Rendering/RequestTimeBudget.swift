@@ -2,7 +2,7 @@
 ///
 /// PHP and FPM end a request after 30 seconds. Caddy waits longer than that for the FastCGI
 /// response, so PHP's own limit always decides first and the proxy never cuts a request that PHP
-/// is still running (spec B 7.1.1: the old 15-second proxy limit was half the PHP limit).
+/// is still running (the old 15-second proxy limit was half the PHP limit).
 public enum RequestTimeBudget {
     /// `max_execution_time` in the FPM `php.ini`.
     public static let phpExecutionSeconds = 30

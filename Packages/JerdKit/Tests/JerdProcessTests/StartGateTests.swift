@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct StartGateTests {
@@ -103,7 +104,7 @@ import Testing
         #expect(FileProbe.presence(at: location.recordFile) == .absent)
     }
 
-    /// Review final-domain-r1 M1: the check before the port checks needs no lock and changes no file.
+    /// The check before the port checks needs no lock and changes no file.
     @Test func theReadOnlyCheckRefusesALiveRecordWithoutTheLockAndChangesNoFile() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

@@ -5,7 +5,7 @@ import JerdManifest
 /// Checks the publisher catalogs. It reads the network only when a check is requested.
 ///
 /// Each candidate passes the release policy alone: an invalid or incompatible candidate is
-/// dropped and the others stay (fixes P-C1). The result is sorted newest first.
+/// dropped and the others stay. The result is sorted newest first.
 public actor RuntimeCatalog {
     private let metadata: MetadataCache
     private let policy: ReleasePolicy

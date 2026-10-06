@@ -1,7 +1,7 @@
 import Foundation
 import JerdFoundation
 
-/// Makes a RustFS binary independent of Homebrew (fixes P-I1).
+/// Makes a RustFS binary independent of Homebrew.
 ///
 /// Upstream RustFS for macOS links `/opt/homebrew/opt/xz/lib/liblzma.5.dylib`. Without Homebrew XZ
 /// the binary does not start; with it, the runtime silently depends on Homebrew. This step copies

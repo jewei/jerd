@@ -28,8 +28,8 @@ extension ManagedInstance {
     }
 
     /// After a crash or a force quit, the earlier server can still run and serve the data. Then
-    /// the state is `failed` with the recovery message, not `stopped` (review final-domain-r1
-    /// M1). The check reads the run record only. Another failure text stays, and the message
+    /// the state is `failed` with the recovery message, not `stopped`.
+    /// The check reads the run record only. Another failure text stays, and the message
     /// clears when recovery removed the process.
     private func showPreviousProcess() {
         guard process == nil, lease == nil, !state.isBusy else { return }

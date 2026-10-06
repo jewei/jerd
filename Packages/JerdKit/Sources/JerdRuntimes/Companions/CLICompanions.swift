@@ -20,6 +20,6 @@ public struct CLICompanions: Codable, Equatable, Sendable {
         self.laravelVersion = laravelVersion
     }
 
-    /// True when both tools have a recorded version (rule B1).
+    /// True when both tools have a recorded version.
     public var hasVersions: Bool { composerVersion != nil && laravelVersion != nil }
 }

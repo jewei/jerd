@@ -26,7 +26,7 @@ public enum SiteRoutePolicy {
     /// not start with a dot.
     ///
     /// Why this exact rule: security.txt, OAuth and OpenID discovery, and app-site association
-    /// files must be reachable, so the old blanket dot-segment denial (spec B 7.1.2) is narrowed
+    /// files must be reachable, so the old blanket dot-segment denial is narrowed
     /// for this one prefix only. The route also requires an existing regular file and refuses
     /// every PHP-like or otherwise denied name, and it uses the static server only. So it can
     /// never run PHP, and a hidden file (`/.well-known/.env`) or a missing path still answers 404.
@@ -125,13 +125,13 @@ public enum SiteRoutePolicy {
 
     /// The script must end in lowercase `.php` in the request and on disk, outside `/storage/`.
     ///
-    /// Script selection (review web-r1 C1): FPM runs `SCRIPT_FILENAME`, which the transport builds
+    /// Script selection: FPM runs `SCRIPT_FILENAME`, which the transport builds
     /// from the rewritten path, so it is always the script that the front-controller route chose.
     /// Path info goes to PHP only as `PATH_INFO` (from `pathInfoVariable`). Caddy then sends no
     /// `PATH_TRANSLATED`, the document root plus the path info, which FPM would run with
     /// `cgi.fix_pathinfo = 0`. See `PHPIniPolicy.fpm` for the second, independent layer.
     ///
-    /// Case (review web-r1 M1): on a case-insensitive volume (the APFS default) `/name.php` finds
+    /// Case: on a case-insensitive volume (the APFS default) `/name.php` finds
     /// `name.PHP`, and a path regexp sees only the request. The `file` matcher ends in a glob class
     /// (`ph[p]`), so Caddy lists the folder and compares each name case-sensitively (Go
     /// `path.Match`); a plain path would use `stat`, which ignores case. So `name.PHP`, `name.Php`,

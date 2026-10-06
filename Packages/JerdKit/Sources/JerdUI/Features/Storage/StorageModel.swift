@@ -5,7 +5,7 @@ import Observation
 
 /// The Storage section: the one RustFS service, its buckets, credentials, ports, and Laravel
 /// settings. One change runs at a time: a page operation, a bucket save, or a port change.
-/// Copies never wait for it (spec E 7.8.4).
+/// Copies never wait for it.
 @MainActor
 @Observable
 public final class StorageModel {

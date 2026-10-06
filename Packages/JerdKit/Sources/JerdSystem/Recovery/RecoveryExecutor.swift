@@ -5,7 +5,7 @@ import JerdFoundation
 /// the journal for a later, newly approved attempt.
 ///
 /// Before any change it keeps a copy of the journal in `recovery.previous.json`. A later attempt at
-/// the same transaction never replaces that first copy (fixed problem 2). A restore writes back the
+/// the same transaction never replaces that first copy. A restore writes back the
 /// exact bytes of the earlier registration.
 struct RecoveryExecutor {
     let directory: RootRecordDirectory

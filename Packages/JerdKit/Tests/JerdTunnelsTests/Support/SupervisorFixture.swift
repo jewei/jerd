@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
@@ -14,7 +15,7 @@ struct SupervisorFixture {
     let registration: TunnelRegistration
 
     init(restartOnFailure: Bool = true, startOnLaunch: Bool = false) async throws {
-        folder = try TemporaryDirectory()
+        folder = try TemporaryDirectory(" tunnels")
         supervisor = TunnelSupervisor(
             layout: folder.layout, secrets: secrets, connector: connector, policy: .standard, clock: clock)
         registration = TunnelRegistration(
@@ -68,7 +69,7 @@ struct SupervisorFixture {
     }
 
     /// Proves that a tunnel that failed by itself needs no Stop: a runtime change, an edit with a
-    /// new token, Connect, and Remove all work at once (spec E 3.6.3.5 and 3.6.5.2).
+    /// new token, Connect, and Remove all work at once.
     func expectNoStopNeeded() async throws {
         try await supervisor.useRuntime(at: URL(fileURLWithPath: "/runtimes/new/cloudflared"))
         try await supervisor.save(registration, token: TokenSamples.rotated)

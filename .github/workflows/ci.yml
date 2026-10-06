@@ -7,6 +7,10 @@ name: CI
 # The `runtime-integration` job (manual and weekly) prepares the pinned runtimes and runs the opt-in
 # integration tests with them. It does not run on every pull request, because it downloads about
 # 500 MB and builds Redis and XZ. Its cache is keyed on the pins, so a new pin prepares again.
+#
+# Each event kind has its own concurrency group. Thus a merge does not cancel the weekly runtime job,
+# and a manual run does not cancel the check of the last merge. Only a new push to a pull request
+# cancels the older run of that pull request. Other runs wait in the queue.
 
 on:
   push:
@@ -21,8 +25,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # The XcodeGen release archive for the version in Tools/xcodegen-version.
@@ -106,7 +110,8 @@ jobs:
           xcodebuild -version
 
       - name: Restore prepared runtimes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: restore-runtimes
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # Downloads are kept by SHA-256. Payloads and the XZ build are verified before every use.
           path: |
@@ -119,7 +124,22 @@ jobs:
         run: ./dev runtimes prepare
 
       - name: Verify runtimes
+        id: verify-runtimes
         run: ./dev runtimes verify
+
+      - name: Save prepared runtimes
+        # Save right after the verification, so that a failed or cancelled test keeps the prepared
+        # runtimes. A partial preparation is not saved, because a saved cache key cannot change.
+        if: >-
+          always() && steps.verify-runtimes.outcome == 'success'
+          && steps.restore-runtimes.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/runtimes/downloads
+            .build/runtimes/payloads
+            .build/runtimes/support
+          key: ${{ steps.restore-runtimes.outputs.cache-primary-key }}
 
       - name: Run integration tests
         run: ./dev test --integration web,database,mail,storage

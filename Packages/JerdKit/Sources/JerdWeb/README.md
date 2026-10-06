@@ -1,7 +1,7 @@
 # JerdWeb
 
 JerdWeb serves the registered `.test` sites over HTTPS. It keeps the site configuration,
-validates sites, renders the Caddy, PHP-FPM, and PHP INI files, runs the unprivileged
+validates sites, and renders the Caddy, PHP-FPM, and PHP INI files. It runs the unprivileged
 processes, and applies each site change as one transaction. It depends only on
 JerdFoundation and JerdProcess. It does not import JerdSystem: the helper is a port.
 
@@ -30,8 +30,9 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
 ## Rules
 
 - Detection reads file metadata only. Jerd never runs project code to detect a project.
-- Caddy gets JSON only: admin API off, internal CA only, `install_trust: false`, loopback or
-  inherited listeners only, strict SNI, 421 for unknown hosts, 308 from HTTP to HTTPS.
+- Caddy gets JSON only, with the admin API off, the internal CA only, and `install_trust: false`.
+  It uses loopback or inherited listeners only and strict SNI. Unknown hosts get 421, and HTTP
+  gets 308 to HTTPS.
 - Dot paths, private folders, Composer files, and PHP-like names (`.php5`, `.pht`, `.phtml`,
   `.phar`, `.phps`, `.phpt`, `.inc`, any case) answer 404. An existing file below `/.well-known/`
   is served statically; hidden files there still answer 404.
@@ -42,7 +43,7 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
   `PATH_TRANSLATED`. So `/index.php/storage/upload.php` runs `index.php` with
   `PATH_INFO=/storage/upload.php`, and `/index.php/route` works.
 - A script runs only when its name on disk ends in lowercase `.php`, also on a case-insensitive
-  volume: the PHP route's `file` matcher ends in a glob class (`ph[p]`), which Caddy compares
+  volume. The PHP route's `file` matcher ends in a glob class (`ph[p]`), which Caddy compares
   case-sensitively. `/name.php` for `name.PHP` and `/Name.php` for `name.php` answer 404.
 - PHP and FPM end a request after 30 seconds. Caddy waits 35 seconds, so PHP decides.
 - Caddy and PHP-FPM never run as root. Each run has a new private socket folder. The engine
@@ -51,7 +52,7 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
 - A Stop raises a stop epoch. Every step of an older operation ends with `CancellationError`.
   A change takes its ticket before its first suspension. `SiteChangeTransaction.requestStop()`
   is the app's Stop: it ends the change, prevents its restart, and stops the run.
-- An engine failure while an operation holds the coordinator gate is kept and applied when
+- An engine failure while an operation holds the coordinator gate is kept. It is applied when
   that operation ends, so the state never stays `running` after a runtime exit.
 - A change asks for approval unless `ApprovalPredicate.approves` holds: every hostname, server
   TLS, and this installation's ID and CA fingerprint. A missing CA also needs an approval.
@@ -69,9 +70,9 @@ All paths come from `DataLayout`. Each PHP runtime has its own pool folder
 
 The old app kept its first pool in `environment/configuration/php-fpm.conf`,
 `environment/configuration/php.ini`, and `environment/logs/fpm.log`. A start removes these
-files (`LegacyPoolFiles`), but only while it holds the records lock with no recorded process
-alive, and only when Jerd provably wrote them: the configuration files must hold the old
-generated text, and the log must be a regular file, not a link. Every other item stays.
+files (`LegacyPoolFiles`). It does so only while it holds the records lock with no recorded
+process alive, and only when Jerd provably wrote them. The configuration files must hold the
+old generated text, and the log must be a regular file, not a link. Every other item stays.
 
 ## For the CLI target
 

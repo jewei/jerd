@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdRuntimes
+import JerdTestSupport
 import JerdWeb
 
 /// A temporary Jerd installation: a data root, a home folder, managed PHP builds with receipts,
@@ -21,7 +22,7 @@ struct CLIFixture {
     let home: URL
 
     init() throws {
-        directory = try TemporaryDirectory()
+        directory = try TemporaryDirectory(" cli café")
         layout = DataLayout(root: try directory.folder("home/Library/Application Support/Jerd"))
         home = directory.path("home")
     }

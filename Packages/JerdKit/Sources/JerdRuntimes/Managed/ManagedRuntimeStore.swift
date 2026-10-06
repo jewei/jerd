@@ -45,7 +45,7 @@ public struct ManagedRuntimeStore: Sendable {
         return ManagedRuntime(receipt: receipt, directory: folder)
     }
 
-    /// Reads and validates the receipt of a build folder (I14).
+    /// Reads and validates the receipt of a build folder.
     public func receipt(at folder: URL) throws -> BuildReceipt {
         var info = stat()
         guard lstat(folder.path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR else {
@@ -56,7 +56,7 @@ public struct ManagedRuntimeStore: Sendable {
         return try BuildReceipt.decode(data)
     }
 
-    /// Hashes every file of a build and requires exactly its receipt (I16). A Finder `.DS_Store` is ignored.
+    /// Hashes every file of a build and requires exactly its receipt. A Finder `.DS_Store` is ignored.
     public func verify(_ receipt: BuildReceipt, at folder: URL) throws {
         let actual = try PayloadScanner.scan(folder, ignoring: [BuildReceipt.fileName], ignoresFinderMetadata: true)
         try PayloadComparison.requireHashes(receipt.fileHashes, actual: actual)

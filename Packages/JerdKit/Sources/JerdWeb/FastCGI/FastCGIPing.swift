@@ -7,7 +7,7 @@ import JerdFoundation
 /// One deadline covers the whole exchange, connect included. Every wait polls in 50 ms slices,
 /// so cancellation stops it quickly. A full listen backlog (`EAGAIN`) is retried until the deadline.
 /// The blocking exchange runs on its own thread, because `EngineRunner.isHealthy` pings every pool
-/// at once and a blocked cooperative thread stops other tasks (review web-r1 L4).
+/// at once and a blocked cooperative thread stops other tasks.
 public struct FastCGIPing: FPMPinging {
     /// The default budget of one ping.
     public static let defaultTimeout: Duration = .seconds(3)

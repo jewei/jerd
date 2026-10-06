@@ -106,7 +106,7 @@ import os
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
     }
 
-    /// RT-1: the reuse check hashes the installed build on a GCD thread; a cancellation must stop that hash.
+    /// The reuse check hashes the installed build on a GCD thread; a cancellation must stop that hash.
     @Test func cancellationStopsTheVerificationOfAnInstalledBuildWhileItRuns() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
@@ -181,7 +181,7 @@ import os
             policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
     }
 
-    /// RT-4: the pinned signature digest is enforced before the OpenPGP check.
+    /// The pinned signature digest is enforced before the OpenPGP check.
     @Test func pinnedSignatureWithAnotherDigestIsRefused() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

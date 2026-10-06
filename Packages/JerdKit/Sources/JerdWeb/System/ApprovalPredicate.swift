@@ -1,6 +1,6 @@
 import Foundation
 
-/// The one rule for "these hostnames are approved" (spec B 7.3.9), used by the coordinator, the
+/// The one rule for "these hostnames are approved", used by the coordinator, the
 /// site change transaction, and the app.
 public enum ApprovalPredicate {
     /// True when the hosts section and the server-TLS trust are in place, no recovery is pending,

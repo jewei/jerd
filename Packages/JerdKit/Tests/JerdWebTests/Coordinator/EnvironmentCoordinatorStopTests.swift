@@ -20,7 +20,7 @@ import Testing
         #expect(await harness.coordinator.snapshot().state == .stopped)
     }
 
-    /// The old code reset a Bool on entry, so a Stop just before an activation was lost (spec B 7.1.3).
+    /// The old code reset a Bool on entry, so a Stop just before an activation was lost.
     @Test func aStopBeforeTheNextStepOfAnOperationIsNeverLost() async throws {
         let harness = try CoordinatorHarness()
         defer { harness.remove() }

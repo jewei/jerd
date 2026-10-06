@@ -20,7 +20,7 @@ import os
         #expect(try pair.ports().http > 1_023)
     }
 
-    /// Fixed problem 11: a legacy hostname policy gets no listeners.
+    /// Regression test: a legacy hostname policy gets no listeners.
     @Test func theLegacyHostnamePolicyGetsNoListeners() async throws {
         let harness = try ServiceHarness()
         defer { harness.remove() }
@@ -65,7 +65,7 @@ import os
         _ = try await harness.service.acquire(owner: owner, connection: UUID(), lifetime: SessionLifetime())
     }
 
-    /// Fixed problem 22: a payload that is too large has its own message.
+    /// Regression test: a payload that is too large has its own message.
     @Test func oversizedPayloadsHaveTheirOwnMessage() async throws {
         let harness = try ServiceHarness()
         defer { harness.remove() }
@@ -94,7 +94,7 @@ import os
         try await blocked.remove(owner: owner, consent: harness.consent)
     }
 
-    /// Fixed review L3: a bind (whose probe can wait in `poll`) runs off the service actor, so a
+    /// Regression test: a bind (whose probe can wait in `poll`) runs off the service actor, so a
     /// status call of another connection still replies.
     @Test func aSlowBindDoesNotBlockStatus() async throws {
         let harness = try ServiceHarness()

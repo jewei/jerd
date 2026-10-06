@@ -3,6 +3,7 @@ import JerdDatabases
 import JerdFoundation
 import JerdMail
 import JerdStorage
+import JerdTestSupport
 import Testing
 
 @testable import JerdLive

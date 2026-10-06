@@ -9,7 +9,7 @@ import Testing
         TunnelWork(generation: TunnelGeneration(generation), task: Task {})
     }
 
-    /// Fix of spec E 7.1.1: a late launch cleared the slot of a newer Connect, so Stop could no
+    /// Regression test: a late launch cleared the slot of a newer Connect, so Stop could no
     /// longer cancel the newer work.
     @Test func aLateClearOfAnOlderGenerationKeepsTheWorkOfANewerConnect() {
         var slots = TunnelWorkSlots()

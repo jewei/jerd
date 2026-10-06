@@ -6,7 +6,7 @@ import JerdServiceKit
 import JerdServiceKitTestSupport
 import Testing
 
-/// Review final-domain-r1 M1: after a crash the earlier server still runs and listens. The start
+/// After a crash the earlier server still runs and listens. The start
 /// and the state must name process recovery, not "port occupied" or "Stopped".
 @Suite struct ManagedInstanceRecoveryTests {
     private static let recovery = JerdError.unavailable(

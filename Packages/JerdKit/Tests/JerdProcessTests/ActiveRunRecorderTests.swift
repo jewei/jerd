@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct ActiveRunRecorderTests {
@@ -85,7 +86,7 @@ import Testing
         #expect(FileProbe.presence(at: cleared.location.recordFile) == .absent)
     }
 
-    /// Fixed review M2: a clearance allows a new record only. A second save with the same clearance
+    /// Regression test: a clearance allows a new record only. A second save with the same clearance
     /// never replaces the record of a process that may still run.
     @Test func aSecondRecordWithTheSameClearanceIsRefusedAndTheFirstIsKept() throws {
         let folder = try TemporaryDirectory()
@@ -109,7 +110,7 @@ import Testing
         #expect(try ActiveRunRecordFile.read(cleared.location.recordFile).identity == second)
     }
 
-    /// Fixed review M2: the public writes require the lock of the record.
+    /// Regression test: the public writes require the lock of the record.
     @Test func publicRecordWritesRequireTheMatchingLock() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

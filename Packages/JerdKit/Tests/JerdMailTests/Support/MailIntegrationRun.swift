@@ -5,6 +5,7 @@ import JerdMail
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 /// A real mail manager on a prepared Mailpit runtime, in a temporary data folder, on free

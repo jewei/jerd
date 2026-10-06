@@ -48,8 +48,8 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   that stop. An exit stop never makes Quit fail.
 - A child that something else reaped is checked through its record. A live group keeps the
   record and releases the lock, so that Process recovery can act.
-- The secret files of a launch (`LaunchPlan.secretFiles`, for example a bootstrap SQL file with
-  a password) are removed when its readiness check ends, passed or not. A later stop timeout
+- A launch can have secret files (`LaunchPlan.secretFiles`), for example a bootstrap SQL file
+  with a password. They are removed when its readiness check ends, passed or not. A later stop timeout
   cannot keep them. A failed removal fails the step and names the file.
 - Each launch ends once: after its process stopped (Stop, exit, or a reap outside Jerd), or
   when the launch fails before a process is owned. Then its temporary items are removed and
@@ -58,15 +58,15 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 - A maintenance lease keeps the lock from the first step to the last, also during a restore.
 - A runtime update that fails and restores a stopped service leaves it `stopped`; the error names
   the cause. A failed restore keeps the journal and the `failed` state.
-- A runtime update copies each named item (an APFS clone when possible) off the actor, and
-  flushes the copies to the drive (`fsync` on each item, then `F_FULLFSYNC`) before it writes the
-  journal. A restore flushes the restored items before it removes the journal. Recovery uses the
+- A runtime update copies each named item off the actor (an APFS clone when possible).
+  Before it writes the journal, it flushes the copies to the drive (`fsync` on each item,
+  then `F_FULLFSYNC`). A restore flushes the restored items before it removes the journal. Recovery uses the
   names in the journal, so a newer build can recover it.
 - Backups stay until the user deletes them. A journal protects every backup of its service.
 - `runtime-update.json` adds the key `schemaVersion` to the old `{id, names, present}` form, so
   its bytes differ from older builds. The old keys and value forms stay, and `names` keeps its
-  order, so an older build reads a new journal after a downgrade (tested with a copy of the old
-  struct).
+  order. Thus an older build reads a new journal after a downgrade. A copy of the old struct
+  tests this.
 
 ## Test
 
@@ -79,5 +79,5 @@ compile C fixtures with `/usr/bin/cc` and start them. No test needs root or a ne
 
 `Tests/JerdServiceKitTestSupport` holds the fakes and C fixtures that the service test targets
 share (`FakeProcessController`, `FakeSystem`, `FakeTimeKeeper`, `ScriptedCommands`, `Gate`,
-`TemporaryDirectory`, `LoopbackHTTPServer`, `goldenFixture`, and `Fixtures`). Only test targets
-depend on it; the app never links it.
+`LoopbackHTTPServer`, `goldenFixture`, and `Fixtures`). Only test targets depend on it; the app
+never links it. `TemporaryDirectory` comes from `Tests/JerdTestSupport`, like in every test target.

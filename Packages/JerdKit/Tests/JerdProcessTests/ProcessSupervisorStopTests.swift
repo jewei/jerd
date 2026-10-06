@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct ProcessSupervisorStopTests {
@@ -31,7 +32,7 @@ import Testing
         #expect(await supervisor.stop(token, policy: .graceful(signal: SIGINT, timeout: .seconds(3))) == .stopped)
     }
 
-    /// Fixed review L13: the default supervisor never kills, whatever policy a caller passes.
+    /// Regression test: the default supervisor never kills, whatever policy a caller passes.
     @Test func aGracefulSupervisorDoesNotKillForAForcefulPolicy() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

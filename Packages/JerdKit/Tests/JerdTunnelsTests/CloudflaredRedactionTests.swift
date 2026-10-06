@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
@@ -18,7 +19,7 @@ import Testing
         """
 
     @Test func theTokenAndItsSecretNeverReachTheLogOrTheArguments() async throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let runtimeFolder = folder.url.appendingPathComponent("runtime", isDirectory: true)
         try FileManager.default.createDirectory(at: runtimeFolder, withIntermediateDirectories: true)

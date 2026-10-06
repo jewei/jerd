@@ -7,11 +7,11 @@ import JerdManifest
 /// A candidate needs a stable tag with an expected prefix, the exact asset name, a GitHub
 /// `sha256:` digest, and the exact download URL
 /// `https://github.com/<repository>/releases/download/<tag>/<asset>` (one rule for every
-/// GitHub runtime; fixes P-C2). Other assets are dropped, never fatal (P-C1).
+/// GitHub runtime). Other assets are dropped, never fatal.
 package struct GitHubAssetSource: ReleaseSource {
     package let kind: RuntimeKind
     package let repository: String
-    /// The tag forms of a release, for example `php-8.5.11` or `v2.11.4` (P-C4).
+    /// The tag forms of a release, for example `php-8.5.11` or `v2.11.4`.
     package let tagPrefixes: [String]
     package let assetName: @Sendable (_ version: String, _ architecture: CPUArchitecture) -> String
 

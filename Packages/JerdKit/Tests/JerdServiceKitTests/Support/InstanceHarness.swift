@@ -4,6 +4,7 @@ import JerdFoundation
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import os
 
 /// A managed instance with fake processes, fake `lsof`, a fake clock, and a temporary folder.
@@ -24,7 +25,7 @@ final class InstanceHarness: Sendable {
 
     /// - Parameter exitScript: decides which fake children exit at once, for example an initializer.
     init(ports: [UInt16] = [41_001], exitScript: FakeProcessController.ExitScript? = nil) throws {
-        directory = try TemporaryDirectory()
+        directory = try TemporaryDirectory(" service kit ü")
         processes = FakeProcessController(exitScript: exitScript)
         self.ports = ports
         lsof = FakeLsof(processes: processes, servicePorts: Set(ports))

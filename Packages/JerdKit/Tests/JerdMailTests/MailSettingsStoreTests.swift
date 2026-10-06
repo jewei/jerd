@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdMail
@@ -11,7 +12,7 @@ import Testing
     let store: MailSettingsStore
 
     init() throws {
-        directory = try TemporaryDirectory()
+        directory = try TemporaryDirectory(" service kit ü")
         layout = DataLayout(root: directory.path("Jerd")).mail
         store = MailSettingsStore(layout: layout)
     }

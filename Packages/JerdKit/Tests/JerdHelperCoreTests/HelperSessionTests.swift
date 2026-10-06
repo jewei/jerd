@@ -36,7 +36,7 @@ import Testing
         #expect(await acquire(other) == nil)
     }
 
-    /// Fixed review M1: listener calls never wait behind a change that waits for macOS approval.
+    /// Regression test: listener calls never wait behind a change that waits for macOS approval.
     /// The old helper refused them at once; a queued call timed out in the app and dropped the link.
     @Test func listenerCallsDuringAnOpenApprovalReplyAtOnce() async throws {
         let harness = try ServiceHarness()

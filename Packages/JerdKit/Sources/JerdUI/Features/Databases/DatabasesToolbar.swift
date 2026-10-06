@@ -1,7 +1,7 @@
 import JerdDesign
 import SwiftUI
 
-/// The toolbar items of the Databases section (spec F 3.3): Retained Databases…, which also
+/// The toolbar items of the Databases section: Retained Databases…, which also
 /// works with the sidebar hidden, and the database runtimes.
 struct DatabasesToolbar: View {
     let model: DatabasesModel

@@ -1,9 +1,12 @@
 import Foundation
 
-/// The exact commands that build the reviewed XZ library for RustFS (spec G 2.5, with fixes).
+/// The exact commands that build the reviewed XZ library for RustFS.
+///
+/// The extracted source keeps the modification times of the archive (see JerdArchive). Thus `make`
+/// does not try to run Automake, which the fixed `PATH` does not contain.
 ///
 /// The environment is fixed, so the build does not use Homebrew or other tools from `PATH`. The
-/// deployment target comes from `Configuration/Base.xcconfig`, the same as the app (fixes 8.1 #19).
+/// deployment target comes from `Configuration/Base.xcconfig`, the same as the app.
 /// The library gets the install name `@rpath/liblzma.5.dylib` instead of the build folder path, and
 /// an ad hoc signature; the release signs it again with Developer ID.
 struct XZBuildPlan: Equatable, Sendable {

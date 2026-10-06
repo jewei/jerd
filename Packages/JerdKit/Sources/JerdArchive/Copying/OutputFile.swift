@@ -33,6 +33,12 @@ struct OutputFile: ~Copyable {
         }
     }
 
+    /// Sets the access and modification times to `time`. Call it after the last write, which changes them.
+    func setModificationTime(_ time: EntryTimestamp) throws {
+        let times = [time.timespec, time.timespec]
+        guard futimens(descriptor, times) == 0 else { throw ArchiveFailure.cannotWriteFile }
+    }
+
     /// Copies the regular file at `source` into this file in 1 MiB chunks. Returns the bytes copied.
     /// The source is opened with `O_NOFOLLOW`; it must be a regular file.
     func copyContents(of source: URL, failure: JerdError) throws -> Int64 {

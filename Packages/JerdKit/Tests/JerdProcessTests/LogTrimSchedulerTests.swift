@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdProcess
@@ -32,7 +33,7 @@ import Testing
         #expect(await eventually { await scheduler.failure(for: log.url) != nil })
         #expect(
             await scheduler.failure(for: log.url) == "The process log is not an owned regular file: \(log.url.path)")
-        // Fixed review L6: removal returns the last failure and forgets it.
+        // Regression test: removal returns the last failure and forgets it.
         #expect(await scheduler.unregister(log) == "The process log is not an owned regular file: \(log.url.path)")
         #expect(await scheduler.failure(for: log.url) == nil)
     }

@@ -41,6 +41,24 @@ struct ReleaseNotesTests {
         #expect(throws: DevFailure.self) { try ReleaseNotes.section(for: "0.2.0", in: "## [0.2.0] - 2026-10-06\n\n") }
     }
 
+    @Test(
+        "Refuses notes that Sparkle would show with raw Markdown",
+        arguments: ["### Added", "- Run `php`.", "- See [docs](x)."])
+    func refusesMarkdown(line: String) {
+        let changelog = "## [Unreleased]\n\n- Fine.\n\(line)\n"
+        #expect(throws: DevFailure.self) { try ReleaseNotes.promoted(changelog, version: "0.2.0", date: "2026-10-06") }
+    }
+
+    @Test("The repository changelog has unreleased notes that a bump can promote")
+    func repositoryChangelog() throws {
+        let url = ReleaseFixtures.repositoryRoot.appending(path: "CHANGELOG.md")
+        let changelog = try String(contentsOf: url, encoding: .utf8)
+        let promoted = try ReleaseNotes.promoted(changelog, version: "99.0.0", date: "2026-10-06")
+        let notes = try ReleaseNotes.section(for: "99.0.0", in: promoted)
+        #expect(notes.contains("Apple silicon"))
+        #expect(ReleaseNotes.unreleased(in: promoted) == "")
+    }
+
     @Test("Only a heading with a date names a release")
     func headingNeedsADate() {
         #expect(ReleaseNotes.isHeading("## [0.2.0] - 2026-10-06", of: "0.2.0"))

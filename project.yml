@@ -5,7 +5,7 @@ options:
   bundleIdPrefix: dev.jerd
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "16.0"
+  xcodeVersion: "27.0"
   createIntermediateGroups: true
 packages:
   JerdKit:

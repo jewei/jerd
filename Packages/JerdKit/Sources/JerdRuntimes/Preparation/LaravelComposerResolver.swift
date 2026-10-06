@@ -6,7 +6,7 @@ import JerdFoundation
 /// A managed update resolves `laravel/installer` at the release version (`composer update`).
 /// A pinned payload installs exactly the committed lock (`composer install`). Composer, its
 /// cache, and `HOME` live in the staging folder, so no tool can write into the payload's
-/// receipt-listed files by accident (fixes P-I8).
+/// receipt-listed files by accident.
 package struct LaravelComposerResolver: RuntimePreparing {
     package static let timeout: Duration = .seconds(900)
 

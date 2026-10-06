@@ -2,7 +2,7 @@ import Foundation
 import JerdFoundation
 import Testing
 
-/// Fixed review foundation-process-r1 L14: `Docs/Reference.md` names every path of `DataLayout`.
+/// Regression test: `Docs/Reference.md` names every path of `DataLayout`.
 @Suite struct DataReferenceTests {
     private static let root = URL(fileURLWithPath: "/data/Jerd")
     private static let id = UUID(uuidString: "1F3A0000-0000-0000-0000-00000000000A") ?? UUID()

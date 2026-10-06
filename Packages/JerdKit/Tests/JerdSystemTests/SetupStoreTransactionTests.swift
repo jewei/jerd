@@ -117,7 +117,7 @@ import Testing
         #expect(harness.hosts == StoreHarness.originalHosts)
     }
 
-    /// Fixed review M2: when another tool deleted the section, removal still removes the trust and the
+    /// Regression test: when another tool deleted the section, removal still removes the trust and the
     /// registration, and changes no hosts byte.
     @Test func removalAfterTheSectionWasDeletedRemovesTrustAndRegistration() async throws {
         let harness = try StoreHarness()
@@ -134,7 +134,7 @@ import Testing
         #expect(try await store.status(ownerUID: owner) == .empty)
     }
 
-    /// Fixed review M2: a failed removal without a section rolls back trust and keeps the hosts bytes.
+    /// Regression test: a failed removal without a section rolls back trust and keeps the hosts bytes.
     @Test func aFailedRemovalWithoutASectionKeepsTheHostsBytes() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
@@ -151,7 +151,7 @@ import Testing
         #expect(harness.trust.installed(try Fixture.certificate()) != nil)
     }
 
-    /// Fixed review M2: configure writes a deleted section again, but still refuses an external mapping.
+    /// Regression test: configure writes a deleted section again, but still refuses an external mapping.
     @Test func configureAfterTheSectionWasDeletedWritesItAgain() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
@@ -187,7 +187,7 @@ import Testing
         #expect(harness.record(.pending) == nil)
     }
 
-    /// Fixed problem 7: the retained phase says what was rolled back.
+    /// Regression test: the retained phase says what was rolled back.
     @Test func interruptedConsentKeepsTheJournalAndNamesTheRollback() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
@@ -258,7 +258,7 @@ import Testing
         #expect((harness.trust.installed(try Fixture.certificate()) != nil) == removing)
     }
 
-    /// Fixed problem 3: status during a transaction reports it as running, not interrupted.
+    /// Regression test: status during a transaction reports it as running, not interrupted.
     @Test func statusDuringATransactionReportsItInProgress() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }

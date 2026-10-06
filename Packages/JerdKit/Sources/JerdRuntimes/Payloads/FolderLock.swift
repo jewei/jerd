@@ -5,7 +5,7 @@ import JerdFoundation
 /// An exclusive `flock` on a folder. The lock lives as long as this object.
 ///
 /// The kernel releases the lock when the process ends, also after a crash or a kill. So a folder
-/// that nobody holds is abandoned, and a folder that someone holds is in use, in any process (RT-7).
+/// that nobody holds is abandoned, and a folder that someone holds is in use, in any process.
 final class FolderLock: Sendable {
     /// The open folder that carries the lock. It is closed only in `deinit`.
     private let descriptor: Int32

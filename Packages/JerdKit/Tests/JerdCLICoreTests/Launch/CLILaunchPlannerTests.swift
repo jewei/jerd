@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdCLICore
@@ -94,7 +95,7 @@ import Testing
     }
 
     @Test func entryThroughASymbolicLinkIsTheSameFolder() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let real = try directory.folder("real/bin")
         let alias = directory.path("alias")

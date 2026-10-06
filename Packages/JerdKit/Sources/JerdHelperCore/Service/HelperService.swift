@@ -83,7 +83,7 @@ actor HelperService {
     func setupStatus(owner: uid_t) async throws -> SystemSetupStatus { try await store.status(ownerUID: owner) }
 
     /// Binds off the actor: a port probe can wait in `poll`, and status calls of other connections
-    /// must not wait for it (review L3).
+    /// must not wait for it.
     nonisolated func bindListeners() async throws -> LoopbackListenerPair {
         let binder = binder
         return try await Task.detached { try binder.bindStandardPorts() }.value

@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 
 /// Shared test data. Temporary folders come from `TemporaryDirectory`, which each test removes.
 enum Fixture {

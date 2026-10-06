@@ -36,7 +36,7 @@ import Testing
         #expect(TunnelAuthFailureClassifier.rejectsToken("2026-09-03T10:15:40Z INF Starting tunnel\n\(line)\n"))
     }
 
-    /// Fix of spec E 7.1.3: any line with "unauthorized" stopped the connector as "token rejected".
+    /// Regression test: any line with "unauthorized" stopped the connector as "token rejected".
     @Test(arguments: otherLines)
     func otherLinesAreNotARejection(_ line: String) {
         #expect(!TunnelAuthFailureClassifier.rejectsToken(line))

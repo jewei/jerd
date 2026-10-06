@@ -26,6 +26,12 @@ enum UsageMessage {
         return current
     }
 
+    /// The full name of `command` without the program, for example `release prepare`; `dev` for the root.
+    static func commandPath(_ command: any ParsableCommand.Type) -> String {
+        let names = path(to: command).compactMap { $0.configuration.commandName }
+        return names.isEmpty ? "dev" : names.joined(separator: " ")
+    }
+
     /// The commands from the first subcommand down to `command`; empty for the root command.
     static func path(to command: any ParsableCommand.Type) -> [any ParsableCommand.Type] {
         func search(_ candidates: [any ParsableCommand.Type]) -> [any ParsableCommand.Type]? {

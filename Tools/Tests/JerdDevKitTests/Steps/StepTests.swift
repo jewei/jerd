@@ -108,7 +108,7 @@ struct StepTests {
 
     @Test("a snapshot renderer usage refusal is a usage error, and a time-out is a failed check")
     func snapshotExitStatuses() async {
-        let refused = RecordingProcessRunner { InvocationResult(commandLine: $0.commandLine, status: 64) }
+        let refused = RecordingProcessRunner { InvocationResult(commandLine: $0.commandLine, status: 2) }
         await #expect(
             throws: DevFailure.usage("The snapshot renderer refused the arguments. See its message above.")
         ) {

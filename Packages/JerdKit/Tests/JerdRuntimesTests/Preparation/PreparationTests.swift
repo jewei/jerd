@@ -123,7 +123,7 @@ import os
         #expect(commands.commandLines.map(\.[1]) == ["attach", "--verify", "eject"])
     }
 
-    /// RT-8: the image is ejected with `diskutil eject <mount point>`, not the deprecated `hdiutil detach`.
+    /// The image is ejected with `diskutil eject <mount point>`, not the deprecated `hdiutil detach`.
     @Test func verifiedImageIsEjectedWithDiskutilAfterTheCopy() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

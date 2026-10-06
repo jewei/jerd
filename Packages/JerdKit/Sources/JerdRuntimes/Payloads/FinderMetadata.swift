@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 
-/// The one rule for Finder's `.DS_Store` files in runtime folders (P-I7, RT-3).
+/// The one rule for Finder's `.DS_Store` files in runtime folders.
 ///
 /// Finder writes such a file when a user opens a folder. It is never part of a runtime: preparation
 /// deletes it before the files are recorded, and every comparison skips it on both sides, so an

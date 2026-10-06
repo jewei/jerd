@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 
 /// Files in `Tests/JerdWebTests/Fixtures`.
 enum Fixture {

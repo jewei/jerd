@@ -15,7 +15,7 @@ Run every task through `./dev`. It works from any folder in the repository.
 | `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests with the prepared payloads; see [Tools](Tools/README.md) |
 | `./dev test --tools` | Run the tests of the `./dev` tool |
 | `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default), check the built app, and print its path |
-| `./dev snapshots [PAGE...]` | Render UI pages to PNG files in `.build/snapshots` |
+| `./dev snapshots [PAGE...] [--list]` | Render UI pages to PNG files in `.build/snapshots`, or list the page names |
 | `./dev format [--check]` | Format all Swift code with swift-format |
 | `./dev lint` | Check the format, `generate --check`, and the repository policies |
 | `./dev generate [--check]` | Generate `Jerd.xcodeproj` from `project.yml` |
@@ -32,7 +32,7 @@ Run every task through `./dev`. It works from any folder in the repository.
 Add `--verbose` to a command to see each underlying command line. Add `--json`
 to get one JSON summary on standard output (all other lines go to standard
 error). Exit status: 0 success, 1 a check failed, 2 usage error, 3 a
-prerequisite is missing, 128 plus the signal number when a signal stops `./dev`.
+prerequisite is missing. A signal that stops `./dev` gives 128 plus its number.
 A failed quiet step writes its full output to `.build/logs/<step>.log`.
 
 `./dev build --release` requires the prepared runtime payloads. Only `./dev check`
@@ -54,6 +54,11 @@ For quick loops inside the package, `swift test --package-path Packages/JerdKit
 | `Runtimes/` | Pinned runtime versions and lock files |
 | `Configuration/` | Xcode build settings and the app version |
 | `Docs/` | Architecture, data reference, and test guide |
+| `.github/` | The CI workflow and the actionlint settings |
+| `dev` | The shell entry point of `./dev`; it builds and runs the tool in `Tools/` |
+| `appcast.xml` | The signed Sparkle update feed. only `./dev release publish` writes it |
+| `CHANGELOG.md` | Release notes for users |
+| `README.md` | The user guide of the public repository |
 
 `project.yml` is the XcodeGen source. Run `./dev generate` after you change it.
 Do not edit `Jerd.xcodeproj` by hand.
@@ -64,8 +69,9 @@ Change these files together, in one commit:
 
 | When you change | Also change |
 | --- | --- |
-| `.xcode-version` | The `runs-on` label and its comment in `.github/workflows/ci.yml` |
+| `.xcode-version` | The `runs-on` label and its comment in `.github/workflows/ci.yml`, and `xcodeVersion` in `project.yml` (then run `./dev generate`) |
 | `Tools/xcodegen-version` | `XCODEGEN_SHA256` in `.github/workflows/ci.yml` |
+| The swift-argument-parser `exact` version in `Tools/Package.swift` | `Tools/Package.resolved` (run `swift package resolve --package-path Tools`) |
 | The Sparkle `exactVersion` in `project.yml` | `Package.resolved` in `Jerd.xcodeproj` (resolve again in Xcode); `./dev lint` checks it |
 | `appcast.xml` | Its signature block: sign the feed again with Sparkle `sign_update` |
 | `Configuration/Version.xcconfig` | Only as part of a release |
@@ -128,7 +134,8 @@ These rules protect user data and the user's Mac. Do not weaken them.
 ## Compatibility contract
 
 Installed copies of Jerd have user data. Keep these stable, or add a migration
-with a test that reads the old form:
+with a test that reads the old form. [Data reference](Docs/Reference.md) lists
+the paths, helper records, defaults keys, and Keychain items:
 
 - Every path under `~/Library/Application Support/Jerd` and
   `/Library/Application Support/JerdHelper`.
@@ -158,5 +165,7 @@ Implement only the approved features:
 ## Workflow
 
 - Work on a branch. Make small commits with a clear subject line.
+- For each change that users see, add one `- ` line under `## [Unreleased]` in
+  `CHANGELOG.md`. Sparkle shows these notes as plain text.
 - Run `./dev check` before you push.
 - Report in ASD-STE100 Simplified Technical English.

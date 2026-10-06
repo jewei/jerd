@@ -1,7 +1,7 @@
 import Foundation
 
 /// `./dev release clean`: removes old candidates (each takes about 2.5 GB) and keeps the newest ones
-/// and every candidate that a publication still needs (fixes spec G 8.1 #22).
+/// and every candidate that a publication still needs.
 struct CandidateCleaner: Sendable {
     let environment: ReleaseEnvironment
 

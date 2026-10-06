@@ -25,7 +25,7 @@ folder, and the keychain. It depends only on JerdFoundation.
 
 ## App-only and root-only code
 
-One target holds three kinds of code (review L6). Keep the boundary when you add a file:
+One target holds three kinds of code. Keep the boundary when you add a file:
 
 | Kind | Folders | Linked by |
 | --- | --- | --- |
@@ -61,8 +61,8 @@ module does not own. Split it in its own change: move the root-only folders into
   A timeout drops the shared link, but not while a change without a timeout waits on it.
 - Each changing call opens its own consent scope with a token. A second scope is refused.
 - When another tool deleted the tracked hosts section, remove still removes the trust and the
-  registration (no hosts byte changes), and configure writes the section again after the
-  external-mapping check.
+  registration, with no change to the hosts bytes. Configure writes the section again after
+  the external-mapping check.
 - A failed step is undone in reverse order. A rollback writes back the exact earlier record bytes.
   When an undo fails, the journal stays and the error is `.partialChange`.
 - When only the journal deletion fails after every step, nothing is undone. The journal stays with
@@ -89,5 +89,5 @@ JERD_XPC_IDENTITY="Apple Development: Name (TEAMID)" \
   swift test --package-path Packages/JerdKit --filter SignedXPCCheckTests
 ```
 
-It signs a copy of `JerdXPCCheck` as `dev.jerd.app`, transfers two loopback listeners, and makes
-sure that XPC refuses a wrong client identity and a wrong server identity.
+It signs a copy of `JerdXPCCheck` as `dev.jerd.app` and transfers two loopback listeners. It
+makes sure that XPC refuses a wrong client identity and a wrong server identity.

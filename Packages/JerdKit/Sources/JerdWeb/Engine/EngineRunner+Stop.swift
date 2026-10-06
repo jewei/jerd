@@ -21,9 +21,9 @@ extension EngineRunner {
     ///
     /// When a process is still running after its stop (`timedOut`), the run, its lock, its
     /// records, and its socket folder stay, and the survivor message is returned. A later stop
-    /// retries; a new start is refused until then (review final-domain-r1 L1). Spec B 3.8.4 keeps
-    /// the forceful stop and spec F 2.4 keeps Quit going after the web stage, so Quit does not
-    /// wait: the kept record makes the next launch name process recovery.
+    /// retries; a new start is refused until then. The stop of the web processes stays forceful,
+    /// because they hold no user data. Quit goes on after the web stage and does not wait: the
+    /// kept record makes the next launch name process recovery.
     @discardableResult
     func stopOwned(failure: String? = nil) async -> String? {
         await monitor.cancel()

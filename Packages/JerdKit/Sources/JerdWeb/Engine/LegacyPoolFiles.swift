@@ -5,8 +5,8 @@ import JerdFoundation
 /// Removes the first-pool files of the old layout, which now lives in `php/<runtime UUID>/`.
 ///
 /// The old app wrote its first pool to `configuration/php-fpm.conf`, `configuration/php.ini`,
-/// and `logs/fpm.log` (spec B 7.5). No run reads them now, so they only mislead a person who
-/// reads the folder (review web-r1 L6). Call this only while the engine holds the records lock
+/// and `logs/fpm.log`. No run reads them now, so they only mislead a person who
+/// reads the folder. Call this only while the engine holds the records lock
 /// and no recorded process can live. A file is removed only when Jerd provably wrote it: the
 /// two configuration files must be private regular files with the old generated text, and the
 /// log must be a regular file of this user. Every other item is kept.

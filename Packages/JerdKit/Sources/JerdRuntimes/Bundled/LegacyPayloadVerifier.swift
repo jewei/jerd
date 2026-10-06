@@ -3,12 +3,12 @@ import Foundation
 import JerdFoundation
 import JerdManifest
 
-/// Verifies a payload folder that an older Jerd installed, before the app uses it (RT-6).
+/// Verifies a payload folder that an older Jerd installed, before the app uses it.
 ///
 /// Older builds installed bundled payloads as `<group folder>/<installation ID>/` with one of three
 /// receipt forms (`LegacyPayloadReceipt`). Service records that those builds wrote still name these
-/// folders, so the app keeps using them. Each use is verified like a current payload (spec D B6,
-/// DB6, ML5, ST4, made strict): a real folder that the user owns, a valid receipt of the group's
+/// folders, so the app keeps using them. Each use is verified like a current payload, but more
+/// strictly: a real folder that the user owns, a valid receipt of the group's
 /// form, exactly the recorded files with their SHA-256 (only `.DS_Store` is ignored), and for the
 /// database form every recorded executable with its execute bit. Nothing is ever changed.
 public struct LegacyPayloadVerifier: Sendable {

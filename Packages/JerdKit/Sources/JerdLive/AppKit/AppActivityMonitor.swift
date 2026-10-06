@@ -2,8 +2,8 @@ import AppKit
 import JerdUI
 
 /// Tells `AppState` when Jerd becomes active or inactive and when its main window becomes
-/// visible or hidden (minimized, covered, or the app hidden), so the pollers use the visible
-/// rates of spec F 2.9 only while the user can see live state.
+/// visible or hidden (minimized, covered, or the app hidden). The pollers use the fast visible
+/// rates only while the user can see live state.
 @MainActor
 public final class AppActivityMonitor: NSObject {
     /// One change that a notification reports.

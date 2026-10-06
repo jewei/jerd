@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @Suite struct ServiceSettingsStoreTests {
@@ -21,14 +22,14 @@ import Testing
     }
 
     @Test func aMissingFileLoadsTheDefaultsWithoutWriting() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         #expect(try store(directory).load(orDefault: Settings()) == Settings())
         #expect(!exists(directory.path("settings.json")))
     }
 
     @Test func aSaveUsesTheSettingsFormatAndKeepsThePreviousBytes() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let store = store(directory)
         try store.save(Settings())
@@ -44,7 +45,7 @@ import Testing
 
     @Test(arguments: ["", "{\"schemaVersion\":99,\"path\":\"/a\",\"port\":2000}", "{\"path\":\"/a\",\"port\":2000}"])
     func corruptOrUnsupportedSettingsAreNeverReplaced(_ original: String) throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try write(original, to: directory.path("settings.json"))
         let store = store(directory)
@@ -59,7 +60,7 @@ import Testing
     }
 
     @Test func anOperationRuleComparesWithTheSavedSettings() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try store(directory).save(Settings())
         let strict = store(directory).admitting { saved, new in
