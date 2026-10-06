@@ -20,6 +20,9 @@ final class SharedFetch: Sendable {
     /// True after the last waiter left before the fetch ended.
     var isAbandoned: Bool { state.withLock { $0.isAbandoned } }
 
+    /// The waiters that have not left.
+    var waiterCount: Int { state.withLock { $0.members.count } }
+
     /// Keeps the task that runs the fetch, so the last leaving waiter can cancel it.
     func attach(_ task: Task<Void, Never>) {
         let cancel = state.withLock { state in

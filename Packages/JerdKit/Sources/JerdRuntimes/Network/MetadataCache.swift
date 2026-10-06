@@ -48,6 +48,9 @@ public actor MetadataCache {
         return try await fetch.value(for: waiter)
     }
 
+    /// The callers that wait for the running fetch of `url`, so tests can wait for a known state.
+    package func waiterCount(for url: URL) -> Int { inFlight[url]?.waiterCount ?? 0 }
+
     private func start(_ url: URL) -> SharedFetch {
         let fetch = SharedFetch()
         inFlight[url] = fetch
