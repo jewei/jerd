@@ -28,43 +28,85 @@ public enum OwnedDirectory {
     /// Creates `url` below the owned directory `root`. Every component from `root` to `url`
     /// must be a real directory owned by `owner`; new components get mode 0700.
     public static func create(_ url: URL, within root: URL, owner: uid_t = geteuid()) throws {
-        let components = try relativeComponents(of: url, in: root)
-        var current = root.standardizedFileURL
-        try requireOwnedDirectory(current, owner: owner)
+        let (realRoot, components) = try containment(of: url, in: root)
+        var current = realRoot
+        var shown = root
+        try requireOwnedDirectory(current, shown: shown, owner: owner)
         for component in components {
             current.appendPathComponent(component, isDirectory: true)
+            shown.appendPathComponent(component, isDirectory: true)
             if FileProbe.presence(at: current) == .absent { try makeDirectory(current) }
-            try requireOwnedDirectory(current, owner: owner)
+            try requireOwnedDirectory(current, shown: shown, owner: owner)
         }
         try tighten(current, owner: owner)
     }
 
     /// Requires every component from `root` to `url` (both included) to be a real directory
-    /// (not a symbolic link) owned by `owner`. Paths are compared lexically after removing `.` and `..`.
+    /// (not a symbolic link) owned by `owner`. Links above the root (such as `/tmp`) and a linked root
+    /// itself are resolved; the components below the root are compared as written.
     public static func requireContained(_ url: URL, in root: URL, owner: uid_t = geteuid()) throws {
-        let components = try relativeComponents(of: url, in: root)
-        var current = root.standardizedFileURL
-        try requireOwnedDirectory(current, owner: owner)
+        let (realRoot, components) = try containment(of: url, in: root)
+        var current = realRoot
+        var shown = root
+        try requireOwnedDirectory(current, shown: shown, owner: owner)
         for component in components {
             current.appendPathComponent(component, isDirectory: true)
-            try requireOwnedDirectory(current, owner: owner)
+            shown.appendPathComponent(component, isDirectory: true)
+            try requireOwnedDirectory(current, shown: shown, owner: owner)
         }
     }
 
-    private static func relativeComponents(of url: URL, in root: URL) throws -> [String] {
-        let base = root.standardizedFileURL.pathComponents
-        let target = url.standardizedFileURL.pathComponents
-        guard target.starts(with: base) else {
-            throw JerdError.invalid("The directory \(url.path) is outside Jerd's data folder.")
+    /// The real path of `root` and the components of `url` below it.
+    ///
+    /// `standardizedFileURL` removes `/private` only from paths that exist, so it cannot compare a new
+    /// folder with its root. Instead, the shortest prefix of `url` that is the root directory (same device
+    /// and inode) marks the root; the components after it stay as written, so the caller still refuses
+    /// a link among them.
+    private static func containment(of url: URL, in root: URL) throws -> (root: URL, components: [String]) {
+        guard let realRoot = realPath(of: root), let rootIdentity = identity(of: realRoot.path) else {
+            throw invalidDirectory(root)
         }
-        return Array(target.dropFirst(base.count))
+        let target = lexicalComponents(of: url)
+        for count in 0...target.count
+        where identity(of: "/" + target.prefix(count).joined(separator: "/")) == rootIdentity {
+            return (realRoot, Array(target.dropFirst(count)))
+        }
+        throw JerdError.invalid("The directory \(url.path) is outside Jerd's data folder.")
     }
 
-    private static func requireOwnedDirectory(_ url: URL, owner: uid_t) throws {
+    /// The path components after removing `.` and `..` lexically, as `standardizedFileURL` did.
+    private static func lexicalComponents(of url: URL) -> [String] {
+        var components: [String] = []
+        for component in url.path.split(separator: "/") where component != "." {
+            if component == ".." { _ = components.popLast() } else { components.append(String(component)) }
+        }
+        return components
+    }
+
+    /// The path with every link resolved, or nil when it does not exist.
+    private static func realPath(of url: URL) -> URL? {
+        guard let resolved = realpath(url.path, nil) else { return nil }
+        defer { free(resolved) }
+        return URL(filePath: String(cString: resolved), directoryHint: .isDirectory)
+    }
+
+    /// The device and inode of the item at `path` after links, or nil when it does not exist.
+    private static func identity(of path: String) -> [UInt64]? {
+        var info = stat()
+        guard stat(path, &info) == 0 else { return nil }
+        return [UInt64(UInt32(bitPattern: info.st_dev)), info.st_ino]
+    }
+
+    /// Checks the real path `url`; an error names `shown`, the same folder in the form that the caller used.
+    private static func requireOwnedDirectory(_ url: URL, shown: URL, owner: uid_t) throws {
         var info = stat()
         guard lstat(url.path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR, info.st_uid == owner else {
-            throw JerdError.invalid("The directory \(url.path) has an invalid type or owner. It was preserved.")
+            throw invalidDirectory(shown)
         }
+    }
+
+    private static func invalidDirectory(_ url: URL) -> JerdError {
+        .invalid("The directory \(url.path) has an invalid type or owner. It was preserved.")
     }
 
     private static func makeDirectory(_ url: URL) throws {
