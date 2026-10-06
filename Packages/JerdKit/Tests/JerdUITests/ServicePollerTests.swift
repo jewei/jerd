@@ -58,7 +58,7 @@ struct ServicePollerTests {
     @Test("A faster pace during a refresh waits for that refresh; two refreshes never overlap")
     func refreshesNeverOverlap() async {
         let sleeper = RecordingSleeper(allowedSleeps: 1)
-        var isHeld = true
+        let hold = Hold()
         var running = 0
         var mostAtOnce = 0
         var refreshes = 0
@@ -66,7 +66,7 @@ struct ServicePollerTests {
             running += 1
             mostAtOnce = max(mostAtOnce, running)
             refreshes += 1
-            while isHeld { await Task.yield() }
+            while hold.isHeld { await Task.yield() }
             running -= 1
         }
         poller.start(activity: AppActivity())
@@ -74,7 +74,7 @@ struct ServicePollerTests {
         poller.update(activity: visible)
         for _ in 0..<50 { await Task.yield() }
         #expect(refreshes == 1)
-        isHeld = false
+        hold.isHeld = false
         await waitUntil { refreshes == 2 }
         #expect(refreshes == 2)
         #expect(mostAtOnce == 1)
@@ -135,4 +135,10 @@ struct ServicePollerTests {
         await waitUntil { replied }
         #expect(fixture.state.pollers.allSatisfy { !$0.isRunning })
     }
+}
+
+/// Holds work open until the test releases it. A reference, so the work closure sees the change
+/// without capturing a mutable local.
+@MainActor private final class Hold {
+    var isHeld = true
 }
