@@ -2,12 +2,12 @@ import Darwin
 import Foundation
 import JerdFoundation
 
-/// A listening TCP socket on 127.0.0.1 with an ephemeral port, closed on release.
+/// A TCP socket on 127.0.0.1 with an ephemeral port, listening unless asked not to, closed on release.
 struct LoopbackListener {
     let handle: FileHandle
     let port: UInt16
 
-    init() throws {
+    init(listening: Bool = true) throws {
         let descriptor = socket(AF_INET, SOCK_STREAM, 0)
         handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         var address = sockaddr_in()
@@ -17,7 +17,7 @@ struct LoopbackListener {
         var length = socklen_t(MemoryLayout<sockaddr_in>.size)
         let bound = withUnsafeMutablePointer(to: &address) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { raw in
-                bind(descriptor, raw, length) == 0 && listen(descriptor, 1) == 0
+                bind(descriptor, raw, length) == 0 && (!listening || listen(descriptor, 1) == 0)
                     && getsockname(descriptor, raw, &length) == 0
             }
         }
