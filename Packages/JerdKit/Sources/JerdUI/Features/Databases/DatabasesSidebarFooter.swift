@@ -2,23 +2,21 @@ import JerdDatabases
 import JerdDesign
 import SwiftUI
 
-/// The footer of the Databases sidebar: the Add menu by engine, Retained Databases…, the
-/// count, and ⌘N for the first engine.
+/// The footer of the Databases sidebar: the Add menu by engine, Retained Databases…, and the
+/// count. File › New Database… (⌘N) is the section's `newItemAction`.
 struct DatabasesSidebarFooter: View {
     let model: DatabasesModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         SidebarFooter(addTitle: "Add Database", caption: caption) {
             ForEach(DatabaseEngine.allCases, id: \.self) { engine in
                 Button("Add \(engine.title)…") { model.beginAdd(engine) }
-                    .disabled(!model.canAdd || !model.availableEngines.contains(engine))
+                    .disabled(isQuitting || !model.canAdd || !model.availableEngines.contains(engine))
             }
             Divider()
             Button("Retained Databases…") { model.showRetained() }
-                .disabled(!model.loadState.isLoaded || model.isShuttingDown)
-        }
-        .addShortcut("Add Database", isEnabled: model.canAdd) {
-            if let engine = model.availableEngines.first { model.beginAdd(engine) }
+                .disabled(isQuitting || !model.canShowRetained)
         }
     }
 

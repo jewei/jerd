@@ -4,11 +4,11 @@ import SwiftUI
 
 /// The Databases sidebar: every service with its engine, port, and status.
 struct DatabasesSidebar: View {
-    @Bindable var state: AppState
+    let state: AppState
     let model: DatabasesModel
 
     var body: some View {
-        List(selection: selection) {
+        List(selection: state.sidebarSelection(in: .databases)) {
             Section("Services") {
                 ForEach(model.services) { service in
                     SidebarRow(
@@ -21,7 +21,7 @@ struct DatabasesSidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .sidebarFooter {
             DatabasesSidebarFooter(model: model)
         }
     }
@@ -29,13 +29,5 @@ struct DatabasesSidebar: View {
     private func subtitle(for service: DatabaseService) -> String {
         guard let runtime = model.runtime(of: service) else { return "Runtime unavailable" }
         return "\(runtime.engine.title) \(runtime.version) · \(service.port)"
-    }
-
-    private var selection: Binding<SidebarSelection?> {
-        Binding {
-            state.navigation.selection(in: .databases)
-        } set: { selection in
-            state.navigation.select(selection)
-        }
     }
 }
