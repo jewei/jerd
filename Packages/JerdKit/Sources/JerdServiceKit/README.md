@@ -22,6 +22,7 @@ It depends only on JerdFoundation and JerdProcess. Tunnels do not use it.
 | `MaintenanceLease` | Exclusive use of a stopped instance with its lock held. |
 | `RuntimeUpdateTransaction`, `RuntimeUpdateJournal` | Replace a runtime with a backup, a journal, and an automatic restore. |
 | `BackupRetentionService`, `DirectorySize` | List and delete runtime update backups in Advanced. |
+| `SingleServiceCoordinator`, `SingleServiceDescribing` | The manager core of Mail and Storage: load, one operation at a time, port edits under a lease, runtime registration, update, and recovery. |
 
 ## Start order
 
