@@ -71,7 +71,11 @@ import Testing
         let manager = try await harness.loadedManager()
         try await manager.start()
         try await manager.stop()
-        await #expect(throws: (any Error).self) {
+        await #expect(
+            throws: JerdError.processFailed(
+                "Storage update failed. The previous runtime and data were restored. "
+                    + "The RustFS executable does not match the saved version.")
+        ) {
             try await manager.updateRuntime(harness.updatedRuntime(version: "9.9.9"))
         }
         #expect(await manager.snapshot().state == .stopped)
@@ -86,7 +90,12 @@ import Testing
         try await manager.start()
         try await manager.stop()
         try write("{\"version\":\"changed\"}", to: harness.storage.formatFile)
-        await #expect(throws: (any Error).self) { try await manager.updateRuntime(harness.updatedRuntime()) }
+        await #expect(
+            throws: JerdError.processFailed(
+                "Storage update failed. Nothing was changed. \(StorageMessages.dataChanged.message)")
+        ) {
+            try await manager.updateRuntime(harness.updatedRuntime())
+        }
         #expect(try backups(harness).isEmpty)
         #expect(await manager.snapshot().settings.runtime == harness.runtime)
     }

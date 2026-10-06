@@ -114,7 +114,13 @@ import Testing
         #expect(await run.manager.snapshot().settings.runtime == updated)
         #expect(try await run.object("api/v1/info")["Messages"] as? Int == 3)
         let invalid = MailRuntime(id: "mailpit-invalid-update", version: "99.0.0", path: run.runtime.path)
-        await #expect(throws: (any Error).self) { try await run.manager.updateRuntime(invalid) }
+        await #expect(
+            throws: JerdError.processFailed(
+                "Mail update failed. The previous runtime and inbox were restored. "
+                    + "The Mailpit executable does not match the saved version.")
+        ) {
+            try await run.manager.updateRuntime(invalid)
+        }
         let snapshot = await run.manager.snapshot()
         #expect(snapshot.settings.runtime == updated && snapshot.state.processID != nil)
         #expect(try await run.object("api/v1/info")["Messages"] as? Int == 3)

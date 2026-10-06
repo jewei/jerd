@@ -27,8 +27,8 @@ import Testing
         defer { directory.remove() }
         try OwnedDirectory.create(layout.root)
         try AtomicFile.write(bytes, to: layout.settingsFile)
-        #expect(throws: (any Error).self) { try store.load() }
-        #expect(throws: (any Error).self) { try store.save(StorageSettings()) }
+        #expect { try store.load() } throws: { Self.isUnreadable($0) }
+        #expect { try store.save(StorageSettings()) } throws: { Self.isUnreadable($0) }
         #expect(contents(layout.settingsFile) == bytes)
     }
 
@@ -53,5 +53,11 @@ import Testing
         #expect(try store.load().runtime == runtime)
         try store.save(StorageSettings(runtime: other), replacing: runtime)
         #expect(try store.load().runtime == other)
+    }
+
+    /// The refusal of a corrupt or unsupported file: it names the file and keeps it.
+    static func isUnreadable(_ error: any Error) -> Bool {
+        guard let error = error as? JerdError, error.kind == .corrupt else { return false }
+        return error.message.hasPrefix("Cannot read storage settings. The file was preserved.")
     }
 }

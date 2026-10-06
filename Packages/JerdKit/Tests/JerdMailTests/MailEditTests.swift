@@ -50,7 +50,7 @@ import Testing
         let record = Data("{\"processID\":\(getpid()),\"runtimeID\":\"mailpit\"}".utf8)
         try AtomicFile.write(record, to: harness.mail.activeRunFile)
         harness.system.setSavedProcessesAlive(true)
-        await #expect(throws: (any Error).self) { try await manager.edit(ports: Self.ports) }
+        await #expect(throws: ExpectedErrors.liveRecordOfThisProcess) { try await manager.edit(ports: Self.ports) }
         #expect(contents(harness.mail.activeRunFile) == record)
         harness.system.setSavedProcessesAlive(false)
         let other = try InstanceLock.acquire(at: harness.mail.lockFile, messages: MailMessages.instance.lock)
@@ -68,7 +68,9 @@ import Testing
         let harness = try MailHarness()
         let manager = try await harness.loadedManager()
         harness.lsof.occupy(1_025)
-        await #expect(throws: (any Error).self) { try await manager.start() }
+        await #expect(throws: JerdError.unavailable("Local port 1025 is occupied. No process was stopped.")) {
+            try await manager.start()
+        }
         guard case .failed = await manager.snapshot().state else {
             Issue.record("Expected a failed start")
             return
@@ -84,7 +86,11 @@ import Testing
         let manager = try await harness.loadedManager()
         try FileManager.default.createDirectory(
             at: harness.mail.previousSettingsFile, withIntermediateDirectories: false)
-        await #expect(throws: JerdError.self) { try await manager.edit(ports: Self.ports) }
+        await #expect {
+            try await manager.edit(ports: Self.ports)
+        } throws: { error in
+            (error as? JerdError)?.message.hasSuffix("settings.previous.json (Is a directory).") == true
+        }
         #expect(isLockFree(harness.mail.lockFile))
         #expect(await manager.snapshot().settings.ports == MailSettings.defaultPorts)
         try FileManager.default.removeItem(at: harness.mail.previousSettingsFile)

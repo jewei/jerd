@@ -51,7 +51,7 @@ import Testing
         let record = Data("{\"processID\":\(getpid()),\"runtimeID\":\"rustfs\"}".utf8)
         try AtomicFile.write(record, to: harness.storage.activeRunFile)
         harness.system.setSavedProcessesAlive(true)
-        await #expect(throws: (any Error).self) { try await manager.start() }
+        await #expect(throws: ExpectedErrors.liveRecordOfThisProcess) { try await manager.start() }
         #expect(contents(harness.storage.activeRunFile) == record)
         #expect(kill(getpid(), 0) == 0)
         harness.system.setSavedProcessesAlive(false)
@@ -117,7 +117,7 @@ import Testing
         let record = Data("{\"processID\":\(getpid()),\"runtimeID\":\"rustfs\"}".utf8)
         try AtomicFile.write(record, to: harness.storage.activeRunFile)
         harness.system.setSavedProcessesAlive(true)
-        await #expect(throws: (any Error).self) { try await manager.edit(ports: ports) }
+        await #expect(throws: ExpectedErrors.liveRecordOfThisProcess) { try await manager.edit(ports: ports) }
         #expect(contents(harness.storage.activeRunFile) == record)
         harness.system.setSavedProcessesAlive(false)
         try await manager.edit(ports: ports)
@@ -135,7 +135,11 @@ import Testing
         let ports = StoragePorts(api: 19_000, console: 19_001)
         let previous = harness.storage.previousSettingsFile
         try FileManager.default.createDirectory(at: previous, withIntermediateDirectories: false)
-        await #expect(throws: JerdError.self) { try await manager.edit(ports: ports) }
+        await #expect {
+            try await manager.edit(ports: ports)
+        } throws: { error in
+            (error as? JerdError)?.message.hasSuffix("settings.previous.json (Is a directory).") == true
+        }
         #expect(isLockFree(harness.storage.lockFile))
         #expect(await manager.snapshot().settings.ports == StorageSettings.defaultPorts)
         try FileManager.default.removeItem(at: previous)
