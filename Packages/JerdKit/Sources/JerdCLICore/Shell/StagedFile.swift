@@ -38,6 +38,20 @@ enum StagedFile {
         }
     }
 
+    /// Moves `stage` to `target` only when `target` does not exist (`RENAME_EXCL`), so a file
+    /// that appears after the last check is never overwritten.
+    /// - Throws: `.unavailable` when `target` exists or the rename fails; the stage is removed.
+    static func commitNew(_ stage: URL, to target: URL) throws {
+        guard renamex_np(stage.path, target.path, UInt32(RENAME_EXCL)) == 0 else {
+            let code = errno
+            unlink(stage.path)
+            if code == EEXIST {
+                throw JerdError.unavailable("\(target.path) appeared during the setup. Set up the commands again.")
+            }
+            throw failure(code, "Cannot create \(target.path)")
+        }
+    }
+
     /// Removes the leftover stage of a crashed run: a file or a link. Anything else stays.
     static func removeLeftover(_ stage: URL) throws {
         if try checkLeftover(stage) { try AtomicFile.remove(stage) }

@@ -73,7 +73,11 @@ extension ShellSetupInstaller {
                     throw JerdError.unavailable(
                         "\(change.file.path) changed during the setup. Set up the commands again.")
                 }
-                try StagedFile.commit(change.stage, to: change.file)
+                if change.original == nil {
+                    try StagedFile.commitNew(change.stage, to: change.file)
+                } else {
+                    try StagedFile.commit(change.stage, to: change.file)
+                }
                 replaced.append(change)
             }
         } catch {
@@ -82,22 +86,35 @@ extension ShellSetupInstaller {
         }
     }
 
-    private func restore(_ changes: [ShellFileChange], after failure: any Error, backup: URL?) throws {
+    /// Gives each replaced file its original bytes back, but only while it still has the setup's
+    /// bytes: a file that the user edited after the replacement is kept, and the error names it.
+    func restore(_ changes: [ShellFileChange], after failure: any Error, backup: URL?) throws {
+        var kept: [String] = []
         for change in changes {
             do {
-                if let original = change.original {
-                    try StagedFile.removeLeftover(change.stage)
-                    try StagedFile.write(original, to: change.stage, mode: change.mode)
-                    try StagedFile.commit(change.stage, to: change.file)
-                } else {
-                    try AtomicFile.remove(change.file)
-                }
+                try restore(change)
             } catch {
-                let source = backup.map { " Restore it from \($0.path)." } ?? ""
-                throw JerdError.partialChange(
-                    "The shell setup failed: \(FailureDetail.describe(failure)) \(change.file.path) kept the "
-                        + "Jerd PATH block because the restore failed: \(FailureDetail.describe(error))\(source)")
+                let original = change.original == nil ? nil : backup?.appendingPathComponent(change.file.lastPathComponent)
+                let source = original.map { " Its original is in \($0.path)." } ?? ""
+                kept.append("Jerd did not restore \(change.file.path): \(FailureDetail.describe(error))\(source)")
             }
+        }
+        guard kept.isEmpty else {
+            throw JerdError.partialChange(
+                "The shell setup failed: \(FailureDetail.describe(failure)) " + kept.joined(separator: " "))
+        }
+    }
+
+    private func restore(_ change: ShellFileChange) throws {
+        guard try readShellFile(change.file)?.0 == change.updated else {
+            throw JerdError.unavailable("It changed after the setup replaced it, so it was kept.")
+        }
+        if let original = change.original {
+            try StagedFile.removeLeftover(change.stage)
+            try StagedFile.write(original, to: change.stage, mode: change.mode)
+            try StagedFile.commit(change.stage, to: change.file)
+        } else {
+            try AtomicFile.remove(change.file)
         }
     }
 }

@@ -46,9 +46,13 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
 - The setup checks everything before it writes.
 - The setup edits the existing `.zprofile` and `.zshrc`, or creates `.zshrc` (mode 0600)
   when neither exists. It never replaces a symbolic link, a hard link, a file of another
-  user, a non-UTF-8 file, or a malformed block. User bytes around the block stay.
+  user, a non-UTF-8 file, or a malformed block. The editor works on bytes: a UTF-8 byte order
+  mark, CRLF line ends, and the bytes around the block stay.
 - Originals go to `shell-backups/<YYYYmmdd-HHMMSS-ffffff>/` (0700, files 0600). Each file
-  is replaced atomically with its mode. A failure restores the files already replaced.
+  is replaced atomically with its mode. A new `.zshrc` is created with `RENAME_EXCL`, so a
+  file that appears during the setup stays. A failure restores the files already replaced,
+  but only while they still have the setup's bytes; an edited file stays, and the error
+  names it and its backup.
 - The launcher copy `bin/JerdCLI` (0700) must have a valid code signature. The links
   `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a
   crashed run (`.zshrc.jerd-tmp`, `.JerdCLI-next`, `.php-next`).
