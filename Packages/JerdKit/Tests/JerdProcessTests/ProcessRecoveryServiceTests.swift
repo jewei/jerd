@@ -85,7 +85,9 @@ import Testing
             #expect(await service.inspect().first?.state == .recoverable)
             try await service.recover("Mail", timeout: .seconds(3))
             #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
-            #expect(await supervisor.state(of: token) == .signalled(signal: SIGTERM))
+            // The kernel stops answering `proc_pidinfo` (ESRCH, which recovery reads as "exited") a
+            // moment before `waitid` reports the exit, so wait for the exit before reading the state.
+            #expect(await supervisor.waitForExit(of: token, timeout: .seconds(10)) == .signalled(signal: SIGTERM))
         } else {
             #expect(await service.inspect().first?.state == .manual)
         }
