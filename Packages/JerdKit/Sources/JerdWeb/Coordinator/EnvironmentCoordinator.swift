@@ -80,8 +80,7 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     public func halt() async {
         await gate.enter()
         defer { gate.leave() }
-        await cleanup()
-        state = .stopped
+        state = EngineRunner.stoppedState(failure: nil, survivor: await cleanup())
     }
 
     public func markSetupRemoved() async {

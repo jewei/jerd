@@ -40,4 +40,25 @@ import Testing
         }
         #expect(await harness.engine.starts == 0)
     }
+
+    /// Review final-domain-r1 L1: Stop shows a surviving web process, and a later start retries
+    /// the stop first and does not start while the process lives.
+    @Test func aSurvivingWebProcessFailsTheStopAndBlocksTheNextStart() async throws {
+        let harness = try CoordinatorHarness()
+        defer { harness.remove() }
+        let coordinator = harness.coordinator
+        let plan = harness.plan([try harness.site("demo.test")])
+        try await harness.ensure(plan)
+        await harness.engine.survive("A web process survived.")
+        await coordinator.stop()
+        #expect(await coordinator.snapshot().state == .failed("A web process survived."))
+        await #expect(throws: JerdError.processFailed("A web process survived.")) { try await harness.ensure(plan) }
+        #expect(await harness.engine.starts == 1)
+        #expect(await coordinator.snapshot().state == .failed("A web process survived."))
+        await harness.engine.survive(nil)
+        try await harness.ensure(plan)
+        #expect(await coordinator.snapshot().state == .running)
+        await coordinator.stop()
+        #expect(await coordinator.snapshot().state == .stopped)
+    }
 }

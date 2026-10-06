@@ -4,6 +4,10 @@ import JerdFoundation
 import JerdProcess
 
 extension EngineRunner {
+    /// The failure text when Caddy or a PHP-FPM master is still running after its forceful stop.
+    static let survivorMessage =
+        "PHP-FPM or Caddy did not stop. Jerd kept its process record and the environment lock. Select Stop again."
+
     /// Caddy stops with SIGTERM and PHP-FPM with SIGQUIT (graceful worker finish), each with
     /// the bounded forceful policy: Caddy and FPM hold no user data.
     static func stopPolicy(for token: ProcessToken, in run: ActiveRun) -> StopPolicy {
@@ -14,11 +18,25 @@ extension EngineRunner {
     ///
     /// A record is deleted only when its process is proven gone; otherwise it stays for process
     /// recovery. The socket folder is removed only when this run created it.
-    func stopOwned(failure: String? = nil) async {
+    ///
+    /// When a process is still running after its stop (`timedOut`), the run, its lock, its
+    /// records, and its socket folder stay, and the survivor message is returned. A later stop
+    /// retries; a new start is refused until then (review final-domain-r1 L1). Spec B 3.8.4 keeps
+    /// the forceful stop and spec F 2.4 keeps Quit going after the web stage, so Quit does not
+    /// wait: the kept record makes the next launch name process recovery.
+    @discardableResult
+    func stopOwned(failure: String? = nil) async -> String? {
         await monitor.cancel()
-        guard let current = run else { return }
+        guard let current = run else { return nil }
+        var survived = false
         for token in current.stopOrder {
-            _ = await services.processes.stop(token, policy: Self.stopPolicy(for: token, in: current))
+            let outcome = await services.processes.stop(token, policy: Self.stopPolicy(for: token, in: current))
+            if case .timedOut = outcome { survived = true }
+        }
+        // Waiters learn the end of this run now, also when a process survived.
+        guard !survived else {
+            finish(current.id, failure: failure)
+            return Self.survivorMessage
         }
         if let lock = current.lock {
             let records = records(current.layout)
@@ -32,5 +50,12 @@ extension EngineRunner {
         // The run ends only now, so a waiter that asks during the stop learns the outcome.
         run = nil
         finish(current.id, failure: failure)
+        return nil
+    }
+
+    /// The state after a stop that ended with `failure`: the failure, the survivor message, or both.
+    static func stoppedState(failure: String?, survivor: String?) -> EnvironmentState {
+        let parts = [failure, survivor].compactMap { $0 }
+        return parts.isEmpty ? .stopped : .failed(parts.joined(separator: " "))
     }
 }
