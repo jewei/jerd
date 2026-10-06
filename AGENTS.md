@@ -54,6 +54,11 @@ For quick loops inside the package, `swift test --package-path Packages/JerdKit
 | `Runtimes/` | Pinned runtime versions and lock files |
 | `Configuration/` | Xcode build settings and the app version |
 | `Docs/` | Architecture, data reference, and test guide |
+| `.github/` | The CI workflow and the actionlint settings |
+| `dev` | The shell entry point of `./dev`; it builds and runs the tool in `Tools/` |
+| `appcast.xml` | The signed Sparkle update feed. only `./dev release publish` writes it |
+| `CHANGELOG.md` | Release notes for users |
+| `README.md` | The user guide of the public repository |
 
 `project.yml` is the XcodeGen source. Run `./dev generate` after you change it.
 Do not edit `Jerd.xcodeproj` by hand.
@@ -64,8 +69,9 @@ Change these files together, in one commit:
 
 | When you change | Also change |
 | --- | --- |
-| `.xcode-version` | The `runs-on` label and its comment in `.github/workflows/ci.yml` |
+| `.xcode-version` | The `runs-on` label and its comment in `.github/workflows/ci.yml`, and `xcodeVersion` in `project.yml` (then run `./dev generate`) |
 | `Tools/xcodegen-version` | `XCODEGEN_SHA256` in `.github/workflows/ci.yml` |
+| The swift-argument-parser `exact` version in `Tools/Package.swift` | `Tools/Package.resolved` (run `swift package resolve --package-path Tools`) |
 | The Sparkle `exactVersion` in `project.yml` | `Package.resolved` in `Jerd.xcodeproj` (resolve again in Xcode); `./dev lint` checks it |
 | `appcast.xml` | Its signature block: sign the feed again with Sparkle `sign_update` |
 | `Configuration/Version.xcconfig` | Only as part of a release |
