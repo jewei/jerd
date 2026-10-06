@@ -39,7 +39,7 @@ struct AboutPage: View {
     private var updatesSection: some View {
         Section {
             ActionRow("Jerd updates", detail: updates.message) {
-                Button("Check for Updates", systemImage: "arrow.clockwise") { updates.checkForUpdates() }
+                Button(AppUpdatesModel.checkTitle, systemImage: "arrow.clockwise") { updates.checkForUpdates() }
                     .disabled(!updates.canCheckForUpdates)
                     .accessibilityLabel("Check for app updates")
                     .accessibilityIdentifier("about.check-for-updates")

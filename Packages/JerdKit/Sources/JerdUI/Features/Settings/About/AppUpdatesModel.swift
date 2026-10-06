@@ -8,6 +8,9 @@ import Observation
 public final class AppUpdatesModel {
     /// The error that the Sparkle adapter throws from `mayPerform` during a quit.
     public static let stoppingMessage = "Jerd is stopping its services."
+    /// The one title of the update check, in the app menu, the menu bar, and About. It opens
+    /// the Sparkle window, so it ends with an ellipsis.
+    public static let checkTitle = "Check for Updates…"
 
     public private(set) var isStarted = false
     public private(set) var automaticallyChecks = false

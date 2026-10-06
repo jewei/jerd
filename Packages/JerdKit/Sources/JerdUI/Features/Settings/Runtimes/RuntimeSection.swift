@@ -38,7 +38,9 @@ struct RuntimeSection: View {
         } header: {
             Text(kind.title)
         } footer: {
-            FormFooter(RuntimeCopy.footer(kind, checkedAt: checkedText))
+            if let footer = RuntimeCopy.footer(kind, checkedAt: checkedText) {
+                FormFooter(footer)
+            }
         }
     }
 

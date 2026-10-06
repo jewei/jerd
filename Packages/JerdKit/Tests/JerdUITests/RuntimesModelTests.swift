@@ -158,7 +158,9 @@ struct RuntimesModelTests {
 
     @Test("Footers name the check date, then the note of the kind")
     func footers() {
-        #expect(RuntimeCopy.footer(.caddy, checkedAt: nil) == "Updates have not been checked.")
+        #expect(RuntimeCopy.footer(.caddy, checkedAt: nil) == nil)
+        #expect(RuntimeCopy.footer(.redis, checkedAt: nil) == "Redis builds need the Xcode command line tools.")
+        #expect(RuntimeCopy.footer(.caddy, checkedAt: "Oct 6, 2026 at 9:41 AM") == "Checked Oct 6, 2026 at 9:41 AM.")
         #expect(
             RuntimeCopy.footer(.mysql, checkedAt: "Oct 6, 2026 at 9:41 AM")
                 == "Checked Oct 6, 2026 at 9:41 AM. MySQL uses the 8.4 LTS series.")

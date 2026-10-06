@@ -46,11 +46,15 @@ enum RuntimeCopy {
         "Preparing to install \(kind.title)…"
     }
 
-    /// The section footer: when the kind was checked, then its note.
-    static func footer(_ kind: RuntimeKind, checkedAt: String?) -> String {
-        let checked = checkedAt.map { "Checked \($0)." } ?? "Updates have not been checked."
-        return [checked, note(kind)].compactMap { $0 }.joined(separator: " ")
+    /// The section footer: when the kind was checked, then its note, or nil when there is
+    /// neither. Before the first check the page says it once, not under every section.
+    static func footer(_ kind: RuntimeKind, checkedAt: String?) -> String? {
+        let parts = [checkedAt.map { "Checked \($0)." }, note(kind)].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
+
+    /// The one page line before the first check.
+    static let notCheckedMessage = "Updates have not been checked. Select Check for Updates to see new versions."
 
     /// How the release is verified, for the Release row.
     static func verificationDetail(_ release: RuntimeRelease) -> String {
@@ -64,8 +68,9 @@ enum RuntimeCopy {
         }
     }
 
-    /// The release label in the picker, with a mark for the installed release.
-    static func releaseLabel(_ release: RuntimeRelease, isInstalled: Bool) -> String {
-        release.versionLabel + (isInstalled ? " · Installed" : "")
+    /// The release label in the picker. The Installed label next to the picker marks an
+    /// installed release, so the picker does not say it again.
+    static func releaseLabel(_ release: RuntimeRelease) -> String {
+        release.versionLabel
     }
 }

@@ -33,7 +33,7 @@ public enum AppCommand: Hashable, Sendable {
     public func title(in state: AppState) -> String {
         switch self {
         case .about: "About Jerd"
-        case .checkForUpdates: "Check for Updates…"
+        case .checkForUpdates: AppUpdatesModel.checkTitle
         case .newItem: state.newItemAction?.title ?? "New…"
         case .settings: "Settings…"
         case .toggleSidebar:

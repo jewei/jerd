@@ -11,7 +11,7 @@ struct PHPDefaultRows: View {
                 if model.defaultPHPID == php.id {
                     Label("Default", systemImage: "checkmark.circle.fill")
                         .font(TextRole.detail.font.weight(.medium))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(.secondary)
                         .accessibilityLabel("PHP \(php.version) is the default")
                 } else {
                     Button("Use as Default") {
