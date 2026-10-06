@@ -38,7 +38,9 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
   shows as installed and is not downloaded again.
 - Verification of an installed folder ignores only Finder's `.DS_Store`.
 - A corrupt `cli-tools.json` is never reset. Later tool selections survive the bootstrap.
-- Long file work runs on a GCD thread (`BlockingWork`), not on the cooperative pool.
+- Long file work runs on a GCD thread (`BlockingWork`), not on the cooperative pool. It runs
+  inside the calling task (an actor on its own serial queue), so a cancellation stops a
+  running hash, extraction, copy, or scan at its next chunk or entry.
 
 ## Bundle layout
 

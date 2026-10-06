@@ -63,6 +63,19 @@ import Testing
         #expect(try Data(contentsOf: license) == Data("preserve this corrupt file".utf8))
     }
 
+    /// RT-1: the first-launch verification and copy run on a GCD thread; a cancellation must stop them.
+    @Test func cancellationStopsTheFirstLaunchInstallationWhileItRuns() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let bundle = try mailBundle(folder)
+        try makeSparseFile(bundle.appendingPathComponent("mail/mailpit-1.31.3-arm64/mailpit"))
+        let bootstrap = bootstrap(bundle, folder)
+        let result = await cancelWhileRunning { try await bootstrap.installMail() }
+        #expect(throws: CancellationError.self) { try result.get() }
+        let mailRuntimes = folder.path("data/mail-runtimes")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: mailRuntimes.path).isEmpty)
+    }
+
     @Test func bundleWithChangedOrExtraFilesIsRefusedBeforeAnyCopy() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

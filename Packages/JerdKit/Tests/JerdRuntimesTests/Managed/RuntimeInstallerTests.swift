@@ -106,6 +106,26 @@ import os
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
     }
 
+    /// RT-1: the reuse check hashes the installed build on a GCD thread; a cancellation must stop that hash.
+    @Test func cancellationStopsTheVerificationOfAnInstalledBuildWhileItRuns() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let fixture = try CloudflaredFixture()
+        let sha = try #require(fixture.release.archiveSHA256)
+        let build = folder.path("cloudflared-2026.9.3-arm64-\(sha)")
+        try makeSparseFile(build.appendingPathComponent("cloudflared"))
+        let receipt = BuildReceipt(
+            kind: .cloudflared, version: "2026.9.3", releaseVersion: "2026.9.3", archiveSHA256: sha,
+            executable: try #require(RelativePath("cloudflared")), secondaryExecutable: nil,
+            files: [try #require(RelativePath("cloudflared")): digest("0")])
+        try AtomicFile.write(try receipt.encoded(), to: build.appendingPathComponent(BuildReceipt.fileName))
+        let installer = fixture.installer(directory: folder.url)
+        let result = await cancelWhileRunning { try await installer.install(fixture.release) }
+        #expect(throws: CancellationError.self) { try result.get() }
+        #expect(fixture.fetcher.requests.isEmpty)
+        #expect(FileProbe.presence(at: build.appendingPathComponent("cloudflared")) == .present)
+    }
+
     @Test func incompatibleReleaseIsRefusedBeforeAnyDownload() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
