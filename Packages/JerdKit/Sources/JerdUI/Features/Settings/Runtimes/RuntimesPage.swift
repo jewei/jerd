@@ -30,6 +30,8 @@ struct RuntimesPage: View {
                 RuntimeSection(model: model, kind: kind)
             }
         }
+        // Advanced and the services can change what is installed, so read it each time.
+        .task { await model.load() }
     }
 
     private var checkAction: PageAction {

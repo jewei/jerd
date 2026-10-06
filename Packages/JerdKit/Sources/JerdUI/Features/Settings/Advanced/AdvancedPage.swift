@@ -28,6 +28,9 @@ struct AdvancedPage: View {
             LocalExecutablesSection(model: model)
             PHPRegistrationsSection(model: model)
         }
+        // Another page or a runtime installation can change the registrations, and the helper
+        // can report a new interrupted setup, so the page reads them again each time it shows.
+        .task { await model.load() }
         .confirmationDialog(
             model.confirmation?.title ?? "", isPresented: isConfirming, titleVisibility: .visible,
             presenting: model.confirmation

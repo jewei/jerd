@@ -10,8 +10,7 @@ extension AdvancedModel {
                 let fpm = await panels.choose(.executable("Select the matching PHP-FPM executable."))
             else { return }
             await performAfterPanel("Checking the selected PHP executables…") { model in
-                try await model.executables.importPHP(cli: cli, fpm: fpm)
-                model.registrations = try await model.executables.registrations()
+                try await model.registry.importPHP(cli: cli, fpm: fpm)
             }
         }
     }
@@ -23,8 +22,7 @@ extension AdvancedModel {
         return Task {
             guard let caddy = await panels.choose(.executable("Select a trusted Caddy 2 executable.")) else { return }
             await performAfterPanel("Checking the selected Caddy executable…") { model in
-                try await model.executables.importCaddy(caddy)
-                model.registrations = try await model.executables.registrations()
+                try await model.registry.importCaddy(caddy)
             }
         }
     }
@@ -57,8 +55,7 @@ extension AdvancedModel {
             try await recovery.removeBackup(backup.id)
             backups = await recovery.inspectBackups()
         case .removePHP(let runtime):
-            try await executables.removePHP(runtime.id)
-            registrations = try await executables.registrations()
+            try await registry.removePHP(runtime.id)
         case .restoreHTTPS(let status):
             try await https.recover(status, action: .restorePrevious)
             httpsRecovery = try await https.pendingRecovery()

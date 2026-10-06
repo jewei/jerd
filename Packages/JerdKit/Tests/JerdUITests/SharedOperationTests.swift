@@ -14,12 +14,13 @@ struct SharedOperationTests {
         await fixture.state.launch()
         await fixture.state.commandLineTools.load()
         await fixture.state.advanced.inspect()?.value
+        let php83 = RegisteredPHP(id: SampleData.php83ID, version: "8.3.24")
         await ports.configure { $0.isHeld = true }
         fixture.state.advanced.confirmation = .forFinding(SampleData.findings[0])
         let recovery = fixture.state.advanced.confirm()
         #expect(recovery != nil)
         #expect(!fixture.state.runtimes.canChangeRuntimes)
-        #expect(fixture.state.runtimes.useAsDefault(SampleData.inventory.php[1]) == nil)
+        #expect(fixture.state.runtimes.useAsDefault(php83) == nil)
         #expect(!fixture.state.commandLineTools.canInstall)
 
         var replies: [Bool] = []
@@ -40,12 +41,12 @@ struct SharedOperationTests {
 
     @Test("The quit waits for a default PHP change before PHP-FPM stops")
     func quitWaitsForDefaultChange() async {
-        let inventory = InMemoryRuntimeInventory(inventory: SampleData.inventory)
-        let fixture = AppFixture(runtimes: inventory)
+        let ports = InMemoryAdvancedPorts(registrations: SampleData.registrations)
+        let fixture = AppFixture(advanced: ports)
         defer { fixture.removeDefaults() }
         await fixture.state.launch()
-        await inventory.configure { $0.holdsDefaultChange = true }
-        let change = fixture.state.runtimes.useAsDefault(SampleData.inventory.php[1])
+        await ports.configure { $0.isHeld = true }
+        let change = fixture.state.runtimes.useAsDefault(RegisteredPHP(id: SampleData.php83ID, version: "8.3.24"))
         #expect(change != nil)
         #expect(!fixture.state.advanced.isIdle)
         var replies: [Bool] = []
@@ -54,10 +55,10 @@ struct SharedOperationTests {
         for _ in 0..<50 { await Task.yield() }
         #expect(replies.isEmpty)
         #expect(fixture.features.allSatisfy { $0.shutdownCount == 0 })
-        await inventory.configure { $0.holdsDefaultChange = false }
+        await ports.configure { $0.isHeld = false }
         await waitUntil { !replies.isEmpty }
         #expect(replies == [true])
-        #expect(await inventory.defaultRequests == [SampleData.inventory.php[1].id])
+        #expect(await ports.calls == ["default PHP \(SampleData.php83ID.uuidString)"])
     }
 
     @Test("During a quit, Advanced, Runtimes, and command-line tools actions are off")

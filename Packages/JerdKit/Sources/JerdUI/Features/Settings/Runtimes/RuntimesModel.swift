@@ -25,6 +25,8 @@ public final class RuntimesModel {
     public internal(set) var isShuttingDown = false
 
     @ObservationIgnored let port: any RuntimeInventory
+    /// The registered PHP runtimes and the default PHP, shared with Advanced and the dashboard.
+    public let registry: RegistrationStore
     /// The shared lock: the default PHP change and each activation hold it.
     @ObservationIgnored let lock: OperationLock
     @ObservationIgnored var checkTask: Task<Void, Never>?
@@ -32,20 +34,32 @@ public final class RuntimesModel {
     /// The default PHP change. The quit waits for it.
     @ObservationIgnored var defaultTask: Task<Void, Never>?
 
-    public init(port: any RuntimeInventory, lock: OperationLock = OperationLock()) {
+    public init(port: any RuntimeInventory, registry: RegistrationStore, lock: OperationLock = OperationLock()) {
         self.port = port
+        self.registry = registry
         self.lock = lock
     }
 
-    /// Reads the installed runtimes. A failure shows on the page; the old values stay.
+    /// Reads the installed runtimes and the registrations. A failure shows on the page; the
+    /// old values stay. The page calls it each time it appears.
     public func load() async {
         do {
             inventory = try await port.snapshot()
+            try await registry.reload()
             if operation.failureMessage != nil { operation = .idle }
         } catch {
             operation = .failed(message: ErrorText.message(for: error))
         }
     }
+
+    /// The registered PHP runtimes, in configuration order, with their managed build digest.
+    public var registeredPHP: [RegisteredPHP] {
+        registry.registrations.php.map { runtime in
+            RegisteredPHP(id: runtime.id, version: runtime.version, buildDigest: inventory.phpBuildDigests[runtime.id])
+        }
+    }
+
+    public var defaultPHPID: UUID? { registry.registrations.defaultPHPID }
 
     /// The release that the picker of `kind` selects.
     public func selectedRelease(_ kind: RuntimeKind) -> RuntimeRelease? {
@@ -64,13 +78,13 @@ public final class RuntimesModel {
     /// Makes a registered PHP runtime the default.
     @discardableResult
     public func useAsDefault(_ php: RegisteredPHP) -> Task<Void, Never>? {
-        guard canChangeRuntimes, inventory.defaultPHPID != php.id else { return nil }
+        guard canChangeRuntimes, defaultPHPID != php.id else { return nil }
         let message = "Changing the default PHP…"
         operation = .working(message)
         let task = lock.run(message) { [self] in
             var failure: String?
             do {
-                try await port.setDefaultPHP(php.id)
+                try await registry.setDefaultPHP(php.id)
             } catch {
                 failure = ErrorText.message(for: error)
             }

@@ -6,9 +6,9 @@ struct PHPDefaultRows: View {
     let model: RuntimesModel
 
     var body: some View {
-        ForEach(model.inventory.php) { php in
+        ForEach(model.registeredPHP) { php in
             ActionRow("PHP \(php.version)", detail: php.buildDigest.map { "Build \($0.prefix(12))" }) {
-                if model.inventory.defaultPHPID == php.id {
+                if model.defaultPHPID == php.id {
                     Label("Default", systemImage: "checkmark.circle.fill")
                         .font(TextRole.detail.font.weight(.medium))
                         .foregroundStyle(Color.accentColor)

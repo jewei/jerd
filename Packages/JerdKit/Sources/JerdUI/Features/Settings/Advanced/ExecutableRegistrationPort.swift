@@ -10,4 +10,6 @@ public protocol ExecutableRegistrationPort: Sendable {
     func importCaddy(_ executable: URL) async throws
     /// Removes a PHP registration. The runtime files stay on disk.
     func removePHP(_ id: UUID) async throws
+    /// Makes a registered PHP runtime the default. Running sites without a pinned PHP restart.
+    func setDefaultPHP(_ id: UUID) async throws
 }

@@ -17,6 +17,4 @@ public protocol RuntimeInventory: Sendable {
     /// Puts an installed build into use. It is not cancellable: once started, it finishes.
     /// - Parameter useAsDefault: For PHP, also makes the build the default runtime.
     func activate(_ build: InstalledBuild, useAsDefault: Bool) async throws
-    /// Makes a registered PHP runtime the default.
-    func setDefaultPHP(_ id: UUID) async throws
 }

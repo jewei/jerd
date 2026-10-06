@@ -9,6 +9,8 @@ import Observation
 public final class AppState {
     public var navigation = NavigationState()
     public let appearance: AppearanceModel
+    /// The registered PHP runtimes and the default PHP: one store for every page.
+    public let registrations: RegistrationStore
     public let runtimes: RuntimesModel
     public let advanced: AdvancedModel
     public let appUpdates: AppUpdatesModel
@@ -46,11 +48,12 @@ public final class AppState {
         appearance = AppearanceModel(
             defaults: AppearanceDefaults(dependencies.defaults), presence: dependencies.presence,
             images: dependencies.iconImages)
-        runtimes = RuntimesModel(port: dependencies.runtimes, lock: operationLock)
+        registrations = RegistrationStore(port: dependencies.executables)
+        runtimes = RuntimesModel(port: dependencies.runtimes, registry: registrations, lock: operationLock)
         advanced = AdvancedModel(
             recovery: dependencies.recovery, executables: dependencies.executables,
             https: dependencies.httpsRecovery, panels: dependencies.filePanels, workspace: dependencies.workspace,
-            lock: operationLock)
+            registry: registrations, lock: operationLock)
         appUpdates = AppUpdatesModel(updater: dependencies.updater)
         clipboard = Clipboard(pasteboard: dependencies.pasteboard)
         windows = dependencies.windows
