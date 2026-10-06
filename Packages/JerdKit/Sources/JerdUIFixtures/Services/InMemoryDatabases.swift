@@ -18,6 +18,8 @@ public actor InMemoryDatabases: DatabasesPort {
     /// When set, registry changes throw this message.
     public var failure: String?
     public var suggestion: UInt16 = 3307
+    /// When set, add, edit, and restore wait here before they change anything.
+    public var gate: FixtureGate?
     public private(set) var calls: [String] = []
 
     public init(
@@ -51,6 +53,7 @@ public actor InMemoryDatabases: DatabasesPort {
     public func suggestedPort(for engine: DatabaseEngine) async throws -> UInt16 { suggestion }
 
     public func add(name: String, runtimeID: String, port: UInt16) async throws -> DatabaseService {
+        await gate?.pass()
         try record("add \(name) \(port)")
         let service = DatabaseService(name: name, runtimeID: runtimeID, port: port)
         configuration.services.append(service)
@@ -58,6 +61,7 @@ public actor InMemoryDatabases: DatabasesPort {
     }
 
     public func edit(_ service: DatabaseService) async throws {
+        await gate?.pass()
         try record("edit \(service.name) \(service.port)")
         guard let index = configuration.services.firstIndex(where: { $0.id == service.id }) else { return }
         configuration.services[index] = service
@@ -121,6 +125,7 @@ public actor InMemoryDatabases: DatabasesPort {
     }
 
     public func restoreRegistration(_ id: UUID, name: String, port: UInt16) async throws -> DatabaseService {
+        await gate?.pass()
         try record("restore \(name) \(port)")
         guard let database = retained.first(where: { $0.id == id }), let runtime = database.runtime else {
             throw JerdError.invalid("The retained folder cannot be restored.")

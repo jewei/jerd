@@ -22,18 +22,17 @@ extension DatabasesModel {
     ) -> Task<Void, Never> {
         busyServices.insert(id)
         if operation.failureMessage != nil { operation = .idle }
-        return track(
-            Task {
-                var failure: String?
-                do {
-                    try await work(self)
-                } catch {
-                    failure = ErrorText.message(for: error)
-                }
-                await refresh()
-                busyServices.remove(id)
-                if let failure, !state(of: id).needsAttention { operation = .failed(message: failure) }
-            })
+        return track { [self] in
+            var failure: String?
+            do {
+                try await work(self)
+            } catch {
+                failure = ErrorText.message(for: error)
+            }
+            await refresh()
+            busyServices.remove(id)
+            if let failure, !state(of: id).needsAttention { operation = .failed(message: failure) }
+        }
     }
 
     @discardableResult

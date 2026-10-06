@@ -35,23 +35,33 @@ extension DatabasesModel {
     }
 
     /// Add registers and starts the service, then selects it. Edit saves the stopped service.
-    /// A failure stays in the sheet.
+    /// A failure stays in the sheet. After Cancel, the result only refreshes the page.
     @discardableResult
     public func saveEditor() -> Task<Void, Never>? {
         guard let draft = editor, let service = draft.service(in: configuration), canChangeRegistry else { return nil }
         editorOperation = .working(draft.isAdding ? "Creating the database service…" : "Saving the service…")
-        return track(
-            Task {
-                do {
-                    let id = try await save(service, adding: draft.isAdding)
-                    closeEditor()
-                    navigate?(.item(.database(id)))
-                    if draft.isAdding { start(id) }
-                } catch {
-                    await refresh()
-                    editorOperation = .failed(message: ErrorText.message(for: error))
-                }
-            })
+        let task = track { [self] in
+            do {
+                let id = try await save(service, adding: draft.isAdding)
+                guard !Task.isCancelled else { return endCancelledEditor(failure: nil) }
+                editorOperation = .idle
+                closeEditor()
+                navigate?(.item(.database(id)))
+                if draft.isAdding { start(id) }
+            } catch {
+                await refresh()
+                guard !Task.isCancelled else { return endCancelledEditor(failure: error) }
+                editorOperation = .failed(message: ErrorText.message(for: error))
+            }
+        }
+        editorTask = task
+        return task
+    }
+
+    private func endCancelledEditor(failure: (any Error)?) {
+        editorOperation = .idle
+        editorTask = nil
+        if let page = CancelledSave.pageOperation(failure: failure) { operation = page }
     }
 
     private func save(_ service: DatabaseService, adding: Bool) async throws -> UUID {
@@ -65,11 +75,16 @@ extension DatabasesModel {
         return service.id
     }
 
-    /// Closes the sheet. A save in progress finishes; only the wait ends.
+    /// Closes the sheet. A running save is asked to stop and keeps the registry locked until
+    /// it ends, so its late result cannot reach a newer sheet.
     public func closeEditor() {
         editor = nil
-        editorOperation = .idle
         if sheet == .editor { sheet = nil }
+        if editorOperation.isWorking {
+            editorTask?.cancel()
+        } else {
+            editorOperation = .idle
+        }
     }
 
     public func requestRemove(_ id: UUID) {
@@ -83,16 +98,15 @@ extension DatabasesModel {
         guard let service = pendingRemoval, canRemove(service.id) else { return nil }
         pendingRemoval = nil
         operation = .working("Stopping \(service.name) and removing its registration…")
-        return track(
-            Task {
-                do {
-                    try await port.remove(service.id)
-                    await refresh()
-                    operation = .idle
-                } catch {
-                    await refresh()
-                    operation = .failed(message: ErrorText.message(for: error))
-                }
-            })
+        return track { [self] in
+            do {
+                try await port.remove(service.id)
+                await refresh()
+                operation = .idle
+            } catch {
+                await refresh()
+                operation = .failed(message: ErrorText.message(for: error))
+            }
+        }
     }
 }

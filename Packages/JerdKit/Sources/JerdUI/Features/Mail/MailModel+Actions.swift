@@ -30,6 +30,7 @@ extension MailModel {
     }
 
     public func copyEnvironment() {
+        guard canCopyEnvironment else { return }
         clipboard.copy(settings.laravelEnvironment, confirmation: "Copied Laravel settings")
     }
 

@@ -14,6 +14,8 @@ public actor InMemoryMail: MailPort {
     /// When set, the test email, the port suggestion, and the port change throw this message.
     public var failure: String?
     public var suggestion = MailPorts(smtp: 1026, web: 8026)
+    /// When set, the port change waits here before it changes anything.
+    public var gate: FixtureGate?
     public private(set) var calls: [String] = []
 
     public init(settings: MailSettings = MailSettings(), state: ServiceState = .stopped, hasData: Bool = false) {
@@ -73,6 +75,7 @@ public actor InMemoryMail: MailPort {
     }
 
     public func edit(ports: MailPorts) async throws {
+        await gate?.pass()
         calls.append("edit \(ports.smtp) \(ports.web)")
         if let failure { throw JerdError.unavailable(failure) }
         settings.ports = ports
