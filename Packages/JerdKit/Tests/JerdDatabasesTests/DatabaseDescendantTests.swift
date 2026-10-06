@@ -92,8 +92,8 @@ import os
         }
     }
 
-    /// A paused server (`kill -STOP`, a debugger) is not an exit. When it ignores the stop signal
-    /// after Jerd continues it, Quit is cancelled and the process, its record, and its lock stay.
+    /// A paused server (`kill -STOP`) is not an exit. When it ignores the stop signal after Jerd
+    /// continues it, Quit is cancelled and the process, its record, and its lock stay.
     @Test func aPausedServiceThatCannotStopCancelsQuit() async throws {
         let directory = try TemporaryDirectory(" paused service")
         defer { directory.remove() }
@@ -103,26 +103,32 @@ import os
             directory, layout: layout, supervisor: supervisor, fixture: "graceful-process")
         let instance = layout.instance(service.id)
         try await manager.start(service.id)
-        let pid = try #require(await manager.snapshot().state(of: service.id).processID)
-        defer { kill(pid, SIGINT) }
-        let record = try #require(contents(instance.activeRunFile))
-        // The fixture ignores SIGTERM once it printed "ready".
-        #expect(await eventually { text(instance.logFile).contains("ready") })
-        #expect(await ProcessPause.pause(pid))
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(await manager.snapshot().state(of: service.id) == .running(pid: pid))
-        await #expect(throws: (any Error).self) { try await manager.stopAll() }
-        guard case .stuck(pid, _) = await manager.snapshot().state(of: service.id) else {
-            Issue.record("Expected a stuck service, got \(await manager.snapshot().state(of: service.id))")
-            return
+        do {
+            let pid = try #require(await manager.snapshot().state(of: service.id).processID)
+            let record = try #require(contents(instance.activeRunFile))
+            // The fixture ignores SIGTERM once it printed "ready".
+            #expect(await eventually { text(instance.logFile).contains("ready") })
+            #expect(await ProcessPause.pause(pid))
+            try await Task.sleep(for: .milliseconds(50))
+            #expect(await manager.snapshot().state(of: service.id) == .running(pid: pid))
+            await #expect(throws: (any Error).self) { try await manager.stopAll() }
+            guard case .stuck(pid, _) = await manager.snapshot().state(of: service.id) else {
+                throw JerdError.invalid(
+                    "Expected a stuck service, got \(await manager.snapshot().state(of: service.id))")
+            }
+            #expect(kill(pid, 0) == 0)
+            #expect(contents(instance.activeRunFile) == record)
+            #expect(!isLockFree(instance.lockFile))
+            // The supervisor still owns the unreaped fixture, so its PID is not reused yet.
+            kill(pid, SIGINT)
+            try await manager.stop(service.id)
+            #expect(await manager.snapshot().state(of: service.id) == .stopped)
+            #expect(!exists(instance.activeRunFile))
+            #expect(isLockFree(instance.lockFile))
+        } catch {
+            // Only an owned, unreaped child gets the signal. The fixture ends on SIGINT.
+            _ = await supervisor.stopAll(policy: .graceful(signal: SIGINT, timeout: .seconds(2)))
+            throw error
         }
-        #expect(kill(pid, 0) == 0)
-        #expect(contents(instance.activeRunFile) == record)
-        #expect(!isLockFree(instance.lockFile))
-        kill(pid, SIGINT)
-        try await manager.stop(service.id)
-        #expect(await manager.snapshot().state(of: service.id) == .stopped)
-        #expect(!exists(instance.activeRunFile))
-        #expect(isLockFree(instance.lockFile))
     }
 }
