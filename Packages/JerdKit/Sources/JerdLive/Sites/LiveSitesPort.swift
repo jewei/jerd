@@ -56,7 +56,8 @@ package actor LiveSitesPort: SitesPort {
     }
 
     package func run(_ siteIDs: Set<UUID>) async throws -> SiteChangeOutcome {
-        await outcome(of: try await sites.run(siteIDs))
+        ServiceActivityLog.request(siteIDs.isEmpty ? "Stop" : "Start", "\(siteIDs.count) sites")
+        return await outcome(of: try await sites.run(siteIDs))
     }
 
     /// Registers the helper first, because the transaction's setup step talks to it. A failure
@@ -82,6 +83,7 @@ package actor LiveSitesPort: SitesPort {
     /// Stops PHP-FPM and Caddy for Quit and closes the helper connection; the helper ends the
     /// port lease when the connection closes.
     package func stopEnvironment() async throws {
+        ServiceActivityLog.request("Stop", "the web environment")
         await coordinator.stop()
         await helper.invalidate()
     }

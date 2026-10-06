@@ -1,9 +1,11 @@
 import AppKit
 import JerdLive
+import os
 
 /// Starts Jerd at launch, independent of any window, and answers reopen and quit requests.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let log = Logger(subsystem: "dev.jerd.app", category: "lifecycle")
     let updater: SparkleUpdater
     let live: LiveApp
 
@@ -41,10 +43,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Runs the staged quit. Every request gets exactly one reply.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        live.state.requestTermination { stopped in
+        let reply = live.state.requestTermination { stopped in
+            Self.log.notice("The staged quit ended. Terminate: \(stopped, privacy: .public).")
             sender.reply(toApplicationShouldTerminate: stopped)
         }
-        .applicationReply
+        Self.log.notice("Quit requested. Reply: \(String(describing: reply), privacy: .public).")
+        return reply.applicationReply
     }
 
     /// The data root and launch options. A Debug build reads `JERD_DEBUG_DATA_ROOT`, so a test

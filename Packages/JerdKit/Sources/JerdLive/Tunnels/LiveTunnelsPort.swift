@@ -37,6 +37,7 @@ package struct LiveTunnelsPort: TunnelsPort {
     }
 
     package func connect(id: UUID) async throws {
+        ServiceActivityLog.request("Start", "tunnel \(id)")
         try await supervisor.start(id: id)
     }
 
@@ -49,7 +50,8 @@ package struct LiveTunnelsPort: TunnelsPort {
     }
 
     package func connectStartupTunnels() async throws -> [TunnelStartupFailure] {
-        try await supervisor.connectStartupTunnels()
+        ServiceActivityLog.request("Start", "the tunnels marked Start when Jerd opens")
+        return try await supervisor.connectStartupTunnels()
     }
 
     package func log(id: UUID) async throws -> String {
