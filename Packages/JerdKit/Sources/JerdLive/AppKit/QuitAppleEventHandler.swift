@@ -13,7 +13,8 @@ package final class QuitAppleEventHandler: NSObject {
 
     /// - Parameters:
     ///   - manager: The event manager of the process.
-    ///   - request: The quit to run; tests pass a recorder.
+    ///   - request: The quit to run; tests pass a recorder. It returns only when the app does
+    ///     not quit (`ApplicationQuit.request()` calls `terminate(_:)`, which returns only then).
     package init(manager: NSAppleEventManager, request: @escaping @MainActor () -> Void) {
         self.manager = manager
         self.request = request
@@ -34,10 +35,23 @@ package final class QuitAppleEventHandler: NSObject {
             forEventClass: AEEventClass(kCoreEventClass), andEventID: AEEventID(kAEQuitApplication))
     }
 
+    /// Runs the quit, then reports a cancelled quit in the reply, as AppKit's own handler does.
     /// The event manager calls this on the main thread.
+    ///
+    /// `terminate(_:)` returns only when the app does not quit: a sheet blocked it, or the
+    /// staged quit answered "do not terminate", for example after a data service hit its
+    /// shutdown timeout. Without the error, loginwindow took the quit as done and later said
+    /// that Jerd failed to quit, instead of that Jerd cancelled the logout.
     @objc private nonisolated func handleQuit(
         _ event: NSAppleEventDescriptor, withReply reply: NSAppleEventDescriptor
     ) {
         MainActor.assumeIsolated { request() }
+        Self.reportCancelled(in: reply)
+    }
+
+    /// Sets `userCanceledErr` (-128) in a reply. A null reply (the sender waits for none) stays.
+    package nonisolated static func reportCancelled(in reply: NSAppleEventDescriptor) {
+        guard reply.descriptorType != typeNull else { return }
+        reply.setParam(NSAppleEventDescriptor(int32: Int32(userCanceledErr)), forKeyword: keyErrorNumber)
     }
 }

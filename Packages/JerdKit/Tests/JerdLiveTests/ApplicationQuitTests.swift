@@ -67,12 +67,11 @@ struct ApplicationQuitTests {
 struct QuitAppleEventTests {
     /// Sends the quit Apple Event to this process through the event manager, as the Dock and
     /// logout do, and returns the result code of the dispatch.
-    static func dispatchQuitEvent() -> OSErr {
+    static func dispatchQuitEvent(reply: NSAppleEventDescriptor = .null()) -> OSErr {
         let event = NSAppleEventDescriptor(
             eventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEQuitApplication),
             targetDescriptor: .currentProcess(), returnID: AEReturnID(kAutoGenerateReturnID),
             transactionID: AETransactionID(kAnyTransactionID))
-        let reply = NSAppleEventDescriptor.null()
         guard let eventDescription = event.aeDesc, let replyDescription = reply.aeDesc else { return OSErr(paramErr) }
         let mutableReply = UnsafeMutablePointer(mutating: replyDescription)
         let unusedReference = UnsafeMutableRawPointer.allocate(byteCount: 1, alignment: 1)
@@ -93,6 +92,33 @@ struct QuitAppleEventTests {
 
         #expect(result == noErr)
         #expect(requests == 1)
+    }
+
+    /// A reply like the one that the event manager makes for a sender that waits.
+    static func answer() -> NSAppleEventDescriptor {
+        NSAppleEventDescriptor(
+            eventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEAnswer), targetDescriptor: nil,
+            returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
+    }
+
+    /// The quit returns only when Jerd stays open, for example after a shutdown timeout. The
+    /// sender (loginwindow at logout) must then get userCanceledErr, as from AppKit's handler.
+    @Test func aQuitThatJerdCancelsRepliesUserCanceled() {
+        let handler = QuitAppleEventHandler(manager: .shared()) {}
+        handler.install()
+        defer { handler.remove() }
+        let reply = Self.answer()
+
+        let result = Self.dispatchQuitEvent(reply: reply)
+
+        #expect(result == noErr)
+        #expect(reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value == Int32(userCanceledErr))
+    }
+
+    @Test func aSenderThatWaitsForNoReplyGetsNone() {
+        let reply = NSAppleEventDescriptor.null()
+        QuitAppleEventHandler.reportCancelled(in: reply)
+        #expect(reply.descriptorType == typeNull)
     }
 
     @Test func aRemovedHandlerNoLongerRunsTheQuit() {
