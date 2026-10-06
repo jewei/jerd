@@ -37,6 +37,7 @@ folder, and the keychain. It depends only on JerdFoundation.
   section. Use `JSONEncoder()` with default options for saved records and DTOs.
 - Status, acquire, and release time out after 20 seconds. Configure, remove, and recover have no
   app timeout, because macOS can show an approval prompt. Cancellation ends only a status call.
+  A timeout drops the shared link, but not while a change without a timeout waits on it.
 - Each changing call opens its own consent scope with a token. A second scope is refused.
 - A failed step is undone in reverse order. A rollback writes back the exact earlier record bytes.
   When an undo fails, the journal stays and the error is `.partialChange`.

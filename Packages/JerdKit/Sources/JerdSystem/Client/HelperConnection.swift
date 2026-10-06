@@ -5,12 +5,16 @@ import JerdFoundation
 ///
 /// A link is opened on the first call, only while the daemon is enabled. Its invalidation, its
 /// interruption, or a reply timeout drops it, but only if it is still the current link, so a late
-/// event of an old link never drops a newer one. Transport errors become one stable message.
+/// event of an old link never drops a newer one. A reply timeout does not drop a link that carries a
+/// call without a timeout (a change that can wait for macOS approval): dropping it would interrupt
+/// that change (fixed review M1). Transport errors become one stable message.
 public actor HelperConnection {
     private let opener: any HelperLinkOpening
     private let responder: ConsentResponder
     private let isEnabled: @Sendable () -> Bool
     private var link: (id: UUID, link: any HelperLink)?
+    /// The number of calls without a timeout that wait on each link.
+    private var openChanges: [UUID: Int] = [:]
 
     public init(opener: any HelperLinkOpening, responder: ConsentResponder, isEnabled: @escaping @Sendable () -> Bool) {
         self.opener = opener
@@ -29,6 +33,8 @@ public actor HelperConnection {
         _ send: @escaping @Sendable (any JerdHelperProtocol, ReplyGate<Value>) -> Void
     ) async throws -> Value {
         let (id, current) = try connect()
+        if timeout == nil { openChanges[id, default: 0] += 1 }
+        defer { if timeout == nil { endChange(on: id) } }
         let deliver: (ReplyGate<Value>) -> Void = { gate in
             let proxy = current.proxy { error in gate.resolve(.failure(Self.transportError(error))) }
             guard let proxy else {
@@ -38,7 +44,8 @@ public actor HelperConnection {
             send(proxy, gate)
         }
         return try await ReplyGate<Value>.wait(
-            cancellation: cancellation, timeout: timeout, onTimeout: { [weak self] in await self?.drop(id) },
+            cancellation: cancellation, timeout: timeout,
+            onTimeout: { [weak self] in await self?.dropAfterTimeout(id) },
             send: deliver)
     }
 
@@ -52,6 +59,17 @@ public actor HelperConnection {
     func drop(_ id: UUID) {
         guard link?.id == id else { return }
         invalidate()
+    }
+
+    /// Drops the link `id` after a reply timeout, unless a change still waits on it.
+    func dropAfterTimeout(_ id: UUID) {
+        guard openChanges[id, default: 0] == 0 else { return }
+        drop(id)
+    }
+
+    private func endChange(on id: UUID) {
+        let remaining = openChanges[id, default: 1] - 1
+        openChanges[id] = remaining > 0 ? remaining : nil
     }
 
     private func connect() throws -> (UUID, any HelperLink) {

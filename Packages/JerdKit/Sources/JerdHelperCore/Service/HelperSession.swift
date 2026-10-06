@@ -5,16 +5,20 @@ import JerdSystem
 
 /// The exported object of one XPC connection. Its owner is the connection's effective UID.
 ///
-/// Status calls run at once. Changing calls and listener calls run in arrival order, and a call that
-/// waits in the queue after the connection closed is not started. Errors cross the wire as text with
-/// a stable code (`HelperWireError`).
+/// Status calls run at once. Changing calls run in arrival order, and a call that waits in the queue
+/// after the connection closed is not started. Listener calls have their own queue: they keep their
+/// order, but never wait behind a change, because a change can wait for a macOS approval prompt
+/// while the app gives acquire and release only 20 seconds (fixed review M1). During a change the
+/// service refuses them at once, as the old helper did. Errors cross the wire as text with a stable
+/// code (`HelperWireError`).
 final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
     let id = UUID()
     let owner: uid_t
     private let service: HelperService
     private let consent: any ConsentRequesting
     private let lifetime = SessionLifetime()
-    private let queue = SessionWorkQueue()
+    private let changes = SessionWorkQueue()
+    private let listenerCalls = SessionWorkQueue()
 
     init(owner: uid_t, service: HelperService, consent: any ConsentRequesting) {
         self.owner = owner
@@ -50,7 +54,7 @@ final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
 
     func acquireListeners(reply: @escaping @Sendable (FileHandle?, FileHandle?, String?) -> Void) {
         let (service, owner, id, lifetime) = (service, owner, id, lifetime)
-        let queued = queue.enqueue {
+        let queued = listenerCalls.enqueue {
             do {
                 let pair = try await service.acquire(owner: owner, connection: id, lifetime: lifetime)
                 reply(pair.http, pair.https, nil)
@@ -63,7 +67,7 @@ final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
 
     func releaseListeners(reply: @escaping @Sendable () -> Void) {
         let (service, id) = (service, id)
-        let queued = queue.enqueue {
+        let queued = listenerCalls.enqueue {
             await service.release(connection: id)
             reply()
         }
@@ -73,7 +77,8 @@ final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
     /// Called by the connection's invalidation and interruption handlers.
     func invalidate() {
         lifetime.invalidate()
-        queue.finish()
+        changes.finish()
+        listenerCalls.finish()
         let (service, id) = (service, id)
         Task { await service.release(connection: id) }
     }
@@ -82,7 +87,7 @@ final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
         _ reply: @escaping @Sendable (String?) -> Void, _ work: @escaping @Sendable () async throws -> Void
     ) {
         let lifetime = lifetime
-        let queued = queue.enqueue {
+        let queued = changes.enqueue {
             do {
                 try lifetime.check()
                 try await work()
