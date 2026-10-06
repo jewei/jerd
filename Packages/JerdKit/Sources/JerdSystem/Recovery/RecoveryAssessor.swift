@@ -71,9 +71,12 @@ enum RecoveryAssessor {
 
     /// The hosts bytes with the Jerd section set to `target`, starting from the first recorded state
     /// (previous, intended, none) that the current section matches. Nil when no state matches.
+    ///
+    /// The match uses the section rule only. The external-mapping rule applies to the `target`
+    /// hostnames alone, so an outside line that maps a recorded name blocks no removal (fixed review L1).
     static func hosts(_ current: Data, pending: PendingRecord, target: [Hostname]) -> Data? {
         let recorded = [pending.previous?.hostnames.values ?? [], pending.intended?.hostnames.values ?? [], []]
-        guard let expected = recorded.first(where: { HostsSection.maps($0, in: current) }) else { return nil }
+        guard let expected = recorded.first(where: { HostsSection.tracks($0, in: current) }) else { return nil }
         do {
             return try HostsSection.replacing(in: current, with: target, expecting: expected)
         } catch {

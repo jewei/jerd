@@ -1,5 +1,6 @@
 import Darwin
 import JerdProcess
+import JerdServiceKitTestSupport
 import os
 
 /// Answers the `lsof` queries of `LoopbackPortGuard` from a table: ports with a foreign listener,

@@ -17,18 +17,20 @@ struct ShellFileChange: Equatable, Sendable {
     /// Plans the change of `file` from its current bytes.
     /// - Throws: `.invalid` for text that is not UTF-8 or a malformed Jerd block.
     init(file: URL, original: Data?, mode: mode_t) throws {
-        guard let text = String(data: original ?? Data(), encoding: .utf8) else {
+        // Bytes, not a decoded String: a decoder would drop a byte order mark.
+        let bytes = [UInt8](original ?? Data())
+        guard CStrings.isUTF8(bytes) else {
             throw JerdError.invalid(
                 "\(file.path) is not UTF-8 text. It was preserved. Add the Jerd PATH block yourself.")
         }
-        guard ShellPathBlockEditor.state(of: text) != .malformed else {
+        guard ShellPathBlockEditor.state(of: bytes) != .malformed else {
             throw JerdError.invalid(
                 "The Jerd PATH block in \(file.path) needs manual review. It was preserved. "
                     + "Keep one block between its two marker lines, then set up the commands again.")
         }
         self.file = file
         self.original = original
-        self.updated = Data(try ShellPathBlockEditor.apply(to: text).utf8)
+        self.updated = Data(try ShellPathBlockEditor.apply(to: bytes))
         self.mode = mode
     }
 

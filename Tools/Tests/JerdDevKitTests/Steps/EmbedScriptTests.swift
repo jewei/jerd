@@ -3,34 +3,34 @@ import Testing
 
 @testable import JerdDevKit
 
-/// Runs the Xcode embed phase script in a temporary source root with fake build products. The script
-/// is a shell script by nature, so the test starts `/bin/sh` with it.
+/// Runs the Xcode embed phase script in a temporary source root with fake build products and a fake
+/// `./dev` that records its arguments and environment. The script is a shell script by nature, so the
+/// test starts `/bin/sh` with it. `RuntimesEmbedStepTests` test the verification itself.
 @Suite("Embed phase script")
 struct EmbedScriptTests {
     static let script = URL(filePath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().appending(path: "Scripts/embed-app-contents.sh")
 
-    static let groups = ["Database", "Development", "Mail", "Storage"]
-
-    /// A source root with the four pinned runtime groups and the helper plist, and fake products.
-    private func makeRoot() throws -> URL {
+    /// A source root with the helper plist, fake products, and a fake tool that exits with `status`.
+    private func makeRoot(toolStatus: Int = 0) throws -> URL {
         let root = try TestFixtures.temporaryFolder()
-        for group in Self.groups {
-            let pin = group == "Mail" || group == "Storage" ? "pin.json" : "pins.json"
-            try TestFixtures.write("{}", to: "Runtimes/\(group)/\(pin)", in: root)
-        }
-        try TestFixtures.write("{}", to: "Runtimes/Support/xz.json", in: root)
         try TestFixtures.write("<plist/>", to: "Apps/JerdHelper/dev.jerd.helper.plist", in: root)
         try TestFixtures.write("helper", to: "products/JerdHelper", in: root)
         try TestFixtures.write("cli", to: "products/JerdCLI", in: root)
+        let tool = """
+            #!/bin/sh
+            printf '%s\\n' "$@" > "\(root.path)/tool-arguments"
+            /usr/bin/env > "\(root.path)/tool-environment"
+            exit \(toolStatus)
+            """
+        try TestFixtures.write(tool, to: "fake-dev", in: root)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path + "/fake-dev")
         return root
     }
 
-    private func addPayloads(_ groups: [String], in root: URL) throws {
-        for group in groups {
-            try TestFixtures.write("binary", to: ".build/runtimes/payloads/\(group)/runtime-1/bin/tool", in: root)
-        }
+    private func addReceipt(in root: URL) throws {
+        try TestFixtures.write("{}", to: ".build/runtimes/payloads/mail/mailpit-1/payload-receipt.json", in: root)
     }
 
     private func run(root: URL, requireRuntimes: Bool) async throws -> InvocationResult {
@@ -42,6 +42,9 @@ struct EmbedScriptTests {
             "CONTENTS_FOLDER_PATH": "Jerd.app/Contents",
             "UNLOCALIZED_RESOURCES_FOLDER_PATH": "Jerd.app/Contents/Resources",
             "JERD_REQUIRE_RUNTIMES": requireRuntimes ? "YES" : "NO",
+            "JERD_DEV_COMMAND": root.appending(path: "fake-dev").path,
+            "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer",
+            "SDKROOT": "macosx",
         ]
         let invocation = Invocation(
             executable: URL(filePath: "/bin/sh"), arguments: [Self.script.path], environment: environment,
@@ -50,54 +53,57 @@ struct EmbedScriptTests {
             .run(invocation, output: .capture)
     }
 
-    private func embeddedPayloads(in root: URL) -> URL {
-        root.appending(path: "products/Jerd.app/Contents/Resources/RuntimePayloads")
+    private func destination(in root: URL) -> String {
+        root.appending(path: "products/Jerd.app/Contents/Resources/RuntimePayloads").path
     }
 
-    @Test("Release refuses a missing or an empty payload folder")
-    func releaseRefusesMissingPayloads() async throws {
-        let root = try makeRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let missing = try await run(root: root, requireRuntimes: true)
-        #expect(missing.status == 1)
-        #expect(missing.standardError.contains("missing: Database Development Mail Storage"))
-        try FileManager.default.createDirectory(
-            at: root.appending(path: ".build/runtimes/payloads"), withIntermediateDirectories: true)
-        #expect(try await run(root: root, requireRuntimes: true).status == 1)
+    private func recorded(_ name: String, in root: URL) throws -> [String] {
+        try String(contentsOf: root.appending(path: name), encoding: .utf8)
+            .split(separator: "\n").map(String.init)
     }
 
-    @Test("Release refuses a payload folder without every pinned group")
-    func releaseRefusesIncompletePayloads() async throws {
+    @Test("Release always asks the verified embed for every payload")
+    func releaseRequiresEveryPayload() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        try addPayloads(["Database", "Development", "Mail"], in: root)
-        try FileManager.default.createDirectory(
-            at: root.appending(path: ".build/runtimes/payloads/Storage/empty"), withIntermediateDirectories: true)
-        let result = try await run(root: root, requireRuntimes: true)
-        #expect(result.status == 1)
-        #expect(result.standardError.contains("(missing: Storage)"))
-    }
-
-    @Test("Release embeds the payloads when every pinned group has files")
-    func releaseEmbedsCompletePayloads() async throws {
-        let root = try makeRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        try addPayloads(Self.groups, in: root)
         let result = try await run(root: root, requireRuntimes: true)
         #expect(result.status == 0)
-        let embedded = embeddedPayloads(in: root).appending(path: "Mail/runtime-1/bin/tool")
-        #expect(FileManager.default.fileExists(atPath: embedded.path))
+        #expect(
+            try recorded("tool-arguments", in: root) == ["runtimes", "embed", destination(in: root), "--require-all"])
         let helper = root.appending(path: "products/Jerd.app/Contents/Library/LaunchServices/JerdHelper")
         #expect(FileManager.default.fileExists(atPath: helper.path))
     }
 
-    @Test("Debug and the check build warn and build without payloads")
+    @Test("Debug with payloads runs the verified embed in a minimal environment")
+    func debugEmbedsPreparedPayloads() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try addReceipt(in: root)
+        #expect(try await run(root: root, requireRuntimes: false).status == 0)
+        #expect(try recorded("tool-arguments", in: root) == ["runtimes", "embed", destination(in: root)])
+        let environment = try recorded("tool-environment", in: root)
+        #expect(environment.contains("DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer"))
+        #expect(environment.contains("PATH=/usr/bin:/bin:/usr/sbin:/sbin"))
+        #expect(!environment.contains { $0.hasPrefix("SDKROOT=") || $0.hasPrefix("SRCROOT=") })
+    }
+
+    @Test("A failed verification fails the build")
+    func verificationFailureFailsTheBuild() async throws {
+        let root = try makeRoot(toolStatus: 1)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try addReceipt(in: root)
+        #expect(try await run(root: root, requireRuntimes: false).status == 1)
+    }
+
+    @Test("Debug and the check build warn, remove old payloads, and build without payloads")
     func debugWarnsWithoutPayloads() async throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
+        try TestFixtures.write("old", to: "products/Jerd.app/Contents/Resources/RuntimePayloads/x", in: root)
         let result = try await run(root: root, requireRuntimes: false)
         #expect(result.status == 0)
         #expect(result.standardError.contains("warning: Runtime payloads are missing."))
-        #expect(!FileManager.default.fileExists(atPath: embeddedPayloads(in: root).path))
+        #expect(!FileManager.default.fileExists(atPath: destination(in: root)))
+        #expect(!FileManager.default.fileExists(atPath: root.appending(path: "tool-arguments").path))
     }
 }

@@ -1,0 +1,35 @@
+import JerdDesign
+import SwiftUI
+
+/// The Storage sidebar: the registered buckets with their status, and the Add Bucket footer.
+struct StorageSidebar: View {
+    @Bindable var state: AppState
+    let model: StorageModel
+
+    var body: some View {
+        List(selection: selection) {
+            Section("Buckets") {
+                ForEach(model.buckets) { bucket in
+                    SidebarRow(
+                        bucket.name, subtitle: bucket.publicRead ? "Public read" : "Private",
+                        status: model.snapshot.status(of: bucket).displayStatus
+                    )
+                    .tag(SidebarSelection.bucket(bucket.name))
+                    .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "bucket", bucket.name))
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            StorageSidebarFooter(model: model)
+        }
+    }
+
+    private var selection: Binding<SidebarSelection?> {
+        Binding {
+            state.navigation.selection(in: .storage)
+        } set: { selection in
+            state.navigation.select(selection)
+        }
+    }
+}

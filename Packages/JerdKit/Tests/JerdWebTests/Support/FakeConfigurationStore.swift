@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import os
 
 @testable import JerdWeb
 
@@ -51,6 +52,23 @@ struct FakeHostsFile: HostsFileReading {
         if let error { throw error }
         return text
     }
+}
+
+/// A hosts reader that blocks inside `read()` until `release()`, so a test can act while a
+/// change is between two steps. It blocks a thread only for the length of one test step.
+final class BlockingHostsFile: HostsFileReading, Sendable {
+    private let entered = OSAllocatedUnfairLock(initialState: false)
+    private let gate = DispatchSemaphore(value: 0)
+
+    var isReading: Bool { entered.withLock { $0 } }
+
+    func read() throws -> String {
+        entered.withLock { $0 = true }
+        gate.wait()
+        return ""
+    }
+
+    func release() { gate.signal() }
 }
 
 /// Waits until `condition` holds, yielding between checks. Fails the test after the timeout.

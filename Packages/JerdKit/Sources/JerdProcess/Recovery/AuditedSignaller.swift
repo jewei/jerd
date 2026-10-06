@@ -60,7 +60,12 @@ public struct AuditedSignaller: Sendable {
             }
             errno = 0
             let result = function(&token, signal)
-            return result == -1 ? errno : result
+            return errorNumber(returned: result, errno: errno)
         }
+    }
+
+    /// The `errno` value of a libproc call: the returned value, or `errno` when the call returned -1.
+    static func errorNumber(returned: Int32, errno: Int32) -> Int32 {
+        returned == -1 ? errno : returned
     }
 }

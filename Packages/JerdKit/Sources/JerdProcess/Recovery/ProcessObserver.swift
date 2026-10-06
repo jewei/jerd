@@ -10,15 +10,19 @@ public struct ProcessObserver: Sendable {
     let match: Match
     let isGone: IsGone
     let groups: ProcessGroupInspector
+    /// Finds descendants that left the group while their parents run. Recovery saves them before
+    /// it signals; after a parent exited, only a saved descendant can still be checked.
+    let tree: ProcessTree
     let auditedSignalsSupported: Bool
 
     public init(
         match: @escaping Match, isGone: @escaping IsGone, groups: ProcessGroupInspector,
-        auditedSignalsSupported: Bool
+        tree: ProcessTree = ProcessTree(), auditedSignalsSupported: Bool
     ) {
         self.match = match
         self.isGone = isGone
         self.groups = groups
+        self.tree = tree
         self.auditedSignalsSupported = auditedSignalsSupported
     }
 
@@ -29,7 +33,8 @@ public struct ProcessObserver: Sendable {
 
     /// The same observer with another group inspector, for tests that simulate a failed inspection.
     public func with(groups: ProcessGroupInspector) -> ProcessObserver {
-        ProcessObserver(match: match, isGone: isGone, groups: groups, auditedSignalsSupported: auditedSignalsSupported)
+        ProcessObserver(
+            match: match, isGone: isGone, groups: groups, tree: tree, auditedSignalsSupported: auditedSignalsSupported)
     }
 
     /// Observes every process that `record` names, once.

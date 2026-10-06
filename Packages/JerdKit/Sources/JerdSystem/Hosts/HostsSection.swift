@@ -6,14 +6,15 @@ import JerdFoundation
 /// The section that Jerd writes (LF only, hostnames sorted):
 /// `"\n# BEGIN JERD\n127.0.0.1 a.test\n127.0.0.1 b.test\n# END JERD\n"`. No hostnames means no section.
 /// One rule reads a section for both `replacing` and `maps`, so a section that `replacing` accepts
-/// is also reported as configured.
+/// is also reported as configured. The parser and its rule are `HostsSectionLayout` and
+/// `HostsMapping` in JerdFoundation, which the app-side conflict check (`HostsConflictRule`) uses too.
 public enum HostsSection {
-    public static let beginMarker = "# BEGIN JERD"
-    public static let endMarker = "# END JERD"
+    public static let beginMarker = HostsSectionLayout.beginMarker
+    public static let endMarker = HostsSectionLayout.endMarker
     /// The only address that the section maps.
-    public static let address = "127.0.0.1"
+    public static let address = HostsSectionLayout.address
     /// The largest hosts file that Jerd reads or writes (bytes).
-    public static let maximumSize = 1_048_576
+    public static let maximumSize = HostsSectionLayout.maximumSize
 
     /// The section text for `hostnames`, or "" when there are none.
     public static func render(_ hostnames: [Hostname]) -> String {
@@ -34,8 +35,7 @@ public enum HostsSection {
     {
         let layout = try HostsSectionLayout.parse(data)
         try requireTracked(layout, expected: expected)
-        let outside = layout.outside
-        let outsideText = String(decoding: outside, as: UTF8.self)
+        let outsideText = layout.outsideText
         for host in hostnames.sorted() where HostsMapping.hasMapping(of: host.value, in: outsideText) {
             throw JerdError.invalid("The hostname \(host.value) already has an external hosts mapping.")
         }
@@ -46,11 +46,33 @@ public enum HostsSection {
         return Data(result)
     }
 
+    /// Replaces the section of a committed setup that recorded `recorded`.
+    ///
+    /// A missing section counts as removed by another tool: nothing outside the section is changed,
+    /// and a new section is added only after the external-mapping check (fixed review M2). Without
+    /// this, a deleted section blocked both removal and a new configure, and left the CA trusted.
+    static func replacing(in data: Data, with hostnames: [Hostname], recorded: [Hostname]) throws -> Data {
+        let layout = try HostsSectionLayout.parse(data)
+        let expected = layout.section == nil && !layout.markersReversed ? [] : recorded
+        return try replacing(in: data, with: hostnames, expecting: expected)
+    }
+
     /// True when the file is valid, its section maps exactly `hostnames` (no section for an empty
     /// list), and no line outside the section maps one of them.
     public static func maps(_ hostnames: [Hostname], in data: Data) -> Bool {
         do {
             _ = try replacing(in: data, with: hostnames, expecting: hostnames)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// True when the file is valid and its section maps exactly `hostnames` (no section for an empty
+    /// list). Unlike `maps`, a line outside the section that maps one of them does not matter.
+    static func tracks(_ hostnames: [Hostname], in data: Data) -> Bool {
+        do {
+            try requireTracked(try HostsSectionLayout.parse(data), expected: hostnames)
             return true
         } catch {
             return false

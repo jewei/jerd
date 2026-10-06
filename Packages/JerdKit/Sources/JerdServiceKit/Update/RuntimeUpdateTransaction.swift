@@ -7,7 +7,8 @@ import JerdFoundation
 /// write the journal → apply the new runtime → start and verify → stop again if the service was
 /// stopped → delete the journal. Any failure stops the server, moves the changed items to
 /// `failed-attempt-<UUID>/`, restores the backup, and restarts the old runtime when it ran.
-/// The lock is held from the first step to the last, also during the restore. Backups stay until
+/// After a restore of a stopped service the state is `stopped`; the thrown error names the cause.
+/// A failed restore keeps the journal and shows `failed`. The lock is held from the first step to the last, also during the restore. Backups stay until
 /// the user deletes them in Advanced.
 public struct RuntimeUpdateTransaction: Sendable {
     /// The service words in update messages.
@@ -42,6 +43,11 @@ public struct RuntimeUpdateTransaction: Sendable {
     /// The items that a new journal covers, for example `["settings.json", "inbox"]`.
     public let names: [String]
     public let messages: Messages
+    /// Flushes copied trees and their folders before the journal changes. Tests replace it to
+    /// check the order of the steps.
+    var flushData: @Sendable (_ trees: [URL], _ folders: [URL]) async throws -> Void = { trees, folders in
+        try await ServiceDataCopier.flush(trees, folders: folders)
+    }
 
     public init(
         root: URL, journalFile: URL, backupsDirectory: URL, lockFile: URL, names: [String], messages: Messages
@@ -58,10 +64,15 @@ public struct RuntimeUpdateTransaction: Sendable {
     public var isPending: Bool { FileProbe.presence(at: journalFile).mayExist }
 
     /// Runs the whole update on `instance` and switches it to `updated`.
-    /// - Throws: `.processFailed` with "update failed" and whether the old state was restored.
+    ///
+    /// A pending journal refuses the update before the server stops, and again inside the lease,
+    /// because a journal can appear while the lease waits for the stop.
+    /// - Throws: `.unavailable(pending)` while a journal exists, or `.processFailed` with "update
+    ///   failed" and whether the old state was restored.
     public func run(
         on instance: ManagedInstance, to updated: any ServiceDefinition, steps: RuntimeUpdateSteps
     ) async throws {
+        guard !isPending else { throw JerdError.unavailable(Self.pendingMessage) }
         let lease = try await instance.beginMaintenance()
         var backedUp = false
         do {

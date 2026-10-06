@@ -28,13 +28,17 @@ actor LogTrimScheduler {
     }
 
     /// Removes a log after one final trim. The periodic pass stops when no log remains.
-    func unregister(_ log: ProcessLogFile) {
-        guard logs.remove(log) != nil else { return }
+    /// - Returns: the failure of the final trim (or of an earlier trim that was not fixed), or nil.
+    ///   The scheduler then forgets the log, so its failures do not accumulate.
+    @discardableResult
+    func unregister(_ log: ProcessLogFile) -> String? {
+        guard logs.remove(log) != nil else { return nil }
         trim(log)
         if logs.isEmpty {
             loop?.cancel()
             loop = nil
         }
+        return failures.removeValue(forKey: log.url)
     }
 
     /// The message of the last failed trim of `url`, or nil.

@@ -8,14 +8,14 @@ struct CommandPlanTests {
     private let repository = TestFixtures.repository
     private let toolchain = TestFixtures.toolchain
 
-    @Test("formats the five Swift folders in place with the root configuration")
+    @Test("formats the six Swift folders in place with the root configuration")
     func plansFormat() {
         let invocation = FormatPlan.format(repository: repository, toolchain: toolchain)
         #expect(
             invocation.arguments == [
                 "swift-format", "format", "--configuration", "/work/jerd/.swift-format", "--in-place",
                 "--recursive", "--parallel", "/work/jerd/Packages/JerdKit/Sources", "/work/jerd/Packages/JerdKit/Tests",
-                "/work/jerd/Apps", "/work/jerd/Tools/Sources", "/work/jerd/Tools/Tests",
+                "/work/jerd/Apps", "/work/jerd/Tools/Sources", "/work/jerd/Tools/Tests", "/work/jerd/Tools/Fixtures",
             ])
     }
 

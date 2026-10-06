@@ -31,7 +31,6 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case tunnelConnected = "tunnel-connected"
     case tunnelStopped = "tunnel-stopped"
     case tunnelFailed = "tunnel-failed"
-    case mailPlaceholder = "mail-placeholder"
 
     /// Long pages also render at a tall size, so every section can be reviewed.
     public var showsFullPage: Bool {
@@ -46,7 +45,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     public func makeFixture() -> AppFixture {
         let fixture = AppFixture(
             suiteName: "dev.jerd.fixtures.snapshot", runtimes: runtimeInventory(), advanced: advancedPorts(),
-            features: SampleFeatures.all(variant), updater: updater(), sites: sitesPort(), tunnels: tunnelsPort()
+            features: SampleFeatures.all(variant), services: InMemoryServicePorts(variant), updater: updater(),
+            sites: sitesPort(), tunnels: tunnelsPort()
         ) { defaults in
             if self == .appearanceHidden {
                 AppearanceDefaults(defaults).setShowMenuBar(false)
@@ -74,7 +74,6 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         case .runtimes, .runtimesChecked: .dashboard(.runtimes)
         case .advancedEmpty, .advanced: .dashboard(.advanced)
         case .about, .aboutUpdateError: .dashboard(.about)
-        case .mailPlaceholder: .section(.mail)
         default: sitesDestination
         }
     }

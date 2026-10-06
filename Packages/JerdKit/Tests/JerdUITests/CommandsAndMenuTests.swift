@@ -92,12 +92,12 @@ struct CommandsAndMenuTests {
         #expect(fixture.shell.windowRequests == 1)
     }
 
-    @Test("The dashboard shows a card per service in order, and a placeholder for a missing feature")
+    @Test("The dashboard shows a card per service in order, each from its built feature")
     func dashboardCards() {
         let fixture = AppFixture(features: [])
         defer { fixture.removeDefaults() }
         #expect(DashboardCards.sections == [.sites, .databases, .storage, .mail])
-        #expect(DashboardCards.summary(for: .databases, in: fixture.state).summary == "Built in the next work package.")
+        #expect(DashboardCards.sections.allSatisfy { fixture.state.feature(for: $0) != nil })
         #expect(RuntimesSummaryRow.detail(defaultPHP: nil) == "View installed versions and check for updates.")
         #expect(
             RuntimesSummaryRow.detail(defaultPHP: RegisteredPHP(id: SampleData.php84ID, version: "8.4.12"))

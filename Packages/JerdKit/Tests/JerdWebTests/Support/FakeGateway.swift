@@ -13,14 +13,20 @@ actor FakeGateway: SystemSetupManaging {
     private var failRestore = false
     private var holdRestore = false
     private var waiter: CheckedContinuation<Void, Never>?
+    /// This installation's CA. The default is the fixture CA, which `FakeSystem.approved` names.
+    private var authority: InstallationAuthority?
     let coordinator: FakeCoordinator
 
     init(_ status: HTTPSSetupStatus, coordinator: FakeCoordinator) {
         current = status
         self.coordinator = coordinator
+        authority = InstallationAuthority(
+            installationID: Certificates.installationID, fingerprint: (try? Certificates.authority().fingerprint) ?? "")
     }
 
     func set(_ status: HTTPSSetupStatus) { current = status }
+    func setLocalAuthority(_ authority: InstallationAuthority?) { self.authority = authority }
+    func localAuthority() -> InstallationAuthority? { authority }
     func failNextRestore() { failRestore = true }
     func holdNextRestore() { holdRestore = true }
 
@@ -87,7 +93,10 @@ struct TransactionHarness {
     let before: AppConfiguration
 
     /// `running` lists the hostnames of `sites` that run; `approved` the approved hostnames.
-    init(sites hostnames: [String] = ["demo.test"], running: [String]? = nil, approved: [String]? = nil) async throws {
+    init(
+        sites hostnames: [String] = ["demo.test"], running: [String]? = nil, approved: [String]? = nil,
+        hosts: any HostsFileReading = FakeHostsFile()
+    ) async throws {
         folder = try TemporaryDirectory(" transaction")
         let validator = SiteValidator()
         var sites: [Site] = []
@@ -105,7 +114,7 @@ struct TransactionHarness {
         coordinator = FakeCoordinator(runningIDs.isEmpty ? nil : try ServingPlan(before, siteIDs: runningIDs))
         gateway = FakeGateway(try FakeSystem.approved(approved ?? hostnames), coordinator: coordinator)
         transaction = SiteChangeTransaction(
-            registry: registry, reducer: SiteChangeReducer(hosts: FakeHostsFile()), coordinator: coordinator,
+            registry: registry, reducer: SiteChangeReducer(hosts: hosts), coordinator: coordinator,
             gateway: gateway)
     }
 

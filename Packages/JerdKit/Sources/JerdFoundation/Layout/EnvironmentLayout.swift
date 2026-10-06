@@ -8,8 +8,10 @@ public struct EnvironmentLayout: Hashable, Sendable {
     public var installationIDFile: URL { root.file("installation-id") }
     public var configurationDirectory: URL { root.folder("configuration") }
     public var caddyConfigurationFile: URL { configurationDirectory.file("caddy.json") }
-    /// The pool file of the first PHP runtime. Other runtimes use `phpRuntimeDirectory(_:)`.
+    /// Legacy layout only: the pool file that old builds wrote for their first PHP runtime. Every
+    /// pool now lives in `phpRuntimeDirectory(_:)`. JerdWeb only removes this file.
     public var fpmConfigurationFile: URL { configurationDirectory.file("php-fpm.conf") }
+    /// Legacy layout only: the FPM `php.ini` of the old first pool. JerdWeb only removes this file.
     public var phpINIFile: URL { configurationDirectory.file("php.ini") }
     public var prepareCAFile: URL { configurationDirectory.file("prepare-ca.json") }
     public var phpCABundleFile: URL { configurationDirectory.file("php-ca.pem") }
@@ -21,13 +23,14 @@ public struct EnvironmentLayout: Hashable, Sendable {
     }
     public var logsDirectory: URL { root.folder("logs") }
     public var caddyLogFile: URL { logsDirectory.file("caddy.log") }
+    /// Legacy layout only: the log of the old first pool. JerdWeb only removes this file.
     public var fpmLogFile: URL { logsDirectory.file("fpm.log") }
     /// The process records of the web environment.
     public var processesDirectory: URL { root.folder("processes") }
     /// The lock that the serving engine and recovery hold while they use web records.
     public var recoveryLockFile: URL { processesDirectory.file("recovery.lock") }
 
-    /// The folder of the second and later PHP runtimes: `php/<runtime UUID>/`.
+    /// The folder of the FPM pool of one PHP runtime: `php/<runtime UUID>/`. Every runtime has one.
     public func phpRuntimeDirectory(_ runtimeID: UUID) -> URL { root.folder("php").folder(runtimeID.uuidString) }
 
     /// A transient preflight folder `preflight-<UUID>/`, deleted after use.

@@ -20,6 +20,7 @@ public struct AppDependencies {
     public var workspace: any WorkspaceOpening
     public var filePanels: any FilePanelPresenting
     public var sleeper: any Sleeping
+    public var services: ServicePorts
     public var sites: any SitesPort
     public var tunnels: any TunnelsPort
 
@@ -28,7 +29,8 @@ public struct AppDependencies {
         iconImages: any AppIconImageProviding, updater: any AppUpdating, runtimes: any RuntimeInventory,
         recovery: any RecoveryPort, executables: any ExecutableRegistrationPort, httpsRecovery: any HTTPSRecoveryPort,
         windows: any WindowPresenting, pasteboard: any PasteboardWriting, workspace: any WorkspaceOpening,
-        filePanels: any FilePanelPresenting, sleeper: any Sleeping, sites: any SitesPort, tunnels: any TunnelsPort
+        filePanels: any FilePanelPresenting, sleeper: any Sleeping, services: ServicePorts, sites: any SitesPort,
+        tunnels: any TunnelsPort
     ) {
         self.info = info
         self.defaults = defaults
@@ -44,6 +46,7 @@ public struct AppDependencies {
         self.workspace = workspace
         self.filePanels = filePanels
         self.sleeper = sleeper
+        self.services = services
         self.sites = sites
         self.tunnels = tunnels
     }

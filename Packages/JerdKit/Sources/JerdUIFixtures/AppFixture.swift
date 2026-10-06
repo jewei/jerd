@@ -17,6 +17,7 @@ public final class AppFixture {
     public let sites: InMemorySitesPort
     public let tunnels: InMemoryTunnelsPort
     public let features: [InMemoryFeature]
+    public let services: InMemoryServicePorts
     public let defaults: UserDefaults
     public let state: AppState
     private let suiteName: String
@@ -28,7 +29,8 @@ public final class AppFixture {
         suiteName: String = "dev.jerd.fixtures.\(UUID().uuidString)",
         runtimes: InMemoryRuntimeInventory = InMemoryRuntimeInventory(inventory: SampleData.inventory),
         advanced: InMemoryAdvancedPorts = InMemoryAdvancedPorts(registrations: SampleData.registrations),
-        features: [InMemoryFeature] = SampleFeatures.all(.populated), updater: InMemoryUpdater = InMemoryUpdater(),
+        features: [InMemoryFeature] = SampleFeatures.all(.populated),
+        services: InMemoryServicePorts = InMemoryServicePorts(.populated), updater: InMemoryUpdater = InMemoryUpdater(),
         panels: InMemoryFilePanels = InMemoryFilePanels(), sites: InMemorySitesPort = InMemorySitesPort(),
         tunnels: InMemoryTunnelsPort = InMemoryTunnelsPort(), sleeper: any Sleeping = IdleSleeper(),
         prepareDefaults: (UserDefaults) -> Void = { _ in }
@@ -41,6 +43,7 @@ public final class AppFixture {
         self.runtimes = runtimes
         self.advanced = advanced
         self.features = features
+        self.services = services
         self.updater = updater
         self.panels = panels
         self.sites = sites
@@ -49,7 +52,7 @@ public final class AppFixture {
             info: Self.info, defaults: defaults, presence: shell, iconImages: iconImages, updater: updater,
             runtimes: runtimes, recovery: advanced, executables: advanced, httpsRecovery: advanced, windows: shell,
             pasteboard: shell, workspace: shell, filePanels: panels, sleeper: sleeper,
-            sites: sites, tunnels: tunnels)
+            services: services.ports, sites: sites, tunnels: tunnels)
         state = AppState(dependencies: dependencies, features: features)
     }
 

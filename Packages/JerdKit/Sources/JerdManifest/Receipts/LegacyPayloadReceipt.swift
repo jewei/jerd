@@ -18,6 +18,15 @@ public struct LegacyPayloadReceipt: Equatable, Sendable {
 
         /// The receipt file name of this form.
         public var fileName: String { self == .service ? "receipt.json" : "jerd-receipt.json" }
+
+        /// The form that older builds wrote into the installed folders of `group`.
+        public init(group: PayloadGroup) {
+            switch group {
+            case .development: self = .development
+            case .database: self = .database
+            case .mail, .storage: self = .service
+            }
+        }
     }
 
     /// A legacy receipt file must be at most this many bytes.

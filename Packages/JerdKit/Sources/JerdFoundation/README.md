@@ -17,6 +17,7 @@ and small values.
 | `DataLayout` | Names every path under `~/Library/Application Support/Jerd`. |
 | `RecordLocation`, `RecordScan` | Tell where active-run records and their locks are. |
 | `HostnamePolicy`, `Hostname` | Validate and suggest `.test` hostnames. |
+| `HostsSectionLayout`, `HostsMapping`, `HostsConflictRule` | Parse Jerd's `# BEGIN JERD` hosts section and decide if a hostname is mapped by someone else. The app and the helper use this one rule. |
 | `SecretGenerator`, `HexEncoding` | Make random secrets and hexadecimal text. |
 | `FileDigest` | Calculates SHA-256 of files in chunks of 1 MiB. |
 | `RelativePath` | A safe relative path for archives, receipts, and manifests. |
@@ -27,7 +28,9 @@ and small values.
   in place. Load and save then throw `.corrupt`.
 - Before a save replaces a valid file, the store copies the old bytes to the previous file.
 - Writes go to a temporary file in the same folder. The data is flushed with
-  `F_FULLFSYNC` (`.full`) or `fsync` (`.standard`). Then `rename` replaces the target.
+  `F_FULLFSYNC` (`.full`) or `fsync` (`.standard`). Then `rename` replaces the target, and
+  the folder is flushed with the same durability. `AtomicFile.create` uses
+  `renamex_np(RENAME_EXCL)` and never replaces an existing file.
 - Reads refuse symbolic links, hard links, other owners, FIFOs, and files above the limit.
 - `OwnedDirectory` never changes a folder of another user and never follows a final link.
 - Lock file names and every path in `DataLayout` are a compatibility contract. Do not
@@ -36,6 +39,10 @@ and small values.
   Markers, credentials, and run records use `JSONFileFormat.compact`.
 - A hostname is lowercase, ends in `.test`, has at most 253 bytes, and has labels of
   1 to 63 bytes of `a-z`, `0-9`, or an internal `-`.
+- A hosts mapping is Jerd's own only inside a section with exact marker lines and only
+  `127.0.0.1 <name>` lines (the helper's rule). A `::1` line, an unpaired marker, or any other
+  line makes every mapping of the file count as external. The section format is the one of old
+  builds: `\n# BEGIN JERD\n127.0.0.1 <host>\n…# END JERD\n`, LF only, hosts sorted.
 
 ## How to use a document store
 

@@ -1,8 +1,7 @@
 import ArgumentParser
 
 /// Every `./dev` command, grouped by purpose for the help list. A new command is one file in
-/// `Commands/` plus one entry here, for example `RuntimesCommand.self` in a "Runtimes" group and
-/// `ReleaseCommand.self` in a "Release" group.
+/// `Commands/` plus one entry here.
 enum CommandCatalog {
     static let groups: [CommandGroup] = [
         CommandGroup(
@@ -14,5 +13,7 @@ enum CommandCatalog {
         CommandGroup(
             name: "Setup and maintenance",
             subcommands: [DoctorCommand.self, CleanCommand.self]),
+        CommandGroup(name: "Runtimes", subcommands: [RuntimesCommand.self]),
+        CommandGroup(name: "Release", subcommands: [ReleaseCommand.self]),
     ]
 }

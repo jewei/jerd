@@ -84,4 +84,47 @@ import Testing
         }
         #expect(FileProbe.presence(at: cleared.location.recordFile) == .absent)
     }
+
+    /// Fixed review M2: a clearance allows a new record only. A second save with the same clearance
+    /// never replaces the record of a process that may still run.
+    @Test func aSecondRecordWithTheSameClearanceIsRefusedAndTheFirstIsKept() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let (cleared, lock) = try clearance(folder)
+        defer { lock.release() }
+        let first = IdentityFactory.make(pid: 4_242)
+        let second = IdentityFactory.make(pid: 4_343)
+        let recorder = ActiveRunRecorder { pid in pid == second.processID ? second : first }
+        try recorder.record(processID: 4_242, runtimeID: "first", gracefulSignal: SIGTERM, clearance: cleared)
+        #expect(
+            throws: JerdError.unavailable(
+                "A process record of Mail already exists. It was preserved, and no new record was saved.")
+        ) {
+            try recorder.record(processID: 4_343, runtimeID: "second", gracefulSignal: SIGTERM, clearance: cleared)
+        }
+        #expect(try ActiveRunRecordFile.read(cleared.location.recordFile).identity == first)
+        // After the first process stopped and its record was removed, the same clearance serves again.
+        try ActiveRunRecordFile.remove(cleared.location, holding: lock)
+        try recorder.record(processID: 4_343, runtimeID: "second", gracefulSignal: SIGTERM, clearance: cleared)
+        #expect(try ActiveRunRecordFile.read(cleared.location.recordFile).identity == second)
+    }
+
+    /// Fixed review M2: the public writes require the lock of the record.
+    @Test func publicRecordWritesRequireTheMatchingLock() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let layout = DataLayout(root: folder.url)
+        let (cleared, lock) = try clearance(folder)
+        let record = ActiveRunRecord(
+            processID: 4_242, runtimeID: "x", identity: nil, controller: nil, gracefulSignal: SIGTERM)
+        let refusal = JerdError.invalid("Hold the lock of Storage before changing its process record.")
+        try OwnedDirectory.create(layout.storage.root)
+        #expect(throws: refusal) { try ActiveRunRecordFile.write(record, at: layout.storage.record, holding: lock) }
+        #expect(throws: refusal) { try ActiveRunRecordFile.create(record, at: layout.storage.record, holding: lock) }
+        #expect(FileProbe.presence(at: layout.storage.activeRunFile) == .absent)
+        try ActiveRunRecordFile.write(record, at: cleared.location, holding: lock)
+        #expect(try ActiveRunRecordFile.read(cleared.location.recordFile) == record)
+        lock.release()
+        #expect(throws: JerdError.self) { try ActiveRunRecordFile.write(record, at: cleared.location, holding: lock) }
+    }
 }

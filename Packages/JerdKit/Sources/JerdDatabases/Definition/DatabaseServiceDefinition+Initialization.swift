@@ -21,43 +21,51 @@ extension DatabaseServiceDefinition {
     /// Creates new data: the initializer (or a plain data folder for Redis), then the setup phase.
     func initialize(_ credentials: DatabaseCredentials, tools: StartTools) async throws {
         if let request = engine.initializerRequest() {
-            try await runInitializer(request, credentials: credentials)
+            try await runInitializer(request, credentials: credentials, tools: tools)
         } else {
             try OwnedDirectory.create(files.data, within: files.root)
         }
-        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot)
-        guard let setup = engine.setupPhase(credentials, sockets: sockets) else {
-            try FileManager.default.removeItem(at: sockets)
-            return
-        }
+        // Only a setup phase needs a socket folder. Redis has none, so nothing can fail between
+        // its data folder and its marker.
+        let sockets = DatabaseSocketFolder.newPath(in: temporaryRoot)
+        guard let setup = engine.setupPhase(credentials, sockets: sockets) else { return }
+        try DatabaseSocketFolder.create(at: sockets, owner: files.root)
         let plan = LaunchPlan(
             request: setup.server, ports: [],
             readiness: DatabaseReadiness.check(
                 client: setup.client, reply: engine.healthCheck.reply, password: credentials.password,
                 commands: tools.commands),
-            secrets: [credentials.password], temporaryItems: [sockets] + setup.files.map(\.url))
+            secrets: [credentials.password], temporaryItems: [sockets], secretFiles: setup.files.map(\.url))
         do {
             for file in setup.files { try file.write() }
         } catch {
-            plan.removeTemporaryItems()
-            throw error
+            throw plan.discard(after: error)
         }
-        // The instance removes the setup files and the socket folder when the setup server stops.
+        // The instance removes the setup files when the readiness check ends, and the socket
+        // folder when the setup server stops.
         try await tools.runSetupPhase(plan)
     }
 
-    /// Runs the initializer with its private input files, which are removed on every exit path.
-    private func runInitializer(_ request: ProcessRequest, credentials: DatabaseCredentials) async throws {
+    /// Runs the initializer as an owned process of the instance (a run record, the lock held,
+    /// a graceful stop). Its input files hold the password; the instance removes them when the
+    /// wait for its exit ends.
+    private func runInitializer(
+        _ request: ProcessRequest, credentials: DatabaseCredentials, tools: StartTools
+    ) async throws {
         let inputs = engine.initializerFiles(credentials)
-        defer {
-            // The files hold the password (mode 0600). A failed removal leaves them private.
-            for input in inputs { try? AtomicFile.remove(input.url) }
+        let plan = InitializerPlan(
+            request: request, timeout: Self.initializationTimeout,
+            timeoutMessage: DatabaseMessages.initializationTimedOut, secrets: [credentials.password],
+            secretFiles: inputs.map(\.url))
+        do {
+            for input in inputs { try input.write() }
+        } catch {
+            throw plan.discard(after: error)
         }
-        for input in inputs { try input.write() }
-        let result = try await initializationCommands.run(request, timeout: Self.initializationTimeout)
+        let result = try await tools.runInitializer(plan)
         guard result.succeeded else {
-            let detail = LogRedactor.redact(result.diagnosticOutput, values: [credentials.password])
-            throw JerdError.processFailed("\(DatabaseMessages.initializationFailed) \(detail.suffix(4_096))")
+            let detail = result.output.isEmpty ? "Exit status \(result.status)." : result.output
+            throw JerdError.processFailed("\(DatabaseMessages.initializationFailed) \(detail)")
         }
     }
 }

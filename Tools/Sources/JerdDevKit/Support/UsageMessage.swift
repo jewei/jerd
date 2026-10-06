@@ -8,14 +8,34 @@ import ArgumentParser
 enum UsageMessage {
     static func text(_ message: String, command: any ParsableCommand.Type) -> String {
         let usage = DevCommand.usageString(for: command)
-        let name = command.configuration.commandName ?? ""
-        let help = command == DevCommand.self ? "./dev help" : "./dev help \(name)"
+        let names = path(to: command).map { $0.configuration.commandName ?? "" }
+        let help = (["./dev help"] + names).joined(separator: " ")
         return "error: \(message)\nUsage: \(usage)\n  See '\(help)' for more information."
     }
 
-    /// The subcommand with this name, or the root command when no subcommand has it.
-    static func command(named name: String?) -> any ParsableCommand.Type {
-        subcommands.first { $0.configuration.commandName == name } ?? DevCommand.self
+    /// The deepest command that the leading arguments name, for example `release prepare`, or the root
+    /// command when the first argument is not a command.
+    static func command(for arguments: [String]) -> any ParsableCommand.Type {
+        var current: any ParsableCommand.Type = DevCommand.self
+        var candidates = subcommands
+        for argument in arguments {
+            guard let next = candidates.first(where: { $0.configuration.commandName == argument }) else { break }
+            current = next
+            candidates = next.configuration.subcommands
+        }
+        return current
+    }
+
+    /// The commands from the first subcommand down to `command`; empty for the root command.
+    static func path(to command: any ParsableCommand.Type) -> [any ParsableCommand.Type] {
+        func search(_ candidates: [any ParsableCommand.Type]) -> [any ParsableCommand.Type]? {
+            for candidate in candidates {
+                if candidate == command { return [candidate] }
+                if let rest = search(candidate.configuration.subcommands) { return [candidate] + rest }
+            }
+            return nil
+        }
+        return search(subcommands) ?? []
     }
 
     static var subcommands: [any ParsableCommand.Type] {
@@ -25,7 +45,13 @@ enum UsageMessage {
     /// The first name after `help` that is not a command, for `./dev help nope`.
     static func unknownHelpTopic(in arguments: [String]) -> String? {
         guard arguments.first == "help" else { return nil }
-        let names = Set(subcommands.compactMap { $0.configuration.commandName })
-        return arguments.dropFirst().first { !$0.hasPrefix("-") && !names.contains($0) }
+        var candidates = subcommands
+        for name in arguments.dropFirst() where !name.hasPrefix("-") {
+            guard let command = candidates.first(where: { $0.configuration.commandName == name }) else {
+                return name
+            }
+            candidates = command.configuration.subcommands
+        }
+        return nil
     }
 }

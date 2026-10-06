@@ -70,6 +70,23 @@ import Testing
         #expect(await ProcessRecoveryService(layout: layout).inspect().isEmpty)
     }
 
+    /// Fixed review L8: a linked web record file is skipped, like a linked instance folder.
+    @Test func aLinkedWebRecordFileIsSkipped() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let elsewhere = try TemporaryDirectory()
+        defer { elsewhere.remove() }
+        let layout = DataLayout(root: folder.url)
+        try OwnedDirectory.create(layout.environment.processesDirectory)
+        try AtomicFile.write(legacy(), to: elsewhere.path("record.json"))
+        let linked = layout.environment.processRecord(UUID()).recordFile
+        try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: elsewhere.path("record.json"))
+        let plain = UUID()
+        try AtomicFile.write(legacy(), to: layout.environment.processRecord(plain).recordFile)
+        let findings = await ProcessRecoveryService(layout: layout).inspect()
+        #expect(findings.map(\.id) == ["Web/\(plain.uuidString)"])
+    }
+
     @Test func aCorruptRecordShowsAShortReasonNotADecoderDump() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

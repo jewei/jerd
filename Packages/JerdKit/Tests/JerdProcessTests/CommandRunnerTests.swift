@@ -49,6 +49,28 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path("tmp").path).isEmpty)
     }
 
+    /// Fixed review L5: a command that survives its cleanup is named by PID, its log is closed,
+    /// and Jerd reaps it after it exits.
+    @Test func aCommandThatSurvivesItsCleanupIsReportedByPIDAndReapedLater() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let sleeper = try await Fixtures.shared.executable("sleeper")
+        let request = ProcessRequest(executable: sleeper, arguments: ["ignore-term"], workingDirectory: folder.url)
+        try OwnedDirectory.create(folder.path("tmp"))
+        let stuck = CommandRunner(
+            temporaryRoot: folder.path("tmp"), cleanupPolicy: .graceful(timeout: .milliseconds(100)))
+        let error = try await #require(throws: JerdError.self) {
+            try await stuck.run(request, timeout: .milliseconds(300))
+        }
+        let pid = try #require(await waitForPID(in: folder.path("sleeper.pid")))
+        #expect(error.kind == .processFailed)
+        #expect(error.message.contains("(PID \(pid))"))
+        #expect(kill(pid, 0) == 0)
+        kill(pid, SIGKILL)
+        #expect(await eventually { isGone(pid) })
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path("tmp").path).isEmpty)
+    }
+
     @Test func cancellationStopsTheCommandAndThrows() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

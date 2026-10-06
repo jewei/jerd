@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import Testing
+import os
 
 @testable import JerdSystem
 
@@ -63,31 +64,72 @@ import Testing
         again.close()
     }
 
-    /// Fixed problem 10: a wildcard listener on the port is found before the loopback bind.
-    @Test func aWildcardListenerOnThePortIsRefused() throws {
-        let descriptor = socket(AF_INET, SOCK_STREAM, 0)
-        defer { close(descriptor) }
-        var address = sockaddr_in()
-        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-        address.sin_family = sa_family_t(AF_INET)
-        address.sin_addr.s_addr = INADDR_ANY
-        let bound = withUnsafePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
-            }
-        }
-        #expect(bound == 0 && listen(descriptor, 4) == 0)
-        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
-        _ = withUnsafeMutablePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(descriptor, $0, &length) }
-        }
-        let port = UInt16(bigEndian: address.sin_port)
+    private func freePort() throws -> UInt16 {
+        let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
+        defer { pair.close() }
+        return try pair.ports().http
+    }
+
+    /// Leaves server-side connections of a closed listener in TIME_WAIT on `port`.
+    private func lingerConnections(on port: UInt16) throws {
+        let pair = try LoopbackListenerPair.bind(httpPort: port, httpsPort: 0)
+        defer { pair.close() }
+        let client = try #require(TestSocket.connect(port: port))
+        defer { close(client) }
+        let accepted = accept(pair.http.fileDescriptor, nil, nil)
+        try #require(accepted >= 0)
+        close(accepted)
+    }
+
+    /// The probe finds a loopback listener and nothing on a closed port (review L2: no wildcard bind).
+    @Test func theProbeFindsALoopbackListenerOnly() throws {
+        let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
+        let port = try pair.ports().http
+        #expect(LoopbackSocket.accepts(port: port))
+        pair.close()
+        #expect(!LoopbackSocket.accepts(port: port))
+    }
+
+    /// Fixed problem 10 and review L3: the kernel refuses the first bind atomically when any listener,
+    /// also a wildcard one, holds the port; the probe then names the other listener.
+    @Test func aBusyFixedPortIsRefusedWithTheListenerMessage() throws {
+        let blocker = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
+        defer { blocker.close() }
+        let port = try blocker.ports().http
         #expect(
             throws: JerdError.unavailable(
                 "Loopback port \(port) already has a listener. Stop the other service in its own app, then retry.")
         ) {
             try LoopbackListenerPair.bind(httpPort: port, httpsPort: 0)
         }
+    }
+
+    /// Fixed review L3: a free port is bound without a check-then-bind probe, so no listener can
+    /// appear between a check and the bind.
+    @Test func aFreeFixedPortIsBoundWithoutTheProbe() throws {
+        let port = try freePort()
+        let probed = OSAllocatedUnfairLock(initialState: [UInt16]())
+        let pair = try LoopbackListenerPair.bind(httpPort: port, httpsPort: 0) { probedPort in
+            probed.withLock { $0.append(probedPort) }
+            return LoopbackSocket.accepts(port: probedPort)
+        }
+        defer { pair.close() }
+        #expect(try pair.ports().http == port)
+        #expect(probed.withLock { $0 }.isEmpty)
+    }
+
+    /// Review L3: a port that only lingering connections hold is probed, then bound again.
+    @Test func aPortHeldOnlyByLingeringConnectionsIsBoundAgain() throws {
+        let port = try freePort()
+        try lingerConnections(on: port)
+        let probed = OSAllocatedUnfairLock(initialState: [UInt16]())
+        let pair = try LoopbackListenerPair.bind(httpPort: port, httpsPort: 0) { probedPort in
+            probed.withLock { $0.append(probedPort) }
+            return LoopbackSocket.accepts(port: probedPort)
+        }
+        defer { pair.close() }
+        #expect(try pair.ports().http == port)
+        #expect(probed.withLock { $0 } == [port])
     }
 
     @Test func standardPortsAreEightyAndFourFortyThree() {

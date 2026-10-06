@@ -3,12 +3,14 @@ import JerdFoundation
 import JerdProcess
 import JerdServiceKit
 
-/// A service definition with scripted steps. It records "prepare", "setup", and "complete".
+/// A service definition with scripted steps. It records "prepare", "initializer <status>
+/// <output>", "setup", and "complete".
 struct FakeServiceDefinition: ServiceDefinition {
     var profile: ServiceProfile
     var versionProbe: VersionProbe
     var plan: LaunchPlan
     var setupPlan: LaunchPlan?
+    var initializer: InitializerPlan?
     var prepareError: JerdError?
     var completeError: JerdError?
     let events: EventLog
@@ -16,6 +18,10 @@ struct FakeServiceDefinition: ServiceDefinition {
     func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
         events.add("prepare")
         if let prepareError { throw prepareError }
+        if let initializer {
+            let result = try await tools.runInitializer(initializer)
+            events.add("initializer \(result.status) \(result.output)")
+        }
         if let setupPlan {
             events.add("setup")
             try await tools.runSetupPhase(setupPlan)

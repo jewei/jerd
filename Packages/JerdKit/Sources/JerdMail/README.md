@@ -8,7 +8,8 @@ lifecycle.
 
 | Type | Purpose |
 | --- | --- |
-| `MailManager` | Load, register a runtime, edit ports, start, stop, test email, runtime update. |
+| `MailManager` | The public API: load, register a runtime, edit ports, start, stop, test email, runtime update. |
+| `MailService` | The Mailpit parts of the shared `SingleServiceCoordinator`: settings, definition, ports, update items. |
 | `MailpitDefinition` | The version probe, the inbox preparation, and the exact Mailpit command line. |
 | `MailInbox` | The inbox identity (`runtime.json`), the start marker (`initialized.json`), and the database. |
 | `MailReadinessProbe` | The information API must name the version and the database; SMTP `NOOP` must give `250 `. |

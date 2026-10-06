@@ -8,12 +8,16 @@ import JerdFoundation
 /// step whose effect may have happened) are undone in reverse order. The journal is deleted only when
 /// every undo succeeded and no step asked to keep it; then the original error is thrown. Otherwise the
 /// journal stays with a phase that names what was rolled back, and the error is `.partialChange`.
+/// A failed commit undoes nothing: every step is applied, so the journal stays with an "Applied"
+/// phase for a recovery to finish (fixed review L5).
 struct SetupTransaction {
     let directory: RootRecordDirectory
     var journal: SetupJournal
     let steps: [SetupStep]
     /// The start of the error message when the journal must stay, for example "Setup failed".
     let failureTitle: String
+    /// Deletes the journal. Tests inject a failure here.
+    var commit: (RootRecordDirectory) throws -> Void = { try $0.remove(.pending) }
 
     mutating func run() async throws {
         try save()
@@ -23,9 +27,16 @@ struct SetupTransaction {
             for step in steps {
                 try await perform(step, completed: &completed, notes: &notes)
             }
-            try directory.remove(.pending)
         } catch {
             try await compensate(after: error, completed: completed, notes: notes)
+        }
+        do {
+            try commit(directory)
+        } catch {
+            let notes = saveKeepingNote(phase: "Applied; the recovery record could not be removed.")
+            let details = ([HelperRecordCodec.describe(error)] + notes).joined(separator: " ")
+            throw JerdError.partialChange(
+                "\(failureTitle) after every change was applied, and needs recovery. \(details)")
         }
     }
 

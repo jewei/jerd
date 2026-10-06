@@ -14,6 +14,10 @@ public final class AppState {
     public let appUpdates: AppUpdatesModel
     public let clipboard: Clipboard
     public let sites: SitesModel
+    public let databases: DatabasesModel
+    public let storage: StorageModel
+    public let mail: MailModel
+    public let commandLineTools: CommandLineToolsModel
     public let shutdown = ShutdownCoordinator()
     /// The service features in section order: Sites, Databases, Storage, Mail.
     public let features: [any WorkspaceFeature]
@@ -45,10 +49,18 @@ public final class AppState {
         clipboard = Clipboard(pasteboard: dependencies.pasteboard)
         windows = dependencies.windows
         workspace = dependencies.workspace
+        let services = dependencies.services
+        databases = DatabasesModel(port: services.databases, clipboard: clipboard, workspace: workspace)
+        storage = StorageModel(port: services.storage, clipboard: clipboard, workspace: workspace)
+        mail = MailModel(port: services.mail, clipboard: clipboard, workspace: workspace)
+        commandLineTools = CommandLineToolsModel(port: services.commandLineTools)
         sites = Self.makeSites(dependencies, clipboard: clipboard)
-        self.features = ([sites] + features.filter { $0.section != .sites }).sorted {
+        let builtFeatures: [any WorkspaceFeature] = [sites, databases, storage, mail]
+        let built = Set(builtFeatures.map(\.section))
+        self.features = (features.filter { !built.contains($0.section) } + builtFeatures).sorted {
             $0.section.rawValue < $1.section.rawValue
         }
+        connectServiceNavigation()
         pollers = self.features.map { feature in
             ServicePoller(policy: feature.pollingPolicy, sleeper: dependencies.sleeper) { [weak feature] in
                 await feature?.refresh()

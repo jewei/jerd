@@ -12,6 +12,7 @@ extension SnapshotCatalog {
         var catalog = SnapshotCatalog()
         catalog.addComponentGallery()
         catalog.addJerdPages()
+        catalog.addServicePages()
         return catalog
     }
 }

@@ -13,7 +13,7 @@ struct DashboardPages: View {
         case .runtimes:
             RuntimesPage(model: state.runtimes)
         case .advanced:
-            AdvancedPage(model: state.advanced)
+            AdvancedPage(model: state.advanced, commandLineTools: state.commandLineTools)
         case .about:
             AboutPage(updates: state.appUpdates, appearance: state.appearance, info: state.info) {
                 state.navigation.show(.dashboard(.runtimes))

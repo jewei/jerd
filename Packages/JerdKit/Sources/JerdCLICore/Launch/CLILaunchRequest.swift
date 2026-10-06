@@ -1,33 +1,18 @@
 /// The facts from which `CLILaunchPlanner` builds a launch plan. The launcher collects them.
-public struct CLILaunchRequest: Equatable, Sendable {
-    public let command: CLICommand
+struct CLILaunchRequest: Equatable, Sendable {
+    let command: CLICommand
     /// The PHP CLI executable of the selected runtime.
-    public let phpExecutable: String
+    let phpExecutable: String
     /// `["-c", <INI path>]`, or empty when the user chose the INI.
-    public let iniArguments: [String]
+    let iniArguments: [String]
     /// The Composer or Laravel installer script. Nil for `php`.
-    public let companionScript: String?
-    /// The user arguments, without `argv[0]`.
-    public let userArguments: [String]
-    /// The launcher's own environment.
-    public let environment: [String: String]
+    let companionScript: String?
+    /// The exact user argument bytes, without `argv[0]`.
+    let userArguments: [[UInt8]]
+    /// The launcher's own environment, as raw entries.
+    let environment: CLIEnvironment
     /// Variables that the INI decision adds, for example `PHP_INI_SCAN_DIR`.
-    public let iniEnvironment: [String: String]
+    let iniEnvironment: [String: String]
     /// Jerd's `bin` folder with the `php`, `composer`, and `laravel` links.
-    public let binDirectory: String
-
-    public init(
-        command: CLICommand, phpExecutable: String, iniArguments: [String], companionScript: String?,
-        userArguments: [String], environment: [String: String], iniEnvironment: [String: String],
-        binDirectory: String
-    ) {
-        self.command = command
-        self.phpExecutable = phpExecutable
-        self.iniArguments = iniArguments
-        self.companionScript = companionScript
-        self.userArguments = userArguments
-        self.environment = environment
-        self.iniEnvironment = iniEnvironment
-        self.binDirectory = binDirectory
-    }
+    let binDirectory: String
 }

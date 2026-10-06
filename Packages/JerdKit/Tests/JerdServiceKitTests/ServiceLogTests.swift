@@ -1,5 +1,6 @@
 import Foundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @Suite struct ServiceLogTests {

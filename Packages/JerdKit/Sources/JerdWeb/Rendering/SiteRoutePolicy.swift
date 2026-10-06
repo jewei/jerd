@@ -8,7 +8,8 @@ import JerdFoundation
 /// 3. An existing file below `/.well-known/` is served statically (see `wellKnownPattern`).
 /// 4. Sensitive paths answer 404 (`deniedPathPattern`), before the file matcher can split `.php`.
 /// 5. Missing files fall back to `index.php` (front controller).
-/// 6. A path that ends in lowercase `.php`, outside `/storage/`, goes to PHP-FPM.
+/// 6. A script whose name on disk ends in lowercase `.php`, outside `/storage/`, goes to PHP-FPM.
+///    FPM runs exactly this script (`SCRIPT_FILENAME`); see `PHPIniPolicy.fpm` for why.
 /// 7. Any other PHP-like file answers 404, so source never reaches the static server.
 /// 8. Everything else is a static file, with source and secrets hidden.
 public enum SiteRoutePolicy {
@@ -17,7 +18,9 @@ public enum SiteRoutePolicy {
     /// The readiness body.
     public static let healthResponse = "Jerd is ready."
     /// Files that the static server never lists or serves.
-    public static let hiddenFiles = [".git", ".env", "*.php", "*.PHP", "*.phtml", "*.phar"]
+    public static let hiddenFiles = [
+        ".git", ".env", "*.php", "*.PHP", "*.php[0-9]", "*.pht", "*.phtml", "*.phar", "*.phps", "*.phpt", "*.inc",
+    ]
 
     /// Paths below `/.well-known/` (RFC 8615, lowercase) whose every segment is non-empty and does
     /// not start with a dot.
@@ -29,8 +32,11 @@ public enum SiteRoutePolicy {
     /// never run PHP, and a hidden file (`/.well-known/.env`) or a missing path still answers 404.
     public static let wellKnownPattern = "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
 
-    /// Any PHP-like file name, also with a suffix (`.php5`, `.phtml`, `.php.txt`, `.inc`).
-    public static let phpLikePattern = "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+    /// Any PHP-like file name, also with a suffix (`.php5`, `.pht`, `.phtml`, `.php.txt`, `.inc`).
+    ///
+    /// The list covers every extension that PHP-FPM, Apache (`.ph(ar|p|tml)`, `.pht`, `.php[3-8]`,
+    /// `.phps` source), and nginx setups commonly hand to PHP or show as PHP source, plus `.phpt` tests.
+    public static let phpLikePattern = "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
 
     /// The 404 pattern: any dot segment, private folders, Composer files, `artisan`, PHP below
     /// `/storage/`, `.php` followed by anything but `/`, and PHP-like suffixes. Case-insensitive.
@@ -47,7 +53,7 @@ public enum SiteRoutePolicy {
     private static func sensitiveAlternatives(servesProjectRoot: Bool) -> String {
         let privateFolders = servesProjectRoot ? "(vendor|storage)" : "vendor"
         return "^/\(privateFolders)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$"
-            + "|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+            + "|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
     }
 
     /// The routes of one site, inside its host subroute.
@@ -97,6 +103,11 @@ public enum SiteRoutePolicy {
         ]
     }
 
+    /// The route variable that keeps the path info of the front-controller match.
+    static let pathInfoVariable = "jerd_path_info"
+
+    /// Rewrites to the selected script and keeps its path info in `pathInfoVariable`, because the
+    /// next `file` matcher (in `phpRoute`) replaces `http.matchers.file.remainder`.
     private static let frontControllerRoute: JSONValue = [
         "match": [
             [
@@ -106,19 +117,41 @@ public enum SiteRoutePolicy {
                 ]
             ]
         ],
-        "handle": [["handler": "rewrite", "uri": "{http.matchers.file.relative}"]],
+        "handle": [
+            ["handler": "vars", pathInfoVariable: "{http.matchers.file.remainder}"],
+            ["handler": "rewrite", "uri": "{http.matchers.file.relative}"],
+        ],
     ]
 
-    /// Case-sensitive `.php$`: an uppercase `.PHP` never reaches FastCGI. Storage is checked again
-    /// after a directory URL was rewritten to its `index.php`.
+    /// The script must end in lowercase `.php` in the request and on disk, outside `/storage/`.
+    ///
+    /// Script selection (review web-r1 C1): FPM runs `SCRIPT_FILENAME`, which the transport builds
+    /// from the rewritten path, so it is always the script that the front-controller route chose.
+    /// Path info goes to PHP only as `PATH_INFO` (from `pathInfoVariable`). Caddy then sends no
+    /// `PATH_TRANSLATED`, the document root plus the path info, which FPM would run with
+    /// `cgi.fix_pathinfo = 0`. See `PHPIniPolicy.fpm` for the second, independent layer.
+    ///
+    /// Case (review web-r1 M1): on a case-insensitive volume (the APFS default) `/name.php` finds
+    /// `name.PHP`, and a path regexp sees only the request. The `file` matcher ends in a glob class
+    /// (`ph[p]`), so Caddy lists the folder and compares each name case-sensitively (Go
+    /// `path.Match`); a plain path would use `stat`, which ignores case. So `name.PHP`, `name.Php`,
+    /// and `Name.php` for `name.php` answer 404, as on a case-sensitive server. Caddy escapes glob
+    /// characters in placeholder values, so only `[p]` is a pattern (`/odd%5B1%5D.php` runs
+    /// `odd[1].php`). Storage is checked again after a directory URL was rewritten to `index.php`.
     private static func phpRoute(_ site: CaddySite) -> JSONValue {
         [
-            "match": [["path_regexp": ["pattern": "\\.php$"], "not": [regexp("(?i)^/storage/")]]],
+            "match": [
+                [
+                    "path_regexp": ["pattern": "\\.php$"], "not": [regexp("(?i)^/storage/")],
+                    "file": ["try_files": [.string(exactScriptPattern)], "try_policy": "first_exist"],
+                ]
+            ],
             "handle": [
                 [
                     "handler": "reverse_proxy", "upstreams": [["dial": .string("unix/" + site.socket.path)]],
                     "transport": [
                         "protocol": "fastcgi", "root": .string(site.documentRoot), "split_path": [".php"],
+                        "env": ["PATH_INFO": .string("{http.vars.\(pathInfoVariable)}")],
                         "dial_timeout": .integer(RequestTimeBudget.nanoseconds(RequestTimeBudget.proxyDialSeconds)),
                         "read_timeout": .integer(RequestTimeBudget.nanoseconds(RequestTimeBudget.proxyReadSeconds)),
                     ],
@@ -126,4 +159,7 @@ public enum SiteRoutePolicy {
             ],
         ]
     }
+
+    /// The rewritten script path with a case-sensitive `.php` (see `phpRoute`).
+    static let exactScriptPattern = "{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"
 }

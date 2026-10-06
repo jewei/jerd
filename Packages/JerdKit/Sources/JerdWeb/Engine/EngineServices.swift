@@ -13,7 +13,8 @@ public struct EngineServices: Sendable {
     public var timings: ReadinessTimings
 
     public init(
-        processes: any ProcessControlling = ProcessSupervisor(), commands: any CommandRunning = CommandRunner(),
+        processes: any ProcessControlling = ProcessSupervisor(ceiling: .forceful),
+        commands: any CommandRunning = CommandRunner(),
         pinger: any FPMPinging = FastCGIPing(), ports: LoopbackPortGuard = LoopbackPortGuard(),
         caBundle: PHPCABundleBuilder = PHPCABundleBuilder(), startGate: StartGate = StartGate(),
         recorder: ActiveRunRecorder = ActiveRunRecorder(), timings: ReadinessTimings = ReadinessTimings()

@@ -71,7 +71,7 @@ let package = Package(
         module(
             "JerdUIFixtures", [
                 "JerdUI", "JerdDesign", "JerdSnapshotSupport", "JerdFoundation", "JerdManifest", "JerdRuntimes",
-                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdTunnels",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
             ],
             resources: [.copy("Resources/AppIcons")]),
         // Snapshot rendering and the component gallery. Only JerdSnapshots and tests import it; it never ships.
@@ -81,7 +81,7 @@ let package = Package(
                           swiftSettings: strictSettings),
 
         // Tests
-        tests("JerdFoundation", []),
+        tests("JerdFoundation", [], resources: [.copy("Fixtures")]),
         tests("JerdProcess", ["JerdFoundation"], resources: [.copy("Fixtures")]),
         tests("JerdManifest", ["JerdFoundation"], resources: [.copy("Fixtures")]),
         tests("JerdArchive", ["JerdFoundation"]),
@@ -95,17 +95,27 @@ let package = Package(
                           path: "Tests/JerdXPCCheck", swiftSettings: strictSettings),
         tests("JerdWeb", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
-        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
-        tests("JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
-        tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
-        tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
+        // Fakes and C fixtures that the service test targets share. Only test targets depend on it.
+        .target(
+            name: "JerdServiceKitTestSupport", dependencies: ["JerdFoundation", "JerdProcess", "JerdServiceKit"],
+            path: "Tests/JerdServiceKitTestSupport", resources: [.copy("Fixtures")], swiftSettings: strictSettings),
+        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess", "JerdServiceKitTestSupport"]),
+        tests(
+            "JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            resources: [.copy("Fixtures")]),
+        tests(
+            "JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            resources: [.copy("Fixtures")]),
+        tests(
+            "JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            resources: [.copy("Fixtures")]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
         tests("JerdDesign", ["JerdSnapshotSupport"]),
         tests("JerdSnapshotSupport", ["JerdDesign"]),
         tests(
             "JerdUI", [
                 "JerdUIFixtures", "JerdDesign", "JerdFoundation", "JerdSnapshotSupport", "JerdManifest", "JerdRuntimes",
-                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdTunnels",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
             ]),
         tests("JerdLive", ["JerdUI", "JerdFoundation"]),
     ]

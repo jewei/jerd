@@ -17,7 +17,7 @@ extension HelperService {
         do {
             try Self.requireReady(try await setupStatus(owner: owner))
             try lifetime.check()
-            let pair = try bindListeners()
+            let pair = try await bindListeners()
             bound = pair
             try finishAcquire(connection: connection, owner: owner, pair: pair, alive: lifetime.isValid)
             return pair

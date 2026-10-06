@@ -66,4 +66,43 @@ import Testing
                 == StopPolicy(
                     signal: SIGTERM, leaderTimeout: .seconds(30), groupTimeout: nil, escalation: .never))
     }
+
+    /// Fixed review L1: a leader that something else reaps during the stop gets no group signal.
+    @Test func aLeaderReapedOutsideDuringTheStopGetsNoFurtherSignal() async {
+        let target = FakeStopTarget(state: .running, reapedOutsideOn: SIGTERM)
+        #expect(await StopEngine.run(forceful, on: target) == .notOwned)
+        #expect(target.signals == [.leader(SIGTERM)])
+        let reapedAfterGroupSignal = FakeStopTarget(
+            state: .running, leaderExitsOn: [SIGTERM], membersRemain: true, reapedOutsideOn: SIGTERM)
+        #expect(await StopEngine.run(forceful, on: reapedAfterGroupSignal) == .notOwned)
+    }
+
+    /// Fixed review L2: after the group kill the engine waits for an empty group, not only for the leader.
+    @Test func membersThatSurviveTheKillTimeOutInsteadOfReportingStopped() async {
+        let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGTERM], membersRemain: true)
+        #expect(await StopEngine.run(forceful, on: target) == .timedOut(leaderRunning: false))
+        #expect(target.signals == [.leader(SIGTERM), .group(SIGTERM), .group(SIGKILL)])
+    }
+
+    /// Fixed review M1: descendants are recorded while the leader still runs, before any signal.
+    @Test func descendantsAreRecordedBeforeTheFirstSignal() async {
+        let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGTERM])
+        #expect(await StopEngine.run(graceful, on: target) == .stopped)
+        #expect(target.events == [.walk, .signal(.leader(SIGTERM))])
+    }
+
+    /// Fixed review L13: a graceful ceiling removes the kill step of any policy and keeps the rest.
+    @Test func aGracefulCeilingNeverKills() async {
+        let limited = StopCeiling.graceful.limit(.forceful(signal: SIGQUIT))
+        #expect(
+            limited
+                == StopPolicy(
+                    signal: SIGQUIT, leaderTimeout: .seconds(3), groupTimeout: .seconds(2), escalation: .never))
+        #expect(StopCeiling.forceful.limit(.forceful()) == .forceful())
+        #expect(StopCeiling.graceful.limit(.graceful()) == .graceful())
+        let target = FakeStopTarget(state: .running)
+        #expect(
+            await StopEngine.run(StopCeiling.graceful.limit(forceful), on: target) == .timedOut(leaderRunning: true))
+        #expect(!target.signals.contains(.group(SIGKILL)))
+    }
 }

@@ -18,6 +18,8 @@ public actor InMemorySitesPort: SitesPort {
     public var suggestions: [String: DocumentRootSuggestion] = [:]
     public var logsURL: URL?
     public private(set) var calls: [String] = []
+    /// How often the environment was read, for polling tests.
+    public private(set) var environmentReads = 0
     private var pending: [UUID: Set<UUID>] = [:]
     private var waiting: [CheckedContinuation<Void, Never>] = []
     /// A Stop that arrived before the suspended change began to wait, like the live stop epoch.
@@ -43,7 +45,10 @@ public actor InMemorySitesPort: SitesPort {
         return configurationValue
     }
 
-    public func environment() async -> EnvironmentSnapshot { environmentValue }
+    public func environment() async -> EnvironmentSnapshot {
+        environmentReads += 1
+        return environmentValue
+    }
     public func setupStatus() async throws -> HTTPSSetupStatus { setup }
 
     public func apply(_ change: SiteChange, startIfStopped: Bool) async throws -> SiteChangeOutcome {

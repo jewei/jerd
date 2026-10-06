@@ -90,11 +90,11 @@ struct ServicePollerTests {
         let fixture = AppFixture(sleeper: sleeper)
         defer { fixture.removeDefaults() }
         await fixture.state.launch()
-        #expect(fixture.features.allSatisfy { $0.refreshCount == 0 })
+        let reads = await fixture.sites.environmentReads
         fixture.state.setAppActive(true)
         fixture.state.setWindowVisible(true)
-        await waitUntil { fixture.features.allSatisfy { $0.refreshCount == 1 } }
-        #expect(fixture.features.allSatisfy { $0.refreshCount == 1 })
+        for _ in 0..<1_000 where await fixture.sites.environmentReads == reads { await Task.yield() }
+        #expect(await fixture.sites.environmentReads == reads + 1)
         #expect(fixture.state.activity == AppActivity(isActive: true, isWindowVisible: true))
         fixture.state.pollers.forEach { $0.stop() }
     }

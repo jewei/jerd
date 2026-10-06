@@ -13,8 +13,8 @@ import Testing
         #expect(try CaddySamples.loopbackOutput() == (try Fixture.data("caddy/caddy-loopback.json")))
     }
 
-    /// Appendix A is the output of the old generator. The new output differs only by the two
-    /// documented fixes: the `.well-known` route and the FastCGI read timeout.
+    /// Appendix A is the output of the old generator. The new output differs only by the fixes
+    /// that `AppendixFixes` names: spec B 7.1.1 and 7.1.2, and review web-r1 C1, M1, and L1.
     @Test func theOldAppendixOutputChangesOnlyByTheDocumentedFixes() throws {
         let expected = try #require(
             try JSONSerialization.jsonObject(
@@ -24,11 +24,7 @@ import Testing
         let oldRoutes = try Self.siteRoutes(expected).compactMap { $0 as? NSMutableArray }
         #expect(oldRoutes.count == 2 && newRoutes.count == 2)
         for (index, routes) in oldRoutes.enumerated() {
-            routes.insert(newRoutes[index][2], at: 2)
-            let proxy = try #require(((routes[5] as? NSDictionary)?["handle"] as? NSArray)?[0] as? NSMutableDictionary)
-            let transport = try #require(proxy["transport"] as? NSMutableDictionary)
-            #expect(transport["read_timeout"] as? Int == 15_000_000_000)
-            transport["read_timeout"] = 35_000_000_000
+            try AppendixFixes.apply(to: routes, wellKnown: newRoutes[index][2])
         }
         #expect(expected == new)
     }

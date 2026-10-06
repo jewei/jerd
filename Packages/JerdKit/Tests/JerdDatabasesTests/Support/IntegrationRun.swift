@@ -4,6 +4,7 @@ import JerdDatabases
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 /// A real database manager on prepared runtimes, in a temporary data folder, on free loopback ports.

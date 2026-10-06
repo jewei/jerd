@@ -13,17 +13,17 @@ import JerdServiceKit
 /// the web service, no automatic deletion (`--max 0`), no version check, no reverse DNS, and no
 /// remote CSS or fonts. Its environment is the clean base environment only, so no relay,
 /// forwarding, webhook, POP3, or user configuration applies.
-public struct MailpitDefinition: ServiceDefinition {
-    public let runtime: MailRuntime
-    public let ports: MailPorts
-    public let profile: ServiceProfile
+struct MailpitDefinition: ServiceDefinition {
+    let runtime: MailRuntime
+    let ports: MailPorts
+    let profile: ServiceProfile
     let layout: MailLayout
     let server: any MailServerProbing
 
     /// - Parameters:
     ///   - dataRoot: the existing owned folder that contains `mail/`.
     ///   - server: answers the readiness questions of a running Mailpit.
-    public init(
+    init(
         runtime: MailRuntime, ports: MailPorts, layout: MailLayout, dataRoot: URL, server: any MailServerProbing
     ) {
         self.runtime = runtime
@@ -38,7 +38,7 @@ public struct MailpitDefinition: ServiceDefinition {
 
     /// `mailpit version --no-release-check` must print a line that starts with the executable
     /// path and the saved version. A version that is only part of the path cannot match.
-    public var versionProbe: VersionProbe {
+    var versionProbe: VersionProbe {
         VersionProbe(
             request: ProcessRequest(
                 executable: runtime.executable, arguments: ["version", "--no-release-check"],
@@ -49,14 +49,14 @@ public struct MailpitDefinition: ServiceDefinition {
 
     var inbox: MailInbox { MailInbox(layout: layout) }
 
-    public func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
+    func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
         try inbox.prepare(for: runtime)
         let readiness = MailReadinessProbe(
             runtime: runtime, database: layout.inboxDatabaseFile, ports: ports, server: server)
         return LaunchPlan(request: serverRequest, ports: Set(ports.ordered), readiness: readiness.check)
     }
 
-    public func completeStart() async throws {
+    func completeStart() async throws {
         try inbox.markInitialized(runtime)
     }
 
