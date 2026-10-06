@@ -66,16 +66,19 @@ public final class AppState {
         let builtFeatures: [any WorkspaceFeature] = [databases, storage, mail]
         self.features = (features + builtFeatures).sorted { $0.section.rawValue < $1.section.rawValue }
         connectServiceNavigation()
-        pollers = self.features.map { feature in
-            ServicePoller(policy: feature.pollingPolicy, sleeper: dependencies.sleeper) { [weak feature] in
-                await feature?.refresh()
-            }
+        pollers = self.features.flatMap(\.pollingTasks).map { task in
+            ServicePoller(policy: task.policy, sleeper: dependencies.sleeper, refresh: task.refresh)
         }
     }
 
     /// The feature that a section shows, if it is built.
     public func feature(for section: AppSection) -> (any WorkspaceFeature)? {
         features.first { $0.section == section }
+    }
+
+    /// The File › New command of the current section, if it has one.
+    public var newItemAction: FeatureAction? {
+        feature(for: navigation.section)?.newItemAction
     }
 
     /// Shows a destination in the main window and brings the window to the front.
