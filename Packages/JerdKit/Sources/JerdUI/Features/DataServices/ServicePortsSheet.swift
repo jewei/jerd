@@ -21,12 +21,13 @@ struct ServicePortsSheet: View {
     let suggest: @MainActor () -> Void
     let save: @MainActor () -> Void
     let cancel: @MainActor () -> Void
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         SheetScaffold(
             copy.title, message: copy.message,
             confirmation: SheetConfirmation(
-                "Save Ports", isEnabled: draft.ports != nil, identifier: copy.identifier, perform: save),
+                "Save Ports", isEnabled: draft.ports != nil && !isQuitting, identifier: copy.identifier, perform: save),
             workingMessage: operation.workingMessage, cancel: cancel
         ) {
             Section {
@@ -39,7 +40,7 @@ struct ServicePortsSheet: View {
                 }
                 ActionRow("Free ports", detail: "Finds the first two free ports from the defaults.") {
                     Button("Suggest Free Ports", action: suggest)
-                        .disabled(operation.isWorking)
+                        .disabled(isQuitting || operation.isWorking)
                         .accessibilityIdentifier("\(copy.identifier).suggest")
                 }
             } footer: {

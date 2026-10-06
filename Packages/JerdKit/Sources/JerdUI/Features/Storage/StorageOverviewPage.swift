@@ -4,9 +4,10 @@ import SwiftUI
 /// The Storage page when no bucket is selected: the service, its buckets, and its credentials.
 struct StorageOverviewPage: View {
     let model: StorageModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
-        let actions = StorageHeaderActions(model: model)
+        let actions = StorageHeaderActions(model: model, isQuitting: isQuitting)
         FormPage {
             PageHeader(
                 "Storage", subtitle: "S3 buckets on this Mac for your applications' uploads and files.",
@@ -32,7 +33,7 @@ struct StorageOverviewPage: View {
         Section {
             ActionRow(bucketTitle, detail: bucketDetail) {
                 Button("Add Bucket…") { model.beginAddBucket() }
-                    .disabled(!model.canAddBucket)
+                    .disabled(isQuitting || !model.canAddBucket)
                     .accessibilityIdentifier("storage.add-bucket")
             }
         } header: {

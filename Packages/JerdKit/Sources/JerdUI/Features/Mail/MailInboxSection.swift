@@ -4,12 +4,13 @@ import SwiftUI
 /// The test email and its result.
 struct MailInboxSection: View {
     let model: MailModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         Section {
             ActionRow("Test email", detail: "Send a sample message to the local inbox.") {
                 Button("Send Test Email", systemImage: "paperplane", action: { model.sendTestEmail() })
-                    .disabled(!model.canSendTestEmail)
+                    .disabled(isQuitting || !model.canSendTestEmail)
                     .help(model.state.isRunning ? "Send Test Email" : "Start mail to send a test email.")
                     .accessibilityIdentifier("mail.send-test")
             }

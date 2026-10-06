@@ -5,13 +5,15 @@ import SwiftUI
 /// a test email, its files, and its ports. Mail has no sidebar.
 struct MailPage: View {
     @Bindable var model: MailModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
+        let actions = MailHeaderActions(model: model, isQuitting: isQuitting)
         FormPage {
             PageHeader(
                 "Mail", subtitle: "A local inbox for your application's test emails.",
-                status: NamedStatus("Mail status", model.status), primaryAction: primaryAction,
-                secondaryActions: secondaryActions
+                status: NamedStatus("Mail status", model.status), primaryAction: actions.primary,
+                secondaryActions: actions.secondary
             ) {
                 if model.operation.isWorking {
                     BusyIndicator(model.operation.workingMessage ?? "Working…")
@@ -35,31 +37,6 @@ struct MailPage: View {
         .sheet(isPresented: isEditingPorts) {
             MailPortsSheet(model: model)
         }
-    }
-
-    /// The next step: Start when stopped, Open Inbox when running, Stop to retry a stop.
-    private var primaryAction: PageAction? {
-        if model.state.isRunning { return inboxAction }
-        if model.state.offersStop { return stopAction }
-        return PageAction(
-            "Start Mail", systemImage: "play.fill", isEnabled: model.canStart, identifier: "mail.start"
-        ) { model.start() }
-    }
-
-    private var secondaryActions: [PageAction] {
-        model.state.isRunning ? [stopAction] : []
-    }
-
-    private var stopAction: PageAction {
-        PageAction("Stop Mail", systemImage: "stop.fill", isEnabled: model.canStop, identifier: "mail.stop") {
-            model.stop()
-        }
-    }
-
-    private var inboxAction: PageAction {
-        PageAction(
-            "Open Inbox", systemImage: "tray", isEnabled: model.canOpenInbox, identifier: "mail.open-inbox"
-        ) { model.openInbox() }
     }
 
     private var isEditingPorts: Binding<Bool> {

@@ -7,6 +7,7 @@ import SwiftUI
 struct DatabasesPage: View {
     let state: AppState
     @Bindable var model: DatabasesModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         content
@@ -22,6 +23,7 @@ struct DatabasesPage: View {
                 presenting: model.pendingRemoval
             ) { _ in
                 Button("Remove Registration", role: .destructive) { model.confirmRemove() }
+                    .disabled(isQuitting)
                 Button("Cancel", role: .cancel) { model.pendingRemoval = nil }
             } message: { service in
                 Text(

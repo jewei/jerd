@@ -6,6 +6,7 @@ import SwiftUI
 /// A new name and port for retained data. Package access lets the snapshot catalog render it.
 package struct RestoreDatabaseSheet: View {
     @Bindable var model: DatabasesModel
+    @Environment(\.isQuitting) private var isQuitting
 
     package init(model: DatabasesModel) {
         self.model = model
@@ -41,7 +42,7 @@ package struct RestoreDatabaseSheet: View {
     }
 
     private var canRestore: Bool {
-        model.restoreDraft?.values(in: model.configuration) != nil && model.canChangeRegistry
+        model.restoreDraft?.values(in: model.configuration) != nil && model.canChangeRegistry && !isQuitting
     }
 
     private func runtimeText(_ database: RetainedDatabase) -> String {

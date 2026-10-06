@@ -14,9 +14,9 @@ struct SectionToolbar: View {
         case .sites:
             EmptyView()
         case .databases:
-            EmptyView()
+            DatabasesToolbar(model: state.databases)
         case .storage:
-            EmptyView()
+            StorageToolbar(model: state.storage)
         case .mail:
             EmptyView()
         }
