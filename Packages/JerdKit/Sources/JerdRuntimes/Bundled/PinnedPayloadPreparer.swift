@@ -44,7 +44,8 @@ public struct PinnedPayloadPreparer: Sendable {
         }
         return RuntimeRelease(
             kind: pin.kind, version: pin.version, artifact: artifact, archiveSHA256: pin.artifactSHA256,
-            signatureURL: pin.signature?.url, releasePage: pin.releasePage, architecture: architecture)
+            signatureURL: pin.signature?.url, releasePage: pin.releasePage, architecture: architecture,
+            pinnedSignature: pin.signature)
     }
 
     /// The folder of a prepared pin.

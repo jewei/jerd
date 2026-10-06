@@ -129,7 +129,9 @@ import Testing
             let release = try preparer.release(for: pin, architecture: catalog.architecture)
             #expect(policy.check(release) == nil, "\(pin.id)")
         }
-        let mysql = try preparer.release(for: try #require(catalog.pin(for: .mysql)), architecture: .arm64)
+        let pin = try #require(catalog.pin(for: .mysql))
+        let mysql = try preparer.release(for: pin, architecture: .arm64)
         #expect(mysql.archiveSHA256 != nil && mysql.signatureURL != nil)
+        #expect(mysql.pinnedSignature == pin.signature && mysql.signatureURL == pin.signature?.url)
     }
 }
