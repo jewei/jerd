@@ -88,12 +88,13 @@ package struct ExtractionPlan: Sendable {
             outputBytes += size
             return FileWrite(
                 path: name, mode: mode, declaredSize: size, byteLimit: size,
-                limitFailure: ArchiveFailure.exceedsDeclaredSize)
+                limitFailure: ArchiveFailure.exceedsDeclaredSize, modificationTime: header.modificationTime)
         }
         // P-A1: an entry without a recorded size may stream up to the smaller of both limits.
         let fileLimited = policy.fileSizeLimit <= remaining
         return FileWrite(
             path: name, mode: mode, declaredSize: nil, byteLimit: max(0, min(policy.fileSizeLimit, remaining)),
-            limitFailure: fileLimited ? ArchiveFailure.fileTooLarge : ArchiveFailure.outputTooLarge)
+            limitFailure: fileLimited ? ArchiveFailure.fileTooLarge : ArchiveFailure.outputTooLarge,
+            modificationTime: header.modificationTime)
     }
 }

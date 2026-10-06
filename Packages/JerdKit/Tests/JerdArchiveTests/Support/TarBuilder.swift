@@ -10,12 +10,14 @@ struct TarBuilder {
         var link: String = ""
         var data = Data()
         var mode = "0000644"
+        /// The modification time in seconds since 1970.
+        var modified = 0
     }
 
     var entries: [Entry] = []
 
-    mutating func file(_ name: String, _ text: String = "", mode: String = "0000644") {
-        entries.append(Entry(name: name, data: Data(text.utf8), mode: mode))
+    mutating func file(_ name: String, _ text: String = "", mode: String = "0000644", modified: Int = 0) {
+        entries.append(Entry(name: name, data: Data(text.utf8), mode: mode, modified: modified))
     }
 
     mutating func file(_ name: String, bytes: Int, mode: String = "0000644") {
@@ -64,7 +66,7 @@ struct TarBuilder {
         field("0000000", 108)
         field("0000000", 116)
         field(String(format: "%011o", entry.data.count), 124)
-        field("00000000000", 136)
+        field(String(format: "%011o", entry.modified), 136)
         field("        ", 148)
         field(entry.type, 156)
         field(entry.link, 157)

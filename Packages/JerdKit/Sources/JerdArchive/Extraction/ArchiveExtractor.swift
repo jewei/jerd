@@ -30,9 +30,11 @@ public enum ArchiveExtractor {
         var files = plan.writtenFiles
         for copy in try plan.linkCopies() {
             let source = copy.source.url(in: destination)
-            let mode = try fileMode(of: source)
-            let output = try OutputFile(copy.path.url(in: destination), mode: mode, within: destination)
+            let info = try regularFileStatus(of: source)
+            let output = try OutputFile(copy.path.url(in: destination), mode: info.st_mode & 0o700, within: destination)
             _ = try output.copyContents(of: source, failure: ArchiveFailure.linkTargetMissing)
+            try output.setModificationTime(
+                EntryTimestamp(seconds: Int64(info.st_mtimespec.tv_sec), nanoseconds: info.st_mtimespec.tv_nsec))
             files.append(copy.path)
         }
         return ExtractionReport(files: files.sorted(), outputBytes: plan.outputBytes)
@@ -53,15 +55,17 @@ public enum ArchiveExtractor {
             try output.write(UnsafeRawBufferPointer(rebasing: buffer[0..<count]))
         }
         if let declared = write.declaredSize, written != declared { throw ArchiveFailure.incomplete }
+        if let time = write.modificationTime { try output.setModificationTime(time) }
         return written
     }
 
-    /// A link copy keeps the mode of its extracted target (0700 or 0600), like a hard link would.
-    private static func fileMode(of source: URL) throws -> mode_t {
+    /// A link copy keeps the mode (0700 or 0600) and the modification time of its extracted target,
+    /// like a hard link would.
+    private static func regularFileStatus(of source: URL) throws -> stat {
         var info = stat()
         guard lstat(source.path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
             throw ArchiveFailure.linkTargetMissing
         }
-        return info.st_mode & 0o700
+        return info
     }
 }

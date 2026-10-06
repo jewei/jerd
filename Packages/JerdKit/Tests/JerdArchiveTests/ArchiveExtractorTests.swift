@@ -187,6 +187,21 @@ import Testing
         }
     }
 
+    /// An Automake source tree lists `aclocal.m4` before `configure.ac`. Write times would make
+    /// `configure.ac` look newer, so `make` would run `aclocal`. The archive times keep the order.
+    @Test func extractedFilesAndLinkCopiesKeepTheModificationTimesOfTheArchive() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        var tar = TarBuilder()
+        tar.file("root/aclocal.m4", "generated", modified: 1_700_000_200)
+        tar.file("root/configure.ac", "source", modified: 1_700_000_100)
+        tar.hardlink("root/configure.in", to: "root/configure.ac")
+        _ = try extract(tar, in: folder)
+        #expect(modificationTime(folder.path("out/aclocal.m4")) == 1_700_000_200)
+        #expect(modificationTime(folder.path("out/configure.ac")) == 1_700_000_100)
+        #expect(modificationTime(folder.path("out/configure.in")) == 1_700_000_100)
+    }
+
     @Test func cancelledExtractionStopsBeforeWriting() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
@@ -202,4 +217,11 @@ import Testing
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(FileProbe.presence(at: output.appendingPathComponent("a")) == .absent)
     }
+}
+
+/// The whole-second modification time of a file, as `make` compares it.
+private func modificationTime(_ url: URL) -> Int {
+    var info = stat()
+    lstat(url.path, &info)
+    return info.st_mtimespec.tv_sec
 }
