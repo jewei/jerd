@@ -3,18 +3,6 @@ import JerdRuntimes
 
 /// The words and symbols of the Runtimes page, as pure functions so tests can pin them.
 enum RuntimeCopy {
-    static func systemImage(_ kind: RuntimeKind) -> String {
-        switch kind {
-        case .php: "chevron.left.forwardslash.chevron.right"
-        case .caddy: "globe"
-        case .composer, .laravel: "shippingbox"
-        case .mysql, .postgresql, .redis: "cylinder.split.1x2"
-        case .mailpit: "envelope"
-        case .rustfs: "externaldrive.badge.icloud"
-        case .cloudflared: "network"
-        }
-    }
-
     /// The fixed note under a section, after the check date.
     static func note(_ kind: RuntimeKind) -> String? {
         switch kind {
@@ -52,6 +40,17 @@ enum RuntimeCopy {
     }
 
     static let cancelledMessage = "Installation cancelled."
+
+    /// The progress text before the installer reports its first step.
+    static func startingMessage(_ kind: RuntimeKind) -> String {
+        "Preparing to install \(kind.title)…"
+    }
+
+    /// The section footer: when the kind was checked, then its note.
+    static func footer(_ kind: RuntimeKind, checkedAt: String?) -> String {
+        let checked = checkedAt.map { "Checked \($0)." } ?? "Updates have not been checked."
+        return [checked, note(kind)].compactMap { $0 }.joined(separator: " ")
+    }
 
     /// How the release is verified, for the Release row.
     static func verificationDetail(_ release: RuntimeRelease) -> String {
