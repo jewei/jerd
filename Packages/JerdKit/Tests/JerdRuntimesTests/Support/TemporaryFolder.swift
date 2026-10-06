@@ -63,3 +63,18 @@ func cancelWhileRunning<T: Sendable>(
     task.cancel()
     return await task.result
 }
+
+/// Starts `operation`, waits until `isRunning` proves that it reached its long work, cancels it, and
+/// returns its result. A fixed delay is not enough under parallel load: the cancellation can then
+/// arrive before the work starts.
+func cancel<T: Sendable>(
+    when isRunning: @escaping @Sendable () -> Bool, _ operation: @escaping @Sendable () async throws -> T
+) async -> Result<T, any Error> {
+    let task = Task { try await operation() }
+    let deadline = ContinuousClock.now + .seconds(60)
+    while !isRunning(), ContinuousClock.now < deadline {
+        try? await Task.sleep(for: .milliseconds(1))
+    }
+    task.cancel()
+    return await task.result
+}

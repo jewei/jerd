@@ -70,9 +70,11 @@ import Testing
         let bundle = try mailBundle(folder)
         try makeSparseFile(bundle.appendingPathComponent("mail/mailpit-1.31.3-arm64/mailpit"))
         let bootstrap = bootstrap(bundle, folder)
-        let result = await cancelWhileRunning { try await bootstrap.installMail() }
-        #expect(throws: CancellationError.self) { try result.get() }
         let mailRuntimes = folder.path("data/mail-runtimes")
+        // The installer creates the group folder right before it hashes the long file.
+        let installRuns: @Sendable () -> Bool = { FileProbe.presence(at: mailRuntimes) == .present }
+        let result = await cancel(when: installRuns) { try await bootstrap.installMail() }
+        #expect(throws: CancellationError.self) { try result.get() }
         #expect(try FileManager.default.contentsOfDirectory(atPath: mailRuntimes.path).isEmpty)
     }
 
