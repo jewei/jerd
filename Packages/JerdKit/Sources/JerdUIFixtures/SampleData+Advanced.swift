@@ -35,11 +35,14 @@ extension SampleData {
             DevelopmentRuntime(
                 id: php84ID, cliPath: "\(user)/Library/Application Support/Jerd/runtime-updates/php-8.4.12/bin/php",
                 fpmPath: "\(user)/Library/Application Support/Jerd/runtime-updates/php-8.4.12/sbin/php-fpm",
-                version: "8.4.12", architectures: [.arm64], cliExtensions: ["Core", "curl", "intl", "mbstring", "pdo_mysql"],
+                version: "8.4.12", architectures: [.arm64],
+                cliExtensions: ["Core", "curl", "intl", "mbstring", "pdo_mysql"],
                 fpmExtensions: ["Core", "curl", "intl", "mbstring", "opcache", "pdo_mysql"], inspectedAt: now),
             DevelopmentRuntime(
-                id: php83ID, cliPath: "/opt/homebrew/opt/php@8.3/bin/php", fpmPath: "/opt/homebrew/opt/php@8.3/sbin/php-fpm",
-                version: "8.3.24", architectures: [.arm64], cliExtensions: ["Core", "curl"], fpmExtensions: ["Core", "curl"],
+                id: php83ID, cliPath: "/opt/homebrew/opt/php@8.3/bin/php",
+                fpmPath: "/opt/homebrew/opt/php@8.3/sbin/php-fpm",
+                version: "8.3.24", architectures: [.arm64], cliExtensions: ["Core", "curl"],
+                fpmExtensions: ["Core", "curl"],
                 inspectedAt: now),
         ],
         defaultPHPID: php84ID, caddyVersion: "2.10.2",

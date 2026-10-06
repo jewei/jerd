@@ -14,7 +14,9 @@ enum MenuBarMenu {
         items += appItems(for: state)
         items.append(.divider(id: "divider.quit"))
         items.append(
-            .action(FeatureAction(id: "menu.quit", title: "Quit Jerd", perform: quit), shortcut: CommandShortcut("q", modifiers: .command)))
+            .action(
+                FeatureAction(id: "menu.quit", title: "Quit Jerd", perform: quit),
+                shortcut: CommandShortcut("q", modifiers: .command)))
         return items
     }
 

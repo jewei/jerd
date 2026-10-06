@@ -39,12 +39,15 @@ public enum SampleData {
         RuntimeRelease(
             kind: kind, version: version,
             artifact: .archive(url("https://example.com/\(kind.rawValue)-\(version).tar.gz"), size: .exact(48_000_000)),
-            archiveSHA256: digest, signatureURL: signed ? url("https://example.com/\(kind.rawValue)-\(version).asc") : nil,
+            archiveSHA256: digest,
+            signatureURL: signed ? url("https://example.com/\(kind.rawValue)-\(version).asc") : nil,
             releasePage: url("https://example.com/\(kind.rawValue)/releases/\(version)"))
     }
 
     /// A check result, checked at `now`.
-    public static func check(_ kind: RuntimeKind, _ releases: [RuntimeRelease], error: String? = nil)
+    public static func check(
+        _ kind: RuntimeKind, _ releases: [RuntimeRelease], error: String? = nil
+    )
         -> RuntimeUpdateCheck
     {
         RuntimeUpdateCheck(kind: kind, releases: releases, checkedAt: now, error: error)

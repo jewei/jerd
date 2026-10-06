@@ -24,7 +24,8 @@ struct ProcessRecoverySection: View {
                     }
                     .disabled(!finding.canRecover || !model.isIdle)
                     .accessibilityLabel(
-                        finding.state == .stale ? "Clear stale record for \(finding.title)" : "Recover \(finding.title)")
+                        finding.state == .stale ? "Clear stale record for \(finding.title)" : "Recover \(finding.title)"
+                    )
                     .accessibilityIdentifier(AccessibilityIdentifier.make("advanced", "recover", finding.id))
                 }
             }

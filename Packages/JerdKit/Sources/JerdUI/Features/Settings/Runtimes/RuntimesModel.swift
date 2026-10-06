@@ -61,13 +61,18 @@ public final class RuntimesModel {
         guard canChangeRuntimes, inventory.defaultPHPID != php.id else { return nil }
         operation = .working("Changing the default PHP…")
         return Task {
+            var failure: String?
             do {
                 try await port.setDefaultPHP(php.id)
-                operation = .idle
             } catch {
-                operation = .failed(message: ErrorText.message(for: error))
+                failure = ErrorText.message(for: error)
             }
             await load()
+            if let failure {
+                operation = .failed(message: failure)
+            } else if operation.isWorking {
+                operation = .idle
+            }
         }
     }
 

@@ -28,11 +28,11 @@ public struct AppInfo: Equatable, Sendable {
     /// The architecture that this build runs as.
     public static var currentArchitecture: String {
         #if arch(arm64)
-            "Apple Silicon (arm64)"
+        "Apple Silicon (arm64)"
         #elseif arch(x86_64)
-            "Intel (x86_64)"
+        "Intel (x86_64)"
         #else
-            "Unknown"
+        "Unknown"
         #endif
     }
 }

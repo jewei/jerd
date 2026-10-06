@@ -10,7 +10,9 @@ extension View {
             .allowsHitTesting(isVisible)
             .disabled(!isVisible)
             .accessibilityHidden(!isVisible)
-            .environment(\.messageAnnouncer, isVisible ? .voiceOver : .silent)
+            .transformEnvironment(\.messageAnnouncer) { announcer in
+                if !isVisible { announcer = .silent }
+            }
             .zIndex(isVisible ? 1 : 0)
     }
 }

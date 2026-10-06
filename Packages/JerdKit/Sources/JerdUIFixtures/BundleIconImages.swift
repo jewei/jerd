@@ -11,7 +11,8 @@ public final class BundleIconImages: AppIconImageProviding {
 
     public func image(for choice: AppIconChoice) -> NSImage? {
         if let cached = cache[choice] { return cached }
-        guard let url = Bundle.module.url(forResource: choice.imageName, withExtension: "png", subdirectory: "AppIcons"),
+        guard
+            let url = Bundle.module.url(forResource: choice.imageName, withExtension: "png", subdirectory: "AppIcons"),
             let image = NSImage(contentsOf: url)
         else { return nil }
         cache[choice] = image

@@ -28,4 +28,3 @@ struct EmptySectionRow: View {
         .accessibilityElement(children: .combine)
     }
 }
-

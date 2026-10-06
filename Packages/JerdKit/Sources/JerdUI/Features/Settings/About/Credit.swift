@@ -14,7 +14,8 @@ struct Credit: Identifiable, Equatable {
         Credit(name: "Lerd PHP builds", role: "Native PHP packages", address: "https://github.com/lerd-env/php"),
         Credit(name: "Caddy", role: "Local web server and TLS", address: "https://caddyserver.com/"),
         Credit(
-            name: "cloudflared", role: "Cloudflare Tunnel connector", address: "https://github.com/cloudflare/cloudflared"),
+            name: "cloudflared", role: "Cloudflare Tunnel connector",
+            address: "https://github.com/cloudflare/cloudflared"),
         Credit(name: "Composer", role: "PHP dependency manager", address: "https://getcomposer.org/"),
         Credit(name: "Laravel", role: "Application installer", address: "https://laravel.com/"),
         Credit(name: "MySQL", role: "Database server", address: "https://www.mysql.com/"),

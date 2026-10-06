@@ -66,12 +66,14 @@ public enum SampleFeatures {
                 status: DisplayStatus("2 of 3 running", tone: .ready),
                 summary: "Studio development, Studio cache, Reporting")
         case .busy:
-            summary = FeatureSummary(status: DisplayStatus("Failed", tone: .failed), summary: "Studio development, Studio cache")
+            summary = FeatureSummary(
+                status: DisplayStatus("Failed", tone: .failed), summary: "Studio development, Studio cache")
         case .long:
             summary = FeatureSummary(
                 status: DisplayStatus("9 of 14 running", tone: .ready),
                 summary:
-                    "Studio development, Studio cache, Reporting warehouse with a long name, Billing replica, Search index, Analytics")
+                    "Studio development, Studio cache, Reporting warehouse with a long name, Billing replica, Search index, Analytics"
+            )
         }
         return InMemoryFeature(section: .databases, summary: summary, shutdownPhase: .databases)
     }

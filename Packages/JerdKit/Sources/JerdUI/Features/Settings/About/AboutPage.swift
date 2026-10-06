@@ -74,6 +74,7 @@ struct AboutPage: View {
 
     private func formatted(_ date: Date) -> String {
         date.formatted(
-            Date.FormatStyle(date: .abbreviated, time: .shortened, locale: locale, calendar: calendar, timeZone: timeZone))
+            Date.FormatStyle(
+                date: .abbreviated, time: .shortened, locale: locale, calendar: calendar, timeZone: timeZone))
     }
 }
