@@ -97,11 +97,32 @@ import Testing
         let harness = try await StorageHarness()
         let manager = try await harness.loadedManager()
         harness.server.update { $0.failures["PUT /assets?policy="] = 500 }
-        await #expect(throws: (any Error).self) { try await manager.addBucket(name: "assets", publicRead: true) }
+        await #expect(throws: StorageMessages.httpStatus(500)) {
+            try await manager.addBucket(name: "assets", publicRead: true)
+        }
         try await manager.addBucket(name: "assets", publicRead: false)
         #expect(
             await manager.snapshot().settings.bucket("assets") == StorageBucket(name: "assets", setupComplete: true))
         #expect(harness.server.current.policies["assets"] == nil)
+        try await manager.stop()
+    }
+
+    /// "New buckets are private": a public policy that was applied before a failed setup is
+    /// removed when the unfinished bucket is saved as private.
+    @Test func savingAnUnfinishedPublicBucketAsPrivateRemovesItsAppliedPolicy() async throws {
+        let harness = try await StorageHarness()
+        let manager = try await harness.loadedManager()
+        harness.server.update { $0.failures["GET /assets?policy="] = 500 }
+        await #expect(throws: StorageMessages.httpStatus(500)) {
+            try await manager.addBucket(name: "assets", publicRead: true)
+        }
+        #expect(harness.server.current.policies["assets"] == BucketPolicy.publicReadDocument(bucket: "assets"))
+        #expect(await manager.snapshot().settings.bucket("assets") == StorageBucket(name: "assets", publicRead: true))
+        try await manager.addBucket(name: "assets", publicRead: false)
+        #expect(harness.server.current.policies["assets"] == nil)
+        #expect(harness.server.keys.contains("DELETE /assets?policy="))
+        #expect(
+            await manager.snapshot().settings.bucket("assets") == StorageBucket(name: "assets", setupComplete: true))
         try await manager.stop()
     }
 
