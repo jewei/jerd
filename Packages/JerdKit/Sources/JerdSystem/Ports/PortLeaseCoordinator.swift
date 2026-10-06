@@ -16,6 +16,7 @@ public struct PortLeaseCoordinator<Resource: Sendable>: Sendable {
         case recover = "recovering"
     }
 
+    /// What holds the standard ports now: nothing, a setup change, or a listener acquire.
     public enum Activity: Equatable, Sendable {
         case idle
         case mutating(Mutation)
