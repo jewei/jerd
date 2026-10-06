@@ -68,6 +68,17 @@ public enum HostsSection {
         }
     }
 
+    /// True when the file is valid and its section maps exactly `hostnames` (no section for an empty
+    /// list). Unlike `maps`, a line outside the section that maps one of them does not matter.
+    static func tracks(_ hostnames: [Hostname], in data: Data) -> Bool {
+        do {
+            try requireTracked(try HostsSectionLayout.parse(data), expected: hostnames)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     private static func requireTracked(_ layout: HostsSectionLayout, expected: [Hostname]) throws {
         if layout.markersReversed { throw untracked }
         guard let section = layout.section else {

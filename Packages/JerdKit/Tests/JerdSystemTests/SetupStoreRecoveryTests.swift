@@ -91,6 +91,28 @@ import Testing
         #expect(harness.record(.pending) == nil && harness.record(.recoveryCopy) != nil)
     }
 
+    /// Fixed review L1: an external mapping of a recorded hostname does not block a recovery removal,
+    /// because the removal adds no hostname. A restore that would add a mapped hostname is refused.
+    @Test func anExternalMappingBlocksOnlyARestoreThatAddsItsHostname() async throws {
+        let plain = StoreHarness.originalHosts
+        let previous = try record(["old.test"])
+        let intended = try record(["demo.test"])
+        let original = try HostsSection.replacing(in: plain, with: previous.hostnames.values, expecting: [])
+        let outside = Data("10.0.0.1 demo.test\n10.0.0.2 old.test\n".utf8)
+        let written = try HostsSection.replacing(in: plain, with: intended.hostnames.values, expecting: [])
+        let harness = try StoreHarness(hosts: written + outside)
+        defer { harness.remove() }
+        try writeJournal(harness, .configure, previous: previous, intended: intended, hostsBefore: original, phase: "h")
+        try harness.directory.write(HelperRecordCodec.encode(previous), to: .registration)
+        let store = harness.store()
+        let report = try #require(try await store.status(ownerUID: owner).recovery)
+        #expect(!report.canRestore && report.canRemove)
+        #expect(report.details.contains { $0.hasPrefix("The current Jerd host section matches a recorded state.") })
+        try await store.recover(.init(recordID: report.id, action: .removeSetup), ownerUID: owner, trust: harness.trust)
+        #expect(harness.hosts == plain + outside)
+        #expect(try await store.status(ownerUID: owner) == .empty)
+    }
+
     @Test func aLegacyRecordCanOnlyBeRemovedAndOnlyWhenTheSectionMatches() async throws {
         let changed = Data("# BEGIN JERD\n127.0.0.1 outside.test\n# END JERD\n".utf8)
         let harness = try StoreHarness(hosts: changed)
