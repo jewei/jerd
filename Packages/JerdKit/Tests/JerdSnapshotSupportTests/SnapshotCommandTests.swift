@@ -74,9 +74,9 @@ struct SnapshotCommandTests {
     @Test("A check fails with exit status 1 when an entry does not render")
     func checkFails() async throws {
         var catalog = SnapshotCatalog()
-        catalog.add("never", sizes: [tiny], appearances: [.light], chrome: .content, isReady: { false }) {
-            Color.green
-        }
+        catalog.add(
+            "never", sizes: [tiny], appearances: [.light], chrome: .content, isReady: { false },
+            view: { Color.green })
         let host = RecordingSnapshotHost()
         let status = await SnapshotCommand(catalog: catalog, host: host).run(arguments: ["--check"])
         #expect(status == 1)
