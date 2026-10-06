@@ -1,0 +1,22 @@
+{
+  "apiPort" : 9002,
+  "buckets" : [
+    {
+      "name" : "app-uploads",
+      "publicRead" : false,
+      "setupComplete" : true
+    },
+    {
+      "name" : "public.assets",
+      "publicRead" : true,
+      "setupComplete" : false
+    }
+  ],
+  "consolePort" : 9003,
+  "runtime" : {
+    "id" : "rustfs-1.0.0-arm64",
+    "path" : "/Users/me/Library/Application Support/Jerd/storage-runtimes/rustfs-1.0.0-arm64",
+    "version" : "1.0.0"
+  },
+  "schemaVersion" : 1
+}
