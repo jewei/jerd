@@ -4,7 +4,7 @@ import JerdProcess
 import JerdTunnels
 import Testing
 
-@Suite struct TunnelSupervisorMonitorTests {
+@Suite(.timeLimit(.minutes(1))) struct TunnelSupervisorMonitorTests {
     @Test func theLaunchPassesTheSavedTokenAndRuntime() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
@@ -25,11 +25,11 @@ import Testing
         #expect(await fixture.state() == .connecting)
         await fixture.connector.setReadiness(.ready)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.reach(.connected))
+        await fixture.reach(.connected)
         await fixture.connector.setReadiness(.waiting)
-        #expect(await fixture.clock.waitForSleeper(.seconds(5)))
+        await fixture.clock.waitForSleeper(.seconds(5))
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.reach(.reconnecting))
+        await fixture.reach(.reconnecting)
         try await fixture.supervisor.stopAll()
         #expect(await fixture.state() == .stopped)
     }
@@ -40,13 +40,13 @@ import Testing
         try await fixture.startAndSettle()
         await fixture.connector.exit(fixture.id)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.clock.waitForSleeper(.seconds(2)))
+        await fixture.clock.waitForSleeper(.seconds(2))
         #expect(await fixture.connector.disconnects.count == 1)
         #expect(await fixture.processID() == nil)
         #expect(await fixture.state() == .connecting)
         fixture.clock.advance(by: .seconds(2))
-        #expect(await eventually { await fixture.connector.launches.count == 2 })
-        #expect(await fixture.clock.waitForSleeper(.seconds(5)))
+        await fixture.connector.waitForLaunches(2)
+        await fixture.clock.waitForSleeper(.seconds(5))
         #expect(await fixture.processID() == 30_001)
         try await fixture.supervisor.stopAll()
     }
@@ -57,7 +57,7 @@ import Testing
         try await fixture.startAndSettle()
         await fixture.connector.exit(fixture.id)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.clock.waitForSleeper(.seconds(2)))
+        await fixture.clock.waitForSleeper(.seconds(2))
         try await fixture.supervisor.stop(id: fixture.id)
         #expect(fixture.clock.pendingDelays.isEmpty)
         fixture.clock.advance(by: .seconds(60))
@@ -71,7 +71,7 @@ import Testing
         try await fixture.startAndSettle()
         await fixture.connector.exit(fixture.id)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.reach(.failed(TunnelMessage.processExited)))
+        await fixture.reach(.failed(TunnelMessage.processExited))
         #expect(fixture.clock.pendingDelays.isEmpty)
         #expect(await fixture.connector.launches.count == 1)
         #expect(await fixture.processID() == nil)
@@ -82,8 +82,8 @@ import Testing
         defer { fixture.folder.remove() }
         await fixture.connector.setOutputAtLaunch("2026-09-03T10:15:42Z ERR Provided Tunnel token is not valid.\n")
         try await fixture.supervisor.start(id: fixture.id)
-        #expect(await fixture.reach(.failed(TunnelMessage.tokenRejected)))
-        #expect(await eventually { await fixture.processID() == nil })
+        await fixture.reach(.failed(TunnelMessage.tokenRejected))
+        await fixture.until { $0.processID == nil }
         #expect(await fixture.connector.disconnects.count == 1)
         #expect(fixture.clock.pendingDelays.isEmpty)
         #expect(await fixture.connector.launches.count == 1)
@@ -109,9 +109,9 @@ import Testing
         await fixture.secrets.set(nil, id: fixture.id)
         await fixture.connector.exit(fixture.id)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.clock.waitForSleeper(.seconds(2)))
+        await fixture.clock.waitForSleeper(.seconds(2))
         fixture.clock.advance(by: .seconds(2))
-        #expect(await fixture.reach(.failed(TunnelMessage.tokenMissing)))
+        await fixture.reach(.failed(TunnelMessage.tokenMissing))
         #expect(fixture.clock.pendingDelays.isEmpty)
         #expect(await fixture.connector.launches.count == 1)
     }
@@ -120,12 +120,12 @@ import Testing
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
         try await fixture.startAndSettle()
-        await fixture.connector.setConnectFailure(.timedOut("Command timed out."))
+        await fixture.connector.setConnectFailure(JerdError.timedOut("Command timed out."))
         await fixture.connector.exit(fixture.id)
         fixture.clock.advance(by: .seconds(5))
-        #expect(await fixture.clock.waitForSleeper(.seconds(2)))
+        await fixture.clock.waitForSleeper(.seconds(2))
         fixture.clock.advance(by: .seconds(2))
-        #expect(await fixture.clock.waitForSleeper(.seconds(5)))
+        await fixture.clock.waitForSleeper(.seconds(5))
         #expect(await fixture.state() == .connecting)
         #expect(await fixture.connector.launches.count == 2)
         try await fixture.supervisor.stop(id: fixture.id)
@@ -134,7 +134,7 @@ import Testing
     @Test func aFirstLaunchFailureIsShownThrownAndRedacted() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
-        await fixture.connector.setConnectFailure(.processFailed("cloudflared said \(TokenSamples.secret)"))
+        await fixture.connector.setConnectFailure(JerdError.processFailed("cloudflared said \(TokenSamples.secret)"))
         let message = "cloudflared said \(LogRedactor.marker)"
         await #expect(throws: JerdError.processFailed(message)) { try await fixture.supervisor.start(id: fixture.id) }
         #expect(await fixture.state() == .failed(message))
@@ -149,9 +149,9 @@ import Testing
         defer { fixture.folder.remove() }
         await fixture.connector.setReadiness(.unexpectedListener)
         try await fixture.supervisor.start(id: fixture.id)
-        #expect(await fixture.reach(.failed(TunnelMessage.unexpectedListener)))
-        #expect(await eventually { await fixture.connector.disconnects.count == 1 })
-        #expect(await eventually { await fixture.processID() == nil })
+        await fixture.reach(.failed(TunnelMessage.unexpectedListener))
+        await fixture.connector.waitForDisconnects(1)
+        await fixture.until { $0.processID == nil }
         #expect(await fixture.connector.launches.count == 1)
     }
 
@@ -166,7 +166,8 @@ import Testing
         try await fixture.supervisor.save(
             third, token: TokenSamples.token(account: "a", tunnel: UUID().uuidString, secret: "s"))
         await fixture.secrets.set(nil, id: fixture.id)
-        await fixture.connector.setConnectFailure(.unavailable("Local port 20242 is occupied. No process was stopped."))
+        await fixture.connector.setConnectFailure(
+            JerdError.unavailable("Local port 20242 is occupied. No process was stopped."))
         let failures = try await fixture.supervisor.connectStartupTunnels()
         #expect(
             failures == [

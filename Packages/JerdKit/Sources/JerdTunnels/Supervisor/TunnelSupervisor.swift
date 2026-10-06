@@ -19,16 +19,24 @@ public actor TunnelSupervisor {
     let clock: any TunnelClocking
     let root: URL
 
-    var configuration = TunnelConfiguration()
+    var configuration = TunnelConfiguration() {
+        didSet { publishSnapshots() }
+    }
     var loaded = false
     var editing = false
     var shuttingDown = false
-    var lifecycles: [UUID: TunnelLifecycle] = [:]
+    var lifecycles: [UUID: TunnelLifecycle] = [:] {
+        didSet { publishSnapshots() }
+    }
     /// Connectors that Jerd owns, also after a failed stop.
-    var handles: [UUID: TunnelConnectorHandle] = [:]
-    var work: [UUID: TunnelWork] = [:]
+    var handles: [UUID: TunnelConnectorHandle] = [:] {
+        didSet { publishSnapshots() }
+    }
+    var slots = TunnelWorkSlots()
     var stops: [UUID: TunnelStopWork] = [:]
     var lastGeneration: UInt64 = 0
+    /// The streams of `snapshotUpdates()`, by subscription.
+    var observers: [UUID: AsyncStream<[TunnelSnapshot]>.Continuation] = [:]
 
     public init(
         layout: TunnelsLayout, secrets: any TunnelSecretStoring = TunnelSecretStore(),
@@ -101,12 +109,12 @@ public actor TunnelSupervisor {
     // MARK: Shared guards
 
     var hasAnyConnection: Bool {
-        !handles.isEmpty || !work.isEmpty || !stops.isEmpty || lifecycles.values.contains { $0.generation != nil }
+        !handles.isEmpty || !slots.isEmpty || !stops.isEmpty || lifecycles.values.contains { $0.generation != nil }
     }
 
     /// True while a connector runs, a Connect or Stop is in progress, or a connection is wanted.
     func isActive(_ id: UUID) -> Bool {
-        handles[id] != nil || work[id] != nil || stops[id] != nil || lifecycles[id]?.generation != nil
+        handles[id] != nil || slots.generation(of: id) != nil || stops[id] != nil || lifecycles[id]?.generation != nil
     }
 
     func requireLoaded() throws {

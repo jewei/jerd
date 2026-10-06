@@ -19,14 +19,16 @@ public struct TunnelConfiguration: Codable, Equatable, Sendable {
         self.tunnels = tunnels
     }
 
-    /// Requires schema 1, at most 100 registrations with unique IDs and metrics ports, valid
-    /// registrations, and a valid runtime record.
+    /// Requires schema 1, at most 100 registrations with unique IDs and metrics ports, registrations
+    /// that meet the stored rule (`TunnelRegistration.validateStored()`), and a valid runtime record.
+    /// Load and every save use it. Save also checks the edited registration with the stricter
+    /// `TunnelRegistration.validate()`.
     public func validate() throws {
         guard schemaVersion == Self.currentSchemaVersion, tunnels.count <= Self.maximumTunnels,
             Set(tunnels.map(\.id)).count == tunnels.count,
             Set(tunnels.map(\.metricsPort)).count == tunnels.count
         else { throw JerdError.invalid(TunnelMessage.invalidConfiguration) }
-        for tunnel in tunnels { try tunnel.validate() }
+        for tunnel in tunnels { try tunnel.validateStored() }
         try runtime?.validate()
     }
 

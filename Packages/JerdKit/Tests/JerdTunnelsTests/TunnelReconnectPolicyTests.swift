@@ -8,7 +8,9 @@ import Testing
     private let first = TunnelGeneration(1)
 
     /// Reduces `events` in order from `lifecycle`, one second apart, and returns every transition.
-    private func run(_ events: [TunnelEvent], from lifecycle: TunnelLifecycle = .idle) -> [TunnelTransition] {
+    private func run(
+        _ events: [TunnelEvent], from lifecycle: TunnelLifecycle = .idle, policy: TunnelReconnectPolicy = .standard
+    ) -> [TunnelTransition] {
         var current = lifecycle
         var transitions: [TunnelTransition] = []
         for (index, event) in events.enumerated() {
@@ -28,7 +30,7 @@ import Testing
     @Test func connectLaunchesAndThenChecksAtOnce() {
         let transitions = run(launchedEvents)
         #expect(transitions[0].lifecycle.state == .starting)
-        #expect(transitions[0].step == .launch)
+        #expect(transitions[0].step == .launch(after: .zero))
         #expect(transitions[1].step == .check(after: .zero))
     }
 
@@ -46,8 +48,9 @@ import Testing
     @Test func exitsRetryWithTheBackoffSequenceAndRepeatTheLastDelay() {
         var events = launchedEvents
         for _ in 0..<7 { events += [progress(.probed(.exited)), progress(.reaped(.stopped)), progress(.launched)] }
-        let delays = run(events).compactMap { transition -> Duration? in
-            if case .relaunch(let delay) = transition.step { return delay }
+        let patient = TunnelReconnectPolicy(failedStartLimit: 100)
+        let delays = run(events, policy: patient).compactMap { transition -> Duration? in
+            if case .launch(let delay) = transition.step, delay > .zero { return delay }
             return nil
         }
         #expect(delays == [2, 5, 15, 30, 60, 60, 60].map { Duration.seconds($0) })
@@ -144,11 +147,76 @@ import Testing
             #expect(last[0].lifecycle.state == .failed(error.message))
             #expect(last[0].step == .idle)
         }
-        for error in [JerdError.timedOut("Slow."), .processFailed(TunnelMessage.exitedEarly)] {
+        let transient: [any Error] = [
+            JerdError.timedOut("Slow."), TunnelRetryableError(.processFailed(TunnelMessage.exitedEarly)),
+        ]
+        for error in transient {
             let last = run([progress(.launchFailed(TunnelFailure(error)))], from: retrying ?? .idle)
-            #expect(last[0].step == .relaunch(after: .seconds(5)))
+            #expect(last[0].step == .launch(after: .seconds(5)))
             #expect(last[0].lifecycle.state == .connecting)
         }
+    }
+
+    /// Fix of review tunnels-r1 L-2: a process failure was always retried, also a permanent one.
+    @Test func processFailuresAreRetriedOnlyWhenTheConnectorMarksThem() {
+        let retrying = run(launchedEvents + [progress(.probed(.exited)), progress(.reaped(.stopped))]).last?.lifecycle
+        let permanent: [JerdError] = [
+            .processFailed("Cannot open process log: /tmp/server.log"),
+            .processFailed("Executable is missing or is not executable: /opt/cloudflared"),
+            .processFailed(TunnelMessage.notStopped), .processFailed(TunnelMessage.exitedEarly),
+        ]
+        for error in permanent {
+            #expect(!TunnelFailure(error).isTransient)
+            let last = run([progress(.launchFailed(TunnelFailure(error)))], from: retrying ?? .idle)
+            #expect(last[0].lifecycle.state == .failed(error.message))
+            #expect(last[0].step == .idle)
+        }
+        let marked = TunnelFailure(TunnelRetryableError(.processFailed(TunnelMessage.exitedEarly)))
+        #expect(marked.isTransient)
+        #expect(marked.error == .processFailed(TunnelMessage.exitedEarly))
+    }
+
+    /// Fix of review tunnels-r1 L-2: a connector that exited at each launch was retried forever.
+    @Test func aConnectorThatExitsSoonAfterEachStartStopsAfterFiveFailedStarts() {
+        let crash: [TunnelEvent] = [progress(.probed(.exited)), progress(.reaped(.stopped))]
+        let events = launchedEvents + crash + Array(repeating: [progress(.launched)] + crash, count: 4).flatMap { $0 }
+        let transitions = run(events)
+        let steps = transitions.compactMap { transition -> Duration? in
+            if case .launch(let delay) = transition.step, delay > .zero { return delay }
+            return nil
+        }
+        #expect(steps == [2, 5, 15, 30].map { Duration.seconds($0) })
+        let last = transitions.last
+        #expect(last?.lifecycle.state == .failed(TunnelMessage.failedStarts(5, lastError: nil)))
+        #expect(last?.lifecycle.generation == nil)
+        #expect(last?.step == .idle)
+    }
+
+    @Test func aLongRunOrAReadyCheckResetsTheFailedStarts() throws {
+        var lifecycle = run(launchedEvents).last?.lifecycle ?? .idle
+        lifecycle.failedStarts = 4
+        let base = try #require(lifecycle.launchedAt)
+        let longRun = policy.reduce(lifecycle, progress(.reaped(.stopped)), now: base.advanced(by: .seconds(16)))
+        #expect(longRun.lifecycle.failedStarts == 0)
+        #expect(longRun.step == .launch(after: .seconds(2)))
+        let quick = policy.reduce(lifecycle, progress(.reaped(.stopped)), now: base.advanced(by: .seconds(15)))
+        #expect(quick.lifecycle.state == .failed(TunnelMessage.failedStarts(5, lastError: nil)))
+        let ready = policy.reduce(lifecycle, progress(.probed(.ready)), now: base)
+        #expect(ready.lifecycle.failedStarts == 0)
+        #expect(ready.lifecycle.launchedAt == nil)
+        let exitAfterReady = policy.reduce(ready.lifecycle, progress(.reaped(.stopped)), now: base)
+        #expect(exitAfterReady.lifecycle.failedStarts == 0)
+    }
+
+    @Test func repeatedTransientLaunchFailuresStopAtTheLimitWithTheLastError() {
+        let slow = progress(.launchFailed(TunnelFailure(JerdError.timedOut("Slow."))))
+        let events = launchedEvents + [progress(.probed(.exited)), progress(.reaped(.stopped))]
+        let transitions = run(events + Array(repeating: slow, count: 4))
+        #expect(transitions[transitions.count - 2].step == .launch(after: .seconds(30)))
+        let last = transitions.last
+        #expect(last?.lifecycle.state == .failed(TunnelMessage.failedStarts(5, lastError: "Slow.")))
+        #expect(last?.step == .idle)
+        #expect(TunnelReconnectPolicy(failedStartLimit: 0).failedStartLimit == 1)
     }
 
     @Test func resultsOfAnOlderGenerationChangeNothing() {

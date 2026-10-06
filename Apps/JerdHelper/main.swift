@@ -1,1 +1,3 @@
-// Placeholder. The helper work package replaces this file.
+import JerdHelperCore
+
+HelperDaemon.run()

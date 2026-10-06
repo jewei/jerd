@@ -4,7 +4,7 @@ import JerdTunnels
 import Testing
 
 /// A loaded `TunnelSupervisor` with a fake connector, fake secrets, a manual clock, a runtime,
-/// and one saved registration.
+/// and one saved registration. Its waits follow `snapshotUpdates()`, so they need no real time.
 struct SupervisorFixture {
     let folder: TemporaryDirectory
     let connector = FakeConnector()
@@ -35,15 +35,29 @@ struct SupervisorFixture {
         await supervisor.snapshots().first { $0.registration.id == (id ?? registration.id) }?.processID
     }
 
-    /// Waits until the tunnel shows `expected`.
-    func reach(_ expected: TunnelState, _ id: UUID? = nil) async -> Bool {
-        await eventually { await state(id) == expected }
+    /// Returns when the snapshot of the tunnel meets `isMet`: at once, or after the change that
+    /// makes it true. The suite's `.timeLimit` stops a test whose condition never comes.
+    func until(_ id: UUID? = nil, _ isMet: @Sendable (TunnelSnapshot) -> Bool) async {
+        let wanted = id ?? registration.id
+        for await snapshots in await supervisor.snapshotUpdates() {
+            if let snapshot = snapshots.first(where: { $0.registration.id == wanted }), isMet(snapshot) { return }
+        }
+    }
+
+    /// Returns when the tunnel shows `expected`.
+    func reach(_ expected: TunnelState, _ id: UUID? = nil) async {
+        await until(id) { $0.state == expected }
+    }
+
+    /// Returns when the tunnel shows `expected` and Jerd owns no connector for it.
+    func settle(_ expected: TunnelState) async {
+        await until { $0.state == expected && $0.processID == nil }
     }
 
     /// Starts, then waits until the monitor sleeps before its next readiness check.
     func startAndSettle() async throws {
         try await supervisor.start(id: id)
-        #expect(await clock.waitForSleeper(.seconds(5)))
+        await clock.waitForSleeper(.seconds(5))
     }
 
     /// Adds a second registration with its own remote tunnel and metrics port.
@@ -51,5 +65,19 @@ struct SupervisorFixture {
         let second = TunnelRegistration(name: "Second", hostname: "two.example.com", metricsPort: 20_242)
         try await supervisor.save(second, token: TokenSamples.other)
         return second
+    }
+
+    /// Proves that a tunnel that failed by itself needs no Stop: a runtime change, an edit with a
+    /// new token, Connect, and Remove all work at once (spec E 3.6.3.5 and 3.6.5.2).
+    func expectNoStopNeeded() async throws {
+        try await supervisor.useRuntime(at: URL(fileURLWithPath: "/runtimes/new/cloudflared"))
+        try await supervisor.save(registration, token: TokenSamples.rotated)
+        await connector.setOutputAtLaunch("")
+        await connector.setConnectFailure(nil)
+        await connector.setReadiness(.waiting)
+        try await supervisor.start(id: id)
+        try await supervisor.stop(id: id)
+        try await supervisor.remove(id: id)
+        #expect(await supervisor.snapshots().isEmpty)
     }
 }

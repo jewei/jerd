@@ -101,7 +101,7 @@ import Testing
         #expect(await fixture.secrets.values[fixture.id] == TokenSamples.valid)
         var invalid = renamed
         invalid.hostname = "10.0.0.1"
-        await #expect(throws: JerdError.invalid(TunnelMessage.invalidHostname)) {
+        await #expect(throws: JerdError.invalid(TunnelMessage.addressHostname)) {
             try await fixture.supervisor.save(invalid)
         }
         let samePort = TunnelRegistration(name: "Port", hostname: "port.example.com")

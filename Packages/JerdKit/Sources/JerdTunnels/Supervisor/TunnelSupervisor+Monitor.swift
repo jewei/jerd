@@ -4,28 +4,32 @@ import JerdProcess
 
 extension TunnelSupervisor {
     /// Runs the steps that the reducer chooses until the generation ends or the task is cancelled.
-    /// Each result goes back through the reducer, so a stale result changes nothing.
+    /// Each result goes back through the reducer, so a stale result changes nothing. When the
+    /// generation ends, the monitor clears its own work slot in the same actor turn as the last
+    /// state change, so Connect, Edit, Remove, and a runtime change work at once without a Stop.
     func drive(_ id: UUID, _ generation: TunnelGeneration, from first: TunnelStep) async {
         var step = first
-        while !Task.isCancelled {
-            let progress: TunnelProgress
-            switch step {
-            case .idle:
-                return
-            case .launch:
-                progress = await launch(id, generation)
-            case .check(let delay):
-                guard await pause(delay) else { return }
-                progress = .probed(await probe(id))
-            case .relaunch(let delay):
-                guard await pause(delay) else { return }
-                progress = await launch(id, generation)
-            case .reap:
-                progress = .reaped(await reap(id))
-            case .disconnect(let reason):
-                progress = .disconnected(reason, stopError: await disconnectOwned(id))
-            }
+        while step != .idle, let progress = await perform(step, id, generation) {
             step = apply(.progress(generation, progress), to: id)
+        }
+        slots.clear(id, generation: generation)
+    }
+
+    /// Runs one step. Nil when the step is `.idle` or its wait was cancelled.
+    func perform(_ step: TunnelStep, _ id: UUID, _ generation: TunnelGeneration) async -> TunnelProgress? {
+        switch step {
+        case .idle:
+            return nil
+        case .launch(let delay):
+            guard await pause(delay) else { return nil }
+            return await launch(id, generation)
+        case .check(let delay):
+            guard await pause(delay) else { return nil }
+            return .probed(await probe(id))
+        case .reap:
+            return .reaped(await reap(id))
+        case .disconnect(let reason):
+            return .disconnected(reason, stopError: await disconnectOwned(id))
         }
     }
 
@@ -112,6 +116,6 @@ extension TunnelSupervisor {
     private static func redacted(_ failure: TunnelFailure, token: TunnelToken?) -> TunnelFailure {
         guard let token else { return failure }
         let message = LogRedactor.redact(failure.message, values: token.redactedValues)
-        return TunnelFailure(JerdError(failure.error.kind, message))
+        return TunnelFailure(JerdError(failure.error.kind, message), isTransient: failure.isTransient)
     }
 }

@@ -14,6 +14,11 @@ package struct TunnelLifecycle: Equatable, Sendable {
     package var retries = 0
     /// When the current run of ready checks began. Nil after any check that was not ready.
     package var connectedSince: ContinuousClock.Instant?
+    /// When the current connector was launched. Nil after its first ready check.
+    package var launchedAt: ContinuousClock.Instant?
+    /// Starts in a row that failed: a transient launch failure, or an exit soon after the launch
+    /// before any ready check. A ready check sets it to 0.
+    package var failedStarts = 0
 
     package init(state: TunnelState = .stopped, generation: TunnelGeneration? = nil, restartOnFailure: Bool = false) {
         self.state = state
@@ -32,6 +37,7 @@ package struct TunnelLifecycle: Equatable, Sendable {
         state = .failed(message)
         generation = nil
         connectedSince = nil
+        launchedAt = nil
         return .idle
     }
 }
