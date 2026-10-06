@@ -6,7 +6,7 @@ import JerdManifest
 /// The old Sparkle signature comments are removed, because `sign_update` signs the new content. The
 /// item goes after the channel metadata and before older items (newest first), so the document reads
 /// like a normal RSS feed. The notes are plain text with `sparkle:format`, so
-/// Sparkle shows the Markdown list as written instead of one HTML paragraph (#5).
+/// Sparkle shows the Markdown list as written instead of one HTML paragraph.
 enum AppcastWriter {
     /// The new item.
     struct Item: Equatable, Sendable {

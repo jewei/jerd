@@ -5,7 +5,7 @@ import Foundation
 /// Each stage is one idempotent step, and `state.json` records each completed stage, so `resume`
 /// continues where a failure stopped. The assets become public before the feed. The feed goes to
 /// `main` through a pull request, never by a direct push, and publication ends
-/// only when the public feed URL serves the signed candidate feed (#8, #10).
+/// only when the public feed URL serves the signed candidate feed.
 struct ReleasePublisher: Sendable {
     /// How a run ended.
     enum Outcome: Equatable, Sendable {
