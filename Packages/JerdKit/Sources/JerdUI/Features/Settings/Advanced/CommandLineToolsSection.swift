@@ -7,7 +7,7 @@ struct CommandLineToolsSection: View {
 
     var body: some View {
         Section {
-            ActionRow("php, composer, and laravel", detail: model.stateDescription) {
+            ActionRow("Shell commands", detail: model.statusDescription) {
                 if model.operation.isWorking {
                     BusyIndicator(model.operation.workingMessage ?? "Installing…")
                 }
@@ -26,7 +26,8 @@ struct CommandLineToolsSection: View {
         } header: {
             Text("Command-Line Tools")
         } footer: {
-            FormFooter("Each command selects the PHP of the registered site that contains the working folder.")
+            FormFooter(
+                "php, composer, and laravel select the PHP of the registered site that contains the working folder.")
         }
         .task { await model.load() }
         .confirmationDialog(

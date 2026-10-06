@@ -67,6 +67,15 @@ extension ManagedInstance {
         releaseLockIfIdle()
     }
 
+    /// Ends the lease after a restore of a service that was stopped. Nothing runs, so a failure
+    /// of a step inside the lease (for example the start of a new runtime) is cleared.
+    func endMaintenanceAfterRestore(_ lease: MaintenanceLease) {
+        guard self.lease == lease.id else { return }
+        self.lease = nil
+        if process == nil { apply(.cleared) }
+        releaseLockIfIdle()
+    }
+
     func requireLease(_ lease: MaintenanceLease) throws {
         guard self.lease == lease.id, lease.lock.isHeld, lock === lease.lock else {
             throw JerdError.unavailable(ServiceMessages.staleLease)

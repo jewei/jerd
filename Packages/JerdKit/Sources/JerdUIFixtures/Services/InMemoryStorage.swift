@@ -16,6 +16,8 @@ public actor InMemoryStorage: StoragePort {
     /// When set, Save and Retry throw this message and keep the bucket unfinished.
     public var bucketFailure: String?
     public var failure: String?
+    /// When set, Add Bucket and the port change wait here before they change anything.
+    public var gate: FixtureGate?
     public private(set) var calls: [String] = []
 
     public init(
@@ -70,6 +72,7 @@ public actor InMemoryStorage: StoragePort {
     }
 
     public func addBucket(name: String, publicRead: Bool) async throws {
+        await gate?.pass()
         calls.append("add \(name) \(publicRead ? "public" : "private")")
         if settings.bucket(name) == nil {
             settings.buckets.append(StorageBucket(name: name, publicRead: publicRead))
@@ -98,6 +101,7 @@ public actor InMemoryStorage: StoragePort {
     }
 
     public func edit(ports: StoragePorts) async throws {
+        await gate?.pass()
         calls.append("edit \(ports.api) \(ports.console)")
         if let failure { throw JerdError.unavailable(failure) }
         settings.ports = ports

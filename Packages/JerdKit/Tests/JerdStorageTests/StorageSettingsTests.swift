@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdStorage
@@ -32,7 +33,9 @@ import Testing
         let object = try jsonObject(try golden("storage-settings.json")).mutableCopy() as! NSMutableDictionary
         object.removeObject(forKey: key)
         let data = try JSONSerialization.data(withJSONObject: object)
-        #expect(throws: (any Error).self) { try JSONDecoder().decode(StorageSettings.self, from: data) }
+        #expect { try JSONDecoder().decode(StorageSettings.self, from: data) } throws: {
+            ExpectedErrors.isMissingKey($0, key)
+        }
     }
 
     @Test(arguments: ["name", "publicRead", "setupComplete"])
@@ -43,7 +46,9 @@ import Testing
         #expect(encoded["id"] == nil)
         encoded.removeObject(forKey: key)
         let data = try JSONSerialization.data(withJSONObject: encoded)
-        #expect(throws: (any Error).self) { try JSONDecoder().decode(StorageBucket.self, from: data) }
+        #expect { try JSONDecoder().decode(StorageBucket.self, from: data) } throws: {
+            ExpectedErrors.isMissingKey($0, key)
+        }
     }
 
     @Test(arguments: [

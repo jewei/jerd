@@ -11,6 +11,9 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case databaseStopped = "database-stopped"
     case databaseFailed = "database-failed"
     case databaseStuck = "database-stuck"
+    case databaseStarting = "database-starting"
+    case databaseRuntimeMissing = "database-runtime-missing"
+    case databasesLoadFailed = "databases-load-failed"
     case databasesLong = "databases-long"
     case databaseEditor = "database-editor"
     case databaseEditorInvalid = "database-editor-invalid"
@@ -19,6 +22,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case storage
     case storageEmpty = "storage-empty"
     case storageNoRuntime = "storage-no-runtime"
+    case storageStuck = "storage-stuck"
+    case storageFailed = "storage-failed"
     case bucket
     case bucketIncomplete = "bucket-incomplete"
     case addBucket = "add-bucket"
@@ -60,10 +65,12 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         case .databases, .databasesLong, .databaseEditor, .databaseEditorInvalid, .retainedDatabases,
             .restoreDatabase:
             .item(.database(SampleServices.studioID))
-        case .databaseStopped, .databaseFailed: .item(.database(SampleServices.reportingID))
+        case .databaseStopped, .databaseFailed, .databaseStarting, .databaseRuntimeMissing:
+            .item(.database(SampleServices.reportingID))
         case .databaseStuck: .item(.database(SampleServices.cacheID))
-        case .databasesEmpty, .databasesNoRuntimes: .section(.databases)
-        case .storage, .storageEmpty, .storageNoRuntime, .addBucket, .addBucketInvalid, .storagePorts:
+        case .databasesEmpty, .databasesNoRuntimes, .databasesLoadFailed: .section(.databases)
+        case .storage, .storageEmpty, .storageNoRuntime, .storageStuck, .storageFailed, .addBucket,
+            .addBucketInvalid, .storagePorts:
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))

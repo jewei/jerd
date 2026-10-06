@@ -3,14 +3,8 @@
 ///
 /// A later start requires all three to match, so changed data, changed credentials, or another
 /// runtime is never opened.
-public struct StorageInitializedMarker: Codable, Equatable, Sendable {
-    public let runtime: StorageRuntime
-    public let formatHash: String
-    public let credentialsHash: String
-
-    public init(runtime: StorageRuntime, formatHash: String, credentialsHash: String) {
-        self.runtime = runtime
-        self.formatHash = formatHash
-        self.credentialsHash = credentialsHash
-    }
+struct StorageInitializedMarker: Codable, Equatable, Sendable {
+    let runtime: StorageRuntime
+    let formatHash: String
+    let credentialsHash: String
 }

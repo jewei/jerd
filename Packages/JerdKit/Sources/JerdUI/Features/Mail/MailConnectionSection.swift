@@ -7,12 +7,7 @@ struct MailConnectionSection: View {
 
     var body: some View {
         Section {
-            ValueRow("Host", value: "127.0.0.1", isCode: true)
-            ValueRow("SMTP port", value: String(model.settings.smtpPort), isCode: true, copy: model.copySMTPPort)
-            ValueRow(
-                "Inbox URL", value: model.settings.inboxURL.absoluteString, isCode: true, copy: model.copyInboxURL)
-            ValueRow("Authentication", value: "No username or password")
-            ValueRow("Encryption", value: "None · Local SMTP and HTTP")
+            ForEach(Self.values(model)) { ConnectionValueRow(value: $0) }
         } header: {
             Text("Connection")
         } footer: {
@@ -21,14 +16,26 @@ struct MailConnectionSection: View {
         }
         Section {
             ActionRow(".env settings", detail: "MAIL_HOST and MAIL_PORT for this inbox, without a password.") {
-                Button("Copy Laravel Settings", action: model.copyEnvironment)
-                    .disabled(!model.hasRuntime)
-                    .accessibilityIdentifier("mail.copy-laravel")
+                CopyLaravelSettingsButton(
+                    isEnabled: model.canCopyEnvironment, identifier: "mail.copy-laravel", perform: model.copyEnvironment
+                )
             }
         } header: {
             Text("Laravel")
         } footer: {
             FormFooter("Paste these settings into your application's .env file, then clear any cached configuration.")
         }
+    }
+
+    /// The host, ports, and URL to paste; the authentication and encryption to read.
+    static func values(_ model: MailModel) -> [ConnectionValue] {
+        let host = "127.0.0.1"
+        return [
+            .pasteable("Host", host) { model.copyValue(host, label: "Host") },
+            .pasteable("SMTP port", String(model.settings.smtpPort), copy: model.copySMTPPort),
+            .pasteable("Inbox URL", model.settings.inboxURL.absoluteString, copy: model.copyInboxURL),
+            .description("Authentication", "No username or password"),
+            .description("Encryption", "None · Local SMTP and HTTP"),
+        ]
     }
 }

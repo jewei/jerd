@@ -47,10 +47,10 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         await load()
     }
 
-    /// Waits for the current operation, then stops RustFS. False keeps Jerd open.
+    /// Waits for every running task, then stops RustFS. False keeps Jerd open.
     public func shutdown() async -> Bool {
         isShuttingDown = true
-        await currentTask?.value
+        await running.waitForAll()
         guard loadState.isLoaded, state != .stopped else { return true }
         do {
             try await port.stop()

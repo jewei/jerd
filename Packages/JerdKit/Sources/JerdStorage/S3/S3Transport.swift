@@ -1,18 +1,22 @@
 import Foundation
+import os
 
-/// The live HTTP transport to the local RustFS service.
+/// The live HTTP transport to the local RustFS service, for one launch.
 ///
-/// It uses one ephemeral session for its whole life: no proxies, no cookies, no cache, no
-/// redirects, a 5-second request timeout, an 8-second resource timeout, and bodies of at most
-/// 4 MiB. Credentials stay in signed headers and never appear in URLs.
-public final class S3Transport: S3Sending {
+/// It uses one ephemeral session: no proxies, no cookies, no cache, no redirects, a 5-second
+/// request timeout, an 8-second resource timeout, and bodies of at most 4 MiB. Credentials stay
+/// in signed headers and never appear in URLs. `invalidate()` ends the session when its launch
+/// ends; later sends fail with a message, never with a task of an invalidated session.
+final class S3Transport: S3Sending {
     /// The largest answer body.
-    public static let responseLimit = 4 * 1_048_576
+    static let responseLimit = 4 * 1_048_576
 
     private let session: URLSession
     private let delegate: S3SessionDelegate
+    /// True after `invalidate()`. The lock also orders task creation before the invalidation.
+    private let invalidated = OSAllocatedUnfairLock(initialState: false)
 
-    public init(responseLimit: Int = S3Transport.responseLimit) {
+    init(responseLimit: Int = S3Transport.responseLimit) {
         delegate = S3SessionDelegate(limit: responseLimit)
         session = URLSession(configuration: Self.configuration(), delegate: delegate, delegateQueue: nil)
     }
@@ -22,18 +26,37 @@ public final class S3Transport: S3Sending {
         session.invalidateAndCancel()
     }
 
-    public func send(_ request: URLRequest) async throws -> S3Response {
-        let task = session.dataTask(with: request)
+    func send(_ request: URLRequest) async throws -> S3Response {
+        let session = session
+        let task = try invalidated.withLock { ended -> URLSessionDataTask in
+            guard !ended else { throw StorageMessages.sessionEnded }
+            return session.dataTask(with: request)
+        }
         let delegate = delegate
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                delegate.register(task, continuation: continuation)
-                task.resume()
+        do {
+            return try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { continuation in
+                    delegate.register(task, continuation: continuation)
+                    task.resume()
+                }
+            } onCancel: {
+                task.cancel()
             }
-        } onCancel: {
-            task.cancel()
+        } catch is CancellationError where isInvalidated {
+            throw StorageMessages.sessionEnded
         }
     }
+
+    /// Cancels every request and ends the session. Later sends throw `sessionEnded`.
+    func invalidate() {
+        invalidated.withLock { ended in
+            guard !ended else { return }
+            ended = true
+            session.invalidateAndCancel()
+        }
+    }
+
+    var isInvalidated: Bool { invalidated.withLock { $0 } }
 
     /// The session settings of the transport.
     static func configuration() -> URLSessionConfiguration {

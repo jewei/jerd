@@ -13,7 +13,7 @@ struct DatabasesSidebar: View {
                 ForEach(model.services) { service in
                     SidebarRow(
                         service.name, subtitle: subtitle(for: service),
-                        status: model.state(of: service.id).displayStatus
+                        status: model.displayStatus(of: service.id)
                     )
                     .tag(SidebarSelection.database(service.id))
                     .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "database", service.name))

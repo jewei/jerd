@@ -43,12 +43,16 @@ extension RuntimeUpdateTransaction {
             backedUp
             ? "\(messages.service) update failed. \(messages.restored) \(cause)"
             : "\(messages.service) update failed. Nothing was changed. \(cause)"
-        if lease.wasRunning {
-            do {
-                try await instance.start(in: lease, with: previous)
-            } catch {
-                message += " The previous runtime did not start again: \(FailureDetail.describe(error))"
-            }
+        guard lease.wasRunning else {
+            // The previous runtime is back and nothing runs, so the failed start of the new
+            // runtime is not the state of the service. The returned error names the cause.
+            await instance.endMaintenanceAfterRestore(lease)
+            return .processFailed(message)
+        }
+        do {
+            try await instance.start(in: lease, with: previous)
+        } catch {
+            message += " The previous runtime did not start again: \(FailureDetail.describe(error))"
         }
         await instance.endMaintenance(lease)
         return .processFailed(message)

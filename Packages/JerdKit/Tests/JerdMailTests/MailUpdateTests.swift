@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail
@@ -69,7 +70,11 @@ import Testing
     @Test func aFailedUpdateOfAStoppedInboxLeavesItStopped() async throws {
         let harness = try MailHarness()
         let manager = try await harness.loadedManager()
-        await #expect(throws: (any Error).self) {
+        await #expect(
+            throws: JerdError.processFailed(
+                "Mail update failed. The previous runtime and inbox were restored. "
+                    + "The Mailpit executable does not match the saved version.")
+        ) {
             try await manager.updateRuntime(harness.updatedRuntime(version: "9.9.9"))
         }
         #expect(await manager.snapshot().state == .stopped)
@@ -83,7 +88,13 @@ import Testing
         try await manager.start()
         try await manager.stop()
         try MarkerFile.write(harness.updatedRuntime(version: "2.0.0"), to: harness.mail.runtimeIdentityFile)
-        await #expect(throws: (any Error).self) { try await manager.updateRuntime(harness.updatedRuntime()) }
+        await #expect(
+            throws: JerdError.processFailed(
+                "Mail update failed. Nothing was changed. The inbox belongs to a different Mailpit version. "
+                    + "It was preserved.")
+        ) {
+            try await manager.updateRuntime(harness.updatedRuntime())
+        }
         let made = exists(harness.mail.runtimeBackupsDirectory) ? try backups(harness) : []
         #expect(made.isEmpty)
         #expect(await manager.snapshot().settings.runtime == harness.runtime)
@@ -120,13 +131,23 @@ import Testing
         #expect(isLockFree(harness.mail.lockFile))
     }
 
+    /// Older builds wrote journals with these names in this order, and each name is a path of the layout.
+    @Test func theUpdateCoversTheLayoutItemsInTheOrderOfOlderBuilds() {
+        let layout = DataLayout(root: URL(fileURLWithPath: "/tmp/Jerd")).mail
+        let items = MailService.updateItems(layout)
+        #expect(items == ["settings.json", "settings.previous.json", "inbox"])
+        let paths = [layout.settingsFile, layout.previousSettingsFile, layout.inboxDirectory]
+        #expect(items.map { layout.root.appendingPathComponent($0).path } == paths.map(\.path))
+    }
+
     /// Simulates a crash after the backup: a journal and a backup of `settings.json` only.
     private func writeJournal(_ harness: MailHarness, settings: Data) throws {
         let id = UUID()
         let folder = harness.mail.runtimeBackupsDirectory.appendingPathComponent(id.uuidString)
         try OwnedDirectory.create(folder)
         try AtomicFile.write(settings, to: folder.appendingPathComponent("settings.json"))
-        let journal = RuntimeUpdateJournal(id: id, names: MailManager.updateItems, present: ["settings.json"])
+        let journal = RuntimeUpdateJournal(
+            id: id, names: MailService.updateItems(harness.mail), present: ["settings.json"])
         try MarkerFile.write(journal, to: harness.mail.runtimeUpdateJournal)
     }
 }

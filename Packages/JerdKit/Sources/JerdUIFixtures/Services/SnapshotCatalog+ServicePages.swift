@@ -13,7 +13,8 @@ extension SnapshotCatalog {
             case .window:
                 let sizes = SnapshotSize.windowSizes + (scenario == .advancedCommandLineTools ? [Self.fullPage] : [])
                 add(
-                    scenario.rawValue, sizes: sizes, isReady: { host.isReady },
+                    scenario.rawValue, sizes: sizes, appearances: Self.appearances(for: scenario),
+                    isReady: { host.isReady },
                     view: {
                         JerdWorkspace(state: host.fixture.state)
                             .task { await host.prepare() }
@@ -29,6 +30,12 @@ extension SnapshotCatalog {
                     })
             }
         }
+    }
+
+    /// The feature pages with tinted fills, badges, and banners also render with Increase Contrast.
+    private static func appearances(for scenario: ServiceScenario) -> [SnapshotAppearance] {
+        let contrast: Set<ServiceScenario> = [.databases, .databaseStuck, .bucket, .storageStuck, .mail]
+        return contrast.contains(scenario) ? SnapshotAppearance.allCases : SnapshotAppearance.standard
     }
 
     private static func sheetSize(for scenario: ServiceScenario) -> SnapshotSize {

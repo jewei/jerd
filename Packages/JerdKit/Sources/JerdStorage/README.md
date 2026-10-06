@@ -7,16 +7,17 @@ loopback S3 API, and the user opens its loopback console. It uses JerdServiceKit
 
 | Type | Purpose |
 | --- | --- |
-| `StorageManager` | Load, register a runtime, edit ports, start, stop, buckets, credentials, runtime update. |
+| `StorageManager` | The public API: load, register a runtime, edit ports, start, stop, buckets, credentials, runtime update. |
+| `StorageService` | The RustFS parts of the shared `SingleServiceCoordinator`: settings, definition, ports, update items. |
 | `RustFSDefinition` | The version probe, the data preparation, and the exact RustFS command line. |
 | `StorageData` | Identity, credentials, raw key files, and the hashes in `initialized.json`. |
 | `StorageReadinessProbe` | A signed `ListBuckets`, then the console page; both in process. |
 | `S3Signer` | Pure SigV4. The tests use the published AWS examples. |
-| `S3Transport` (`S3Sending`) | One ephemeral session: no proxy, cookie, cache, or redirect; bodies up to 4 MiB. |
+| `S3Transport` (`S3Sending`) | One ephemeral session per launch: no proxy, cookie, cache, or redirect; bodies up to 4 MiB. |
 | `S3Client`, `S3XMLParsers` | Bucket requests, and the bucket list without external entities. |
 | `BucketPolicy`, `BucketProvisioner`, `BucketIntent` | Access rules and the steps from intent to a verified bucket. |
 | `StorageSettings`, `StorageBucket`, `BucketName`, `BucketStatus` | `settings.json`, name rules, and row status. |
-| `ListedBuckets` | The bucket names of the current launch: the only per-launch state. |
+| `StorageLaunch`, `S3Session` | The S3 session and the bucket names of the current launch: the only per-launch state. |
 
 ## Files
 
@@ -38,6 +39,8 @@ All paths come from `StorageLayout` in JerdFoundation. Folders have mode 0700 an
 - A bucket is saved as an intent first and is complete only after it is verified. An unfinished
   intent can change its public read. A missing complete bucket is reported, never created again.
 - Server bucket names that break the name rules are left out, so they cannot stop a start.
+- Each launch has its own S3 session. `LaunchPlan.didStop` ends it after every kind of stop (Stop,
+  an exit, a reap outside Jerd, a failed start): the session is invalidated and the names are cleared.
 - A runtime update checks the data without a write, clones the data off the actor, and keeps
   its backup until the user deletes it in Advanced.
 

@@ -7,13 +7,13 @@ import JerdProcess
 /// The information request uses an ephemeral loopback session in this process, so a waiting
 /// start spawns no process until the web service answers. The SMTP check then runs `curl` once
 /// per round, because `curl` is a complete SMTP client.
-public struct MailServerProbe: MailServerProbing {
+struct MailServerProbe: MailServerProbing {
     /// The largest information body.
-    public static let informationLimit = 65_536
+    static let informationLimit = 65_536
     /// The limit of one information request.
-    public static let informationTimeout: TimeInterval = 2
+    static let informationTimeout: TimeInterval = 2
     /// The limit of one SMTP check.
-    public static let smtpTimeout: Duration = .seconds(3)
+    static let smtpTimeout: Duration = .seconds(3)
 
     private static let session = URLSession(configuration: loopbackConfiguration())
 
@@ -21,12 +21,12 @@ public struct MailServerProbe: MailServerProbing {
     private let workingDirectory: URL
 
     /// - Parameter workingDirectory: the folder of the `curl` command, normally `mail/`.
-    public init(commands: any CommandRunning, workingDirectory: URL) {
+    init(commands: any CommandRunning, workingDirectory: URL) {
         self.commands = commands
         self.workingDirectory = workingDirectory
     }
 
-    public func information(webPort: UInt16) async throws -> Data {
+    func information(webPort: UInt16) async throws -> Data {
         guard let url = URL(string: "http://127.0.0.1:\(webPort)/api/v1/info") else {
             throw JerdError.invalid("Invalid Mailpit port.")
         }
@@ -45,7 +45,7 @@ public struct MailServerProbe: MailServerProbing {
         return body
     }
 
-    public func smtpReply(smtpPort: UInt16) async throws -> String {
+    func smtpReply(smtpPort: UInt16) async throws -> String {
         let result = try await commands.run(
             Self.smtpRequest(port: smtpPort, in: workingDirectory), timeout: Self.smtpTimeout)
         guard result.succeeded else { throw JerdError.unavailable(result.diagnosticOutput) }

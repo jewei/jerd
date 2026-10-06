@@ -4,7 +4,7 @@ import JerdServiceKit
 import Observation
 
 /// The Mail section: the one Mailpit inbox, its ports, the Laravel settings, and a test email.
-/// One operation runs at a time. A failure of the service itself shows as its state; any other
+/// One change runs at a time: a page operation or a port change. A failure of the service itself shows as its state; any other
 /// failure shows once, as the page banner.
 @MainActor
 @Observable
@@ -25,7 +25,10 @@ public final class MailModel {
     @ObservationIgnored let port: any MailPort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening
-    @ObservationIgnored var currentTask: Task<Void, Never>?
+    @ObservationIgnored let running = RunningTasks()
+    /// The suggestion or save of the ports sheet. Cancel asks it to stop; it keeps mail locked
+    /// until it ends.
+    @ObservationIgnored var portsTask: Task<Void, Never>?
 
     public init(port: any MailPort, clipboard: Clipboard, workspace: any WorkspaceOpening) {
         self.port = port
@@ -45,7 +48,7 @@ public final class MailModel {
 
     /// True when the user can start a change now.
     public var canChange: Bool {
-        loadState.isLoaded && !operation.isWorking && !isShuttingDown && !state.isBusy
+        loadState.isLoaded && !isBusy && !isShuttingDown && !state.isBusy
     }
 
     public var canStart: Bool { canChange && hasRuntime && !state.offersStop }
@@ -54,6 +57,8 @@ public final class MailModel {
     public var canSendTestEmail: Bool { canChange && state.isRunning }
     /// Ports change only while no process runs.
     public var canEditPorts: Bool { canChange && !state.offersStop }
+    /// The settings come from the saved ports, so the copy never waits for other work.
+    public var canCopyEnvironment: Bool { loadState.isLoaded && !isShuttingDown && hasRuntime }
 
     /// Reads the settings once at launch.
     public func load() async {
@@ -97,7 +102,7 @@ public final class MailModel {
         guard canChange else { return nil }
         operation = .working(message)
         testResult = nil
-        let task = Task {
+        return running.run { [self] in
             var failure: String?
             do {
                 try await work(self)
@@ -107,7 +112,5 @@ public final class MailModel {
             await refresh()
             operation = failure.flatMap { state.needsAttention ? nil : OperationState.failed(message: $0) } ?? .idle
         }
-        currentTask = task
-        return task
     }
 }
