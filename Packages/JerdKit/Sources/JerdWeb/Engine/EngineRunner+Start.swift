@@ -48,6 +48,7 @@ extension EngineRunner {
         let lock = try records.lock()
         run?.lock = lock
         try records.clearPrevious(holding: lock)
+        try LegacyPoolFiles.remove(from: layout.environment)
         let startPlan = try EngineStartPlan(plan: plan, validatedSites: sites, layout: layout, binding: binding)
         try EngineFiles.createFolders(startPlan)
         try OwnedDirectory.create(layout.socketDirectory)

@@ -67,6 +67,12 @@ All paths come from `DataLayout`. Each PHP runtime has its own pool folder
 `environment/php/<runtime UUID>/` (configuration and log). Caddy uses
 `environment/configuration/caddy.json` and `environment/logs/caddy.log`.
 
+The old app kept its first pool in `environment/configuration/php-fpm.conf`,
+`environment/configuration/php.ini`, and `environment/logs/fpm.log`. A start removes these
+files (`LegacyPoolFiles`), but only while it holds the records lock with no recorded process
+alive, and only when Jerd provably wrote them: the configuration files must hold the old
+generated text, and the log must be a regular file, not a link. Every other item stays.
+
 ## For the CLI target
 
 Use `ConfigurationCodec.store(in:)` to read the configuration, `PHPIniPolicy.cliFile(caBundle:)`
