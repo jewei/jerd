@@ -44,6 +44,22 @@ struct RuntimesStepsTests {
         #expect(lines.contains { $0.contains("xz-5.8.4") && $0.hasSuffix("missing") })
     }
 
+    @Test("Status shows the PostgreSQL engine version, or names Postgres.app before the payload exists")
+    func statusNamesThePostgresAppVersion() throws {
+        let repository = try PayloadFixtures.repository()
+        defer { try? FileManager.default.removeItem(at: repository.root) }
+        let pin = try PayloadFixtures.pin(.postgresql)
+        let missing = RecordingTextOutput()
+        try RuntimesVerifyStep.status(TestFixtures.context(repository: repository, output: missing))
+        let missingRow = try #require(missing.all.split(separator: "\n").first { $0.contains(pin.id) })
+        #expect(missingRow.contains("Postgres.app \(pin.version)"))
+        try PayloadFixtures.writePayload(.postgresql, in: repository.payloads, version: "18.6")
+        let prepared = RecordingTextOutput()
+        try RuntimesVerifyStep.status(TestFixtures.context(repository: repository, output: prepared))
+        let preparedRow = try #require(prepared.all.split(separator: "\n").first { $0.contains(pin.id) })
+        #expect(preparedRow.contains(" 18.6 ") && !preparedRow.contains(pin.version))
+    }
+
     @Test("Prepare verifies and keeps an earlier payload of the same pin without network")
     func prepareKeepsEarlierPayload() async throws {
         let repository = try PayloadFixtures.repository()

@@ -42,6 +42,12 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     /// The version text for the user. PostgreSQL shows the Postgres.app version until its engine is probed.
     public var versionLabel: String { kind == .postgresql ? "Postgres.app \(version)" : version }
 
+    /// The name of the download, for example `PHP 8.5.11`. PostgreSQL comes from a Postgres.app release,
+    /// whose version is not the PostgreSQL version.
+    public var title: String {
+        kind == .postgresql ? "Postgres.app \(version)" : "\(kind.title) \(version)"
+    }
+
     /// How Jerd verifies this release, for the user.
     public var verification: ReleaseVerification {
         if let archiveSHA256 { return .digest(archiveSHA256) }
