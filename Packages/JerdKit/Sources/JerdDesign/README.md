@@ -39,6 +39,7 @@ component gallery are in [JerdSnapshotSupport](../JerdSnapshotSupport/README.md)
 | `Opacity` | Tinted fills and outlines, with stronger outlines for Increase Contrast. |
 | `PageMetrics` | One centered column (680 pt maximum) for header, banners, sections, and cards. |
 | `WindowMetrics`, `SheetSize` | Window, sidebar, and sheet sizes. A sheet height follows its content. |
+| `SidebarWidthLimit` | The sidebar widths that keep the sidebar edge left of the centered section picker. The app's split and the snapshot split share it. |
 
 ### Status and message symbols
 

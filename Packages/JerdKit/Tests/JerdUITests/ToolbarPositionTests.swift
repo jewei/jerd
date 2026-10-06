@@ -86,4 +86,15 @@ struct ToolbarPositionTests {
         }
     }
 
+    @Test(
+        "The snapshot sidebar keeps the app's width limit, so its edge stays left of the picker",
+        arguments: [WindowMetrics.standardSize.width, WindowMetrics.minimumSize.width])
+    func snapshotSidebarStaysLeftOfThePicker(width: CGFloat) async throws {
+        let picker = try #require(await positions(width: width, after: [{ _ in }]).first).picker
+        let sidebar = WorkspaceStackSplit.sidebarWidth(windowWidth: width)
+        #expect(picker.width > 0, "Picker not found")
+        #expect(sidebar + SidebarWidthLimit.pickerGap <= picker.minX, "Sidebar \(sidebar), picker \(picker.minX)")
+        #expect(sidebar == SidebarWidthLimit.idealWidth(windowWidth: width, pickerWidth: picker.width))
+    }
+
 }

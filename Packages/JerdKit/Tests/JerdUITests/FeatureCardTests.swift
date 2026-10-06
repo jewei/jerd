@@ -153,10 +153,11 @@ struct FeatureCardTests {
 
     // MARK: Compact width
 
-    /// The width of one card at the minimum window size: the page column of the detail column,
-    /// in two grid columns.
+    /// The width of one card at the minimum window size: the page column of the detail column
+    /// next to the sidebar (which the picker limits there), in two grid columns.
     static var compactCardWidth: CGFloat {
-        let detail = WindowMetrics.minimumSize.width - WindowMetrics.sidebarIdealWidth
+        let window = WindowMetrics.minimumSize.width
+        let detail = window - SidebarWidthLimit.idealWidth(windowWidth: window)
         return (PageMetrics.columns(forWidth: detail).contentWidth - Spacing.large) / 2
     }
 

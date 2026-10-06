@@ -205,13 +205,15 @@ case mailRunning = "mail-running"   // in the scenario enum, with its navigation
 section picker stays centered in the window and the sidebar button stays at the leading edge
 in every section, also with a hidden sidebar. The split comes from the caller:
 
-- The app passes JerdLive's `WorkspaceSplit`: a native AppKit split view with the sidebar
-  material from the top edge to the bottom edge, an animated collapse, a saved width, and an
-  accessible splitter.
+- The app passes JerdLive's `WorkspaceSplit`: a native AppKit split view with the system
+  sidebar background from the top edge to the bottom edge, an animated collapse, a saved
+  width, and an accessible splitter.
 - Snapshots and tests use `JerdWorkspace(state:)`, which shows `WorkspaceStackSplit`, a
-  SwiftUI approximation with the same structure. It does not resize, animate, or save the
-  width, and offscreen it draws the trailing toolbar items next to the picker, not at the
-  trailing edge. Check those details in the running app.
+  SwiftUI approximation with the same structure. Its sidebar has the ideal width with the
+  app's limit (`SidebarWidthLimit`), so at 820 pt it is 182 pt wide and stays left of the
+  picker. It does not resize, animate, or save the width, its sidebar background is only
+  similar to the system one, and offscreen it draws the trailing toolbar items next to the
+  picker, not at the trailing edge. Check those details in the running app.
 
 ## Snapshots
 
