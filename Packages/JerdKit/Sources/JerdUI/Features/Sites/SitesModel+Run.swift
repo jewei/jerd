@@ -14,8 +14,20 @@ extension SitesModel {
     }
 
     /// True while sites run or site work runs, so Stop All Sites has something to stop.
+    public var showsStopAll: Bool {
+        !environment.siteIDs.isEmpty || operation.isWorking || environment.state == .starting
+    }
+
+    /// True when Stop All Sites can run now. Work that changes the Mac (an HTTPS approval, a
+    /// system setup step, a removal) cannot end at a next step, so Stop waits until it ends.
     public var canStopAll: Bool {
-        !isShuttingDown && (!environment.siteIDs.isEmpty || operation.isWorking || environment.state == .starting)
+        !isShuttingDown && showsStopAll && !isRunningUnstoppableWork
+    }
+
+    /// True while work runs that the user cannot stop: the flag of the operation says so.
+    var isRunningUnstoppableWork: Bool {
+        if case .working(_, canStop: false) = operation { return true }
+        return false
     }
 
     /// True when a Start can run: a change can start and no interrupted HTTPS setup waits for

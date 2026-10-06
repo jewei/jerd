@@ -82,7 +82,7 @@ extension SitesModel: WorkspaceFeature {
 
     /// Stop All Sites while sites run or work runs, else Start All Sites.
     private func runAllAction(primary: Bool) -> FeatureAction? {
-        if canStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
+        if showsStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
         guard !enabledSiteIDs.isEmpty else { return nil }
         return FeatureAction(
             id: "sites.start-all", title: "Start All Sites", isEnabled: canStart && hasStoppedEnabledSite,

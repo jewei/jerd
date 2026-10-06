@@ -19,6 +19,8 @@ public final class SitesModel {
     public internal(set) var operation: OperationState = .idle
     /// The editor or the HTTPS approval.
     public var sheet: SitesSheet?
+    /// The approval that is being applied, or nil. It cannot stop, and Cancel never discards it.
+    public internal(set) var runningApprovalID: UUID?
     /// The failure of the last approval, shown inside the approval sheet.
     public internal(set) var approvalFailure: String?
     /// The step that waits for confirmation. The page shows it as a dialog.

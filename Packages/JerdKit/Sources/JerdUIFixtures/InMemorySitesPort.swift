@@ -18,6 +18,10 @@ public actor InMemorySitesPort: SitesPort {
     /// When true, reading the configuration waits until `releaseLoad()`, for launch tests.
     public var holdsLoad = false
     private var heldLoads: [CheckedContinuation<Void, Never>] = []
+    /// When set, Approve waits at this gate before it applies the setup, like a macOS prompt.
+    public var approvalGate: FixtureGate?
+    /// When set, an inspection of this folder waits at this gate, for race tests.
+    public var inspectionGates: [String: FixtureGate] = [:]
     public var suggestions: [String: DocumentRootSuggestion] = [:]
     public var logsURL: URL?
     public private(set) var calls: [String] = []
@@ -98,6 +102,7 @@ public actor InMemorySitesPort: SitesPort {
     }
 
     public func approve(_ approval: HTTPSApproval) async throws -> AppConfiguration {
+        if let approvalGate { await approvalGate.pass() }
         try await record("approve \(approval.hostnames.joined(separator: ","))")
         setup = HTTPSSetupStatus(
             hostnames: approval.hostnames, certificateSHA256: approval.fingerprint, hostsConfigured: true,
@@ -127,6 +132,7 @@ public actor InMemorySitesPort: SitesPort {
 
     public func suggestDocumentRoot(projectPath: String) async throws -> DocumentRootSuggestion {
         calls.append("inspect \(projectPath)")
+        if let gate = inspectionGates[projectPath] { await gate.pass() }
         return suggestions[projectPath] ?? DocumentRootSuggestion(path: projectPath, isLaravel: false)
     }
 
