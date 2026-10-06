@@ -1,14 +1,14 @@
 import Foundation
+import JerdFoundation
+import JerdManifest
 
 /// `appcast.xml` must be an RSS 2.0 feed with one channel, every item must point to an HTTPS archive
 /// with an EdDSA signature, and the feed must end with Sparkle's signature block. Installed apps require
 /// a signed feed, so an edit without a new signature breaks every update check.
 ///
-/// Limit: this policy checks the signature block and the signed length only. An edit that keeps the
-/// length (for example `Jerd updates` to `Jerd Updates`) passes it.
-/// TODO(JerdManifest follow-up, review tooling-r1 M2): verify `edSignature` over the bytes before
-/// `signatureMarker` with the committed public key (`UpdateSettingsPolicy.publicKey`) through the
-/// JerdManifest appcast verifier when Tools depends on JerdKit, and add a same-length edit test.
+/// When the structure and the signature block are valid, the policy verifies the Ed25519 signature with
+/// the official public key (`AppcastVerifier`), so an edit of the same length fails too (review
+/// tooling-r1 M2). This needs no private key, so CI checks it.
 enum AppcastPolicy {
     static let file = "appcast.xml"
     static let signatureMarker = "<!-- sparkle-signatures:"
@@ -20,7 +20,8 @@ enum AppcastPolicy {
         } catch {
             return [finding("The feed is not well-formed XML: \(error.localizedDescription)")]
         }
-        return structureFindings(document) + signatureFindings(feed)
+        let findings = structureFindings(document) + signatureFindings(feed)
+        return findings.isEmpty ? keyFindings(feed) : findings
     }
 
     static func structureFindings(_ document: XMLDocument) -> [PolicyFinding] {
@@ -74,6 +75,20 @@ enum AppcastPolicy {
             findings.append(finding("The signed length does not match the feed. Sign the feed again."))
         }
         return findings
+    }
+
+    /// The signature over the signed bytes must verify with the official Jerd key.
+    static func keyFindings(
+        _ feed: Data, verifier: () throws -> AppcastVerifier = AppcastVerifier.official
+    ) -> [PolicyFinding] {
+        do {
+            _ = try verifier().verifiedAppcast(feed)
+            return []
+        } catch let error as JerdError {
+            return [finding("\(error.message) Sign the feed again with sign_update.")]
+        } catch {
+            return [finding("The feed signature cannot be checked: \(error.localizedDescription)")]
+        }
     }
 
     static func signatureFields(_ block: String) -> [String: String] {
