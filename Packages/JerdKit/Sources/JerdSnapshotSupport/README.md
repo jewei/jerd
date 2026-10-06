@@ -46,6 +46,12 @@ The renderer runs layout passes until `isReady` is true and two passes in a row
 draw the same pixels. It suspends between passes, so `.task` and `onChange` work
 runs. A view that does not settle in 150 passes (about 3 s) fails with its file name.
 
+A capture only reads the window. It draws with `displayIgnoringOpacity(_:in:)`,
+not with `cacheDisplay(in:to:)`: `cacheDisplay` makes the AppKit controls that
+SwiftUI hosts (window buttons, a segmented toolbar picker) lay out and render
+again during the capture, and whether they do depends on timing. The toolbar
+text then moved by part of a point in some renderings.
+
 ## Fixed settings
 
 `SnapshotProcessSettings` writes these values into the argument domain of the
