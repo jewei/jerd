@@ -42,10 +42,12 @@ package struct LiveMailPort: MailPort {
     }
 
     package func start() async throws {
+        ServiceActivityLog.request("Start", "mail")
         try await manager.start()
     }
 
     package func stop() async throws {
+        ServiceActivityLog.request("Stop", "mail")
         try await manager.stop()
     }
 

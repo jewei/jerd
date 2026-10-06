@@ -16,10 +16,16 @@ struct JerdApp: App {
         }
         .defaultSize(width: 980, height: 660)
         .windowResizability(.contentMinSize)
-        .commands { AppCommands(state: live.state) }
+        .commands {
+            AppCommands(state: live.state)
+            CommandGroup(replacing: .appTermination) {
+                Button("Quit Jerd") { ApplicationQuit.request() }
+                    .keyboardShortcut("q")
+            }
+        }
 
         MenuBarExtra(isInserted: menuBarBinding(live.state.appearance)) {
-            MenuBarContent(state: live.state) { NSApp.terminate(nil) }
+            MenuBarContent(state: live.state) { ApplicationQuit.request() }
         } label: {
             MenuBarLabel(appearance: live.state.appearance, images: live.iconImages)
                 .connectsMainWindow(to: live.windows)

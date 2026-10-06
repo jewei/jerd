@@ -63,14 +63,17 @@ package struct LiveDatabasesPort: DatabasesPort {
     }
 
     package func start(_ id: UUID) async throws {
+        ServiceActivityLog.request("Start", "database \(id)")
         try await manager.start(id)
     }
 
     package func stop(_ id: UUID) async throws {
+        ServiceActivityLog.request("Stop", "database \(id)")
         try await manager.stop(id)
     }
 
     package func stopAll() async throws {
+        ServiceActivityLog.request("Stop", "every database")
         try await manager.stopAll()
     }
 

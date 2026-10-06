@@ -170,4 +170,23 @@ struct LiveServicePortsTests {
         #expect(files.dataFolder == layout.dataDirectory)
         #expect(files.log == layout.logFile)
     }
+
+    // MARK: Launch
+
+    /// Spec F 2.10: a launch loads services and installs runtimes, but never starts one.
+    @Test func loadsInstallRuntimesButNeverStartAService() async throws {
+        let layout = try Fixture.layout()
+        let databases = RecordingDatabaseManager()
+        let mail = RecordingMailManager()
+        let storage = RecordingStorageManager()
+        let runtimes = FakeServiceRuntimes()
+
+        _ = try await LiveDatabasesPort(manager: databases, runtimes: runtimes, layout: layout.databases).load()
+        _ = try await LiveMailPort(manager: mail, runtimes: runtimes, layout: layout.mail).load()
+        _ = try await LiveStoragePort(manager: storage, runtimes: runtimes, layout: layout.storage).load()
+
+        #expect(await databases.calls == ["load"])
+        #expect(await mail.calls == ["load", "register \(FakeServiceRuntimes.mail.id)"])
+        #expect(await storage.calls == ["load", "register \(FakeServiceRuntimes.storage.id)"])
+    }
 }

@@ -42,10 +42,12 @@ package struct LiveStoragePort: StoragePort {
     }
 
     package func start() async throws {
+        ServiceActivityLog.request("Start", "storage")
         try await manager.start()
     }
 
     package func stop() async throws {
+        ServiceActivityLog.request("Stop", "storage")
         try await manager.stop()
     }
 
