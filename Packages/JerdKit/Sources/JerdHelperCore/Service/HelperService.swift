@@ -82,7 +82,12 @@ actor HelperService {
 
     func setupStatus(owner: uid_t) async throws -> SystemSetupStatus { try await store.status(ownerUID: owner) }
 
-    func bindListeners() throws -> LoopbackListenerPair { try binder.bindStandardPorts() }
+    /// Binds off the actor: a port probe can wait in `poll`, and status calls of other connections
+    /// must not wait for it (review L3).
+    nonisolated func bindListeners() async throws -> LoopbackListenerPair {
+        let binder = binder
+        return try await Task.detached { try binder.bindStandardPorts() }.value
+    }
 
     private func installer(_ consent: any ConsentRequesting) -> TrustInstaller {
         TrustInstaller(keychain: keychain, inspector: inspector, consent: consent)
@@ -94,7 +99,7 @@ actor HelperService {
     ) async throws {
         try ports.beginMutation(mutation)
         defer { ports.endMutation() }
-        let reservation = reservePorts ? try binder.bindStandardPorts() : nil
+        let reservation = reservePorts ? try await bindListeners() : nil
         defer { reservation?.close() }
         try await body()
     }

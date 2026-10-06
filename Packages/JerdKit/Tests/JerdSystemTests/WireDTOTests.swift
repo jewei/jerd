@@ -50,6 +50,31 @@ import Testing
         #expect(recovery.policies == [.serverTLS])
     }
 
+    /// Fixed review L4: an old app decodes the report of an unreadable record and shows it with both
+    /// actions disabled, and the new app reads the placeholders as nil again.
+    @Test func anUnreadableRecoveryReportDecodesInAnOldApp() throws {
+        let report = RecoveryAssessor.unreadable(
+            id: "abc", reason: "The record is damaged.", location: URL(fileURLWithPath: "/tmp/pending.json"))
+        let status = SystemSetupStatus(recovery: report)
+        let bytes = try HelperWireProtocol.encode(status)
+        let old = try #require(try JSONDecoder().decode(LegacySetupStatus.self, from: bytes).recovery)
+        #expect(!old.canRestore && !old.canRemove)
+        #expect(old.details.first == "The record is damaged.")
+        #expect(old.certificateDER.isEmpty)
+        let new = try #require(try JSONDecoder().decode(SystemSetupStatus.self, from: bytes).recovery)
+        #expect(new == report)
+        #expect(new.installationID == nil && new.certificateDER == nil && new.fingerprint == nil)
+    }
+
+    @Test func aRecoveryReportWithoutTheIdentityKeysStillDecodes() throws {
+        let report = RecoveryAssessor.unreadable(id: "abc", reason: "r", location: URL(fileURLWithPath: "/p"))
+        let full = try #require(try object(HelperWireProtocol.encode(report)).mutableCopy() as? NSMutableDictionary)
+        full.removeObjects(forKeys: ["installationID", "certificateDER"])
+        let decoded = try JSONDecoder().decode(
+            SystemRecoveryStatus.self, from: JSONSerialization.data(withJSONObject: full))
+        #expect(decoded == report)
+    }
+
     @Test func aNewOptionalStatusFieldIsOmittedWhenNil() throws {
         var status = SystemSetupStatus.empty
         #expect(try object(HelperWireProtocol.encode(status))["operationInProgress"] == nil)

@@ -5,7 +5,8 @@ import JerdFoundation
 extension SetupStore {
     /// Applies the approved hostnames and CA for `ownerUID`: hosts section, then trust, then registration.
     ///
-    /// A changed host set keeps the same CA. A different CA needs a removal first.
+    /// A changed host set keeps the same CA. A different CA needs a removal first. A recorded section
+    /// that is already gone is written again.
     public func configure(
         _ request: SystemRegistrationRequest, ownerUID: uid_t, trust: any CertificateTrustChanging
     )
@@ -25,7 +26,7 @@ extension SetupStore {
         }
         let before = try hosts.read()
         let after = try HostsSection.replacing(
-            in: before, with: next.hostnames.values, expecting: previous?.record.hostnames.values ?? [])
+            in: before, with: next.hostnames.values, recorded: previous?.record.hostnames.values ?? [])
         let plan = SetupPlan(directory: directory, hosts: hosts, trust: trust, before: before, after: after)
         let steps = [
             plan.hostsStep(donePhase: "Host entries were written"),
@@ -37,7 +38,7 @@ extension SetupStore {
     }
 
     /// Removes the setup of `ownerUID`: hosts section, then trust and CA, then registration.
-    /// Without a setup, it does nothing.
+    /// Without a setup, it does nothing. A hosts section that is already gone is not an error.
     public func remove(ownerUID: uid_t, trust: any CertificateTrustChanging) async throws {
         try beginOperation(SetupOperation.remove.rawValue)
         defer { endOperation() }
@@ -45,13 +46,15 @@ extension SetupStore {
         guard let committed = try committedRecord(ownerUID: ownerUID) else { return }
         let recorded = try committed.record.trust()
         let before = try hosts.read()
-        let after = try HostsSection.replacing(in: before, with: [], expecting: committed.record.hostnames.values)
+        let after = try HostsSection.replacing(in: before, with: [], recorded: committed.record.hostnames.values)
         let plan = SetupPlan(directory: directory, hosts: hosts, trust: trust, before: before, after: after)
-        let steps = [
-            plan.hostsStep(donePhase: "Host entries were removed"),
-            plan.removeTrustStep(recorded),
-            plan.removeRegistrationStep(previousBytes: committed.bytes),
-        ]
+        // A section that another tool already deleted needs no hosts write.
+        let hostsSteps = after == before ? [] : [plan.hostsStep(donePhase: "Host entries were removed")]
+        let steps =
+            hostsSteps + [
+                plan.removeTrustStep(recorded),
+                plan.removeRegistrationStep(previousBytes: committed.bytes),
+            ]
         try await run(
             .remove, steps: steps, previous: committed, intended: nil, before: before, failureTitle: "Removal failed")
     }

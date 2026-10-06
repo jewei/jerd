@@ -4,6 +4,7 @@ import SwiftUI
 /// Dashboard › Advanced. Each section is its own view; every destructive step asks first.
 struct AdvancedPage: View {
     @Bindable var model: AdvancedModel
+    let commandLineTools: CommandLineToolsModel
 
     var body: some View {
         FormPage {
@@ -23,6 +24,7 @@ struct AdvancedPage: View {
             }
             ProcessRecoverySection(model: model)
             RetainedBackupsSection(model: model)
+            CommandLineToolsSection(model: commandLineTools)
             LocalExecutablesSection(model: model)
             PHPRegistrationsSection(model: model)
         }

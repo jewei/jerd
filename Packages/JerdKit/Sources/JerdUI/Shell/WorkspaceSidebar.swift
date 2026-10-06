@@ -17,9 +17,13 @@ struct WorkspaceSidebar: View {
         switch state.navigation.section {
         case .dashboard:
             DashboardSidebar(state: state)
-        case .sites, .databases, .storage, .mail:
+        case .sites, .mail:
             List {}
                 .listStyle(.sidebar)
+        case .databases:
+            DatabasesSidebar(state: state, model: state.databases)
+        case .storage:
+            StorageSidebar(state: state, model: state.storage)
         }
     }
 }

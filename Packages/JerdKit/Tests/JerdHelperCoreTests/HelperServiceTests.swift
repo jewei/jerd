@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdSystem
 import Testing
+import os
 
 @testable import JerdHelperCore
 
@@ -93,6 +94,28 @@ import Testing
         try await blocked.remove(owner: owner, consent: harness.consent)
     }
 
+    /// Fixed review L3: a bind (whose probe can wait in `poll`) runs off the service actor, so a
+    /// status call of another connection still replies.
+    @Test func aSlowBindDoesNotBlockStatus() async throws {
+        let harness = try ServiceHarness()
+        defer { harness.remove() }
+        let binder = HeldBinder()
+        let service = HelperService(
+            store: SetupStore(
+                directory: RootRecordDirectory(url: harness.folder.appendingPathComponent("helper"), owner: getuid()),
+                hosts: GuardedFileSwap(url: harness.folder.appendingPathComponent("hosts"), expectedOwner: getuid()),
+                trust: FakeInspector(consent: harness.consent)),
+            binder: binder, keychain: harness.keychain, inspector: FakeInspector(consent: harness.consent))
+        let configure = Task { try await service.configure(harness.request(), owner: owner, consent: harness.consent) }
+        while !binder.entered.withLock({ $0 }) { try await Task.sleep(for: .milliseconds(5)) }
+        let status: Data?? = await FirstReply.within(.seconds(2)) { reply in
+            Task { reply(try? await service.status(owner: owner)) }
+        }
+        binder.release.signal()
+        try await configure.value
+        #expect(status??.isEmpty == false)
+    }
+
     @Test func statusIsEncodedForTheWire() async throws {
         let harness = try ServiceHarness()
         defer { harness.remove() }
@@ -103,4 +126,16 @@ import Testing
 
 private struct FailingBinder: ListenerBinding {
     func bindStandardPorts() throws -> LoopbackListenerPair { throw JerdError.unavailable("Port 80 is busy.") }
+}
+
+/// Binds ephemeral ports, but first waits in a blocking call until the test signals `release`.
+private final class HeldBinder: ListenerBinding, Sendable {
+    let entered = OSAllocatedUnfairLock(initialState: false)
+    let release = DispatchSemaphore(value: 0)
+
+    func bindStandardPorts() throws -> LoopbackListenerPair {
+        entered.withLock { $0 = true }
+        release.wait()
+        return try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
+    }
 }

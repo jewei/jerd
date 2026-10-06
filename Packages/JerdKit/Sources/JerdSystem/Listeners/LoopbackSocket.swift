@@ -6,14 +6,20 @@ import JerdFoundation
 enum LoopbackSocket {
     static let backlog: Int32 = 128
 
-    /// A listening TCP socket on `127.0.0.1:<port>` with `SO_REUSEADDR` (never `SO_REUSEPORT`).
-    static func listen(on port: UInt16) throws -> FileHandle {
+    /// A listening TCP socket on `127.0.0.1:<port>`, or nil when the address is in use (`EADDRINUSE`).
+    ///
+    /// Without `reuseAddress`, the kernel refuses the bind while any socket holds the port: a listener
+    /// on `127.0.0.1`, a wildcard or dual-stack listener, or a lingering connection. `SO_REUSEADDR`
+    /// allows a lingering connection, but also a bind beside a wildcard listener. `SO_REUSEPORT` is
+    /// never set.
+    static func listen(on port: UInt16, reuseAddress: Bool) throws -> FileHandle? {
         let descriptor = socket(AF_INET, SOCK_STREAM, 0)
         guard descriptor >= 0 else { throw JerdError.processFailed("Cannot create a loopback listener.") }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         var reuse: Int32 = 1
         guard fcntl(descriptor, F_SETFD, FD_CLOEXEC) == 0,
-            setsockopt(descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) == 0
+            !reuseAddress
+                || setsockopt(descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) == 0
         else {
             try? handle.close()
             throw JerdError.processFailed("Cannot configure the loopback listener.")
@@ -25,13 +31,18 @@ enum LoopbackSocket {
             }
         }
         guard bound == 0, Darwin.listen(descriptor, backlog) == 0 else {
-            let detail = SystemError.describe(errno)
+            let code = errno
             try? handle.close()
-            throw JerdError.unavailable(
-                "Loopback port \(port) is occupied or cannot be bound (\(detail)). "
-                    + "Stop the other service in its own app, then retry.")
+            if code == EADDRINUSE { return nil }
+            throw occupied(port, detail: SystemError.describe(code))
         }
         return handle
+    }
+
+    static func occupied(_ port: UInt16, detail: String) -> JerdError {
+        .unavailable(
+            "Loopback port \(port) is occupied or cannot be bound (\(detail)). "
+                + "Stop the other service in its own app, then retry.")
     }
 
     /// True when a TCP connection to `127.0.0.1:<port>` completes within `timeout` milliseconds.

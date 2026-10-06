@@ -13,7 +13,11 @@ implements them in memory.
 | `Shell/` | `JerdWorkspace` (window content), `NavigationState`, `AppCommands`, `MenuBarContent`, the section picker, retained pages, placeholders. |
 | `Shared/` | `OperationState`, `ServicePoller`, `PollingPolicy`, `Clipboard`, the effect ports, and `WorkspaceFeature` with its value types. |
 | `Features/Dashboard/` | The overview cards and the runtimes row. |
-| `Features/Settings/` | Appearance, Runtimes, Advanced, and About, each with its model and ports. |
+| `Features/Settings/` | Appearance, Runtimes, Advanced (with Command-Line Tools), and About, each with its model and ports. |
+| `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
+| `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
+| `Features/Mail/` | `MailPort`, `MailModel`, the Mail page, and the ports sheet. |
+| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet. |
 
 ## Rules
 
