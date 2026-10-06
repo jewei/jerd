@@ -4,7 +4,7 @@ import JerdUI
 
 extension SnapshotCatalog {
     /// A tall window for long pages, so every section can be reviewed in one image.
-    package static let fullPage = SnapshotSize(name: "full", width: WindowMetrics.standardSize.width, height: 1600)
+    package static let fullPage = SnapshotSize(name: "full", width: WindowMetrics.standardSize.width, height: 2600)
 
     /// Registers one entry per fixture scenario: the full window, at both window sizes, in
     /// light and dark. Long pages add the tall size.

@@ -17,6 +17,11 @@ struct RuntimesPage: View {
                 }
             }
         } messages: {
+            if let installation = model.installation {
+                InlineMessage(
+                    "Installing \(installation.kind.title). Other runtime changes wait until it finishes.", kind: .info,
+                    style: .banner, identifier: "runtimes.installing")
+            }
             OperationFailureBanner(operation: model.operation, identifier: "runtimes.error") {
                 model.dismissFailure()
             }

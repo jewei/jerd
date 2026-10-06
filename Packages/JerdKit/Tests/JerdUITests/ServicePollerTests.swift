@@ -96,6 +96,7 @@ struct ServicePollerTests {
         await waitUntil { fixture.features.allSatisfy { $0.refreshCount == 1 } }
         #expect(fixture.features.allSatisfy { $0.refreshCount == 1 })
         #expect(fixture.state.activity == AppActivity(isActive: true, isWindowVisible: true))
+        fixture.state.pollers.forEach { $0.stop() }
     }
 
     @Test("A successful quit stops polling for good")
