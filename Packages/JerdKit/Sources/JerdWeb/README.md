@@ -32,8 +32,18 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
 - Detection reads file metadata only. Jerd never runs project code to detect a project.
 - Caddy gets JSON only: admin API off, internal CA only, `install_trust: false`, loopback or
   inherited listeners only, strict SNI, 421 for unknown hosts, 308 from HTTP to HTTPS.
-- Dot paths, private folders, Composer files, and PHP-like names answer 404. An existing file
-  below `/.well-known/` is served statically; hidden files there still answer 404.
+- Dot paths, private folders, Composer files, and PHP-like names (`.php5`, `.pht`, `.phtml`,
+  `.phar`, `.phps`, `.phpt`, `.inc`, any case) answer 404. An existing file below `/.well-known/`
+  is served statically; hidden files there still answer 404.
+- PHP-FPM runs only the script that the routes selected (`SCRIPT_FILENAME`), never a file named
+  by path info. Two layers make this true, and each one alone passes the attack requests of
+  `ScriptSelectionIntegrationTests`: `cgi.fix_pathinfo = 1` (FPM uses `SCRIPT_FILENAME`, not
+  `PATH_TRANSLATED`), and the PHP route sends path info only as `PATH_INFO`, so Caddy sends no
+  `PATH_TRANSLATED`. So `/index.php/storage/upload.php` runs `index.php` with
+  `PATH_INFO=/storage/upload.php`, and `/index.php/route` works.
+- A script runs only when its name on disk ends in lowercase `.php`, also on a case-insensitive
+  volume: the PHP route's `file` matcher ends in a glob class (`ph[p]`), which Caddy compares
+  case-sensitively. `/name.php` for `name.PHP` and `/Name.php` for `name.php` answer 404.
 - PHP and FPM end a request after 30 seconds. Caddy waits 35 seconds, so PHP decides.
 - Caddy and PHP-FPM never run as root. Each run has a new private socket folder. The engine
   removes only a folder that it created, and deletes a run record only for a proven stop.

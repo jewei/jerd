@@ -63,7 +63,7 @@ import Testing
         #expect(
             PHPIniPolicy.fpm == PHPIniPolicy.common
                 + "memory_limit = 256M\nupload_max_filesize = 32M\npost_max_size = 40M\nmax_execution_time = 30\n"
-                + "display_errors = Off\ncgi.fix_pathinfo = 0\n[opcache]\nopcache.enable = 1\n"
+                + "display_errors = Off\ncgi.fix_pathinfo = 1\n[opcache]\nopcache.enable = 1\n"
                 + "opcache.validate_timestamps = 1\nopcache.revalidate_freq = 0\n")
         #expect(
             PHPIniPolicy.cli == PHPIniPolicy.common
