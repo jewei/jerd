@@ -42,12 +42,15 @@ struct SupervisedGroup: StopTarget {
         return true
     }
 
-    /// Walks the parent chain from the leader, the group members, and the tracked descendants.
+    /// Walks the parent chain from the leader, the group members, and the tracked descendants
+    /// that still run. A tracked PID that now names another process is never a root.
     @discardableResult
     func trackDescendants() -> Bool {
         var roots = leaderState().isRunning ? [leader] : []
         if case .members(let pids) = inspector.members(of: leader) { roots += pids }
-        roots += descendants.all.map(\.processID)
+        for member in descendants.all {
+            if case .live = tree.current(member) { roots.append(member.processID) }
+        }
         guard let found = tree.descendants(of: roots) else { return false }
         descendants.track(found)
         return true
