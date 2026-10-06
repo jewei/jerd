@@ -1,8 +1,8 @@
 # JerdRuntimes
 
-JerdRuntimes supplies runtimes: it reads publisher catalogs, downloads and verifies
-releases, prepares and probes them, installs managed builds and bundled payloads, and owns
-the Composer and Laravel tool record. All network access goes through `HTTPFetching`.
+JerdRuntimes gives the app its runtimes. It reads publisher catalogs, downloads and
+verifies releases, and prepares and probes them. It installs managed builds and bundled
+payloads, and owns the Composer and Laravel tool record. All network access goes through `HTTPFetching`.
 
 ## Main types
 
@@ -39,14 +39,14 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
 - A listing reports each build folder on its own. A bad folder does not hide the others.
 - A release without a digest (MySQL, Laravel) matches its build by kind and version, so it
   shows as installed and is not downloaded again.
-- Finder's `.DS_Store` is the only file that verification ignores, on both sides: preparation
-  deletes it before it records the files, and a receipt that records one still matches.
+- Finder's `.DS_Store` is the only file that verification ignores, on both sides.
+  Preparation deletes it before it records the files. A receipt that records one still matches.
 - A staging folder is locked (`flock`) while its installation runs. `removeAbandonedStaging()`
   of `RuntimeInstaller`, `BundledRuntimeBootstrap` (all four group folders), and
   `PinnedPayloadPreparer` removes only staging folders that nobody holds. Call them at start.
 - A corrupt `cli-tools.json` is never reset. Later tool selections survive the bootstrap.
 - Long file work runs on a GCD thread (`BlockingWork`), not on the cooperative pool. It runs
-  inside the calling task (an actor on its own serial queue), so a cancellation stops a
+  inside the calling task (an actor on its own serial queue). Thus a cancellation stops a
   running hash, extraction, copy, or scan at its next chunk or entry.
 
 ## Bundle layout
@@ -58,8 +58,8 @@ receipt must match its pin; folders without a pin are ignored. Installed folders
 
 Folders that older builds installed (`<group folder>/<installation ID>/` with
 `jerd-receipt.json` or `receipt.json`) stay in use, because old service records name them.
-Verify one with `LegacyPayloadVerifier` each time before use: exactly the recorded files and
-hashes, and the execute bit of each executable that the database form records.
+Verify one with `LegacyPayloadVerifier` each time before use. It requires exactly the
+recorded files and hashes, and the execute bit of each executable in the database form.
 
 ## Test
 
@@ -71,5 +71,5 @@ JERD_RUNTIME_NETWORK=1 swift test --package-path Packages/JerdKit --filter Live
 Default tests use saved publisher responses, a fake `URLProtocol`, fake commands, and
 temporary folders. Opt-in: `JERD_RUNTIME_INSTALL=mailpit,caddy` installs real releases,
 `JERD_MYSQL_ARCHIVE` and `JERD_RUSTFS_BINARY` check real files. `JERD_DISK_IMAGE=1`
-attaches and ejects a small real disk image with the production commands: run it on each
+attaches and ejects a small real disk image with the production commands. Run it on each
 new macOS, because the Postgres.app step depends on `hdiutil attach` and `diskutil eject`.

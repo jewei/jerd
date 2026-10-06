@@ -3,7 +3,7 @@
 Jerd keeps user data in `~/Library/Application Support/Jerd` (the data root,
 mode 0700). The helper keeps its records in `/Library/Application Support/JerdHelper`.
 `DataLayout` in `JerdFoundation` names every path below. Each path is part of the
-compatibility contract with installed copies: do not change one without a
+compatibility contract with installed copies. Do not change a path without a
 migration and a test that reads the old form. `DataReferenceTests` checks that
 this page names every path of `DataLayout`.
 

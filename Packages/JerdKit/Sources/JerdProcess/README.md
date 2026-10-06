@@ -25,14 +25,14 @@ checks loopback listeners. It depends only on JerdFoundation.
 
 ## Rules
 
-- A child never runs as root. It gets a new process group, an empty signal mask, default
-  signal actions, standard input from `/dev/null`, and only descriptors 0, 1, 2 (and 3, 4
-  for inherited listeners). Its environment is explicit. Nothing is inherited.
+- A child never runs as root. It gets a new process group, an empty signal mask, and
+  default signal actions. Its standard input is `/dev/null`, and it gets only descriptors
+  0, 1, and 2 (and 3 and 4 for inherited listeners). Its environment is explicit. Nothing is inherited.
 - An exited leader stays unreaped until its stop completes. A group signal can then reach
   only processes that Jerd started.
 - A stop first records the descendants of the running leader by parent chain. A descendant
   that left the group (`setsid`, `setpgid`) gets each group signal by PID, after a check of
-  its start time, and it blocks `.stopped` until it exits.
+  its start time. It blocks `.stopped` until it exits.
 - The graceful policy never sends `SIGKILL`. A timeout keeps the process owned.
 - `ProcessSupervisor()` has the `.graceful` ceiling: it never sends `SIGKILL`, whatever policy
   a caller passes. Only `ProcessSupervisor(ceiling: .forceful)` (Caddy, PHP-FPM, commands) kills.

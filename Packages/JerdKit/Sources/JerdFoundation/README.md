@@ -37,7 +37,7 @@ and small values.
   change them without a migration and a test that reads the old form.
 - Settings files use `JSONFileFormat.settings` (pretty, sorted keys, unescaped slashes).
   Markers, credentials, and run records use `JSONFileFormat.compact`.
-- A hostname is lowercase, ends in `.test`, has at most 253 bytes, and has labels of
+- A hostname is lowercase, ends in `.test`, and has at most 253 bytes. Each label has
   1 to 63 bytes of `a-z`, `0-9`, or an internal `-`.
 - A hosts mapping is Jerd's own only inside a section with exact marker lines and only
   `127.0.0.1 <name>` lines (the helper's rule). A `::1` line, an unpaired marker, or any other

@@ -32,7 +32,7 @@ Run every task through `./dev`. It works from any folder in the repository.
 Add `--verbose` to a command to see each underlying command line. Add `--json`
 to get one JSON summary on standard output (all other lines go to standard
 error). Exit status: 0 success, 1 a check failed, 2 usage error, 3 a
-prerequisite is missing, 128 plus the signal number when a signal stops `./dev`.
+prerequisite is missing. A signal that stops `./dev` gives 128 plus its number.
 A failed quiet step writes its full output to `.build/logs/<step>.log`.
 
 `./dev build --release` requires the prepared runtime payloads. Only `./dev check`

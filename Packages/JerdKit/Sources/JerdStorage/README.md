@@ -40,9 +40,9 @@ All paths come from `StorageLayout` in JerdFoundation. Folders have mode 0700 an
   intent can change its public read. A missing complete bucket is reported, never created again.
 - Server bucket names that break the name rules are left out, so they cannot stop a start.
 - Each launch has its own S3 session. `LaunchPlan.didStop` ends it after every kind of stop (Stop,
-  an exit, a reap outside Jerd, a failed start): the session is invalidated and the names are cleared.
-- A runtime update checks the data without a write, clones the data off the actor, and keeps
-  its backup until the user deletes it in Advanced.
+  an exit, a reap outside Jerd, a failed start). Then the session is invalid and the names are clear.
+- A runtime update checks the data without a write and clones the data off the actor. It
+  keeps its backup until the user deletes it in Advanced.
 
 ## Test
 

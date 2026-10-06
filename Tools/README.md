@@ -12,7 +12,7 @@ command list, see [AGENTS.md](../AGENTS.md#commands) or run `./dev help`.
    headers. A command with more than one step ends with a summary.
 
 Exit status: 0 success, 1 a check failed, 2 usage error, 3 a prerequisite is
-missing, 128 plus the signal number after SIGINT, SIGTERM, or SIGHUP.
+missing. After SIGINT, SIGTERM, or SIGHUP, the status is 128 plus the signal number.
 `--verbose` shows each underlying command line. `--json` prints one summary
 object on standard output and sends every other line to standard error:
 
@@ -28,15 +28,15 @@ CI uploads that folder when `./dev check` fails.
 ## Builds
 
 Every build checks the built app: the update feed URL and public key in
-`Info.plist`, the Sparkle keys, and arm64-only executables (`ARCHS = arm64` in
-`Configuration/Base.xcconfig`, because the runtime payloads are arm64 only).
+`Info.plist`, the Sparkle keys, and arm64-only executables. The runtime payloads
+are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
-That command verifies every prepared payload before it copies: the receipt must
-match its pin in `Runtimes/runtimes.json`, and every file must match its SHA-256
+That command verifies every prepared payload before it copies. The receipt must
+match its pin in `Runtimes/runtimes.json`. Every file must match its SHA-256
 and executable flag. It copies with `rsync --delete`, so an unchanged payload is
 not copied again, and it removes folders that no pin names. The script calls
-`./dev` and does not check the files itself, because the receipt rules are in
+`./dev` and does not check the files itself. The receipt rules are in
 JerdManifest and JerdRuntimes, the same code that the app uses to install the
 payloads. The `dev` shim rebuilds `jerd-dev` only when a Tools source changes,
 so a build from Xcode works too.
@@ -125,8 +125,8 @@ notary profile stay in the Keychain. The identity, team, and profile are options
    that Apple notarizes.
 2. `./dev release prepare --version V --build B --minimum-macos M --identity ID
    --team T` needs a clean worktree at that commit and every prepared payload. It
-   archives, signs the payloads and Sparkle with explicit identifiers, runs the
-   runtime tests, notarizes the app and the disk image, signs the feed, and writes
+   archives and signs the payloads and Sparkle with explicit identifiers. It runs the
+   runtime tests, notarizes the app and the disk image, and signs the feed. It writes
    a private candidate in `.build/releases/Jerd-V-B-*` (mode 0700). Nothing is public.
 3. `./dev release validate DIR` checks the candidate again. `--public-key-only`
    uses no Keychain, so any Mac can run it.

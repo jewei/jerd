@@ -31,8 +31,8 @@ It depends on JerdFoundation and on the macOS system libarchive (`CArchive`).
 - A file is created with `O_EXCL | O_NOFOLLOW`. Its mode is 0700 when the entry has an
   execute bit, else 0600. Folders get mode 0700.
 - Each file gets the modification time of its entry. Build tools such as `make` compare
-  these times. If a file got its write time, a source file that comes late in the archive
-  would look newer than the files that were made from it. Folder times are not restored.
+  these times. With write times, a source file late in the archive would look newer than
+  the files that were made from it. Folder times are not restored.
 - A link must stay inside the archive (and inside the root). A selected link becomes a
   regular copy of its final extracted file, with the same mode and time. No symbolic link
   is ever created.

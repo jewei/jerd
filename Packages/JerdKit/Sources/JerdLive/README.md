@@ -13,7 +13,7 @@ calls. Pure mappings are `package static` functions with their own tests.
 | `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. |
 | `Services/` | `LiveDatabasesPort`, `LiveMailPort`, `LiveStoragePort`, and the bundled service runtimes. |
 | `Settings/` | Runtimes (`LiveRuntimeInventory`, `RuntimeActivator`), Advanced (`LiveRecoveryPort`, `LiveExecutableRegistrations`, `LiveHTTPSRecovery`), and `LiveCommandLineTools`. |
-| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`), the app and window activity for the polling rates (`AppActivityMonitor`), the main window, pasteboard, Finder, open panels, the quit paths that end open sheets first (`ApplicationQuit`, `QuitAppleEventHandler`), the termination reply, and the pure Sparkle rules (`UpdateCycleMapping`). |
+| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`). The app and window activity for the polling rates (`AppActivityMonitor`). The main window, pasteboard, Finder, and open panels. The quit paths that end open sheets first (`ApplicationQuit`, `QuitAppleEventHandler`), and the termination reply. The pure Sparkle rules (`UpdateCycleMapping`). |
 
 ## Wiring rules
 
@@ -33,15 +33,15 @@ calls. Pure mappings are `package static` functions with their own tests.
   engines without a runtime, Mailpit and RustFS when none is saved. A corrupt settings file
   fails the load before anything is installed. A failed bundled setup does not fail the load:
   the site setup message shows it in Advanced. The service setups write it to the unified log
-  (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`, which the
-  port reports through `runtimeSetupFailure()`; the service page shows it in its missing-runtime
-  banner. A later successful setup clears it.
+  (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`. The port
+  reports it through `runtimeSetupFailure()`, and the service page shows it in its
+  missing-runtime banner. A later successful setup clears it.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated
   command-line launcher is refreshed once, off the main actor
   (`LiveConfiguration.refreshesCommandLineLauncher`). A run with another data root never
-  touches the user's launcher, and keeps Jerd's preferences in its own defaults domain
+  touches the user's launcher. It keeps Jerd's preferences in its own defaults domain
   (`LiveConfiguration.defaultsSuiteName`), never in the user's `dev.jerd.app`. AppKit still
   saves the window frame in the standard domain.
 
