@@ -59,8 +59,10 @@ struct LiveAppTests {
     /// object posts the activity notifications; the live app must follow them.
     @Test func theLiveAppFollowsTheActivityThatAppKitReports() throws {
         let center = NotificationCenter()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let live = LiveApp(
-            configuration: try Self.configuration(), updater: SilentUpdater(), bundle: .main,
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
             defaults: try Self.defaults(), notifications: center)
         live.state.setWindowVisible(true)
 
@@ -76,8 +78,10 @@ struct LiveAppTests {
     /// A minimized or covered main window shows no live state, so polling slows down.
     @Test func aHiddenMainWindowSlowsThePollingOfTheLiveApp() throws {
         let center = NotificationCenter()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let live = LiveApp(
-            configuration: try Self.configuration(), updater: SilentUpdater(), bundle: .main,
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
             defaults: try Self.defaults(), notifications: center)
         live.state.setAppActive(true)
         live.state.setWindowVisible(true)
@@ -113,8 +117,10 @@ struct LiveAppTests {
     /// quit that ends the sheets, because AppKit's own handler is dropped while a sheet shows.
     @Test func theLiveAppRoutesTheQuitAppleEventToTheQuitThatEndsTheSheets() throws {
         var quits = 0
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let live = LiveApp(
-            configuration: try Self.configuration(), updater: SilentUpdater(), bundle: .main,
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
             defaults: try Self.defaults(), notifications: NotificationCenter()
         ) { quits += 1 }
 

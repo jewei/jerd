@@ -61,6 +61,7 @@ struct SnapshotCommandTests {
     @Test("A check renders the selected entries and writes no file")
     func checkWritesNothing() async throws {
         let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
         let host = RecordingSnapshotHost()
         let status = await SnapshotCommand(catalog: catalog(["a", "b"]), host: host)
             .run(arguments: ["--check", "--output", folder.path(percentEncoded: false)])

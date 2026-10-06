@@ -63,7 +63,9 @@ struct LaunchPreparationTests {
 
     @Test("Another data root keeps its preferences apart from the user's dev.jerd.app domain")
     func anotherDataRootHasItsOwnDefaults() throws {
-        let root = try Fixture.temporaryFolder()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let root = temporary.url
         let configuration = LiveConfiguration(bundle: .main, dataRoot: root)
         let name = try #require(configuration.defaultsSuiteName)
         #expect(name.hasPrefix("dev.jerd.app.debug."))
