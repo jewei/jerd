@@ -1,4 +1,4 @@
-/// A code-signing designated requirement that an app from a disk image must satisfy (fixes P-I5).
+/// A code-signing designated requirement that an app from a disk image must satisfy.
 public struct CodeRequirement: Sendable, Equatable {
     /// The requirement language text, as `codesign -d -r-` prints it.
     public let text: String

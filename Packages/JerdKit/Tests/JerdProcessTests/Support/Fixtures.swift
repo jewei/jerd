@@ -6,7 +6,7 @@ import JerdProcess
 /// Compiles each C fixture with `/usr/bin/cc`, through `CommandRunner`, into one stable folder.
 ///
 /// A binary is named by the hash of its source, so test runs reuse it and leave no new folder in
-/// `$TMPDIR` (fixed review L12). A changed source gets a new name. Parallel runs compile into a
+/// `$TMPDIR`. A changed source gets a new name. Parallel runs compile into a
 /// private temporary name and rename it into place, so no run sees a partial binary.
 actor Fixtures {
     static let shared = Fixtures()

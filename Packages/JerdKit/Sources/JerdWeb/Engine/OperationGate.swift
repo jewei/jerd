@@ -2,7 +2,7 @@ import os
 
 /// A first-in, first-out lock for one operation at a time across actor suspension points.
 ///
-/// It replaces a Bool flag with sleep loops (spec B 7.2.1): a waiter suspends without polling
+/// It replaces a Bool flag with sleep loops: a waiter suspends without polling
 /// and `leave()` hands the lock to the next waiter directly.
 final class OperationGate: Sendable {
     private struct State {

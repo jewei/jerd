@@ -36,13 +36,13 @@ JerdFoundation and JerdProcess.
   process is the only listener, on that port only. Jerd never calls the public hostname.
 - Backoff after an exit: 2, 5, 15, 30, then 60 seconds. It starts again at 2 seconds after
   30 seconds of connection. A retry stops at an error that needs the user.
-- A retry continues only after a timeout, or after a launch failure that the connector marks with
-  `TunnelRetryableError` (a connector that exited before Jerd could check it). Every other
+- A retry continues only after a timeout, or after a launch failure with
+  `TunnelRetryableError`. The connector uses that error when it exited before Jerd could check it. Every other
   process failure, for example a missing executable or a log that cannot be opened, needs the user.
-- Failed-start limit: a start fails when its launch fails with a retryable error, or when the
-  connector exits within 15 seconds of its launch before any ready check. After 5 failed starts
-  in a row, the retries stop and the tunnel shows "The tunnel process failed to start 5 times in
-  a row, …" with the last error. A ready check sets the count to 0. A connector that ran longer
+- Failed-start limit: a start fails when its launch fails with a retryable error. It also fails
+  when the connector exits within 15 seconds of its launch before any ready check. After 5
+  failed starts in a row, the retries stop. The tunnel then shows "The tunnel process failed to
+  start 5 times in a row, …" with the last error. A ready check sets the count to 0. A connector that ran longer
   than 15 seconds and then exited (for example while the network is down) is retried without
   a limit.
 - Each tunnel has one work slot, keyed by generation (`TunnelWorkSlots`). Work clears only its
@@ -69,7 +69,7 @@ The tests use fakes for the connector, the Keychain, the processes, the commands
 One test runs a small fake `cloudflared` script. No test starts a tunnel or uses the network.
 
 No test has a deadline that a slow machine can miss. The backoff and readiness tests move a
-manual clock. The supervisor tests wait for the event that they need: a change from
+manual clock. The supervisor tests wait for the event that they need. It is a change from
 `snapshotUpdates()`, a call that reaches the fake connector, or a sleeper on the manual clock.
 Only the fake `cloudflared` test checks its log again each millisecond, without a deadline. Each
 suite that waits has `.timeLimit(.minutes(1))`, which only stops a test that hangs.

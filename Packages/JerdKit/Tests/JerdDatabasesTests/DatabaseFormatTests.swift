@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdDatabases
@@ -66,7 +67,7 @@ import Testing
     }
 
     @Test func aCredentialFileIsPrivateAndAnInvalidOneIsPreserved() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let file = directory.path("credentials.json")
         let credentials = try DatabaseCredentials.generate()

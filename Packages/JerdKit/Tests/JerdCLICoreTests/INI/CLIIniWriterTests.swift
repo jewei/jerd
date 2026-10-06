@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdWeb
 import Testing
 
@@ -20,7 +21,7 @@ import Testing
         """
 
     @Test func plainINIHasTheExactCLIPolicy() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url)
         let file = try CLIIniWriter(layout: layout).writeINI(caBundle: nil)
@@ -31,7 +32,7 @@ import Testing
     }
 
     @Test func localCAGoesToItsOwnFileWithQuotedPaths() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url)
         let writer = CLIIniWriter(layout: layout)
@@ -48,7 +49,7 @@ import Testing
     }
 
     @Test func unchangedFileIsNotRewritten() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let writer = CLIIniWriter(layout: DataLayout(root: directory.url))
         let file = try writer.writeINI(caBundle: nil)
@@ -58,7 +59,7 @@ import Testing
     }
 
     @Test func changedFileIsReplaced() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url)
         try OwnedDirectory.create(layout.runtimes.cliConfigurationDirectory)
@@ -68,7 +69,7 @@ import Testing
     }
 
     @Test func linkedINIIsPreservedAndRefused() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url)
         try OwnedDirectory.create(layout.runtimes.cliConfigurationDirectory)
@@ -79,14 +80,14 @@ import Testing
     }
 
     @Test func bundlePathWithINIExpansionIsRefused() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let writer = CLIIniWriter(layout: DataLayout(root: directory.url))
         #expect(throws: JerdError.self) { try writer.writeINI(caBundle: URL(fileURLWithPath: "/x/${HOME}/ca.pem")) }
     }
 
     @Test func emptyScanFolderIsPrivate() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url)
         let folder = try CLIIniWriter(layout: layout).prepareEmptyScanDirectory()

@@ -34,13 +34,14 @@ implements them in memory.
    message, and confirm button. Destructive confirms never use Return.
 5. Buttons and menu items use Title Case. Descriptions use sentence case.
 6. Every page stays alive behind the visible one (`retainedPage(isVisible:)`). A hidden page
-   takes no clicks, no keyboard focus, and no VoiceOver attention, and it announces nothing,
-   but its open sheets, dialogs, and alerts stay usable. Never put `.disabled` on a view that
+   takes no clicks, no keyboard focus, and no VoiceOver attention, and it announces nothing.
+   But its open sheets, dialogs, and alerts stay usable. Never put `.disabled` on a view that
    presents a sheet, a dialog, or an alert: the presentation inherits it. Disable each button.
 7. Copy through `AppState.clipboard`, so the toast shows from any page, sidebar, or menu.
-8. Work that changes the system or the shared configuration (sites, HTTPS setup, recovery,
-   PHP registrations, the default PHP, runtime activation, command-line tools) runs under
-   `AppState.operationLock`: one such operation at a time, and the quit waits for it.
+8. Some work changes the system or the shared configuration: sites, HTTPS setup, recovery,
+   PHP registrations, the default PHP, runtime activation, and command-line tools. This work
+   runs under `AppState.operationLock`. Only one such operation runs at a time, and the quit
+   waits for it.
 9. Read and change PHP registrations and the default PHP only through
    `AppState.registrations` (`RegistrationStore`), so every page shows the same values.
 
@@ -84,7 +85,7 @@ The decision, checked against the macOS Human Interface Guidelines:
 - Cancel and Escape end a sheet without a question. The HIG keeps confirmations for actions
   that destroy data that the user cannot get back. A Quit that asks while Cancel does not
   would give one sheet two rules.
-- So Quit ends a sheet exactly as its Cancel does, and does not ask: the draft goes, a typed
+- So Quit ends a sheet exactly as its Cancel does, and does not ask. The draft goes, a typed
   tunnel token is cleared from memory, and a waiting HTTPS approval is discarded. Work that the
   sheet already started is not cut: the staged quit waits for it.
 - Every presenter builds its binding with `SheetBinding`. When SwiftUI or AppKit ends a sheet,
@@ -92,8 +93,8 @@ The decision, checked against the macOS Human Interface Guidelines:
   `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves the binding
   and each dismissal. That AppKit's `endSheet` clears the binding is SwiftUI behavior; the live
   run checks it.
-- If a sheet ever holds input that is expensive to type again, it asks once, with the same
-  alert, from its Cancel and from Quit; never from only one of them.
+- If a sheet ever holds input that is hard to type again, it asks once, with the same alert.
+  It asks from its Cancel and from Quit, never from only one of them.
 
 ## Add a feature
 
@@ -105,10 +106,10 @@ shell stays as it is.
    navigation it needs as init arguments, never the whole `AppState`.
 2. **`WorkspaceFeature`.** Conform the model: the dashboard card (`summary`), the menu bar
    entries (`menuItems`), the banner activity, `pollingPolicy`, and its shutdown
-   participants. Two members have defaults: `pollingTasks` (one loop at `pollingPolicy`;
-   return two `PollingTask`s for two kinds of state, for example sites at `.environment` and
-   tunnels at `.tunnels`) and `newItemAction` (nil; return the File › New command, for
-   example "New Site…", which ⌘N runs also when the sidebar is hidden).
+   participants. Two members have defaults. `pollingTasks` gives one loop at `pollingPolicy`.
+   Return two `PollingTask`s for two kinds of state, for example sites at `.environment` and
+   tunnels at `.tunnels`. `newItemAction` is nil. Return the File › New command, for
+   example "New Site…". ⌘N runs it also when the sidebar is hidden.
 3. **Page.** Replace the section's line in `WorkspaceDetail.page(for:)`.
 4. **Sidebar.** Replace the section's line in `WorkspaceSidebar.content`. Bind the `List`
    to `state.sidebarSelection(in:)` and tag each row with its `SidebarSelection`. Put the

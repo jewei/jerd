@@ -30,7 +30,7 @@ package final class ArchiveReader {
 
     deinit { archive_read_free(handle) }
 
-    /// Refuses a system library older than the headers this module was written against (P-A4).
+    /// Refuses a system library older than the headers this module was written against.
     package static func requireSupportedLibrary(version: Int32) throws {
         guard version >= minimumLibraryVersion else { throw ArchiveFailure.libraryUnsupported }
     }
@@ -49,7 +49,14 @@ package final class ArchiveReader {
             size: archive_entry_size_is_set(entry) != 0 ? archive_entry_size(entry) : nil,
             symlinkTarget: archive_entry_symlink_utf8(entry).map { String(cString: $0) },
             hardlinkTarget: archive_entry_hardlink_utf8(entry).map { String(cString: $0) },
-            permissions: UInt32(archive_entry_perm(entry)))
+            permissions: UInt32(archive_entry_perm(entry)),
+            modificationTime: Self.modificationTime(of: entry))
+    }
+
+    private static func modificationTime(of entry: OpaquePointer) -> EntryTimestamp? {
+        guard archive_entry_mtime_is_set(entry) != 0 else { return nil }
+        return EntryTimestamp(
+            seconds: Int64(archive_entry_mtime(entry)), nanoseconds: Int(archive_entry_mtime_nsec(entry)))
     }
 
     /// Reads the next data bytes of the current entry into `buffer`. Returns 0 at the end of the entry.

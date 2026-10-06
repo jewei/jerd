@@ -70,7 +70,7 @@ import Testing
         #expect(throws: failure) { try parse(builder(hashed: Builder.fingerprint() + [0x09, 20, 1])) }
     }
 
-    /// RFC 4880 §5.2.3.1: a first octet from 192 to 254 starts a two-octet length (problem P-S1).
+    /// RFC 4880 §5.2.3.1: a first octet from 192 to 254 starts a two-octet length.
     @Test func twoOctetSubpacketLengthAboveTwoHundredTwentyThreeIsAccepted() throws {
         let length = 8_384
         let first = UInt8((length - 192) >> 8 + 192)

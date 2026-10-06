@@ -3,7 +3,7 @@ import Foundation
 /// The feed steps: a pull request with the signed feed, its merge, and the public feed URL.
 extension ReleasePublisher {
     /// Commits the candidate feed on top of `main` and opens a pull request. The commit is made with Git
-    /// plumbing and a temporary index, so no worktree exists that could leak (fixes spec G 8.1 #9). A
+    /// plumbing and a temporary index, so no worktree exists that could leak. A
     /// pull request of an interrupted run is used again.
     func proposeFeed(_ facts: PublicationFacts) async throws -> Int {
         let listed = try await shell.gh([

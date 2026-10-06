@@ -30,8 +30,12 @@ It depends on JerdFoundation and on the macOS system libarchive (`CArchive`).
 - Two selected names that differ only in case or Unicode form fail.
 - A file is created with `O_EXCL | O_NOFOLLOW`. Its mode is 0700 when the entry has an
   execute bit, else 0600. Folders get mode 0700.
+- Each file gets the modification time of its entry. Build tools such as `make` compare
+  these times. With write times, a source file late in the archive would look newer than
+  the files that were made from it. Folder times are not restored.
 - A link must stay inside the archive (and inside the root). A selected link becomes a
-  regular copy of its final extracted file. No symbolic link is ever created.
+  regular copy of its final extracted file, with the same mode and time. No symbolic link
+  is ever created.
 - Cancellation is checked for each entry and each 1 MiB chunk.
 - A failed extraction leaves partial output. Extract into a staging folder and remove it.
 

@@ -2,11 +2,12 @@ import Foundation
 import JerdFoundation
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @Suite struct DirectorySizeTests {
     @Test func theSizeCountsRegularFilesAndNeverFollowsLinks() async throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try write("12345", to: directory.path("tree/a"))
         try write("123", to: directory.path("tree/sub/b"))
@@ -17,7 +18,7 @@ import Testing
     }
 
     @Test func aTreeAboveTheEntryLimitHasNoSize() async throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         for index in 0..<4 { try write("x", to: directory.path("tree/\(index)")) }
         await #expect(throws: JerdError.self) {
@@ -26,7 +27,7 @@ import Testing
     }
 
     @Test func aCancelledSizeCheckStops() async throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         try write("x", to: directory.path("tree/a"))
         let task = Task {

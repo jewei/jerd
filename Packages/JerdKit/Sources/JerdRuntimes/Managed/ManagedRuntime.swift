@@ -34,7 +34,7 @@ public struct ManagedRuntime: Identifiable, Hashable, Sendable {
     ///
     /// A release with a digest must have exactly that digest. A release whose digest is known only
     /// after the download (MySQL, signed) or after resolution (Laravel) matches its kind and version,
-    /// so its installed build is found and not downloaded again (fixes P-I3).
+    /// so its installed build is found and not downloaded again.
     public func matches(_ release: RuntimeRelease) -> Bool {
         guard kind == release.kind, releaseVersion == release.version else { return false }
         return release.archiveSHA256.map { $0 == archiveSHA256 } ?? true

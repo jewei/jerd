@@ -63,7 +63,7 @@ import Testing
         #expect(try Data(contentsOf: license) == Data("preserve this corrupt file".utf8))
     }
 
-    /// RT-1: the first-launch verification and copy run on a GCD thread; a cancellation must stop them.
+    /// The first-launch verification and copy run on a GCD thread; a cancellation must stop them.
     @Test func cancellationStopsTheFirstLaunchInstallationWhileItRuns() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
@@ -78,7 +78,7 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: mailRuntimes.path).isEmpty)
     }
 
-    /// RT-7: a crash during a first-launch copy leaves a staging folder; the next start removes it
+    /// A crash during a first-launch copy leaves a staging folder; the next start removes it
     /// from each of the four group folders, but never a folder in use or an installed payload.
     @Test func abandonedStagingFoldersOfEveryGroupAreRemoved() async throws {
         let folder = try TemporaryFolder()

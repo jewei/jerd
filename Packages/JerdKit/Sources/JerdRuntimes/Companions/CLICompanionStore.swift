@@ -25,7 +25,7 @@ public struct CLICompanionStore: Sendable {
     /// The record, or nil when it does not exist.
     public func load() throws -> CLICompanions? { try store.load() }
 
-    /// Rule B7: records the bundled tools after first-launch installation.
+    /// Records the bundled tools after first-launch installation.
     ///
     /// Without a record, the bundled tools become the selection. With a record, its paths stay
     /// (a later managed selection survives); a missing version is filled only for a path that is the bundled one.
@@ -45,7 +45,7 @@ public struct CLICompanionStore: Sendable {
         return merged
     }
 
-    /// Rule I19: selects a managed Composer or Laravel installer build and keeps the other tool.
+    /// Selects a managed Composer or Laravel installer build and keeps the other tool.
     /// - Throws: `.invalid` for another kind; `.unavailable` when no record exists yet.
     @discardableResult
     public func activate(_ runtime: ManagedRuntime) throws -> CLICompanions {

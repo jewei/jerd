@@ -26,7 +26,7 @@ public struct StartGate: Sendable {
     /// Refuses at once when the record of `location` names a process that may still live. It
     /// needs no lock and changes no file, so a start can run it before its port checks: after a
     /// crash the earlier process still listens, and the user must see recovery, not "port
-    /// occupied" (review final-domain-r1 M1). A stale record stays for the locked check.
+    /// occupied". A stale record stays for the locked check.
     /// - Throws: `.corrupt` for an unreadable record, `.unavailable` while a saved process may live.
     public func requireNoLiveRecord(_ location: RecordLocation) throws {
         guard FileProbe.presence(at: location.recordFile).mayExist else { return }

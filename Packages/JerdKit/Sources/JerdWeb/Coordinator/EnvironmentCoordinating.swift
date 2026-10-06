@@ -2,7 +2,7 @@
 /// depend on this role so tests can use a fake.
 ///
 /// It has no rollback policy: it never restarts a previous plan on its own. The site change
-/// transaction owns rollback (spec B 7.1.7).
+/// transaction owns rollback.
 public protocol EnvironmentCoordinating: Sendable {
     func snapshot() async -> EnvironmentSnapshot
     /// The plan that runs now, or nil.

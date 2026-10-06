@@ -15,12 +15,11 @@ struct SiteChangeRequest: Sendable {
     let candidate: AppConfiguration
     let selection: RunSelection
 
-    /// Hostnames that the edit removes or renames. They leave the approved set (spec B 7.1.9).
+    /// Hostnames that the edit removes or renames. They leave the approved set.
     var removedHostnames: Set<String> {
         Set(previous.sites.map(\.hostname)).subtracting(candidate.sites.map(\.hostname))
     }
 
-    /// Every registered hostname, enabled or not, so an approval keeps disabled sites approved
-    /// (spec B 7.1.10).
+    /// Every registered hostname, enabled or not, so an approval keeps disabled sites approved.
     var registeredHostnames: [String] { candidate.sites.map(\.hostname) }
 }

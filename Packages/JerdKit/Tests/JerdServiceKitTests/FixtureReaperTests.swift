@@ -2,12 +2,13 @@ import Darwin
 import Foundation
 import JerdProcess
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 /// The guard that `TemporaryDirectory.remove()` runs: no fixture may outlive its test.
 @Suite struct FixtureReaperTests {
     @Test func aFixtureThatIgnoresSIGTERMInTheTestFolderIsFoundAndKilled() async throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let folder = directory.path("instance ü")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
@@ -24,7 +25,7 @@ import Testing
     }
 
     @Test func aFolderWithoutProcessesReturnsAtOnce() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let started = ContinuousClock.now
         #expect(FixtureReaper.reap(in: directory.url).isEmpty)

@@ -7,7 +7,7 @@ import JerdFoundation
 /// interruption, or a reply timeout drops it, but only if it is still the current link, so a late
 /// event of an old link never drops a newer one. A reply timeout does not drop a link that carries a
 /// call without a timeout (a change that can wait for macOS approval): dropping it would interrupt
-/// that change (fixed review M1). Transport errors become one stable message.
+/// that change. Transport errors become one stable message.
 public actor HelperConnection {
     private let opener: any HelperLinkOpening
     private let responder: ConsentResponder

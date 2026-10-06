@@ -1,7 +1,7 @@
 /// Decides from cloudflared's own output that Cloudflare rejected the tunnel token.
 ///
 /// Earlier builds matched words such as "unauthorized" anywhere in the log, so an origin that
-/// answered 401 stopped the connector as "token rejected" (spec E 7.1.3). This classifier accepts
+/// answered 401 stopped the connector as "token rejected". This classifier accepts
 /// only whole cloudflared log lines, anchored at the line start:
 ///
 /// - `[<timestamp>] [ERR|FTL] Provided Tunnel token is not valid.` (the token does not decode).

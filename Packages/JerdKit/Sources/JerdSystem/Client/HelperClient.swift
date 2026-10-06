@@ -51,7 +51,7 @@ public actor HelperClient {
 
     /// Asks the helper for the HTTP and HTTPS listeners on ports 80 and 443.
     ///
-    /// A late reply after a timeout closes the listeners it carries (fixed problem 9).
+    /// A late reply after a timeout closes the listeners it carries.
     public func acquireListeners() async throws -> LoopbackListenerPair {
         try await connection.call { proxy, gate in
             proxy.acquireListeners { http, https, error in

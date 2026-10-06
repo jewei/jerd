@@ -7,6 +7,6 @@ public struct BundledDevelopmentRuntimes: Sendable {
     public let caddy: InstalledPayload
     public let composer: InstalledPayload
     public let laravel: InstalledPayload
-    /// The CLI tool record after the merge of rule B7.
+    /// The CLI tool record after the merge.
     public let companions: CLICompanions
 }

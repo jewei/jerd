@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 
 @testable import JerdWeb
 

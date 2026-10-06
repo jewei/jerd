@@ -64,7 +64,7 @@ enum RecoveryAssessor {
             intendedHostnames: [], policies: [])
     }
 
-    /// The policies that a recovery can apply, in one stable order (fixed problem 16).
+    /// The policies that a recovery can apply, in one stable order.
     static func policies(_ pending: PendingRecord) -> [CertificateTrustPolicy] {
         Set([pending.reference.trustPolicy] + [pending.previous?.trustPolicy].compactMap { $0 }).sorted()
     }
@@ -73,7 +73,7 @@ enum RecoveryAssessor {
     /// (previous, intended, none) that the current section matches. Nil when no state matches.
     ///
     /// The match uses the section rule only. The external-mapping rule applies to the `target`
-    /// hostnames alone, so an outside line that maps a recorded name blocks no removal (fixed review L1).
+    /// hostnames alone, so an outside line that maps a recorded name blocks no removal.
     static func hosts(_ current: Data, pending: PendingRecord, target: [Hostname]) -> Data? {
         let recorded = [pending.previous?.hostnames.values ?? [], pending.intended?.hostnames.values ?? [], []]
         guard let expected = recorded.first(where: { HostsSection.tracks($0, in: current) }) else { return nil }

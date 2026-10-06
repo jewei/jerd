@@ -1,4 +1,4 @@
-/// The states of a site change (spec B 3.13). The transaction moves through them in order and
+/// The states of a site change. The transaction moves through them in order and
 /// records each move, so tests can check every edge.
 public enum SiteChangePhase: Equatable, Sendable {
     case idle

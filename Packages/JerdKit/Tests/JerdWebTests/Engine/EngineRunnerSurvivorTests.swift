@@ -6,7 +6,7 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review final-domain-r1 L1: a web process that is still running after its stop keeps the run,
+/// A web process that is still running after its stop keeps the run,
 /// its records, and the environment lock, and the state says so. A later stop retries.
 @Suite struct EngineRunnerSurvivorTests {
     private func recordNames(_ layout: RunLayout) throws -> [String] {

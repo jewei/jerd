@@ -4,10 +4,10 @@ import Testing
 
 @testable import JerdWeb
 
-/// Review web-r1 L2 and L3: when a change takes its stop ticket, and what the transaction's
+/// When a change takes its stop ticket, and what the transaction's
 /// Stop does.
 @Suite struct SiteChangeStopTests {
-    /// L2: the ticket is taken before the first suspension, so a Stop while the change reads the
+    /// The ticket is taken before the first suspension, so a Stop while the change reads the
     /// settings counts as a Stop during the change.
     @Test func aStopWhileTheChangeReadsTheSettingsCancelsIt() async throws {
         let hosts = BlockingHostsFile()
@@ -25,7 +25,7 @@ import Testing
         #expect(try await harness.registry.snapshot() == harness.before)
     }
 
-    /// L3: the transaction's Stop ends the change, prevents its restart, and stops the run.
+    /// The transaction's Stop ends the change, prevents its restart, and stops the run.
     @Test func theTransactionStopEndsTheChangeAndStopsTheRun() async throws {
         let harness = try await TransactionHarness()
         defer { harness.remove() }
@@ -39,7 +39,7 @@ import Testing
         #expect(await harness.coordinator.launches == 0)
     }
 
-    /// L3: without a change, the transaction's Stop still stops the run.
+    /// Without a change, the transaction's Stop still stops the run.
     @Test func theTransactionStopStopsAnIdleRun() async throws {
         let harness = try await TransactionHarness()
         defer { harness.remove() }

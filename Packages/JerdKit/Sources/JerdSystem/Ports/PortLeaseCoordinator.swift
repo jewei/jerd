@@ -7,7 +7,7 @@ import JerdFoundation
 ///
 /// States: `idle` → `mutating` (configure, remove, recover) → `idle`, and `idle` → `acquiring` →
 /// `idle` (with or without a new lease). A setup change needs no lease. Each refusal has its own
-/// message (fixed problem 22).
+/// message.
 public struct PortLeaseCoordinator<Resource: Sendable>: Sendable {
     /// The setup changes that exclude a lease.
     public enum Mutation: String, Sendable, CaseIterable {

@@ -1,35 +1,5 @@
 import Darwin
 import Foundation
-import Testing
-
-/// A private temporary folder for one test. The name has a space and non-ASCII text on purpose.
-package struct TemporaryDirectory {
-    package let url: URL
-
-    package init(_ suffix: String = " service kit ü") throws {
-        url = FileManager.default.temporaryDirectory.appendingPathComponent("jerd-tests-\(UUID().uuidString)\(suffix)")
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
-        chmod(url.path, 0o700)
-    }
-
-    package func path(_ relative: String) -> URL { url.appendingPathComponent(relative) }
-
-    /// Removes the folder after the guard against leaked fixtures: a process that still runs in the
-    /// folder fails the test and is killed, so no fixture outlives the test run.
-    package func remove() {
-        let survivors = FixtureReaper.reap(in: url)
-        if !survivors.isEmpty {
-            Issue.record("Fixture processes \(survivors) outlived their test. They were killed.")
-        }
-        try? FileManager.default.removeItem(at: url)
-    }
-}
-
-/// The bytes of a file, or nil when it cannot be read.
-package func contents(_ url: URL) -> Data? { try? Data(contentsOf: url) }
-
-/// The text of a file, or "" when it cannot be read.
-package func text(_ url: URL) -> String { contents(url).map { String(decoding: $0, as: UTF8.self) } ?? "" }
 
 /// True when something (also a dangling link) is at `url`.
 package func exists(_ url: URL) -> Bool {

@@ -4,7 +4,7 @@ import JerdProcess
 
 /// Inspects the runtimes of a plan again and refuses a change since the saved inspection.
 ///
-/// It is the one place for this check, used by both preflight and start (spec B 7.3.4).
+/// It is the one place for this check, used by both preflight and start.
 struct RuntimeDriftCheck: Sendable {
     let commands: any CommandRunning
 

@@ -76,7 +76,7 @@ public struct PinnedPayloadPreparer: Sendable {
     }
 
     /// Removes the staging folders that an interrupted preparation left in the group folders of
-    /// `output` (P-I6, RT-7). A folder whose preparation still runs holds its lock and is kept.
+    /// `output`. A folder whose preparation still runs holds its lock and is kept.
     /// - Returns: `<group>/<name>` of each removed folder.
     @discardableResult
     public func removeAbandonedStaging() -> [String] {

@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct CommandRunnerTests {
@@ -49,7 +50,7 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path("tmp").path).isEmpty)
     }
 
-    /// Fixed review L5: a command that survives its cleanup is named by PID, its log is closed,
+    /// Regression test: a command that survives its cleanup is named by PID, its log is closed,
     /// and Jerd reaps it after it exits.
     @Test func aCommandThatSurvivesItsCleanupIsReportedByPIDAndReapedLater() async throws {
         let folder = try TemporaryDirectory()

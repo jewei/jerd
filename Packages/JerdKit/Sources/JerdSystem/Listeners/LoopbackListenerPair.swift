@@ -24,7 +24,7 @@ public struct LoopbackListenerPair: Sendable {
     /// Binds `127.0.0.1:<httpPort>` and `127.0.0.1:<httpsPort>`. Port 0 picks a free port.
     ///
     /// A fixed port that already has a listener is refused, also a wildcard one, which a bind with
-    /// `SO_REUSEADDR` could otherwise shadow (problem 10). When the second bind fails, the first
+    /// `SO_REUSEADDR` could otherwise shadow. When the second bind fails, the first
     /// listener is closed. See `listen(on:probe:)` for the one remaining window.
     public static func bind(httpPort: UInt16, httpsPort: UInt16) throws -> LoopbackListenerPair {
         try bind(httpPort: httpPort, httpsPort: httpsPort) { LoopbackSocket.accepts(port: $0) }
@@ -46,7 +46,7 @@ public struct LoopbackListenerPair: Sendable {
         }
     }
 
-    /// Binds one port without a check-then-bind race in the usual case (fixed review L3).
+    /// Binds one port without a check-then-bind race in the usual case.
     ///
     /// The first bind has no `SO_REUSEADDR`, so the kernel itself refuses it while any listener holds
     /// the port. Only when that bind finds the address in use does the probe run: a listener that

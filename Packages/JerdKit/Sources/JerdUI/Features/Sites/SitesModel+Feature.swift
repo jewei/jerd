@@ -8,7 +8,7 @@ extension SitesModel: WorkspaceFeature {
     /// Tunnels, then PHP-FPM and Caddy last. The shared lock ends pending site work first.
     public var shutdownParticipants: [any ShutdownParticipant] { [tunnels, self] }
 
-    /// The environment at 500 ms and the tunnels at 1 s while visible (spec F 2.9).
+    /// The environment at 500 ms and the tunnels at 1 s while visible.
     public var pollingTasks: [PollingTask] {
         [
             PollingTask(policy: .environment) { [weak self] in await self?.refresh() },

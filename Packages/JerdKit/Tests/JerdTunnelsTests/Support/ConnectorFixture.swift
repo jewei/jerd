@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import JerdTunnels
 
 /// A `CloudflaredConnector` in a temporary data root, with fake processes, fake commands, and a fake
@@ -16,7 +17,7 @@ struct ConnectorFixture {
     let registration = TunnelRegistration(name: "Preview", hostname: "preview.example.com")
 
     init(capture: @escaping ActiveRunRecorder.Capture = ConnectorFixture.fakeIdentity) throws {
-        folder = try TemporaryDirectory()
+        folder = try TemporaryDirectory(" tunnels")
         let runtimeFolder = folder.url.appendingPathComponent("runtime", isDirectory: true)
         try FileManager.default.createDirectory(at: runtimeFolder, withIntermediateDirectories: true)
         let executable = runtimeFolder.appendingPathComponent("cloudflared")

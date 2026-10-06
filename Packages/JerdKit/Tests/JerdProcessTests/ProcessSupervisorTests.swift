@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdProcess
@@ -109,7 +110,7 @@ import Testing
         #expect(await supervisor.engineRuns == 1)
     }
 
-    /// Fixed review L6: the final log problem of a stopped child stays visible, and the finished
+    /// Regression test: the final log problem of a stopped child stays visible, and the finished
     /// results are bounded.
     @Test func theFinalTrimFailureOfAStoppedChildIsReported() async throws {
         let folder = try TemporaryDirectory()

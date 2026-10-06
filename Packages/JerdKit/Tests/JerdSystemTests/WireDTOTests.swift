@@ -50,7 +50,7 @@ import Testing
         #expect(recovery.policies == [.serverTLS])
     }
 
-    /// Fixed review L4: an old app decodes the report of an unreadable record and shows it with both
+    /// Regression test: an old app decodes the report of an unreadable record and shows it with both
     /// actions disabled, and the new app reads the placeholders as nil again.
     @Test func anUnreadableRecoveryReportDecodesInAnOldApp() throws {
         let report = RecoveryAssessor.unreadable(

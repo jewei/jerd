@@ -1,11 +1,12 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdProcess
 
-/// Fixed review L11: these tests fail when the spawn attributes do not reset the signal state.
+/// Regression test: these tests fail when the spawn attributes do not reset the signal state.
 @Suite struct SpawnerSignalMaskTests {
     /// Spawns from the calling thread while `signal` is blocked in that thread only.
     private func spawn(_ plan: SpawnPlan, output: Int32, blocking signal: Int32) throws -> pid_t {

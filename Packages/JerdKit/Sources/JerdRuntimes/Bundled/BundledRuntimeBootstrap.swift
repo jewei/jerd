@@ -18,7 +18,7 @@ public actor BundledRuntimeBootstrap {
         companions = CLICompanionStore(layout: layout)
     }
 
-    /// Rule B1: the development group is needed when PHP or Caddy is not configured or when the
+    /// The development group is needed when PHP or Caddy is not configured or when the
     /// CLI tool record is missing or has no versions. A corrupt record throws and is preserved.
     public func needsDevelopmentRuntimes(hasPHP: Bool, hasCaddy: Bool) throws -> Bool {
         guard let record = try companions.load() else { return true }
@@ -60,7 +60,7 @@ public actor BundledRuntimeBootstrap {
         try await single(.storage, into: layout.runtimes.storageRuntimesDirectory)
     }
 
-    /// Removes the staging folders that a crash or a kill left in the four group folders (P-I6, RT-7).
+    /// Removes the staging folders that a crash or a kill left in the four group folders.
     ///
     /// A staging folder whose installation still runs, in this or another process, holds its lock
     /// and is kept. Call it at launch. Installed payload folders are never touched.
@@ -72,7 +72,7 @@ public actor BundledRuntimeBootstrap {
         }
     }
 
-    /// The reviewed XZ library of the bundled RustFS payload, for managed RustFS updates (P-I1).
+    /// The reviewed XZ library of the bundled RustFS payload, for managed RustFS updates.
     /// Nil when the bundled payload has none (development builds).
     public func bundledLZMA() throws -> SupportLibrary? {
         guard let payload = try source.payloads(in: .storage).first else { return nil }

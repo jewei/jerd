@@ -1,11 +1,12 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
 @Suite struct ConnectorLogHistoryTests {
     private func prepared() throws -> (TemporaryDirectory, ConnectorLogHistory) {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         let instance = folder.layout.instance(UUID())
         try OwnedDirectory.create(instance.root)
         return (folder, ConnectorLogHistory(instance: instance))

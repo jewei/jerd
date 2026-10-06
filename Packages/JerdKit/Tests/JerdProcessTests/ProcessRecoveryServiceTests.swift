@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct ProcessRecoveryServiceTests {
@@ -129,7 +130,7 @@ import Testing
         #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
     }
 
-    /// Fixed review L9: after a clock change moved the boot time, a saved descendant is matched by
+    /// Regression test: after a clock change moved the boot time, a saved descendant is matched by
     /// its start time and is not saved a second time.
     @Test func aSavedDescendantIsNotDuplicatedAfterAClockChange() async throws {
         let folder = try TemporaryDirectory()

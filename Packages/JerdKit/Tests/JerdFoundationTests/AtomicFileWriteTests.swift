@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @Suite struct AtomicFileWriteTests {
@@ -16,7 +17,7 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path) == ["record.json"])
     }
 
-    /// Fixed review L3: with `.full`, the folder entry of the rename also passes the drive cache.
+    /// Regression test: with `.full`, the folder entry of the rename also passes the drive cache.
     @Test(arguments: [AtomicFile.Durability.standard, .full])
     func theFolderEntryIsFlushedWithTheSameDurabilityAsTheData(durability: AtomicFile.Durability) throws {
         let folder = try TemporaryDirectory()

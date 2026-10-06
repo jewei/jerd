@@ -1,6 +1,6 @@
 import Foundation
 
-/// Old apps require `installationID` and `certificateDER` (fixed review L4). A missing value goes on
+/// Old apps require `installationID` and `certificateDER`. A missing value goes on
 /// the wire as a placeholder that an old app decodes and shows with both actions disabled: the nil
 /// UUID and empty certificate bytes. Both placeholders, and a missing key, decode as nil again.
 extension SystemRecoveryStatus {

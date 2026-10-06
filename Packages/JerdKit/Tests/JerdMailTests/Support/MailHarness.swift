@@ -5,6 +5,7 @@ import JerdMail
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import os
 
 /// A mail manager with fake processes, commands, `lsof`, and Mailpit answers, in a temporary
@@ -32,7 +33,7 @@ final class MailHarness: Sendable {
     private let script = OSAllocatedUnfairLock(initialState: Script())
 
     init() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         self.directory = directory
         layout = DataLayout(root: directory.path("Jerd"))
         try OwnedDirectory.create(layout.root)

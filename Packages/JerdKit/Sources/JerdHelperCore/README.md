@@ -26,8 +26,8 @@ as root through `SMAppService`. `Apps/JerdHelper/main.swift` calls only `HelperD
 - Listeners go only to a ready setup: hosts and trust configured with the server TLS policy, and
   no interrupted or running transaction. A connection that closes gets no lease.
 - Changing requests of one session run in arrival order. Listener calls keep their own order and
-  never wait behind a change: during a change they are refused at once ("System setup is in
-  progress"), because the app gives them only 20 seconds. A request that arrives after the close is
+  never wait behind a change, because the app gives them only 20 seconds. During a change,
+  they are refused at once ("System setup is in progress"). A request that arrives after the close is
   refused.
 - `TrustInstaller` deletes a keychain item that it added when a later step fails. It never deletes
   an item that existed before.

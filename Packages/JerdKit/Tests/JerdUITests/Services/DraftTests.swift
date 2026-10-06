@@ -19,7 +19,7 @@ struct DraftTests {
         #expect(draft.portText.isEmpty)
     }
 
-    @Test("An engine change keeps a typed name (spec F 7.2.7) and replaces a default one")
+    @Test("An engine change keeps a typed name and replaces a default one")
     func engineChangeKeepsTypedName() {
         var draft = DatabaseDraft.add(.mysql, in: configuration)
         draft.changeEngine(.redis, in: configuration)
@@ -89,7 +89,7 @@ struct DraftTests {
         #expect(draft.issue(in: configuration) == "Port 5432 is used by Reporting.")
     }
 
-    @Test("Spaces alone never make a bucket name (spec F 7.2.12)")
+    @Test("Spaces alone never make a bucket name")
     func blankBucketName() {
         let draft = BucketDraft(name: "   ")
         #expect(!draft.canSave(in: StorageSettings()))

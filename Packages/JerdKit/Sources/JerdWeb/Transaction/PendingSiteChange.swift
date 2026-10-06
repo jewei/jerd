@@ -3,7 +3,7 @@ public struct PendingSiteChange: Sendable {
     /// What the approval sheet shows.
     public let setup: HTTPSSetup
     let request: SiteChangeRequest
-    /// The preflight result, reused after approval when nothing changed (spec B 7.1.8).
+    /// The preflight result, reused after approval when nothing changed.
     let prepared: PreparedPlan?
 }
 

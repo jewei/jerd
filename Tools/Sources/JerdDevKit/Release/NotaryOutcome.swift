@@ -3,7 +3,7 @@ import Foundation
 /// The JSON result of `notarytool submit --wait --output-format json`.
 ///
 /// It is read from standard output only. Progress and warnings go to standard error and can never
-/// break the parse (fixes spec G 8.1 #3). `notarytool` exits with a non-zero status for an `Invalid`
+/// break the parse. `notarytool` exits with a non-zero status for an `Invalid`
 /// result, so the caller parses standard output before it looks at the status.
 struct NotaryOutcome: Codable, Equatable, Sendable {
     var id: String?

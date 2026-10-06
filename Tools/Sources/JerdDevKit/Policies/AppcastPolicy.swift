@@ -7,8 +7,8 @@ import JerdManifest
 /// a signed feed, so an edit without a new signature breaks every update check.
 ///
 /// When the structure and the signature block are valid, the policy verifies the Ed25519 signature with
-/// the official public key (`AppcastVerifier`), so an edit of the same length fails too (review
-/// tooling-r1 M2). This needs no private key, so CI checks it.
+/// the official public key (`AppcastVerifier`), so an edit of the same length fails too.
+/// This needs no private key, so CI checks it.
 enum AppcastPolicy {
     static let file = "appcast.xml"
     static let signatureMarker = "<!-- sparkle-signatures:"

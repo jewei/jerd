@@ -6,7 +6,7 @@ import Security
 /// Adds and removes the Jerd CA in the system keychain, and asks the app for each trust change.
 ///
 /// A keychain item that this call added is deleted again on any failure after the add, also when
-/// the approval was interrupted (fixed problem 4). An item that existed before is never deleted here.
+/// the approval was interrupted. An item that existed before is never deleted here.
 struct TrustInstaller: CertificateTrustChanging {
     let keychain: any KeychainCertificateStoring
     let inspector: any CertificateTrustInspecting

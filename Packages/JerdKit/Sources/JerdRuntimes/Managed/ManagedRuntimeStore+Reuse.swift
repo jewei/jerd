@@ -3,11 +3,11 @@ import JerdFoundation
 import JerdManifest
 
 extension ManagedRuntimeStore {
-    /// The installed and verified build of `release`, when one exists (I3).
+    /// The installed and verified build of `release`, when one exists.
     ///
     /// With a digest: the current folder name, then the legacy name; a folder of the same name with
     /// another kind or version is an error, with another digest it is skipped. Without a digest
-    /// (MySQL, Laravel): any usable build of the kind and version (fixes P-I3).
+    /// (MySQL, Laravel): any usable build of the kind and version.
     public func existing(_ release: RuntimeRelease) throws -> ManagedRuntime? {
         guard let sha256 = release.archiveSHA256 else { return try existingWithoutDigest(release) }
         let names = [
@@ -30,7 +30,7 @@ extension ManagedRuntimeStore {
         return nil
     }
 
-    /// The verified build in the target folder of a prepared payload, when it already exists (I7).
+    /// The verified build in the target folder of a prepared payload, when it already exists.
     public func existingBuild(
         kind: RuntimeKind, releaseVersion: String, archiveSHA256: String
     ) throws -> ManagedRuntime? {

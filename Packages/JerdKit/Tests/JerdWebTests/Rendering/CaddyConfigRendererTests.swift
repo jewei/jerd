@@ -13,8 +13,8 @@ import Testing
         #expect(try CaddySamples.loopbackOutput() == (try Fixture.data("caddy/caddy-loopback.json")))
     }
 
-    /// Appendix A is the output of the old generator. The new output differs only by the fixes
-    /// that `AppendixFixes` names: spec B 7.1.1 and 7.1.2, and review web-r1 C1, M1, and L1.
+    /// The old generator wrote the sample output. The new output differs only by the fixes
+    /// that `AppendixFixes` names: the proxy time limit, `/.well-known/`, and the script selection.
     @Test func theOldAppendixOutputChangesOnlyByTheDocumentedFixes() throws {
         let expected = try #require(
             try JSONSerialization.jsonObject(

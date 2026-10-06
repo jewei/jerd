@@ -14,7 +14,7 @@ public struct BucketDraft: Equatable, Sendable {
         self.publicRead = publicRead
     }
 
-    /// The name without spaces around it. Spaces alone never make a name (spec F 7.2.12).
+    /// The name without spaces around it. Spaces alone never make a name.
     public var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     /// The inline message under the name, or nil. An empty name shows no message; Save stays off.

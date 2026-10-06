@@ -38,6 +38,17 @@ struct RepositoryPolicy: Sendable {
                 MarkdownLinkPolicy.findings(file: path, markdown: try readText(path, in: repository), files: files)
             }
         },
+        RepositoryPolicy(title: "No private spec or review references") { repository in
+            let swift = try PrivateReferencePolicy.swiftFolders.flatMap { folder in
+                try FileTree.relativeFilePaths(under: repository.path(folder), pathExtension: "swift").map {
+                    "\(folder)/\($0)"
+                }
+            }
+            let files = try (try markdownFiles(in: repository) + swift).map { path in
+                (path: path, text: try readText(path, in: repository))
+            }
+            return PrivateReferencePolicy.findings(files: files)
+        },
     ]
 
     static func read(_ relativePath: String, in repository: Repository) throws -> Data {

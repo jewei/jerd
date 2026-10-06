@@ -52,7 +52,9 @@ struct ReleaseManifest: Codable, Equatable, Sendable {
         }
     }
 
-    /// The structural rules of spec G 2.6 step 1 to 3, without reading files.
+    /// The structural rules, without reading files: the known format, repository, architecture,
+    /// team, and source commit, valid version values, and exactly the four expected artifact names
+    /// with SHA-256 digests.
     func validate() throws {
         guard schemaVersion == Self.currentSchemaVersion else { throw invalid("an unknown format version") }
         guard repository == ReleaseNames.repository, architecture == ReleaseNames.architecture else {

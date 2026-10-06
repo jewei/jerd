@@ -11,7 +11,7 @@ extension TunnelReconnectPolicy {
             return .check(after: .zero)
         case .launchFailed(let failure):
             // The first launch reports every failure to the user. Later launches retry only
-            // failures that time can cure (spec E 7.1.2), and only up to the failed-start limit.
+            // failures that time can cure, and only up to the failed-start limit.
             guard lifecycle.hasLaunched, failure.isTransient else { return lifecycle.fail(failure.message) }
             return failedStart(&lifecycle, lastError: failure.message)
         case .probed(let probe):

@@ -42,7 +42,7 @@ import Testing
         }
     }
 
-    /// Review web-r1 L4: a waiting ping holds no thread of the cooperative pool. Twice as many
+    /// A waiting ping holds no thread of the cooperative pool. Twice as many
     /// silent pings as the pool has threads must still let another task run at once.
     @Test func waitingPingsLeaveTheCooperativePoolFree() async throws {
         let server = try FakeFPMServer(.silent)

@@ -1,7 +1,8 @@
 # JerdManifest
 
-JerdManifest holds the formats and the rules that the app and the `./dev` tool share:
-runtime pins, payload receipts, build receipts, payload folder IDs, and app update checks.
+JerdManifest holds the formats and the rules that the app and the `./dev` tool share.
+These are runtime pins, payload receipts, build receipts, payload folder IDs, and app
+update checks.
 It depends only on JerdFoundation. It does no network work.
 
 ## Main types

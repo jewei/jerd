@@ -71,7 +71,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
 
     /// Only the kinds that need a tool read it: Composer and the Laravel installer run with the
     /// default PHP (and Composer resolves the installer); RustFS gets the reviewed XZ library
-    /// of the bundled payload instead of Homebrew's (spec D P-I1). Other kinds need nothing, so
+    /// of the bundled payload instead of Homebrew's. Other kinds need nothing, so
     /// a corrupt site file never blocks a database or mail update.
     func tools(for kind: RuntimeKind) async throws -> PreparationTools {
         if kind.isPHPScript { return try await owners.records().preparationTools(lzma: nil) }

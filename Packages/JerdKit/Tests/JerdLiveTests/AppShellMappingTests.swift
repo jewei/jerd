@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdUI
 import Testing
 

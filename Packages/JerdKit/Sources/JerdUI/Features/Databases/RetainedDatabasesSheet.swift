@@ -42,7 +42,7 @@ package struct RetainedDatabasesSheet: View {
     }
 
     /// The list is information, so Done is the one default button on the far right, and Return
-    /// and Escape close the sheet (spec F 3.3). Inspect Again works inside the sheet, so it is
+    /// and Escape close the sheet. Inspect Again works inside the sheet, so it is
     /// the secondary button on the leading side.
     static func confirmation(model: DatabasesModel, isQuitting: Bool) -> SheetConfirmation {
         .done(

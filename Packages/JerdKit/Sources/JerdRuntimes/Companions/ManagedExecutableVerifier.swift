@@ -8,7 +8,7 @@ import JerdManifest
 /// `runtimes/<build>/` (bundled payloads: `payload-receipt.json`, or the legacy `jerd-receipt.json`)
 /// or `runtime-updates/<build>/` (`update-receipt.json` of kind PHP). Both receipt generations are read.
 ///
-/// Only the PHP CLI passes (spec B 3.19 step 2, RT-5): the file that the receipt names as its
+/// Only the PHP CLI passes: the file that the receipt names as its
 /// `executable`. A legacy development receipt names no executable; there the CLI is the top-level
 /// `php-native-<major>.<minor>` file that the old bootstrap used. FPM and notice files never pass.
 public struct ManagedExecutableVerifier: Sendable {

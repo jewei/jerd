@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
@@ -29,7 +30,7 @@ import Testing
         """
 
     @Test func earlierSettingsLoadAndSaveToTheSameBytes() throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let layout = folder.layout
         try OwnedDirectory.create(layout.root)
@@ -45,7 +46,7 @@ import Testing
     }
 
     /// Settings that an earlier build wrote with an IP address as hostname. That build accepted it;
-    /// the current Save refuses it (spec E 7.1.20).
+    /// the current Save refuses it.
     static let goldenAddressHostname = """
         {
           "schemaVersion" : 1,
@@ -62,10 +63,10 @@ import Testing
         }
         """
 
-    /// Fix of review tunnels-r1 L-3: the stricter hostname rule made such a file unreadable, and
+    /// Regression test: the stricter hostname rule made such a file unreadable, and
     /// every tunnel was blocked. It now loads, saves to the same bytes, and asks for an edit.
     @Test func earlierSettingsWithAnAddressHostnameLoadAndAskForAnEdit() async throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let layout = folder.layout
         try OwnedDirectory.create(layout.root)
@@ -90,7 +91,7 @@ import Testing
     }
 
     @Test func anAbsentFileLoadsAsEmptySettingsWithoutWriting() throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         #expect(try TunnelStore(layout: folder.layout).load() == TunnelConfiguration())
         #expect(FileProbe.presence(at: folder.layout.settingsFile) == .absent)
@@ -101,7 +102,7 @@ import Testing
         #"{"schemaVersion":1,"tunnels":[{"id":"32394787-9B89-41AE-A065-57520475754A","name":"A"}]}"#,
     ])
     func corruptSettingsArePreservedOnLoadAndSave(_ bytes: String) throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let layout = folder.layout
         try OwnedDirectory.create(layout.root)
@@ -127,7 +128,7 @@ import Testing
     }
 
     @Test func duplicateIDsOrMetricsPortsCannotBeSaved() throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let one = TunnelRegistration(name: "One", hostname: "one.example.com")
         let two = TunnelRegistration(name: "Two", hostname: "two.example.com")
@@ -160,7 +161,7 @@ import Testing
         }
     }
 
-    /// Fix of spec E 7.1.19: the picker and the installer gave one runtime three different ID forms.
+    /// Regression test: the picker and the installer gave one runtime three different ID forms.
     @Test func everyCheckedRuntimeGetsTheVersionID() throws {
         let runtime = TunnelRuntime(version: "2026.9.3", directory: URL(fileURLWithPath: "/opt/jerd/cloudflared"))
         #expect(runtime.id == "cloudflared-2026.9.3")

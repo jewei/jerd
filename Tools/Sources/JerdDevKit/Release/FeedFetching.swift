@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reads the public update feed at the URL that installed apps use, so publication checks what users
-/// get, not only the GitHub API (fixes spec G 8.1 #8).
+/// get, not only the GitHub API.
 protocol FeedFetching: Sendable {
     /// The bytes at `url`.
     /// - Throws: `DevFailure.checkFailed` for a transport error, an HTTP status other than 200, or a large answer.

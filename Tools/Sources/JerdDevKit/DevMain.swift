@@ -2,10 +2,12 @@ import ArgumentParser
 
 /// Parses the arguments, runs one command, and maps every result to a stable exit status.
 public enum DevMain {
-    /// The result of parsing: a command to run, or an exit status with the text to show.
+    /// The result of parsing: a command to run, the help text to show, or a usage error.
     enum Parsed {
         case command(any AsyncParsableCommand)
-        case exit(ExitStatus, message: String)
+        case help(String)
+        /// `text` is the full usage message; `reason` is its first sentence for the `--json` summary.
+        case usageError(text: String, reason: String, command: any ParsableCommand.Type)
     }
 
     /// Runs `./dev` with the arguments after the program name and returns the process exit status.
@@ -21,9 +23,18 @@ public enum DevMain {
 
     static func run(arguments: [String], output: any TextOutput) async -> Int32 {
         switch parse(arguments) {
-        case .exit(let status, let message):
-            output.write(message + "\n", to: status == .success ? .standardOutput : .standardError)
-            return status.rawValue
+        case .help(let text):
+            output.write(text + "\n", to: .standardOutput)
+            return ExitStatus.success.rawValue
+        case .usageError(let text, let reason, let command):
+            output.write(text + "\n", to: .standardError)
+            // The parser stops before a command runs, so `--json` must still get its one summary here.
+            if requestsJSON(arguments) {
+                let summary = RunReport().summary(
+                    command: UsageMessage.commandPath(command), status: .usage, message: reason)
+                output.write(RunReport.encoded(summary) + "\n", to: .standardOutput)
+            }
+            return ExitStatus.usage.rawValue
         case .command(let command):
             let status = await execute(command, output: output)
             return status.rawValue
@@ -34,7 +45,7 @@ public enum DevMain {
     /// an unknown command, is a usage error in the format of `UsageMessage`.
     static func parse(_ arguments: [String]) -> Parsed {
         if let topic = UsageMessage.unknownHelpTopic(in: arguments) {
-            return .exit(.usage, message: UsageMessage.text("Unknown command \"\(topic)\".", command: DevCommand.self))
+            return usageError("Unknown command \"\(topic)\".", command: DevCommand.self)
         }
         do {
             var command = try DevCommand.parseAsRoot(arguments)
@@ -43,14 +54,22 @@ public enum DevMain {
             }
             // Only ArgumentParser's own `help` command is synchronous. It reports the help text as an error.
             try command.run()
-            return .exit(.success, message: DevCommand.helpMessage())
+            return .help(DevCommand.helpMessage())
         } catch {
             guard DevCommand.exitCode(for: error) != .success else {
-                return .exit(.success, message: DevCommand.fullMessage(for: error))
+                return .help(DevCommand.fullMessage(for: error))
             }
-            let command = UsageMessage.command(for: arguments)
-            return .exit(.usage, message: UsageMessage.text(DevCommand.message(for: error), command: command))
+            return usageError(DevCommand.message(for: error), command: UsageMessage.command(for: arguments))
         }
+    }
+
+    private static func usageError(_ reason: String, command: any ParsableCommand.Type) -> Parsed {
+        .usageError(text: UsageMessage.text(reason, command: command), reason: reason, command: command)
+    }
+
+    /// True when `--json` comes before any `--` terminator, the same place where the parser reads it.
+    static func requestsJSON(_ arguments: [String]) -> Bool {
+        arguments.prefix(while: { $0 != "--" }).contains("--json")
     }
 
     /// Runs the command. With `--json`, it also prints one JSON summary on standard output at the end.
@@ -64,7 +83,7 @@ public enum DevMain {
             output.write(text + "\n", to: .standardError)
         }
         if let report {
-            let name = type(of: command).configuration.commandName ?? "dev"
+            let name = UsageMessage.commandPath(type(of: command))
             let summary = report.summary(command: name, status: status, message: message)
             output.write(RunReport.encoded(summary) + "\n", to: .standardOutput)
         }

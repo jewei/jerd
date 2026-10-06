@@ -4,6 +4,7 @@ import JerdFoundation
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 /// Real child processes from the C fixtures, with a real supervisor and fake `lsof`.

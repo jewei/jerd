@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-/// One in-flight fetch that several waiters share (fixes RT-2).
+/// One in-flight fetch that several waiters share.
 ///
 /// A cancelled waiter stops waiting at once and gets `CancellationError`. The fetch goes on for the
 /// other waiters. When the last waiter leaves, the fetch is cancelled and marked abandoned, so a new

@@ -4,7 +4,7 @@ import JerdRuntimes
 
 /// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared payloads into the
 /// app. It verifies every payload receipt (pin, file set, SHA-256, executable flags) before it copies,
-/// so an app never contains a payload that its receipt does not describe (review tooling-r1 H1).
+/// so an app never contains a payload that its receipt does not describe.
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.
     static let destinationName = BundledPayloadSource.folderName

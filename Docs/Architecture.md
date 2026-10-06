@@ -30,9 +30,6 @@ reviewable alone.
 
 ## Targets
 
-The table describes the target design of the rewrite. A target whose folder
-holds only `Placeholder.swift` is not built yet.
-
 | Target | Responsibility |
 | --- | --- |
 | `JerdFoundation` | `JerdError`, safe private files, atomic writes, instance locks, versioned JSON documents, the data layout, `.test` hostnames, secrets, digests, safe relative paths |
@@ -56,6 +53,10 @@ holds only `Placeholder.swift` is not built yet.
 | `JerdSnapshotSupport` | Offscreen snapshot rendering, the snapshot catalog, and the component gallery; never linked into the app |
 | `JerdSnapshots` | Renders every page with fixtures to PNG files |
 
+Two test-only targets in `Tests/` support the test targets and never ship.
+`JerdTestSupport` holds `TemporaryDirectory` and `FixtureReaper` for every test
+target. `JerdServiceKitTestSupport` holds the fakes of the service tests.
+
 ## Patterns
 
 **Pure policy, effectful shell.** Rules are pure values and functions with
@@ -68,9 +69,9 @@ the clock, HTTP fetches, the keychain. Live types use the system. Tests use
 fakes. View models depend only on ports.
 
 **Explicit state machines.** Every long-running component has a named state
-enum and one function that changes it: managed instances, the environment
-coordinator, the site change transaction, the setup transaction, tunnels,
-and the release publisher of the planned `./dev release` command.
+enum and one function that changes it. These components are managed instances,
+the environment coordinator, the site change transaction, the setup
+transaction, tunnels, and the release publisher of `./dev release`.
 
 **One owner per file.** Each saved file has exactly one type that reads and
 writes it. That type keeps the exact compatible encoding and the backup copy.
@@ -81,7 +82,7 @@ message of the operation that failed, once, on the page that owns it.
 ## Process model
 
 PHP-FPM, Caddy, and all data services run as the user, in their own process
-groups, with a clean environment and only the file descriptors that they need.
+groups. Each gets a clean environment and only the file descriptors that it needs.
 The helper runs as root, binds only `127.0.0.1:80` and `127.0.0.1:443`, edits
 only Jerd's tracked hosts section, and manages only Jerd's installation CA.
 It never starts a process.
@@ -94,8 +95,8 @@ before it checks the port, so it names Process recovery, not "port occupied".
 
 Caddy and PHP-FPM hold no user data, so their stop is forceful (a bounded
 `SIGKILL` of the group). If a process still runs after that, the engine keeps
-the run, its records, and the environment lock, the state is Failed, and the
-next Stop retries. Quit does not wait for it (spec F 2.4); the kept record
+the run, its records, and the environment lock. The state is Failed, and the
+next Stop tries again. Quit does not wait for it; the kept record
 makes the next launch name Process recovery.
 
 ## Live wiring and app startup
@@ -104,7 +105,7 @@ makes the next launch name Process recovery.
 `JerdLive.LiveApp` builds every port on the real domain and the root `AppState`; building it
 changes nothing on disk.
 
-Startup does not depend on a window (spec F 7.2.1):
+Startup does not depend on a window:
 
 1. `applicationWillFinishLaunching` applies the Dock and icon choices, so a hidden Dock icon
    never flashes.

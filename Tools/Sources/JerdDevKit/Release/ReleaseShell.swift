@@ -1,7 +1,7 @@
 import Foundation
 
-/// Runs the commands of a release through `ProcessRunning`, each with its own time limit (fixes
-/// spec G 8.1 #14 and #15: no command runs without a limit or outside the runner).
+/// Runs the commands of a release through `ProcessRunning`, each with its own time limit.
+/// No command runs without a limit or outside the runner.
 ///
 /// A command with a log keeps its complete output in the candidate folder. Standard output and
 /// standard error stay separate, so a parser reads only the stream it expects.

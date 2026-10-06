@@ -36,7 +36,7 @@ extension RuntimePipeline {
     }
 
     /// Checks the detached publisher signature with the pinned key of the kind. A pinned release
-    /// also needs exactly its reviewed signature file: its URL, size limit, and SHA-256 (RT-4).
+    /// also needs exactly its reviewed signature file: its URL, size limit, and SHA-256.
     private func verifySignature(of file: URL, at url: URL, release: RuntimeRelease) async throws {
         let kind = release.kind
         guard let key = Self.publisherKey(for: kind) else {

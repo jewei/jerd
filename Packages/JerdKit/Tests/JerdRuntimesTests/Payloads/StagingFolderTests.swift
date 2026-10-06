@@ -8,7 +8,7 @@ import Testing
         try FileManager.default.contentsOfDirectory(atPath: folder.url.path).sorted()
     }
 
-    /// RT-7: a staging folder whose owner still lives is in use and is never removed.
+    /// A staging folder whose owner still lives is in use and is never removed.
     @Test func cleanupRemovesOnlyFoldersWithoutALiveOwner() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

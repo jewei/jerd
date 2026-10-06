@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdDatabases
@@ -138,7 +139,7 @@ import Testing
 
     @Test(arguments: DatabaseEngine.allCases)
     func engineFilesArePrivate(_ engine: DatabaseEngine) throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url).databases.instance(UUID())
         try OwnedDirectory.create(layout.root)

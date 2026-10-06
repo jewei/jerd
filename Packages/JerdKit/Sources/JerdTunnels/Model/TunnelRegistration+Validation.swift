@@ -8,8 +8,8 @@ extension TunnelRegistration {
     /// Checks a new or edited registration: the name, the metrics port, the public hostname, and the
     /// origin reference. Save uses this rule.
     ///
-    /// It is stricter than `validateStored()`: it also refuses an IPv4 literal as hostname (spec E
-    /// 7.1.20). A saved registration that breaks only this rule still loads, and
+    /// It is stricter than `validateStored()`: it also refuses an IPv4 literal as hostname.
+    /// A saved registration that breaks only this rule still loads, and
     /// `TunnelSnapshot.settingsIssue` asks the user to edit it.
     public func validate() throws {
         try validateStored()

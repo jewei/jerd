@@ -65,7 +65,7 @@ struct StorageModelTests {
         #expect(model.state.isRunning)
     }
 
-    @Test("A key copy never blocks or clears other work (spec E 7.8.4)")
+    @Test("A key copy never blocks or clears other work")
     func copyDoesNotBlock() async {
         let storage = InMemoryStorage(
             settings: StorageSettings(runtime: SampleServices.storageRuntime), state: .running(pid: 3), hasData: true)

@@ -68,7 +68,7 @@ import Testing
         }
     }
 
-    /// RT-5: only the file that the receipt names as the CLI executable passes, for every receipt form.
+    /// Only the file that the receipt names as the CLI executable passes, for every receipt form.
     @Test func bundledPayloadAcceptsOnlyItsCLIExecutable() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

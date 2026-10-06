@@ -17,7 +17,7 @@ import Testing
         try await fixture.supervisor.stopAll()
     }
 
-    /// Fix of spec E 7.1.18: the first connection is "Connecting…", a lost one "Reconnecting…".
+    /// Regression test: the first connection is "Connecting…", a lost one "Reconnecting…".
     @Test func connectedRequiresReadinessOfTheOwnedConnector() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
@@ -89,7 +89,7 @@ import Testing
         #expect(await fixture.connector.launches.count == 1)
     }
 
-    /// Fix of spec E 7.1.3 at the supervisor level: an origin 401 line keeps the connector running.
+    /// Regression test at the supervisor level: an origin 401 line keeps the connector running.
     @Test func anOriginAuthorizationErrorDoesNotStopTheConnector() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
@@ -101,7 +101,7 @@ import Testing
         try await fixture.supervisor.stopAll()
     }
 
-    /// Fix of spec E 7.1.2: a retry that meets a permanent error shows the cause and stops retrying.
+    /// Regression test: a retry that meets a permanent error shows the cause and stops retrying.
     @Test func aRetryThatMeetsAPermanentErrorShowsTheCause() async throws {
         let fixture = try await SupervisorFixture()
         defer { fixture.folder.remove() }
@@ -155,7 +155,7 @@ import Testing
         #expect(await fixture.connector.launches.count == 1)
     }
 
-    /// Fix of spec E 7.8.3: startup errors overwrote each other and only the last was shown.
+    /// Regression test: startup errors overwrote each other and only the last was shown.
     @Test func startupConnectsOnlyMarkedTunnelsAndReportsEveryFailure() async throws {
         let fixture = try await SupervisorFixture(startOnLaunch: true)
         defer { fixture.folder.remove() }

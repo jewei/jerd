@@ -3,7 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdManifest
 
-/// Lists and hashes every file of a payload folder (rule I16), without following any link.
+/// Lists and hashes every file of a payload folder, without following any link.
 ///
 /// Hidden files count. A symbolic link, a FIFO, a device, or more than 50 000 files is refused.
 /// Paths are built from directory entries, so every file stays inside the folder.
@@ -16,7 +16,7 @@ public enum PayloadScanner {
     /// Hashes the files below `folder`.
     /// - Parameters:
     ///   - ignoring: top-level names to skip, for example the receipt file.
-    ///   - ignoresFinderMetadata: skip `.DS_Store` files at any depth (verification of installed folders, P-I7).
+    ///   - ignoresFinderMetadata: skip `.DS_Store` files at any depth (verification of installed folders).
     public static func scan(
         _ folder: URL, ignoring: Set<String> = [], ignoresFinderMetadata: Bool = false
     ) throws -> [RelativePath: PayloadFileRecord] {

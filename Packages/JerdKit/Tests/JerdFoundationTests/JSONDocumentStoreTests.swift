@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 private struct Settings: Codable, Equatable, Sendable {

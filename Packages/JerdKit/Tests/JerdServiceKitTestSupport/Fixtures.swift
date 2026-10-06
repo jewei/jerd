@@ -5,7 +5,7 @@ import JerdProcess
 /// Compiles each C fixture once per test run with `/usr/bin/cc`, through `CommandRunner`.
 ///
 /// The executables are shared by every test of the process, so the process removes their folder
-/// when it exits (review final-domain-r1 L2).
+/// when it exits.
 package actor Fixtures {
     package static let shared = Fixtures()
 

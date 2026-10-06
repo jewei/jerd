@@ -8,7 +8,7 @@ import Testing
 
 @testable import JerdDatabases
 
-/// A load removes the socket folders of runs that ended without a stop (spec E 7.2.4), but only
+/// A load removes the socket folders of runs that ended without a stop, but only
 /// when it can prove that no process uses them.
 @Suite struct DatabaseSocketSweepTests {
     /// A folder as a crashed run leaves it: the owner marker and a socket lock file.

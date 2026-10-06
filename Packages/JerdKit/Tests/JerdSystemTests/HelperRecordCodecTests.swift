@@ -80,7 +80,7 @@ import Testing
         #expect(record.hostnames.strings == ["shop.test"])
     }
 
-    /// Fixed problem 14: a journal with one bad field gives a specific message, not a legacy guess.
+    /// Regression test: a journal with one bad field gives a specific message, not a legacy guess.
     @Test(arguments: [
         (
             #"{"schemaVersion":1,"operation":"Configure HTTPS","phase":"x"}"#,

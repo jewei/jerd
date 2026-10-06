@@ -1,11 +1,12 @@
 import Foundation
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @Suite struct ServiceLogTests {
     @Test func rotationKeepsTheOutputOfThePreviousRun() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let log = ServiceLog(file: directory.path("server.log"), previousFile: directory.path("server.previous.log"))
         try write("first run", to: directory.path("server.log"))
@@ -18,7 +19,7 @@ import Testing
     }
 
     @Test func theTailRedactsASecretThatCrossesTheCut() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let secret = "0123456789abcdef0123456789abcdef"
         let body = "header " + secret + String(repeating: "y", count: ServiceLog.tailLimit - 10)
@@ -31,7 +32,7 @@ import Testing
     }
 
     @Test func aMissingOrEmptyLogGivesTheFallback() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let log = ServiceLog(file: directory.path("server.log"), previousFile: directory.path("server.previous.log"))
         #expect(log.tail(redacting: [], fallback: "Open the log.") == "Open the log.")

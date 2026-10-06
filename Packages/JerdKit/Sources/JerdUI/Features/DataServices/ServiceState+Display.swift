@@ -5,7 +5,7 @@ extension ServiceState {
     /// The status that the page, the sidebar, the dashboard card, and the menu show.
     ///
     /// `stuck` has its own label and the attention tone: the stop did not finish, so Jerd still
-    /// owns the process and its data lock, and the user must act (spec F 3.6 and E 8.1).
+    /// owns the process and its data lock, and the user must act.
     public var displayStatus: DisplayStatus {
         switch self {
         case .stopped: DisplayStatus("Stopped", tone: .idle)

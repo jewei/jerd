@@ -10,7 +10,7 @@ package struct MySQLTarPreparer: RuntimePreparing {
 
     package init() {}
 
-    /// The selection rule of I8: named files, `share/…`, `bin/*.dylib`, and `lib/…` except static libraries.
+    /// The selection rule: named files, `share/…`, `bin/*.dylib`, and `lib/…` except static libraries.
     package static func selects(_ path: RelativePath) -> Bool {
         let name = path.string
         return binaries.contains(name) || name.hasPrefix("share/")

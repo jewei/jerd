@@ -1,7 +1,7 @@
 import JerdFoundation
 
 extension ExtractionPlan {
-    /// A14: resolves each recorded link to its final extracted file, within the output budget.
+    /// Resolves each recorded link to its final extracted file, within the output budget.
     /// Call it once, after every entry is admitted and every file is written.
     package mutating func linkCopies() throws -> [LinkCopy] {
         var copies: [LinkCopy] = []
@@ -16,7 +16,7 @@ extension ExtractionPlan {
         return copies
     }
 
-    /// A7: the target components of a link entry after root stripping, or nil when the entry is not a link.
+    /// The target components of a link entry after root stripping, or nil when the entry is not a link.
     ///
     /// A symbolic link resolves from its own folder, a hard link from the archive top. The target
     /// must stay inside the archive (and inside the root when the root is stripped).
@@ -32,7 +32,7 @@ extension ExtractionPlan {
         } else {
             return nil
         }
-        // P-A3: a link without a target gets its own message.
+        // A link without a target gets its own message.
         guard !link.isEmpty else { throw ArchiveFailure.emptyLink }
         let resolved = try Self.resolve(link, from: base)
         guard policy.stripsRoot else { return resolved }

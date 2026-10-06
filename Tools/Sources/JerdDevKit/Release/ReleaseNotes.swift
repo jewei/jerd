@@ -35,6 +35,11 @@ enum ReleaseNotes {
         guard let notes = unreleased(in: changelog), !notes.isEmpty else {
             throw DevFailure.checkFailed("Add release notes to CHANGELOG.md under ## [Unreleased].")
         }
+        if let line = notes.split(separator: "\n").first(where: { !isPlainTextItem($0) }) {
+            throw DevFailure.checkFailed(
+                "Sparkle shows the release notes as plain text. Write each note in CHANGELOG.md as one "
+                    + "\"- \" list item without headings, links, or code marks: \(line)")
+        }
         let lines = changelog.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         guard !lines.contains(where: { $0.hasPrefix("## [\(version)]") }) else {
             throw DevFailure.checkFailed("CHANGELOG.md already has a section for \(version).")
@@ -57,6 +62,12 @@ enum ReleaseNotes {
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+
+    /// A note line that reads well as plain text: a `- ` item or its indented continuation, with no
+    /// Markdown link or code mark.
+    static func isPlainTextItem(_ line: Substring) -> Bool {
+        (line.hasPrefix("- ") || line.hasPrefix("  ")) && !line.contains("`") && !line.contains("](")
     }
 
     static func isHeading(_ line: String, of version: String) -> Bool {

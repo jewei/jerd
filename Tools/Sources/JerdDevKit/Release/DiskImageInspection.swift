@@ -3,7 +3,7 @@ import Foundation
 /// Checks the disk image itself and the app inside it, which is what users install.
 ///
 /// The image is attached read-only. A failed check never hides behind a failed detach: the check
-/// error is reported, and a detach that fails is tried again with `-force` (fixes spec G 8.1 #21).
+/// error is reported, and a detach that fails is tried again with `-force`.
 struct DiskImageInspection: Sendable {
     let shell: ReleaseShell
     let team: String
