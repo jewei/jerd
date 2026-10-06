@@ -41,6 +41,13 @@ package func mode(_ url: URL) -> mode_t {
     return info.st_mode & 0o777
 }
 
+/// The inode of a file, or 0. An atomic write replaces the file, so a new inode proves a write.
+package func inode(_ url: URL) -> UInt64 {
+    var info = stat()
+    guard lstat(url.path, &info) == 0 else { return 0 }
+    return info.st_ino
+}
+
 /// Polls `condition` every 10 ms until it is true or the timeout passes. Returns the last result.
 package func eventually(timeout: Duration = .seconds(5), _ condition: () async throws -> Bool) async rethrows -> Bool {
     let deadline = ContinuousClock.now + timeout

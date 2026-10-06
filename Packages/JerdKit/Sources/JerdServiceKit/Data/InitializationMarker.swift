@@ -50,8 +50,8 @@ public struct InitializationMarker<Marker: Codable & Equatable & Sendable>: Send
         return .uninitialized
     }
 
-    /// Saves the marker after a successful initialization or start.
+    /// Saves the marker after a successful initialization or start, unless the saved one is equal.
     public func write(_ marker: Marker) throws {
-        try MarkerFile.write(marker, to: file)
+        try MarkerFile.writeIfChanged(marker, to: file)
     }
 }
