@@ -8,11 +8,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let log = Logger(subsystem: "dev.jerd.app", category: "lifecycle")
     let updater: SparkleUpdater
     let live: LiveApp
+    /// Set only for a Debug run on another data root: it puts back the user's window and menu
+    /// bar state, which AppKit and SwiftUI write to the shared app domain, when Jerd quits.
+    private let preferences: PreferenceGuard?
 
     override init() {
         let updater = SparkleUpdater(bundle: .main)
         self.updater = updater
         let configuration = Self.configuration()
+        // Before any scene exists, so the copy has the user's values.
+        preferences = PreferenceGuard.forRun(configuration)
         live = LiveApp(configuration: configuration, updater: updater, defaults: configuration.makeDefaults())
         super.init()
         let state = live.state
@@ -30,6 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let live = live
         Task { await live.launch() }
+    }
+
+    /// The staged quit has ended: the last call before the process exits.
+    func applicationWillTerminate(_ notification: Notification) {
+        preferences?.restore()
     }
 
     /// Closing the window keeps Jerd and its services running.
