@@ -89,14 +89,23 @@ public struct PinnedPayloadPreparer: Sendable {
 
     /// The prepared PHP CLI and `composer.phar`, which the Laravel installer needs.
     public func developmentTools(catalog: RuntimePinCatalog, lzma: SupportLibrary? = nil) throws -> PreparationTools {
-        func executable(_ kind: RuntimeKind) throws -> URL? {
-            guard let pin = catalog.pin(for: kind) else { return nil }
-            let folder = try folder(for: pin)
-            let data = try AtomicFile.read(
-                folder.appendingPathComponent(PayloadReceipt.fileName), limit: PayloadReceipt.sizeLimit)
-            return try PayloadReceipt.decode(data).executable.url(in: folder)
+        PreparationTools(
+            phpCLI: try preparedExecutable(.php, catalog: catalog),
+            composer: try preparedExecutable(.composer, catalog: catalog), lzma: lzma)
+    }
+
+    /// The main executable of the prepared pin of `kind`, which a later pin of the same run needs.
+    /// - Returns: nil when the catalog has no pin of `kind`.
+    /// - Throws: when the pin is not prepared yet, with the step that prepares it.
+    public func preparedExecutable(_ kind: RuntimeKind, catalog: RuntimePinCatalog) throws -> URL? {
+        guard let pin = catalog.pin(for: kind) else { return nil }
+        let folder = try folder(for: pin)
+        let receiptFile = folder.appendingPathComponent(PayloadReceipt.fileName)
+        guard FileProbe.presence(at: receiptFile).mayExist else {
+            throw JerdError.unavailable("Prepare \(pin.id) first: the next payloads need its \(kind.title).")
         }
-        return PreparationTools(phpCLI: try executable(.php), composer: try executable(.composer), lzma: lzma)
+        let data = try AtomicFile.read(receiptFile, limit: PayloadReceipt.sizeLimit)
+        return try PayloadReceipt.decode(data).executable.url(in: folder)
     }
 
     /// Copies the catalog bytes into the output, as the bundle needs them.
