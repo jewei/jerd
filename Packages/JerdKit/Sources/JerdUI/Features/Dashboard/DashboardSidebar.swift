@@ -8,16 +8,9 @@ struct DashboardSidebar: View {
     var body: some View {
         List(selection: selection) {
             ForEach(DashboardPage.allCases) { page in
-                Label {
-                    Text(page.title)
-                        .fontWeight(.medium)
-                } icon: {
-                    Image(systemName: page.systemImage)
-                        .symbolVariant(state.navigation.dashboardPage == page ? .fill : .none)
-                }
-                .padding(.vertical, Spacing.tight)
-                .tag(page)
-                .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "dashboard", page.title))
+                DashboardSidebarRow(page: page, isSelected: state.navigation.dashboardPage == page)
+                    .tag(page)
+                    .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "dashboard", page.title))
             }
         }
         .listStyle(.sidebar)
