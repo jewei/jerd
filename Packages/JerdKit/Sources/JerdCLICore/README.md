@@ -1,6 +1,6 @@
 # JerdCLICore
 
-JerdCLICore supplies the `php`, `composer`, and `laravel` commands. It selects the PHP
+JerdCLICore gives the `php`, `composer`, and `laravel` commands. It selects the PHP
 runtime of the registered project that contains the working folder, prepares the CLI INI,
 and runs PHP. It also installs the commands for zsh. It depends on JerdFoundation,
 JerdRuntimes, and JerdWeb. `Apps/JerdCLI/main.swift` only calls `CLILauncher`.

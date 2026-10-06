@@ -1,7 +1,7 @@
 # JerdFoundation
 
 JerdFoundation is the base of all Jerd targets. It has no dependency on other Jerd targets.
-It supplies errors, safe private files, locks, saved JSON documents, the data layout,
+It gives errors, safe private files, locks, saved JSON documents, the data layout,
 and small values.
 
 ## Main types
