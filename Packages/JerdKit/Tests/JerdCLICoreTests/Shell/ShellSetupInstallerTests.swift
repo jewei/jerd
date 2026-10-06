@@ -157,4 +157,17 @@ import Testing
         _ = try await harness.installer().install()
         #expect(contents(harness.bin.appendingPathComponent("JerdCLI")) == ShellSetupHarness.launcherBytes)
     }
+
+    /// Review cli-r1 L1: a BOM file with the exact block is not rewritten, and CRLF bytes stay.
+    @Test func byteOrderMarkAndCRLFFilesKeepTheirBytes() async throws {
+        let bom = Data([0xEF, 0xBB, 0xBF])
+        let current = bom + Data(("export A=1\n\n" + ShellPathBlockEditor.block).utf8)
+        let harness = try ShellSetupHarness(zshrc: current)
+        defer { harness.remove() }
+        try harness.fixture.directory.file("home/.zprofile", "export B=2\r\n")
+        let report = try await harness.installer().install()
+        #expect(contents(harness.zshrc) == current)
+        #expect(report.unchangedFiles == [harness.zshrc])
+        #expect(contents(harness.zprofile) == Data(("export B=2\r\n\r\n" + ShellPathBlockEditor.block).utf8))
+    }
 }
