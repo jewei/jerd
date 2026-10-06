@@ -14,8 +14,8 @@ public struct OwnedServiceProcess: Sendable {
 
     /// Rotates the log and starts `plan`. Returns only a process that the supervisor owns.
     ///
-    /// When the spawn fails or produces no owned child, the temporary items of the plan are
-    /// removed and the error names the end of the log.
+    /// When the spawn fails or produces no owned child, the launch ends (`LaunchPlan.didStop`
+    /// runs) and the error names the end of the log.
     public static func launch(
         _ plan: LaunchPlan, log: ServiceLog, processes: any ProcessControlling, policy: StopPolicy,
         messages: ServiceMessages
@@ -25,12 +25,12 @@ public struct OwnedServiceProcess: Sendable {
             try log.rotate()
             token = try await processes.start(plan.request, log: log.file)
         } catch {
-            plan.removeTemporaryItems()
+            plan.end()
             throw error
         }
         guard let pid = await processes.processID(of: token) else {
             _ = await processes.stop(token, policy: policy)
-            plan.removeTemporaryItems()
+            plan.end()
             let tail = log.tail(redacting: plan.secrets, fallback: messages.logUnavailable)
             throw JerdError.processFailed("\(messages.couldNotStart) \(tail)")
         }

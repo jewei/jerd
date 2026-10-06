@@ -44,6 +44,10 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   that stop. An exit stop never makes Quit fail.
 - A child that something else reaped is checked through its record. A live group keeps the
   record and releases the lock, so that Process recovery can act.
+- Each launch ends once: after its process stopped (Stop, exit, or a reap outside Jerd), or
+  when the launch fails before a process is owned. Then its temporary items are removed and
+  `LaunchPlan.didStop` runs, so a service can release resources that are not files, for example
+  a URL session.
 - A maintenance lease keeps the lock from the first step to the last, also during a restore.
 - A runtime update copies each named item (an APFS clone when possible) off the actor before it
   writes the journal. Recovery uses the names in the journal, so a newer build can recover it.

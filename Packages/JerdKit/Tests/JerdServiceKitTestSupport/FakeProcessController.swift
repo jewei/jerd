@@ -104,11 +104,6 @@ package actor FakeProcessController: ProcessControlling {
         }
     }
 
-    /// Simulates that something outside the supervisor reaped every child.
-    package func reapAllOutside() {
-        for token in children.keys { children[token]?.state = .notOwned }
-    }
-
     package func setStopOutcomes(_ outcomes: [StopOutcome]) { stopOutcomes = outcomes }
 
     package func setOwnsNewChildren(_ value: Bool) { ownsNewChildren = value }

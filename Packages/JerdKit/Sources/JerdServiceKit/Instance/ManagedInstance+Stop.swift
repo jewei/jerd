@@ -60,12 +60,12 @@ extension ManagedInstance {
         return result
     }
 
-    /// Forgets the stopped process, removes its temporary items and its record, and releases
-    /// the lock unless the caller keeps it.
+    /// Forgets the stopped process, ends its launch (temporary items and `didStop`), removes its
+    /// record, and releases the lock unless the caller keeps it.
     private func releaseStopped(_ owned: OwnedServiceProcess, keepLock: Bool) -> StopResult {
         guard process?.token == owned.token else { return .stopped }
         process = nil
-        owned.plan.removeTemporaryItems()
+        owned.plan.end()
         if let lock {
             // A record that cannot be removed is stale now. The start gate removes it later
             // under the lock, so a failure here is not a safety problem.
@@ -80,7 +80,7 @@ extension ManagedInstance {
     private func releaseUnowned(_ owned: OwnedServiceProcess, keepLock: Bool) -> StopResult {
         guard process?.token == owned.token else { return .stopped }
         process = nil
-        owned.plan.removeTemporaryItems()
+        owned.plan.end()
         guard let lock else { return .stopped }
         do {
             _ = try effects.startGate.requireStopped(definition.profile.record, holding: lock)
