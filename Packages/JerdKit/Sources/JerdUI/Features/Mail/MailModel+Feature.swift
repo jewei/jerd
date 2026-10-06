@@ -11,16 +11,19 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
     /// The status of the page header, the card, and the menu.
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
+        if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         if operation.isWorking, !state.isBusy { return DisplayStatus(state.displayStatus.label, tone: .busy) }
         return state.displayStatus
     }
 
     public var summary: FeatureSummary {
-        let text =
-            hasRuntime
-            ? "SMTP port \(settings.smtpPort) · Web port \(settings.webPort)"
-            : "Mailpit is not installed. Install it in Runtimes."
+        let text = cardNotice?.text ?? "SMTP port \(settings.smtpPort) · Web port \(settings.webPort)"
         return FeatureSummary(status: status, summary: text, actions: cardActions)
+    }
+
+    /// The card text while Mailpit cannot run yet: preparing, not loaded, or not installed.
+    var cardNotice: ServiceCardNotice? {
+        ServiceCardNotice.notice(load: loadState, hasRuntime: hasRuntime, runtime: "Mailpit", settings: "Mail")
     }
 
     /// Start, or Stop and Open Inbox while Mailpit runs (`CardActionRule`).
@@ -40,7 +43,9 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
                 self?.stop()
             }
         }
-        return FeatureAction(id: "mail.start", title: "Start Mail", isEnabled: canStart) {
+        return FeatureAction(
+            id: "mail.start", title: "Start Mail", isEnabled: canStart, unavailableReason: cardNotice?.reason
+        ) {
             [weak self] in self?.start()
         }
     }

@@ -37,7 +37,7 @@ struct SitesFeatureTests {
     func menu() async {
         let harness = await SitesHarness.launched()
         let titles = harness.model.menuItems.compactMap(\.title)
-        #expect(titles == ["Stopped", "Open Studio", "Open Northwind Shop", "Start All Sites", "Tunnels"])
+        #expect(titles == ["Sites: Stopped", "Open Studio", "Open Northwind Shop", "Start All Sites", "Tunnels"])
         guard case .submenu(_, let tunnels) = harness.model.menuItems.last?.kind,
             case .submenu(_, let preview) = tunnels.first?.kind
         else {

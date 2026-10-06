@@ -19,6 +19,7 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
 
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
+        if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         let working = operation.isWorking || bucketOperation.isWorking
         if working, !state.isBusy { return DisplayStatus(state.displayStatus.label, tone: .busy) }
         return state.displayStatus
@@ -26,9 +27,13 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
 
     public var summary: FeatureSummary {
         let count = buckets.count == 1 ? "1 bucket" : "\(buckets.count) buckets"
-        let text =
-            hasRuntime ? "\(count) · S3 port \(settings.apiPort)" : "RustFS is not installed. Install it in Runtimes."
+        let text = cardNotice?.text ?? "\(count) · S3 port \(settings.apiPort)"
         return FeatureSummary(status: status, summary: text, actions: cardActions)
+    }
+
+    /// The card text while RustFS cannot run yet: preparing, not loaded, or not installed.
+    var cardNotice: ServiceCardNotice? {
+        ServiceCardNotice.notice(load: loadState, hasRuntime: hasRuntime, runtime: "RustFS", settings: "Storage")
     }
 
     /// Start, or Stop and Open Console while RustFS runs (`CardActionRule`).
@@ -47,7 +52,9 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
                 self?.stop()
             }
         }
-        return FeatureAction(id: "storage.start", title: "Start Storage", isEnabled: canStart) {
+        return FeatureAction(
+            id: "storage.start", title: "Start Storage", isEnabled: canStart, unavailableReason: cardNotice?.reason
+        ) {
             [weak self] in self?.start()
         }
     }

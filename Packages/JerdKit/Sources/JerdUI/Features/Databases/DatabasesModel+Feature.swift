@@ -21,6 +21,7 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
     /// The card status: a problem first, then work, then the running count.
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
+        if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         let states = services.map { state(of: $0.id) }
         if states.contains(where: { if case .failed = $0 { true } else { false } }) {
             return DisplayStatus("Failed", tone: .failed)
@@ -38,18 +39,36 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
 
     public var summary: FeatureSummary {
         guard !services.isEmpty else {
-            let add = FeatureAction(id: "databases.add", title: "Add Database…", isEnabled: canAdd) {
-                [weak self] in
+            let add = FeatureAction(
+                id: "databases.add", title: "Add Database…", isEnabled: canAdd, unavailableReason: addUnavailableReason
+            ) { [weak self] in
                 guard let self, let engine = availableEngines.first else { return }
                 navigate?(.section(.databases))
                 beginAdd(engine)
             }
             return FeatureSummary(
-                status: status, summary: "Add MySQL, PostgreSQL, or Redis services.",
+                status: status, summary: cardNotice?.text ?? "Add MySQL, PostgreSQL, or Redis services.",
                 actions: CardActionRule.actions(.add(add)))
         }
         return FeatureSummary(
             status: status, summary: services.map(\.name).joined(separator: ", "), actions: cardActions)
+    }
+
+    /// The card text while no database can be added yet: preparing, not loaded, or no runtime.
+    var cardNotice: ServiceCardNotice? {
+        let missing = ServiceCardNotice(
+            text: "No database runtime is installed. Install one in Runtimes.",
+            reason: "Install MySQL, PostgreSQL, or Redis in Runtimes first.", isPreparing: false)
+        return ServiceCardNotice.notice(
+            load: loadState, hasRuntime: !availableEngines.isEmpty, runtime: "database runtimes",
+            settings: "Database", missingRuntime: missing)
+    }
+
+    /// Why Add Database… is off: the runtimes first, then other database work.
+    private var addUnavailableReason: String {
+        if let cardNotice { return cardNotice.reason }
+        if isShuttingDown { return "Jerd is quitting." }
+        return "Wait for the current database work to end."
     }
 
     /// Start All while a service is stopped, else Stop All (`CardActionRule`). Databases have no

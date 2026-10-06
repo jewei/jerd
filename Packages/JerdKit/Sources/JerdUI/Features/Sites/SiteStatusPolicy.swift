@@ -25,9 +25,4 @@ public enum SiteStatusPolicy {
         if case .running = environment.state { return DisplayStatus("Not running", tone: .idle) }
         return Self.environment(environment.state)
     }
-
-    /// The status of the whole environment while site work can run.
-    public static func overall(_ environment: EnvironmentSnapshot, isWorking: Bool) -> DisplayStatus {
-        isWorking ? DisplayStatus("Working…", tone: .busy) : Self.environment(environment.state)
-    }
 }

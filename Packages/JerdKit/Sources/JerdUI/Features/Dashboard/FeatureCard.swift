@@ -45,9 +45,16 @@ struct FeatureCard: View {
             Button(action.title, action: action.perform)
                 .primaryActionStyle(isPrimary: action.isPrimary, isEnabled: action.isEnabled)
                 .fixedSize()
-                .help(action.spokenTitle == action.title ? "" : action.spokenTitle)
+                .help(Self.help(for: action))
                 .accessibilityLabel(action.spokenTitle)
+                .accessibilityHint(action.unavailableReason ?? "")
                 .accessibilityIdentifier(action.id)
         }
+    }
+
+    /// The tooltip: why an action is off, else the full title of a short one.
+    static func help(for action: FeatureAction) -> String {
+        if let reason = action.unavailableReason { return reason }
+        return action.spokenTitle == action.title ? "" : action.spokenTitle
     }
 }
