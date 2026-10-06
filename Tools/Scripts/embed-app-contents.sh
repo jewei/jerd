@@ -1,52 +1,46 @@
 #!/bin/sh
-# Xcode build phase: copy the helper, the launcher, and prepared runtime payloads
-# into the app bundle. Payloads come from `./dev runtimes prepare`, one folder for
-# each runtime group in Runtimes/ that has a pin.json or pins.json file:
-# .build/runtimes/payloads/<Group>/ (Database, Development, Mail, Storage).
+# Xcode build phase: copy the helper, the launcher, and the prepared runtime payloads into the app.
 #
-# JERD_REQUIRE_RUNTIMES=YES (Release) refuses a missing or empty payload folder and
-# a group folder that is missing or has no files. This is an interim guard: the
-# check of each receipt against its pin and of each file digest comes with
-# `jerd-dev runtimes verify` and JerdManifest (review tooling-r1, H1). The app also
-# verifies every payload receipt before it installs a runtime.
+# Payloads come from `./dev runtimes prepare` in .build/runtimes/payloads/<group>/<payload ID>.
+# `./dev runtimes embed` verifies each receipt against its pin in Runtimes/runtimes.json, and every
+# file against its SHA-256 and executable flag, before it copies anything. It copies with
+# `rsync --delete`, so unchanged payloads are not copied again on every build.
+#
+# Why this script calls ./dev instead of checking the files itself: the receipt rules live in
+# JerdManifest and JerdRuntimes, the same code that the app uses to install the payloads. A shell
+# copy of those rules would be a third implementation that drifts. The `dev` shim builds jerd-dev
+# only when a Tools source changed, so a build from Xcode works too. The tool runs with a minimal
+# environment, because the Xcode build settings in the environment would change the SwiftPM build.
+#
+# JERD_REQUIRE_RUNTIMES=YES (Release) requires every pinned payload. Without payloads, Debug and
+# the check build (`--allow-missing-runtimes`) warn and build an app without runtimes.
 set -eu
 
 contents="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH"
-resources="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+destination="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/RuntimePayloads"
+payloads="$SRCROOT/.build/runtimes/payloads"
+# Tests set JERD_DEV_COMMAND to a fake tool. Builds use the shim in the repository.
+tool="${JERD_DEV_COMMAND:-$SRCROOT/dev}"
 
 mkdir -p "$contents/Library/LaunchServices" "$contents/Library/LaunchDaemons" "$contents/MacOS"
 cp "$BUILT_PRODUCTS_DIR/JerdHelper" "$contents/Library/LaunchServices/JerdHelper"
 cp "$BUILT_PRODUCTS_DIR/JerdCLI" "$contents/MacOS/JerdCLI"
 cp "$SRCROOT/Apps/JerdHelper/dev.jerd.helper.plist" "$contents/Library/LaunchDaemons/dev.jerd.helper.plist"
 
-payloads="$SRCROOT/.build/runtimes/payloads"
+require=NO
+[ "${JERD_REQUIRE_RUNTIMES:-NO}" = "YES" ] && require=YES
 
-# Succeeds when the folder exists and has at least one regular file.
-has_files() {
-	[ -n "$(find "$1" -type f ! -name .DS_Store -print 2>/dev/null | head -n 1)" ]
-}
-
-# Prints the name of each pinned runtime group whose payload folder has no regular file.
-missing_groups() {
-	for folder in "$SRCROOT"/Runtimes/*/; do
-		[ -f "${folder}pin.json" ] || [ -f "${folder}pins.json" ] || continue
-		group=$(basename "$folder")
-		has_files "$payloads/$group" || echo "$group"
-	done
-}
-
-if [ "${JERD_REQUIRE_RUNTIMES:-NO}" = "YES" ]; then
-	missing=$(missing_groups | tr '\n' ' ' | sed 's/ $//')
-	if ! has_files "$payloads" || [ -n "$missing" ]; then
-		echo "error: Runtime payloads are missing or incomplete in .build/runtimes/payloads (missing: ${missing:-all}). Run ./dev runtimes prepare." >&2
-		exit 1
-	fi
-fi
-
-if has_files "$payloads"; then
-	mkdir -p "$resources/RuntimePayloads"
-	rsync -a --delete "$payloads/" "$resources/RuntimePayloads/"
-else
+if [ "$require" = "NO" ] && [ -z "$(find "$payloads" -name payload-receipt.json -print 2>/dev/null | head -n 1)" ]; then
 	echo "warning: Runtime payloads are missing. The app builds without runtimes. Run ./dev runtimes prepare." >&2
-	rm -rf "$resources/RuntimePayloads"
+	rm -rf "$destination"
+	exit 0
 fi
+
+set -- runtimes embed "$destination"
+[ "$require" = "YES" ] && set -- "$@" --require-all
+
+if [ -n "${DEVELOPER_DIR:-}" ]; then
+	exec /usr/bin/env -i HOME="${HOME:-}" PATH=/usr/bin:/bin:/usr/sbin:/sbin TMPDIR="${TMPDIR:-/tmp}" \
+		DEVELOPER_DIR="$DEVELOPER_DIR" "$tool" "$@"
+fi
+exec /usr/bin/env -i HOME="${HOME:-}" PATH=/usr/bin:/bin:/usr/sbin:/sbin TMPDIR="${TMPDIR:-/tmp}" "$tool" "$@"
