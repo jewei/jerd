@@ -32,9 +32,13 @@ struct SitesModelTests {
                 == "Site settings could not be loaded. The existing file was preserved. The JSON is not valid.")
         harness.model.beginAdd()
         #expect(harness.model.sheet == nil)
+        #expect(harness.model.shownItem(for: nil) == nil)
+        #expect(
+            harness.model.shownItem(for: .tunnel(SampleData.previewTunnelID)) == .tunnel(SampleData.previewTunnelID))
         await port.configure { $0.loadFailure = nil }
         await harness.model.retryLoad()?.value
         #expect(harness.model.isLoaded)
+        #expect(harness.model.shownItem(for: nil) == .site(SampleData.studioID))
         #expect(harness.model.operation == .idle)
     }
 
@@ -125,7 +129,10 @@ struct SitesModelTests {
         let task = harness.model.approve(approval)
         harness.model.cancelApproval()
         await task?.value
-        #expect(harness.recorder.alerts == [AppAlert(title: "HTTPS Setup Did Not Finish", message: "The helper did not answer.")])
+        #expect(
+            harness.recorder.alerts == [
+                AppAlert(title: "HTTPS Setup Did Not Finish", message: "The helper did not answer.")
+            ])
         #expect(await !port.calls.contains("discard"))
     }
 
@@ -240,7 +247,9 @@ struct SitesModelTests {
     func refresh() async {
         let port = InMemorySitesPort()
         let harness = await SitesHarness.launched(sites: port)
-        await port.configure { $0.environmentValue = EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID]) }
+        await port.configure {
+            $0.environmentValue = EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID])
+        }
         await harness.model.refresh()
         #expect(harness.model.environment.siteIDs == [SampleData.studioID])
     }

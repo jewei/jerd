@@ -37,9 +37,7 @@ struct SitesSection: View {
     }
 
     private var resolvedSelection: SidebarSelection? {
-        SitesSelectionPolicy.resolve(
-            state.navigation.selection(in: .sites), siteIDs: model.sites.map(\.id),
-            tunnelIDs: model.tunnels.registrations.map(\.id))
+        model.shownItem(for: state.navigation.selection(in: .sites))
     }
 
     /// ⌘N adds a site while the Sites page shows. A hidden page is disabled, so the shortcut

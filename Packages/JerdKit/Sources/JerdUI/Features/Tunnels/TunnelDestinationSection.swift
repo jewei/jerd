@@ -33,6 +33,8 @@ struct TunnelDestinationSection: View {
                 ValueRow("Local address", value: "https://\(site.hostname)", isCode: true)
                 ValueRow(
                     "Site environment", value: sites.environment.siteIDs.contains(site.id) ? "Running" : "Not running")
+            } else if !sites.isLoaded {
+                ValueRow("Jerd site", value: "Unavailable until the site settings load")
             } else {
                 InlineMessage(
                     "The linked site was removed. Edit this registration to select a destination.", kind: .warning,

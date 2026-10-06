@@ -27,7 +27,8 @@ struct TunnelMessages: View {
     private var messages: [String] {
         let candidates = [model.state(of: tunnel.id).failureMessage, model.startupFailures[tunnel.id]]
         var shown: [String] = []
-        for case let message? in candidates where message != model.operation.failureMessage && !shown.contains(message) {
+        for case let message? in candidates where message != model.operation.failureMessage && !shown.contains(message)
+        {
             shown.append(message)
         }
         return shown

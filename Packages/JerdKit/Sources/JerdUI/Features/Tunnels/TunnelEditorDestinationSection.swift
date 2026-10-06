@@ -26,7 +26,8 @@ struct TunnelEditorDestinationSection: View {
             Text("Destination Reference")
         } footer: {
             FormFooter(
-                "Match this reference to the route in Cloudflare. Saving here does not change DNS, routing, or TLS settings.")
+                "Match this reference to the route in Cloudflare. Saving here does not change DNS, routing, or TLS settings."
+            )
         }
     }
 }

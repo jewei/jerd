@@ -15,7 +15,7 @@ struct SitesSidebar: View {
                         .tag(SidebarSelection.site(site.id))
                 }
                 if model.sites.isEmpty {
-                    placeholder(model.isLoaded ? "No sites added" : "Loading sites…")
+                    placeholder(sitePlaceholder)
                 }
             }
             Section("Tunnels") {
@@ -34,6 +34,11 @@ struct SitesSidebar: View {
         }
     }
 
+    private var sitePlaceholder: String {
+        if model.isLoaded { return "No sites added" }
+        return model.operation.failureMessage == nil ? "Loading sites…" : "Site settings could not be loaded"
+    }
+
     private var tunnelPlaceholder: String {
         if model.tunnels.loadFailure != nil { return "Tunnel settings could not be loaded" }
         return model.tunnels.isLoaded ? "No tunnels added" : "Loading tunnels…"
@@ -49,9 +54,7 @@ struct SitesSidebar: View {
     /// The shown item. A native list refresh can report nil; that never clears the selection.
     private var selection: Binding<SidebarSelection?> {
         Binding {
-            SitesSelectionPolicy.resolve(
-                state.navigation.selection(in: .sites), siteIDs: model.sites.map(\.id),
-                tunnelIDs: model.tunnels.registrations.map(\.id))
+            model.shownItem(for: state.navigation.selection(in: .sites))
         } set: { selection in
             state.navigation.select(selection)
         }

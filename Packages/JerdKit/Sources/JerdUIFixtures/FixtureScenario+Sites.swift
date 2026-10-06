@@ -30,7 +30,7 @@ extension FixtureScenario {
                 environment: EnvironmentSnapshot(state: .setupRequired, siteIDs: []), setup: HTTPSSetupStatus())
         case .sitesLoadFailed:
             return InMemorySitesPort(
-                loadFailure: "Cannot read site settings. The file was preserved. The JSON is not valid at line 14.")
+                loadFailure: "The JSON is not valid at line 14.")
         case .sitesRecovery:
             var setup = SampleData.approvedSetup
             setup.hasPendingRecovery = true
@@ -51,7 +51,10 @@ extension FixtureScenario {
             configuration.tunnels[1].hostname = "203.0.113.10"
             return InMemoryTunnelsPort(
                 configuration: configuration,
-                states: [SampleData.docsTunnelID: .failed("Cloudflare rejected the tunnel token. Edit this tunnel to replace its token.")])
+                states: [
+                    SampleData.docsTunnelID: .failed(
+                        "Cloudflare rejected the tunnel token. Edit this tunnel to replace its token.")
+                ])
         case .sitesStopped, .tunnelStopped:
             return InMemoryTunnelsPort(configuration: stoppedTunnels)
         default:

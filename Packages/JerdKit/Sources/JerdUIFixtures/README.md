@@ -13,6 +13,8 @@ the window scenarios for snapshots. Tests and `jerd-snapshots` use it; the app n
 | `FixtureScenario`, `ScenarioHost` | Named window states and their one-time preparation. |
 | `SnapshotCatalog.addJerdPages()` | Registers every scenario as a snapshot entry. |
 | `IdleSleeper` | A poller clock that never ticks. |
+| `InMemorySitesPort`, `InMemoryTunnelsPort`, `SampleData+Sites` | Sites, the environment, HTTPS approval, and tunnels in memory. |
+| `SitesSheetScenario` | Each Sites and tunnel sheet, rendered alone (`sheet-*` snapshots). |
 
 `Resources/AppIcons` holds 144-pixel copies of the shipped icon designs.
 See [JerdUI](../JerdUI/README.md) for how to add a scenario.

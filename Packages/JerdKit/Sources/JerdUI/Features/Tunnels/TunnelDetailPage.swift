@@ -49,7 +49,8 @@ struct TunnelDetailPage: View {
         guard isActive else { return [] }
         return [
             PageAction(
-                "Stop Connector", systemImage: "stop.fill", isEnabled: model.canStop(tunnel.id), identifier: "tunnel.stop"
+                "Stop Connector", systemImage: "stop.fill", isEnabled: model.canStop(tunnel.id),
+                identifier: "tunnel.stop"
             ) {
                 model.stop(tunnel)
             }

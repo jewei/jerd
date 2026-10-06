@@ -72,7 +72,10 @@ struct SitesPolicyTests {
         let harness = await SitesHarness.launched(sites: InMemorySitesPort(setup: HTTPSSetupStatus()))
         let checks = SiteCheck.checks(for: studio, in: harness.model)
         #expect(checks.allSatisfy { !$0.passed })
-        #expect(checks.map(\.result) == ["Approval required", "Checked when the site starts", "Checked when the site starts"])
+        #expect(
+            checks.map(\.result) == [
+                "Approval required", "Checked when the site starts", "Checked when the site starts",
+            ])
     }
 
     @Test("Tunnel editor: a hostname with a scheme, an IP address, a low port, or a removed site blocks Save")

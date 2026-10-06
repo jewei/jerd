@@ -9,7 +9,9 @@ struct TunnelLogSheet: View {
     var body: some View {
         SheetScaffold(
             log.title, message: "Recent events. Select Refresh to load new entries.", size: .wide,
-            confirmation: SheetConfirmation("Refresh", cancelTitle: "Done", isEnabled: !log.isLoading, identifier: "tunnel-log") {
+            confirmation: SheetConfirmation(
+                "Refresh", cancelTitle: "Done", isEnabled: !log.isLoading, identifier: "tunnel-log"
+            ) {
                 Task { await log.load() }
             },
             workingMessage: log.isLoading ? "Loading the log…" : nil, cancel: { model.sheet = nil }

@@ -12,7 +12,9 @@ struct SitesMessages: View {
             model.dismissFailure()
         }
         if case .failed(let message) = model.environment.state, message != model.operation.failureMessage {
-            InlineMessage(message, kind: .error, title: "The sites stopped", style: .banner, identifier: "sites.environment-error")
+            InlineMessage(
+                message, kind: .error, title: "The sites stopped", style: .banner, identifier: "sites.environment-error"
+            )
         }
         if let setup = model.systemSetupState {
             InlineMessage(

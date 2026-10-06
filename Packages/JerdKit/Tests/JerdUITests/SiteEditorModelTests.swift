@@ -121,7 +121,8 @@ struct SiteEditorModelTests {
         #expect(titles.count == SampleData.siteConfiguration.runtimes.count + 2)
         #expect(titles.last == "Pinned runtime unavailable")
         #expect(PHPChoice.summary(for: site, in: SampleData.siteConfiguration) == "Pinned: runtime unavailable")
-        #expect(PHPChoice.summary(for: SampleData.studio, in: SampleData.siteConfiguration) == "Follow default: PHP 8.4.12")
+        #expect(
+            PHPChoice.summary(for: SampleData.studio, in: SampleData.siteConfiguration) == "Follow default: PHP 8.4.12")
     }
 
     @Test("Save of a new site hands over to the HTTPS approval, which starts it")

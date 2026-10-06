@@ -14,6 +14,8 @@ implements them in memory.
 | `Shared/` | `OperationState`, `ServicePoller`, `PollingPolicy`, `Clipboard`, the effect ports, and `WorkspaceFeature` with its value types. |
 | `Features/Dashboard/` | The overview cards and the runtimes row. |
 | `Features/Settings/` | Appearance, Runtimes, Advanced, and About, each with its model and ports. |
+| `Features/Sites/` | `SitesModel` (`SitesPort`): the sidebar, site page, site editor, HTTPS approval, system setup states. |
+| `Features/Tunnels/` | `TunnelsModel` (`TunnelsPort`): the tunnel page, tunnel editor, and connector log, inside Sites. |
 
 ## Rules
 

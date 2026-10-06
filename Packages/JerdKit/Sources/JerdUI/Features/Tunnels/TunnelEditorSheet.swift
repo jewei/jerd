@@ -8,7 +8,8 @@ struct TunnelEditorSheet: View {
 
     var body: some View {
         SheetScaffold(
-            editor.title, message: "Connect an existing tunnel to this Mac. Save adds the registration; it does not connect.",
+            editor.title,
+            message: "Connect an existing tunnel to this Mac. Save adds the registration; it does not connect.",
             size: .wide,
             confirmation: SheetConfirmation(
                 "Save Registration", isEnabled: editor.canSave && model.canChange, identifier: "tunnel-editor"
@@ -28,13 +29,15 @@ struct TunnelEditorSheet: View {
                     .accessibilityIdentifier("tunnel-editor.route-checked")
                 ActionRow(
                     "Cloudflare route",
-                    detail: "Another connector can already serve this tunnel and share its traffic. Select Connect when you are ready."
+                    detail:
+                        "Another connector can already serve this tunnel and share its traffic. Select Connect when you are ready."
                 ) {
                     Button("Open Cloudflare", systemImage: "arrow.up.right") { model.openCloudflare() }
                 }
             }
             if let message = editor.failure ?? editor.validationMessage {
-                InlineMessage(message, kind: editor.failure == nil ? .warning : .error, identifier: "tunnel-editor.error")
+                InlineMessage(
+                    message, kind: editor.failure == nil ? .warning : .error, identifier: "tunnel-editor.error")
             }
         }
     }

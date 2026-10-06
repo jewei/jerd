@@ -24,7 +24,9 @@ extension SampleData {
     /// Three sites, two PHP runtimes, and Caddy.
     public static let siteConfiguration = AppConfiguration(
         sites: [studio, northwind, legacy], runtimes: registrations.php, defaultRuntimeID: php84ID,
-        caddy: CaddyRuntime(path: "\(user)/Library/Application Support/Jerd/runtimes/caddy", version: "v2.10.2", architectures: [.arm64]))
+        caddy: CaddyRuntime(
+            path: "\(user)/Library/Application Support/Jerd/runtimes/caddy", version: "v2.10.2", architectures: [.arm64]
+        ))
 
     /// A setup that approves every sample hostname.
     public static let approvedSetup = HTTPSSetupStatus(
