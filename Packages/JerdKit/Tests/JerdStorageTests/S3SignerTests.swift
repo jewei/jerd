@@ -97,4 +97,21 @@ import Testing
         #expect(S3URIEncoding.canonicalQuery(["b": "2", "a": "x y"]) == "a=x%20y&b=2")
         #expect(S3URIEncoding.canonicalQuery([:]) == "")
     }
+
+    /// A log line, `dump`, or a test failure of credentials, a signer, or a client never shows
+    /// the secret key.
+    @Test func printedCredentialsSignersAndClientsNeverShowTheSecretKey() {
+        let credentials = S3ClientTests.credentials
+        let client = S3Client(port: 19_123, credentials: credentials, sender: FakeS3Server())
+        var dumped = ""
+        dump(credentials, to: &dumped)
+        dump(client, to: &dumped)
+        let texts = [
+            String(describing: credentials), String(reflecting: credentials), "\(client.signer)",
+            String(reflecting: client.signer), String(describing: client), String(reflecting: client), dumped,
+        ]
+        for text in texts { #expect(!text.contains(credentials.secretKey), "\(text.count) characters") }
+        #expect(String(describing: credentials).contains(credentials.accessKey))
+        #expect(dumped.contains("[redacted]"))
+    }
 }
