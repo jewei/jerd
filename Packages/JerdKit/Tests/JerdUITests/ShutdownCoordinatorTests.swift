@@ -17,7 +17,8 @@ struct ShutdownCoordinatorTests {
     func stopsInOrder() async {
         let journal = CallJournal()
         let coordinator = ShutdownCoordinator()
-        let outcome = await coordinator.run(participants(failing: nil, journal: journal))
+        let all = participants(failing: nil, journal: journal)
+        let outcome = await coordinator.start { all }?.value
         #expect(outcome == .stopped)
         #expect(coordinator.state == .finished)
         #expect(
@@ -52,7 +53,7 @@ struct ShutdownCoordinatorTests {
         let journal = CallJournal()
         let coordinator = ShutdownCoordinator()
         let all = participants(failing: phase, journal: journal)
-        let outcome = await coordinator.run(all)
+        let outcome = await coordinator.start { all }?.value
         #expect(outcome == .cancelled(phase: phase, message: message, destination: destination))
         #expect(coordinator.state == .idle)
         for participant in all {
@@ -67,7 +68,7 @@ struct ShutdownCoordinatorTests {
         let tunnel = SidebarSelection.tunnel(UUIDs.first)
         let participant = RecordingParticipant(phase: .tunnels, stops: false, journal: CallJournal())
         participant.destination = .item(tunnel)
-        let outcome = await ShutdownCoordinator().run([participant])
+        let outcome = await ShutdownCoordinator().start { [participant] }?.value
         #expect(
             outcome
                 == .cancelled(
@@ -80,11 +81,11 @@ struct ShutdownCoordinatorTests {
         #expect(coordinator.replyToNewRequest == .later)
         let waiting = RecordingParticipant(phase: .storage, stops: true, journal: CallJournal())
         waiting.isBlocked = true
-        let run = Task { await coordinator.run([waiting]) }
+        let run = coordinator.start { [waiting] }
         await waitUntil { coordinator.message == ShutdownPhase.storage.message }
         #expect(coordinator.replyToNewRequest == .cancel)
         waiting.isBlocked = false
-        #expect(await run.value == .stopped)
+        #expect(await run?.value == .stopped)
         #expect(coordinator.replyToNewRequest == .now)
     }
 }

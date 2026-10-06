@@ -5,8 +5,23 @@ extension SitesModel: WorkspaceFeature {
     public var section: AppSection { .sites }
     public var pollingPolicy: PollingPolicy { .environment }
 
-    /// Site work first (pending changes), then tunnels, and PHP-FPM and Caddy last.
-    public var shutdownParticipants: [any ShutdownParticipant] { [siteWorkStage, tunnels, self] }
+    /// Tunnels, then PHP-FPM and Caddy last. The shared lock ends pending site work first.
+    public var shutdownParticipants: [any ShutdownParticipant] { [tunnels, self] }
+
+    /// The environment at 500 ms and the tunnels at 1 s while visible (spec F 2.9).
+    public var pollingTasks: [PollingTask] {
+        [
+            PollingTask(policy: .environment) { [weak self] in await self?.refresh() },
+            PollingTask(policy: .tunnels) { [weak self] in await self?.tunnels.refresh() },
+        ]
+    }
+
+    /// File › New Site… (⌘N).
+    public var newItemAction: FeatureAction? {
+        FeatureAction(id: "sites.new", title: "New Site…", isEnabled: canChange) { [weak self] in
+            self?.beginAdd()
+        }
+    }
 
     public var summary: FeatureSummary {
         FeatureSummary(status: cardStatus, summary: cardSummary, actions: cardActions)

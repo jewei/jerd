@@ -29,9 +29,11 @@ struct AppearancePage: View {
             } header: {
                 Text("App Visibility")
             } footer: {
-                FormFooter("When both are off, open Jerd from Applications to return to its window.")
+                if let footer = Self.visibilityFooter(isHiddenEverywhere: model.isHiddenEverywhere) {
+                    FormFooter(footer)
+                }
             }
-            .toggleStyle(.switch)
+            .toggleStyle(CenteredSwitchStyle())
             Section {
                 IconPicker(model: model)
             } header: {
@@ -40,5 +42,11 @@ struct AppearancePage: View {
                 FormFooter("The selected icon appears in the Dock and menu bar while Jerd is open.")
             }
         }
+    }
+
+    /// The note under the switches. While both are off, the warning banner already says how to
+    /// return, so the note does not say it twice.
+    static func visibilityFooter(isHiddenEverywhere: Bool) -> String? {
+        isHiddenEverywhere ? nil : "When both are off, open Jerd from Applications to return to its window."
     }
 }

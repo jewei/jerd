@@ -14,10 +14,7 @@ struct SiteDetailPage: View {
             PageHeader(
                 site.displayName, subtitle: "https://\(site.hostname)",
                 status: NamedStatus("Site status", status), primaryAction: primaryAction,
-                secondaryActions: secondaryActions
-            ) {
-                SystemSetupMenu(model: model)
-            }
+                secondaryActions: secondaryActions)
         } messages: {
             SitesMessages(state: state, model: model)
         } content: {

@@ -48,11 +48,11 @@ struct SitesFeatureTests {
         #expect(harness.recorder.opened == [.item(.tunnel(SampleData.previewTunnelID))])
     }
 
-    @Test("Shutdown: pending site work stops first, PHP-FPM and Caddy stop last")
+    @Test("Shutdown: tunnels stop, then PHP-FPM and Caddy last")
     func shutdownParticipants() async {
         let harness = await SitesHarness.launched()
         let phases = harness.model.shutdownParticipants.map(\.shutdownPhase)
-        #expect(phases == [.siteWork, .tunnels, .webEnvironment])
+        #expect(phases == [.tunnels, .webEnvironment])
         #expect(await harness.model.shutdown())
         #expect(await harness.sites.calls.last == "stop environment")
         harness.model.resumeAfterCancelledQuit()
@@ -68,21 +68,43 @@ struct SitesFeatureTests {
         #expect(harness.model.operation.failureMessage == "Caddy did not stop.")
     }
 
-    @Test("The site work stage ends a stoppable change and disables every action")
-    func siteWorkStage() async {
+    @Test("The quit closes the shared lock, stops a stoppable change, and no new work starts")
+    func quitStopsSiteWork() async {
         let port = InMemorySitesPort()
         await port.configure { $0.suspendsChanges = true }
         let harness = await SitesHarness.launched(sites: port)
         _ = harness.model.startAll()
-        let stage = harness.model.siteWorkStage
-        #expect(stage.shutdownMessage == "Cancelling preparation…")
-        #expect(await stage.shutdown())
-        #expect(harness.model.isBusy)
+        #expect(harness.lock.work?.canCancel == true)
+        #expect(await harness.lock.shutdown())
         #expect(!harness.model.canChange)
         #expect(harness.model.startAll() == nil)
         #expect(await port.calls.contains("request stop"))
-        stage.resumeAfterCancelledQuit()
+        #expect(harness.model.operation == .idle)
+        harness.lock.resumeAfterCancelledQuit()
         #expect(harness.model.canChange)
+    }
+
+    @Test("Other work that holds the shared lock blocks site changes; File › New follows the rule")
+    func sharedLock() async {
+        let harness = await SitesHarness.launched()
+        #expect(harness.model.newItemAction?.title == "New Site…")
+        #expect(harness.model.newItemAction?.isEnabled == true)
+        let other = harness.lock.run("Removing the selected backup…") {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(!harness.model.canChange)
+        #expect(harness.model.newItemAction?.isEnabled == false)
+        #expect(harness.model.startAll() == nil)
+        await other?.value
+        #expect(harness.model.canChange)
+        harness.model.newItemAction?.perform()
+        #expect(harness.model.sheet?.editor?.isNew == true)
+    }
+
+    @Test("Sites polls the environment and the tunnels at their own intervals")
+    func pollingTasks() async {
+        let harness = await SitesHarness.launched()
+        #expect(harness.model.pollingTasks.map(\.policy) == [.environment, .tunnels])
     }
 
     @Test("The app state builds the Sites feature from its ports and lets it navigate")

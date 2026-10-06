@@ -9,7 +9,6 @@ struct SitesSection: View {
 
     var body: some View {
         content
-            .background(addShortcut)
             .sheet(item: $model.sheet) { sheet in
                 switch sheet {
                 case .editor(let editor): SiteEditorSheet(model: model, editor: editor)
@@ -38,16 +37,5 @@ struct SitesSection: View {
 
     private var resolvedSelection: SidebarSelection? {
         model.shownItem(for: state.navigation.selection(in: .sites))
-    }
-
-    /// ⌘N adds a site while the Sites page shows. A hidden page is disabled, so the shortcut
-    /// works only here.
-    private var addShortcut: some View {
-        Button("Add Site…") { model.beginAdd() }
-            .keyboardShortcut("n", modifiers: .command)
-            .disabled(!model.canChange)
-            .opacity(0)
-            .accessibilityHidden(true)
-            .allowsHitTesting(false)
     }
 }

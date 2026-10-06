@@ -29,7 +29,7 @@ struct SitesSidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .sidebarFooter {
             SitesSidebarFooter(model: model)
         }
     }
@@ -51,12 +51,14 @@ struct SitesSidebar: View {
             .selectionDisabled()
     }
 
-    /// The shown item. A native list refresh can report nil; that never clears the selection.
+    /// The shell's selection, shown with the same fallback as the page: the first site when
+    /// nothing is chosen.
     private var selection: Binding<SidebarSelection?> {
-        Binding {
-            model.shownItem(for: state.navigation.selection(in: .sites))
+        let chosen = state.sidebarSelection(in: .sites)
+        return Binding {
+            model.shownItem(for: chosen.wrappedValue)
         } set: { selection in
-            state.navigation.select(selection)
+            chosen.wrappedValue = selection
         }
     }
 }

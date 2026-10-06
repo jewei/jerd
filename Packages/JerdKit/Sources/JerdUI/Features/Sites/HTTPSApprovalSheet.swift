@@ -15,7 +15,7 @@ struct HTTPSApprovalSheet: View {
             ) {
                 model.approve(approval)
             },
-            workingMessage: model.operation.workingMessage, cancel: model.cancelApproval
+            workingMessage: model.operation.workingMessage, cancel: model.closeApproval
         ) {
             Section("Hostnames") {
                 ForEach(approval.hostnames, id: \.self) { hostname in

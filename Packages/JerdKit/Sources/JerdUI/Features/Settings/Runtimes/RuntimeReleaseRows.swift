@@ -14,7 +14,7 @@ struct RuntimeReleaseRows: View {
             ActionRow("Available") {
                 Picker("\(kind.title) version", selection: selection) {
                     ForEach(check.releases) { candidate in
-                        Text(RuntimeCopy.releaseLabel(candidate, isInstalled: model.inventory.isInstalled(candidate)))
+                        Text(RuntimeCopy.releaseLabel(candidate))
                             .tag(candidate.id)
                     }
                 }

@@ -15,6 +15,9 @@ public actor InMemorySitesPort: SitesPort {
     public var loadFailure: String?
     /// When true, a change waits until `requestStop()`, then ends with `CancellationError`.
     public var suspendsChanges = false
+    /// When true, reading the configuration waits until `releaseLoad()`, for launch tests.
+    public var holdsLoad = false
+    private var heldLoads: [CheckedContinuation<Void, Never>] = []
     public var suggestions: [String: DocumentRootSuggestion] = [:]
     public var logsURL: URL?
     public private(set) var calls: [String] = []
@@ -41,8 +44,20 @@ public actor InMemorySitesPort: SitesPort {
     }
 
     public func loadConfiguration() async throws -> AppConfiguration {
+        calls.append("load")
+        if holdsLoad {
+            await withCheckedContinuation { heldLoads.append($0) }
+        }
         if let loadFailure { throw JerdError.corrupt(loadFailure) }
         return configurationValue
+    }
+
+    /// Lets a held load finish.
+    public func releaseLoad() {
+        holdsLoad = false
+        let held = heldLoads
+        heldLoads = []
+        for continuation in held { continuation.resume() }
     }
 
     public func environment() async -> EnvironmentSnapshot {

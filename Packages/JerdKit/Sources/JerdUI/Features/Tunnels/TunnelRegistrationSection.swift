@@ -5,6 +5,7 @@ import SwiftUI
 /// Edit and Remove of a tunnel registration. Both need a stopped connector.
 struct TunnelRegistrationSection: View {
     let model: TunnelsModel
+    @Environment(\.isQuitting) private var isQuitting
     let sites: SitesModel
     let tunnel: TunnelRegistration
 
@@ -13,12 +14,12 @@ struct TunnelRegistrationSection: View {
         Section {
             ActionRow("Registration", detail: "Edit the token, destination reference, or startup settings.") {
                 Button("Edit Tunnel…") { model.beginEdit(tunnel, sites: sites.sites) }
-                    .disabled(!model.canChange || isActive)
+                    .disabled(!(model.canChange && !isQuitting) || isActive)
                     .accessibilityIdentifier("tunnel.edit")
             }
             ActionRow("Remove from Jerd", detail: "Keep the Cloudflare tunnel and DNS settings.") {
                 Button("Remove Registration…", role: .destructive) { model.confirmation = .remove(tunnel) }
-                    .disabled(!model.canChange)
+                    .disabled(!(model.canChange && !isQuitting))
                     .accessibilityIdentifier("tunnel.remove")
             }
         } footer: {

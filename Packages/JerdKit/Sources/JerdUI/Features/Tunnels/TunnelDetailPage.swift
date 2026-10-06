@@ -8,6 +8,7 @@ struct TunnelDetailPage: View {
     let state: AppState
     let sites: SitesModel
     let tunnel: TunnelRegistration
+    @Environment(\.isQuitting) private var isQuitting
 
     private var model: TunnelsModel { sites.tunnels }
 
@@ -38,7 +39,8 @@ struct TunnelDetailPage: View {
             }
         }
         return PageAction(
-            "Connect…", systemImage: "play.fill", isEnabled: model.canChange && model.configuration.runtime != nil,
+            "Connect…", systemImage: "play.fill",
+            isEnabled: (model.canChange && !isQuitting) && model.configuration.runtime != nil,
             help: model.configuration.runtime == nil ? model.runtimeMessage : nil, identifier: "tunnel.connect"
         ) {
             model.confirmation = .connect(tunnel)

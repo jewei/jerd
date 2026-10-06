@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The one sheet layout: title, optional message, a grouped form, and a footer with Cancel
 /// and a confirm button. Escape cancels. Return confirms, except for a destructive confirm,
-/// so a destructive step always needs a deliberate click or Space.
+/// so a destructive step always needs a deliberate click or Space. `SheetReturnKey` can give
+/// Return to the cancel-side button (Done) or to no button.
 /// The sheet is as tall as its content, between the minimum and maximum of its `SheetSize`.
 /// Cancel stays enabled while the sheet works; it ends the wait, never other work.
 public struct SheetScaffold<Content: View>: View {
@@ -44,6 +45,8 @@ public struct SheetScaffold<Content: View>: View {
                 .padding(.vertical, Spacing.large)
         }
         .frame(width: size.width)
+        // Escape always cancels, also when Return belongs to the cancel-side button.
+        .onExitCommand(perform: cancel)
         // No ideal height: the sheet takes the height of its content, within these limits.
         .frame(minHeight: size.minimumHeight, maxHeight: size.maximumHeight)
     }
@@ -96,7 +99,7 @@ public struct SheetScaffold<Content: View>: View {
             }
             Spacer(minLength: Spacing.small)
             Button(confirmation.cancelTitle, role: .cancel, action: cancel)
-                .keyboardShortcut(.cancelAction)
+                .keyboardShortcut(confirmation.cancelUsesReturnKey ? .defaultAction : .cancelAction)
                 .accessibilityIdentifier(ifPresent: confirmation.cancelIdentifier)
             SheetConfirmButton(confirmation: confirmation, isEnabled: isConfirmEnabled)
         }

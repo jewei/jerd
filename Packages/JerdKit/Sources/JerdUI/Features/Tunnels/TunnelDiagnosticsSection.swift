@@ -6,6 +6,7 @@ import SwiftUI
 struct TunnelDiagnosticsSection: View {
     let state: AppState
     let model: TunnelsModel
+    @Environment(\.isQuitting) private var isQuitting
     let tunnel: TunnelRegistration
 
     var body: some View {
@@ -15,7 +16,7 @@ struct TunnelDiagnosticsSection: View {
                     .accessibilityLabel("Manage runtimes")
                 if model.configuration.runtime == nil {
                     Button("Choose Executable…") { model.chooseRuntime() }
-                        .disabled(!model.canChange)
+                        .disabled(!(model.canChange && !isQuitting))
                         .accessibilityIdentifier("tunnel.choose-runtime")
                 }
             }

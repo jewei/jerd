@@ -6,8 +6,10 @@ enum DashboardCards {
     static let sections: [AppSection] = [.sites, .databases, .storage, .mail]
 
     /// The summary of a section: its feature's, or a placeholder while the feature is not built.
+    /// During a quit every card action is off.
     static func summary(for section: AppSection, in state: AppState) -> FeatureSummary {
-        state.feature(for: section)?.summary ?? placeholder
+        let summary = state.feature(for: section)?.summary ?? placeholder
+        return state.isQuitting ? summary.disablingActions() : summary
     }
 
     static let placeholder = FeatureSummary(

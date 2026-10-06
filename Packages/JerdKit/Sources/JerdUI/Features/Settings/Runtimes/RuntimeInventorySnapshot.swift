@@ -7,19 +7,17 @@ import JerdRuntimes
 public struct RuntimeInventorySnapshot: Hashable, Sendable {
     /// The versions in use for each kind, in any order.
     public var versions: [RuntimeKind: [String]]
-    /// The registered PHP runtimes, in configuration order.
-    public var php: [RegisteredPHP]
-    public var defaultPHPID: UUID?
+    /// The archive digest of the managed build that supplies each registered PHP runtime.
+    /// The registrations themselves come from `RegistrationStore`.
+    public var phpBuildDigests: [UUID: String]
     /// The managed builds that are in use.
     public var builds: [InstalledBuild]
 
     public init(
-        versions: [RuntimeKind: [String]] = [:], php: [RegisteredPHP] = [], defaultPHPID: UUID? = nil,
-        builds: [InstalledBuild] = []
+        versions: [RuntimeKind: [String]] = [:], phpBuildDigests: [UUID: String] = [:], builds: [InstalledBuild] = []
     ) {
         self.versions = versions
-        self.php = php
-        self.defaultPHPID = defaultPHPID
+        self.phpBuildDigests = phpBuildDigests
         self.builds = builds
     }
 
@@ -34,11 +32,6 @@ public struct RuntimeInventorySnapshot: Hashable, Sendable {
             case (.none, .none): left < right
             }
         }
-    }
-
-    /// The default PHP runtime, if one is registered.
-    public var defaultPHP: RegisteredPHP? {
-        php.first { $0.id == defaultPHPID }
     }
 
     /// True when a build in use installs `release`.

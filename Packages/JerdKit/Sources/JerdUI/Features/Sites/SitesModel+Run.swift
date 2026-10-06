@@ -60,7 +60,7 @@ extension SitesModel {
     }
 
     /// Stops every site. Running site work ends at its next step first, so a slow start never
-    /// blocks Stop.
+    /// blocks Stop. The stop waits for other work that holds the shared lock.
     @discardableResult
     public func stopAll() -> Task<Void, Never>? {
         guard canStopAll else { return nil }
@@ -74,9 +74,26 @@ extension SitesModel {
                 await port.requestStop()
                 await running?.value
             }
-            await perform("Stopping PHP-FPM and Caddy…") { model in
-                try await model.port.stopEnvironment()
-            }?.value
+            await stopEnvironmentWhenFree()
+        }
+    }
+
+    /// Stops PHP-FPM and Caddy as soon as the shared lock is free.
+    private func stopEnvironmentWhenFree() async {
+        do {
+            try await lock.runWhenFree("Stopping PHP-FPM and Caddy…") { [self] in
+                operation = .working("Stopping PHP-FPM and Caddy…")
+                do {
+                    try await port.stopEnvironment()
+                    operation = .idle
+                } catch {
+                    operation = .failed(message: ErrorText.message(for: error))
+                }
+                await settle()
+            }
+        } catch {
+            // A quit closed the lock first. The quit stops PHP-FPM and Caddy itself.
+            if operation.isWorking { operation = .idle }
         }
     }
 

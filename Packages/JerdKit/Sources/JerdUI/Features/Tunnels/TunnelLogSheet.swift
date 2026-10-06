@@ -10,7 +10,8 @@ struct TunnelLogSheet: View {
         SheetScaffold(
             log.title, message: "Recent events. Select Refresh to load new entries.", size: .wide,
             confirmation: SheetConfirmation(
-                "Refresh", cancelTitle: "Done", isEnabled: !log.isLoading, identifier: "tunnel-log"
+                "Refresh", cancelTitle: "Done", isEnabled: !log.isLoading, returnKey: .cancel,
+                identifier: "tunnel-log"
             ) {
                 Task { await log.load() }
             },

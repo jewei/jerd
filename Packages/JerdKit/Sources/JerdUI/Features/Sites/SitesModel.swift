@@ -33,12 +33,14 @@ public final class SitesModel {
     @ObservationIgnored let workspace: any WorkspaceOpening
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored var currentWork: Task<Void, Never>?
-    @ObservationIgnored lazy var siteWorkStage = SiteWorkStage(model: self)
+    /// The shared lock: every site and HTTPS change holds it, and the quit waits for it.
+    @ObservationIgnored let lock: OperationLock
 
     public init(
         port: any SitesPort, tunnels: TunnelsModel, panels: any FilePanelPresenting,
-        workspace: any WorkspaceOpening, clipboard: Clipboard
+        workspace: any WorkspaceOpening, clipboard: Clipboard, lock: OperationLock = OperationLock()
     ) {
+        self.lock = lock
         self.port = port
         self.tunnels = tunnels
         self.panels = panels
@@ -56,11 +58,9 @@ public final class SitesModel {
     /// True while a site operation runs or Jerd quits. Every site action is then disabled.
     public var isBusy: Bool { operation.isWorking || isShuttingDown }
 
-    /// True while no site operation runs and Jerd is not quitting.
-    public var isIdle: Bool { !operation.isWorking && !isShuttingDown }
-
-    /// True when a change can start: the sites are loaded and nothing else runs.
-    public var canChange: Bool { isLoaded && isIdle }
+    /// True when a change can start: the sites are loaded, no site work runs, and no other
+    /// page holds the shared lock or quits.
+    public var canChange: Bool { isLoaded && !isBusy && lock.isFree }
 
     /// Reads the saved sites, the environment, and the HTTPS setup, then the tunnels.
     public func launch() async {
@@ -71,17 +71,17 @@ public final class SitesModel {
     /// Reads the saved sites again after a failed load.
     @discardableResult
     public func retryLoad() -> Task<Void, Never>? {
-        guard !isLoaded, isIdle else { return nil }
+        guard !isLoaded, !isBusy else { return nil }
         let task = Task { await loadSites() }
         currentWork = task
         return task
     }
 
-    /// Reads the environment and the tunnels. The poller calls it; it changes only what changed.
+    /// Reads the environment. The poller calls it; it changes only what changed. The tunnels
+    /// have their own polling task.
     public func refresh() async {
         let latest = await port.environment()
         if latest != environment { environment = latest }
-        await tunnels.refresh()
     }
 
     /// Removes the failure banner.
@@ -114,30 +114,6 @@ public final class SitesModel {
             setup = nil
             setupReadFailure = ErrorText.message(for: error)
         }
-    }
-
-    /// Runs one site operation with its banner message, then reads the state again. A Stop
-    /// ends the operation without an error. Other failures show once, on this page.
-    /// - Parameter canStop: True when Stop All Sites can end the operation at its next step.
-    @discardableResult
-    func perform(
-        _ message: String, canStop: Bool = false, _ work: @escaping @MainActor (SitesModel) async throws -> Void
-    ) -> Task<Void, Never>? {
-        guard canChange else { return nil }
-        operation = .working(message: message, canStop: canStop)
-        let task = Task {
-            do {
-                try await work(self)
-                operation = .idle
-            } catch is CancellationError {
-                operation = .idle
-            } catch {
-                operation = .failed(message: ErrorText.message(for: error))
-            }
-            await settle()
-        }
-        currentWork = task
-        return task
     }
 
     /// Reads the environment and the HTTPS setup after an operation.

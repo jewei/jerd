@@ -25,11 +25,7 @@ public enum SampleData {
             .mysql: ["8.4.6"], .postgresql: ["17.6"], .redis: ["8.2.1"], .mailpit: ["1.27.7"], .rustfs: ["1.0.0"],
             .cloudflared: ["2025.9.1"],
         ],
-        php: [
-            RegisteredPHP(id: php84ID, version: "8.4.12", buildDigest: digest),
-            RegisteredPHP(id: php83ID, version: "8.3.24"),
-        ],
-        defaultPHPID: php84ID,
+        phpBuildDigests: [php84ID: digest],
         builds: [InstalledBuild(kind: .caddy, version: "2.10.2", releaseVersion: "2.10.2", archiveSHA256: digest)])
 
     /// A release with a stated digest.

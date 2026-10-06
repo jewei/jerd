@@ -48,6 +48,23 @@ struct ComponentAccessibilityTests {
         #expect(!SheetConfirmation("Delete Backup", isDestructive: true) {}.usesReturnKey)
     }
 
+    @Test(
+        "A sheet can give Return to Done or to no button, but never to a destructive confirm",
+        arguments: [
+            (false, SheetReturnKey?.none, SheetReturnKey.confirm),
+            (false, .cancel, .cancel),
+            (false, SheetReturnKey.none, SheetReturnKey.none),
+            (true, nil, SheetReturnKey.none),
+            (true, .confirm, SheetReturnKey.none),
+            (true, .cancel, .cancel),
+        ] as [(Bool, SheetReturnKey?, SheetReturnKey)])
+    func returnKeyChoice(isDestructive: Bool, requested: SheetReturnKey?, expected: SheetReturnKey) {
+        let confirmation = SheetConfirmation("Restore", isDestructive: isDestructive, returnKey: requested) {}
+        #expect(confirmation.returnKey == expected)
+        #expect(confirmation.usesReturnKey == (expected == .confirm))
+        #expect(confirmation.cancelUsesReturnKey == (expected == .cancel))
+    }
+
     @Test("The confirm button is disabled while the sheet works")
     func confirmWaitsForWork() {
         #expect(sheet(isEnabled: true, workingMessage: nil).isConfirmEnabled)

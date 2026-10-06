@@ -26,8 +26,7 @@ extension SitesModel {
         guard canChange, editor.canSave else { return nil }
         let site = editor.draft
         editor.failure = nil
-        operation = .working(message: "Saving \(site.displayName)…", canStop: true)
-        let task = Task {
+        return startWork("Saving \(site.displayName)…", canStop: true) { [self] in
             do {
                 let outcome = try await port.apply(
                     .save(site, confirmed: editor.confirmsRoot), startIfStopped: editor.isNew)
@@ -38,10 +37,7 @@ extension SitesModel {
             } catch {
                 reportEditorFailure(ErrorText.message(for: error), editor: editor)
             }
-            await settle()
         }
-        currentWork = task
-        return task
     }
 
     /// Changes "Include when starting all sites".

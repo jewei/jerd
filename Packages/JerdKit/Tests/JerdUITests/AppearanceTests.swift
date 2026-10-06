@@ -70,4 +70,17 @@ struct AppearanceTests {
         let images = BundleIconImages()
         #expect(AppIconChoice.allCases.allSatisfy { images.image(for: $0) != nil })
     }
+
+    @Test("The way back from a hidden app shows once: the banner, not also the section note")
+    func hiddenMessageOnce() {
+        #expect(AppearancePage.visibilityFooter(isHiddenEverywhere: true) == nil)
+        #expect(
+            AppearancePage.visibilityFooter(isHiddenEverywhere: false)
+                == "When both are off, open Jerd from Applications to return to its window.")
+    }
+
+    @Test("The icon tiles share the full width: one column per design")
+    func iconColumns() {
+        #expect(IconPicker.columns.count == AppIconChoice.allCases.count)
+    }
 }

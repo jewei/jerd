@@ -113,9 +113,8 @@ struct SitesModelTests {
         #expect(harness.model.approvalFailure == "Allow Jerd in Login Items & Extensions, then retry.")
         #expect(harness.model.operation == .idle)
         #expect(harness.recorder.alerts.isEmpty)
-        harness.model.cancelApproval()
+        await harness.model.cancelApproval()?.value
         #expect(harness.model.sheet == nil)
-        for _ in 0..<1_000 where await !port.calls.contains("discard") { await Task.yield() }
         #expect(await port.calls.contains("discard"))
     }
 

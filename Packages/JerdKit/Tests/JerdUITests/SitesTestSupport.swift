@@ -11,6 +11,7 @@ struct SitesHarness {
     let shell = InMemoryShell()
     let panels: InMemoryFilePanels
     let clipboard: Clipboard
+    let lock = OperationLock()
     let model: SitesModel
     /// Every destination that the model showed, and every alert, in order.
     let recorder = ShellRecorder()
@@ -24,7 +25,8 @@ struct SitesHarness {
         self.panels = panels
         clipboard = Clipboard(pasteboard: shell)
         let tunnelsModel = TunnelsModel(port: tunnels, panels: panels, workspace: shell, clipboard: clipboard)
-        model = SitesModel(port: sites, tunnels: tunnelsModel, panels: panels, workspace: shell, clipboard: clipboard)
+        model = SitesModel(
+            port: sites, tunnels: tunnelsModel, panels: panels, workspace: shell, clipboard: clipboard, lock: lock)
         let recorder = recorder
         let shellValue = SitesShell(
             show: { recorder.shown.append($0) }, open: { recorder.opened.append($0) },

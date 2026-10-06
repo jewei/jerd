@@ -18,12 +18,14 @@ public final class AppFixture {
     public let tunnels: InMemoryTunnelsPort
     public let features: [InMemoryFeature]
     public let services: InMemoryServicePorts
+    /// The appearance defaults, in memory only: a fixture writes nothing to disk.
     public let defaults: UserDefaults
     public let state: AppState
-    private let suiteName: String
+    /// A name for the fixture's defaults, for messages. Nothing is stored under it.
+    public let suiteName: String
 
     /// - Parameters:
-    ///   - suiteName: A private defaults domain. `removeDefaults()` deletes it.
+    ///   - suiteName: A name for the fixture's in-memory defaults.
     ///   - sleeper: The poller clock; by default the poller never ticks.
     public init(
         suiteName: String = "dev.jerd.fixtures.\(UUID().uuidString)",
@@ -36,8 +38,8 @@ public final class AppFixture {
         prepareDefaults: (UserDefaults) -> Void = { _ in }
     ) {
         self.suiteName = suiteName
-        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
-        defaults.removePersistentDomain(forName: suiteName)
+        // InMemoryDefaults fails only when Foundation refuses a nil suite, which it never does.
+        let defaults: UserDefaults = InMemoryDefaults(suiteName: suiteName) ?? UserDefaults()
         prepareDefaults(defaults)
         self.defaults = defaults
         self.runtimes = runtimes
@@ -56,8 +58,8 @@ public final class AppFixture {
         state = AppState(dependencies: dependencies, features: features)
     }
 
-    /// Deletes the private defaults domain.
+    /// Removes every default that the fixture wrote. Nothing is on disk, so this only resets.
     public func removeDefaults() {
-        defaults.removePersistentDomain(forName: suiteName)
+        (defaults as? InMemoryDefaults)?.removeAll()
     }
 }

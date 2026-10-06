@@ -6,6 +6,7 @@ import SwiftUI
 /// of a failed connector, a failed connect at launch, and saved settings that need an edit.
 struct TunnelMessages: View {
     let model: TunnelsModel
+    @Environment(\.isQuitting) private var isQuitting
     let sites: SitesModel
     let tunnel: TunnelRegistration
 
@@ -17,7 +18,9 @@ struct TunnelMessages: View {
         if let issue = model.snapshots[tunnel.id]?.settingsIssue {
             InlineMessage(
                 issue, kind: .warning, title: "These settings need an edit", style: .banner,
-                action: PageAction("Edit Tunnel…", isEnabled: model.canChange && !model.isActive(tunnel.id)) {
+                action: PageAction(
+                    "Edit Tunnel…", isEnabled: (model.canChange && !isQuitting) && !model.isActive(tunnel.id)
+                ) {
                     model.beginEdit(tunnel, sites: sites.sites)
                 }, identifier: "tunnel.settings-issue")
         }

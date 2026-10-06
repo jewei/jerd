@@ -13,7 +13,8 @@ struct RuntimesModelTests {
         _ inventory: InMemoryRuntimeInventory = InMemoryRuntimeInventory(
             inventory: SampleData.inventory, results: SampleData.checks)
     ) async -> RuntimesModel {
-        let model = RuntimesModel(port: inventory)
+        let ports = InMemoryAdvancedPorts(registrations: SampleData.registrations)
+        let model = RuntimesModel(port: inventory, registry: RegistrationStore(port: ports))
         await model.load()
         return model
     }
@@ -132,15 +133,19 @@ struct RuntimesModelTests {
     }
 
     @Test("Use as Default changes the default PHP; a failure shows on the page")
-    func useAsDefault() async {
-        let inventory = InMemoryRuntimeInventory(inventory: SampleData.inventory)
-        let model = await model(inventory)
-        let php83 = SampleData.inventory.php[1]
+    func useAsDefault() async throws {
+        let ports = InMemoryAdvancedPorts(registrations: SampleData.registrations)
+        let model = RuntimesModel(
+            port: InMemoryRuntimeInventory(inventory: SampleData.inventory), registry: RegistrationStore(port: ports))
+        await model.load()
+        #expect(model.registeredPHP.map(\.version) == ["8.4.12", "8.3.24"])
+        #expect(model.registeredPHP.first?.buildDigest == SampleData.digest)
+        let php83 = try #require(model.registeredPHP.last)
         await model.useAsDefault(php83)?.value
-        #expect(model.inventory.defaultPHPID == php83.id)
+        #expect(model.defaultPHPID == php83.id)
         #expect(model.useAsDefault(php83) == nil)
-        await inventory.configure { $0.defaultFailure = "Load valid site settings before changing PHP or Caddy." }
-        await model.useAsDefault(SampleData.inventory.php[0])?.value
+        await ports.configure { $0.failure = "Load valid site settings before changing PHP or Caddy." }
+        await model.useAsDefault(try #require(model.registeredPHP.first))?.value
         #expect(model.operation == .failed(message: "Load valid site settings before changing PHP or Caddy."))
     }
 
@@ -153,7 +158,9 @@ struct RuntimesModelTests {
 
     @Test("Footers name the check date, then the note of the kind")
     func footers() {
-        #expect(RuntimeCopy.footer(.caddy, checkedAt: nil) == "Updates have not been checked.")
+        #expect(RuntimeCopy.footer(.caddy, checkedAt: nil) == nil)
+        #expect(RuntimeCopy.footer(.redis, checkedAt: nil) == "Redis builds need the Xcode command line tools.")
+        #expect(RuntimeCopy.footer(.caddy, checkedAt: "Oct 6, 2026 at 9:41 AM") == "Checked Oct 6, 2026 at 9:41 AM.")
         #expect(
             RuntimeCopy.footer(.mysql, checkedAt: "Oct 6, 2026 at 9:41 AM")
                 == "Checked Oct 6, 2026 at 9:41 AM. MySQL uses the 8.4 LTS series.")

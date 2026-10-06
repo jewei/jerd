@@ -20,8 +20,7 @@ extension SitesModel {
     public func approve(_ approval: HTTPSApproval) -> Task<Void, Never>? {
         guard canChange else { return nil }
         approvalFailure = nil
-        operation = .working(Self.approvalMessage)
-        let task = Task {
+        return startWork(Self.approvalMessage) { [self] in
             do {
                 configuration = try await port.approve(approval)
                 operation = .idle
@@ -32,19 +31,24 @@ extension SitesModel {
                 operation = .idle
                 reportApprovalFailure(ErrorText.message(for: error), approval: approval)
             }
-            await settle()
         }
-        currentWork = task
-        return task
+    }
+
+    /// Cancel of the approval sheet.
+    public func closeApproval() {
+        cancelApproval()
     }
 
     /// Closes the approval sheet. A waiting change is forgotten; a running approval continues.
-    public func cancelApproval() {
-        guard let approval = sheet?.approval else { return }
+    /// - Returns: The task that forgets the waiting change, or nil.
+    @discardableResult
+    public func cancelApproval() -> Task<Void, Never>? {
+        guard let approval = sheet?.approval else { return nil }
         sheet = nil
         approvalFailure = nil
-        guard operation.workingMessage != Self.approvalMessage else { return }
-        Task { await port.discard(approval) }
+        guard operation.workingMessage != Self.approvalMessage else { return nil }
+        let port = port
+        return Task { await port.discard(approval) }
     }
 
     /// Runs the confirmed step and clears the confirmation.
@@ -73,9 +77,7 @@ extension SitesModel {
     private func performSystemStep(
         _ step: SitesConfirmation, _ work: @escaping @MainActor (SitesModel) async throws -> Void
     ) -> Task<Void, Never>? {
-        guard canChange else { return nil }
-        operation = .working(step.workingMessage)
-        let task = Task {
+        startWork(step.workingMessage) { [self] in
             do {
                 try await work(self)
             } catch is CancellationError {
@@ -83,10 +85,7 @@ extension SitesModel {
                 shell.alert(AppAlert(title: "System Setup Did Not Finish", message: ErrorText.message(for: error)))
             }
             operation = .idle
-            await settle()
         }
-        currentWork = task
-        return task
     }
 
     private func reportApprovalFailure(_ message: String, approval: HTTPSApproval) {

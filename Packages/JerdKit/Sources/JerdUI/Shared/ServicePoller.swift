@@ -30,9 +30,9 @@ public final class ServicePoller {
     public func update(activity newActivity: AppActivity) {
         let previous = policy.interval(for: activity)
         activity = newActivity
-        guard loop != nil, policy.interval(for: newActivity) < previous else { return }
-        loop?.cancel()
-        loop = makeLoop(refreshFirst: true)
+        guard let current = loop, policy.interval(for: newActivity) < previous else { return }
+        current.cancel()
+        loop = makeLoop(refreshFirst: true, after: current)
     }
 
     /// Stops polling for good. A later `start` does nothing.
@@ -43,9 +43,12 @@ public final class ServicePoller {
     }
 
     /// The loop holds the poller weakly, so a poller that nobody owns ends its loop.
-    private func makeLoop(refreshFirst: Bool) -> Task<Void, Never> {
+    /// - Parameter previous: The cancelled loop. It can be inside a refresh; the new loop waits
+    ///   for it, so two refreshes never run at once and an old snapshot never comes last.
+    private func makeLoop(refreshFirst: Bool, after previous: Task<Void, Never>? = nil) -> Task<Void, Never> {
         let sleeper = sleeper
         return Task { [weak self] in
+            await previous?.value
             if refreshFirst {
                 await self?.refreshIfCurrent()
             }
