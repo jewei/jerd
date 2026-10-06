@@ -75,6 +75,8 @@ import Testing
             (layout.tunnels.settingsFile, "tunnels/settings.json"),
             (tunnel.configurationFile, "tunnels/instances/\(id.uuidString)/config.yml"),
             (tunnel.homeDirectory, "tunnels/instances/\(id.uuidString)/home"),
+            (tunnel.logFile, "tunnels/instances/\(id.uuidString)/server.log"),
+            (tunnel.previousLogFile, "tunnels/instances/\(id.uuidString)/server.previous.log"),
         ]
         for (url, expected) in pairs { #expect(relative(url) == expected) }
     }
