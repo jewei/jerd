@@ -39,6 +39,9 @@ folder, and the keychain. It depends only on JerdFoundation.
   app timeout, because macOS can show an approval prompt. Cancellation ends only a status call.
   A timeout drops the shared link, but not while a change without a timeout waits on it.
 - Each changing call opens its own consent scope with a token. A second scope is refused.
+- When another tool deleted the tracked hosts section, remove still removes the trust and the
+  registration (no hosts byte changes), and configure writes the section again after the
+  external-mapping check.
 - A failed step is undone in reverse order. A rollback writes back the exact earlier record bytes.
   When an undo fails, the journal stays and the error is `.partialChange`.
 - The hosts lock waits at most 5 seconds. A staging file stays only with a `.partialChange` error.

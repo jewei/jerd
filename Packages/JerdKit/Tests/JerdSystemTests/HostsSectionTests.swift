@@ -85,6 +85,18 @@ import Testing
         }
     }
 
+    /// Fixed review M2: for a committed setup, a deleted section counts as removed; a changed one does not.
+    @Test func aRecordedSectionThatIsGoneCountsAsRemoved() throws {
+        let plain = Data("127.0.0.1 localhost\n".utf8)
+        #expect(try HostsSection.replacing(in: plain, with: [], recorded: hosts("demo.test")) == plain)
+        let added = try HostsSection.replacing(in: plain, with: hosts("demo.test"), recorded: hosts("demo.test"))
+        #expect(added == plain + Data(HostsSection.render(try hosts("demo.test")).utf8))
+        let changed = plain + Data(HostsSection.render(try hosts("other.test")).utf8)
+        #expect(throws: JerdError.invalid("The Jerd hosts section changed outside the app. It was not overwritten.")) {
+            try HostsSection.replacing(in: changed, with: [], recorded: hosts("demo.test"))
+        }
+    }
+
     @Test func refusesOversizedOrNonUTF8Files() throws {
         let message = "The hosts file is too large or is not valid UTF-8. It was not changed."
         #expect(throws: JerdError.invalid(message)) {

@@ -46,6 +46,17 @@ public enum HostsSection {
         return Data(result)
     }
 
+    /// Replaces the section of a committed setup that recorded `recorded`.
+    ///
+    /// A missing section counts as removed by another tool: nothing outside the section is changed,
+    /// and a new section is added only after the external-mapping check (fixed review M2). Without
+    /// this, a deleted section blocked both removal and a new configure, and left the CA trusted.
+    static func replacing(in data: Data, with hostnames: [Hostname], recorded: [Hostname]) throws -> Data {
+        let layout = try HostsSectionLayout.parse(data)
+        let expected = layout.section == nil && !layout.markersReversed ? [] : recorded
+        return try replacing(in: data, with: hostnames, expecting: expected)
+    }
+
     /// True when the file is valid, its section maps exactly `hostnames` (no section for an empty
     /// list), and no line outside the section maps one of them.
     public static func maps(_ hostnames: [Hostname], in data: Data) -> Bool {
