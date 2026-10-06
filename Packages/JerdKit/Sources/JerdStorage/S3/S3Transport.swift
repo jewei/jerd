@@ -7,16 +7,16 @@ import os
 /// request timeout, an 8-second resource timeout, and bodies of at most 4 MiB. Credentials stay
 /// in signed headers and never appear in URLs. `invalidate()` ends the session when its launch
 /// ends; later sends fail with a message, never with a task of an invalidated session.
-public final class S3Transport: S3Sending {
+final class S3Transport: S3Sending {
     /// The largest answer body.
-    public static let responseLimit = 4 * 1_048_576
+    static let responseLimit = 4 * 1_048_576
 
     private let session: URLSession
     private let delegate: S3SessionDelegate
     /// True after `invalidate()`. The lock also orders task creation before the invalidation.
     private let invalidated = OSAllocatedUnfairLock(initialState: false)
 
-    public init(responseLimit: Int = S3Transport.responseLimit) {
+    init(responseLimit: Int = S3Transport.responseLimit) {
         delegate = S3SessionDelegate(limit: responseLimit)
         session = URLSession(configuration: Self.configuration(), delegate: delegate, delegateQueue: nil)
     }
@@ -26,7 +26,7 @@ public final class S3Transport: S3Sending {
         session.invalidateAndCancel()
     }
 
-    public func send(_ request: URLRequest) async throws -> S3Response {
+    func send(_ request: URLRequest) async throws -> S3Response {
         let session = session
         let task = try invalidated.withLock { ended -> URLSessionDataTask in
             guard !ended else { throw StorageMessages.sessionEnded }

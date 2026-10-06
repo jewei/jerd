@@ -6,44 +6,36 @@ import JerdFoundation
 ///
 /// The signed headers are every header of the request, by lowercase name. Jerd signs `host`,
 /// `x-amz-content-sha256`, and `x-amz-date`.
-public struct S3Signer: Sendable {
+struct S3Signer: Sendable {
     /// The parts of one request that the signature covers.
-    public struct Request: Equatable, Sendable {
-        public var method: String
+    struct Request: Equatable, Sendable {
+        var method: String
         /// The URI-encoded path, for example `/bucket/caf%C3%A9.txt`.
-        public var path: String
+        var path: String
         /// The canonical query, for example `policy=`.
-        public var query: String
+        var query: String
         /// The headers to sign. Names are compared without case.
-        public var headers: [String: String]
+        var headers: [String: String]
         /// The lowercase hexadecimal SHA-256 of the body.
-        public var payloadHash: String
-
-        public init(method: String, path: String, query: String, headers: [String: String], payloadHash: String) {
-            self.method = method
-            self.path = path
-            self.query = query
-            self.headers = headers
-            self.payloadHash = payloadHash
-        }
+        var payloadHash: String
     }
 
     /// Every intermediate result, so tests can compare each step with the AWS examples.
-    public struct Signature: Equatable, Sendable {
-        public let canonicalRequest: String
-        public let stringToSign: String
+    struct Signature: Equatable, Sendable {
+        let canonicalRequest: String
+        let stringToSign: String
         /// The lowercase hexadecimal signature.
-        public let signature: String
+        let signature: String
         /// The value of the `Authorization` header.
-        public let authorization: String
+        let authorization: String
     }
 
-    public let accessKey: String
+    let accessKey: String
     let secretKey: String
-    public let region: String
-    public let service: String
+    let region: String
+    let service: String
 
-    public init(accessKey: String, secretKey: String, region: String = "us-east-1", service: String = "s3") {
+    init(accessKey: String, secretKey: String, region: String = "us-east-1", service: String = "s3") {
         self.accessKey = accessKey
         self.secretKey = secretKey
         self.region = region
@@ -51,7 +43,7 @@ public struct S3Signer: Sendable {
     }
 
     /// Signs `request` at `timestamp` (`yyyyMMdd'T'HHmmss'Z'`, UTC).
-    public func sign(_ request: Request, timestamp: String) -> Signature {
+    func sign(_ request: Request, timestamp: String) -> Signature {
         let headers = request.headers.map { (Self.lowercase($0.key), Self.trim($0.value)) }.sorted { $0.0 < $1.0 }
         let canonicalHeaders = headers.map { "\($0.0):\($0.1)\n" }.joined()
         let signedHeaders = headers.map(\.0).joined(separator: ";")
@@ -74,7 +66,7 @@ public struct S3Signer: Sendable {
     }
 
     /// `yyyyMMdd'T'HHmmss'Z'` in UTC, from the Gregorian calendar.
-    public static func timestamp(for date: Date) -> String {
+    static func timestamp(for date: Date) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
@@ -84,7 +76,7 @@ public struct S3Signer: Sendable {
     }
 
     /// The lowercase hexadecimal SHA-256 of `body`.
-    public static func payloadHash(_ body: Data) -> String { FileDigest.hexSHA256(of: body) }
+    static func payloadHash(_ body: Data) -> String { FileDigest.hexSHA256(of: body) }
 
     private static func hmac(_ key: Data, _ text: String) -> Data {
         Data(HMAC<SHA256>.authenticationCode(for: Data(text.utf8), using: SymmetricKey(data: key)))

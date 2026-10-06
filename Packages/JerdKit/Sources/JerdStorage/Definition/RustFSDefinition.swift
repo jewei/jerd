@@ -13,10 +13,10 @@ import JerdServiceKit
 /// an argument or the environment), and the fixed relative volume `data` from its private
 /// working folder, because RustFS splits volume arguments at spaces and the data root has one.
 /// Telemetry export and update checks are off.
-public struct RustFSDefinition: ServiceDefinition {
-    public let runtime: StorageRuntime
-    public let ports: StoragePorts
-    public let profile: ServiceProfile
+struct RustFSDefinition: ServiceDefinition {
+    let runtime: StorageRuntime
+    let ports: StoragePorts
+    let profile: ServiceProfile
     let layout: StorageLayout
     let launch: StorageLaunch
     let makeSession: @Sendable () -> S3Session
@@ -42,7 +42,7 @@ public struct RustFSDefinition: ServiceDefinition {
     }
 
     /// The first line of `rustfs --version` must be `rustfs` and the saved version.
-    public var versionProbe: VersionProbe {
+    var versionProbe: VersionProbe {
         VersionProbe(
             request: ProcessRequest(
                 executable: runtime.executable, arguments: ["--version"], workingDirectory: layout.root),
@@ -54,7 +54,7 @@ public struct RustFSDefinition: ServiceDefinition {
 
     /// Prepares the data, then begins a launch with a new S3 session. The launch ends (the
     /// session is invalidated and the names are cleared) in `didStop`, after every kind of stop.
-    public func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
+    func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
         let credentials = try data.prepare(for: runtime)
         let session = makeSession()
         let launch = launch
@@ -67,7 +67,7 @@ public struct RustFSDefinition: ServiceDefinition {
             secrets: [credentials.secretKey], didStop: { launch.end(id) })
     }
 
-    public func completeStart() async throws {
+    func completeStart() async throws {
         try data.markInitialized(runtime)
     }
 
