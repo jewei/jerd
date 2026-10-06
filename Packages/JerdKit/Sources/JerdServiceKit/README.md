@@ -76,4 +76,5 @@ compile C fixtures with `/usr/bin/cc` and start them. No test needs root or a ne
 
 `Tests/JerdServiceKitTestSupport` holds the fakes and C fixtures that the service test targets
 share (`FakeProcessController`, `FakeSystem`, `FakeTimeKeeper`, `ScriptedCommands`, `Gate`,
-`TemporaryDirectory`, and `Fixtures`). Only test targets depend on it; the app never links it.
+`TemporaryDirectory`, `LoopbackHTTPServer`, `goldenFixture`, and `Fixtures`). Only test targets
+depend on it; the app never links it.

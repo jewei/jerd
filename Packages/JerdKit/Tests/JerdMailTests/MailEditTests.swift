@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail

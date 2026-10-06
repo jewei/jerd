@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import JerdStorage
 import os
 
@@ -38,11 +39,12 @@ final class StorageHarness: Sendable {
             return CommandResult(status: 0, output: "rustfs \(version.withLock { $0 })\nbuild time   : 2026-09-16\n")
         }
         let format = layout.storage.formatFile
-        await processes.setStartHook { _ in
-            guard !FileManager.default.fileExists(atPath: format.path) else { return }
-            try? FileManager.default.createDirectory(
+        await processes.setExitScript { _ in
+            guard !FileManager.default.fileExists(atPath: format.path) else { return nil }
+            try FileManager.default.createDirectory(
                 at: format.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? Self.format.write(to: format)
+            try Self.format.write(to: format)
+            return nil
         }
     }
 

@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail
