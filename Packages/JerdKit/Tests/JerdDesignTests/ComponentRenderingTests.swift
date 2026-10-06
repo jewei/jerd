@@ -43,6 +43,24 @@ struct ComponentRenderingTests {
         #expect(text >= 7, "The message contrast is \(text):1 in \(appearance)")
     }
 
+    /// The text of a check result must reach 4.5:1 (WCAG AA). Green text reached 1.8:1 in light.
+    /// Increase Contrast resolves the primary label color to pure black or white, so it only gains.
+    @Test(
+        "A check result text has at least 4.5:1 contrast", arguments: [SnapshotAppearance.light, .dark])
+    func checkResultContrast(appearance: SnapshotAppearance) async throws {
+        for passed in [true, false] {
+            let pixels = try await render(
+                CheckResultLabel("Passed at start", passed: passed).padding(8)
+                    .frame(width: 240, height: 40, alignment: .leading), width: 240, height: 40,
+                appearance: appearance)
+            let background = pixels.dominantColor(columns: 0..<pixels.width, rows: 0..<pixels.height)
+            // The text starts after 8 pt padding, a 16 pt symbol, and the label spacing.
+            let text = pixels.maximumContrast(
+                columns: 40 * 2..<pixels.width, rows: 0..<pixels.height, against: background)
+            #expect(text >= 4.5, "The result contrast is \(text):1 in \(appearance), passed: \(passed)")
+        }
+    }
+
     @Test("The message text starts at the same place for every kind")
     func messageTextStartIsFixed() async throws {
         var images: [PixelMeasure] = []

@@ -12,9 +12,7 @@ struct SiteChecksSection: View {
         Section {
             ForEach(SiteCheck.checks(for: site, in: model), id: \.title) { check in
                 LabeledContent(check.title) {
-                    Label(check.result, systemImage: check.passed ? "checkmark.circle.fill" : "circle.dashed")
-                        .foregroundStyle(check.passed ? .green : .secondary)
-                        .labelStyle(.titleAndIcon)
+                    CheckResultLabel(check.result, passed: check.passed)
                 }
                 .accessibilityElement(children: .combine)
             }
