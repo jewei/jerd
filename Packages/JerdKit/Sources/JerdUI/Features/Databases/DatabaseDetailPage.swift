@@ -47,8 +47,7 @@ struct DatabaseDetailPage: View {
     private var runtime: DatabaseRuntime? { model.runtime(of: service) }
 
     private var status: DisplayStatus {
-        model.busyServices.contains(service.id) && !state.isBusy
-            ? DisplayStatus(state.displayStatus.label, tone: .busy) : state.displayStatus
+        model.displayStatus(of: service.id)
     }
 
     private var subtitle: String {

@@ -1,7 +1,16 @@
 import Foundation
 import JerdDatabases
+import JerdDesign
 
 extension DatabasesModel {
+    /// The status of one service. While Jerd starts or stops it and the service has not yet
+    /// reported the change, the status names the change, not the old state.
+    public func displayStatus(of id: UUID) -> DisplayStatus {
+        let state = state(of: id)
+        guard busyServices.contains(id), !state.isBusy else { return state.displayStatus }
+        return DisplayStatus(state.offersStop ? "Stopping…" : "Starting…", tone: .busy)
+    }
+
     @discardableResult
     public func start(_ id: UUID) -> Task<Void, Never>? {
         guard canStart(id) else { return nil }

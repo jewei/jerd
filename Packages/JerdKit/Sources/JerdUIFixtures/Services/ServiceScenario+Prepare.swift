@@ -6,6 +6,7 @@ extension ServiceScenario {
     @MainActor
     public func prepare(_ fixture: AppFixture) async {
         let state = fixture.state
+        await configurePorts(fixture.services)
         await state.launch()
         switch self {
         case .databaseEditor:
@@ -15,6 +16,11 @@ extension ServiceScenario {
             state.databases.beginAdd(.mysql)
             state.databases.editor?.setName("Studio cache")
             state.databases.editor?.setPort("6379")
+        case .databaseStarting:
+            state.databases.start(SampleServices.reportingID)
+        case .databaseRuntimeMissing:
+            state.databases.requestRemove(SampleServices.reportingID)
+            await state.databases.confirmRemove()?.value
         case .retainedDatabases:
             state.databases.showRetained()
             await state.databases.inspectRetained()?.value
@@ -49,10 +55,31 @@ extension ServiceScenario {
         guard state.isLaunched else { return false }
         switch self {
         case .databaseEditor: return state.databases.editor?.portText.isEmpty == false
+        case .databaseStarting: return !state.databases.busyServices.isEmpty
+        case .databaseRuntimeMissing: return state.databases.operation.failureMessage != nil
+        case .databasesLoadFailed: return state.databases.loadState.failureMessage != nil
         case .retainedDatabases: return !state.databases.retained.isEmpty
         case .mail: return state.mail.testResult != nil
         case .advancedCommandLineTools: return !state.commandLineTools.report.isEmpty
         default: return true
+        }
+    }
+
+    /// Sets the behavior that the scenario needs before the launch reads the services.
+    private func configurePorts(_ ports: InMemoryServicePorts) async {
+        switch self {
+        case .databaseStarting:
+            await ports.databases.configure { $0.startBehavior = .suspend }
+        case .databaseRuntimeMissing:
+            await ports.databases.configure {
+                $0.failure = "Reporting could not be removed because its data folder is in use by another app."
+            }
+        case .databasesLoadFailed:
+            await ports.databases.configure {
+                $0.loadFailure = "databases.json line 4: The data could not be read."
+            }
+        default:
+            break
         }
     }
 

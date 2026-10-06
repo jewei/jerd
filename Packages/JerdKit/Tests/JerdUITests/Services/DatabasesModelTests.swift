@@ -101,6 +101,20 @@ struct DatabasesModelTests {
         #expect(fixture.state.databases.restoreDraft == nil)
     }
 
+    @Test("A start in progress shows Starting… until the service reports its own state")
+    func startingStatus() async throws {
+        let databases = sample()
+        await databases.configure { $0.startBehavior = .suspend }
+        let fixture = await launched(databases)
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.databases
+        #expect(model.displayStatus(of: SampleServices.reportingID) == DisplayStatus("Stopped", tone: .idle))
+        let start = try #require(model.start(SampleServices.reportingID))
+        #expect(model.displayStatus(of: SampleServices.reportingID) == DisplayStatus("Starting…", tone: .busy))
+        start.cancel()
+        await start.value
+    }
+
     @Test("Services start and stop on their own; a start failure shows only as its state")
     func independentLifecycle() async {
         let databases = sample()

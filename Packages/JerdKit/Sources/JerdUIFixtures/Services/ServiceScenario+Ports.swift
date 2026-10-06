@@ -27,7 +27,7 @@ extension ServiceScenario {
         switch self {
         case .databasesNoRuntimes:
             return InMemoryDatabases()
-        case .databaseStopped:
+        case .databaseStopped, .databaseStarting:
             return InMemoryDatabases(
                 configuration: SampleServices.databases(.populated), states: SampleServices.databaseStates(.populated),
                 started: [SampleServices.studioID, SampleServices.cacheID])
@@ -38,6 +38,14 @@ extension ServiceScenario {
             return InMemoryDatabases(
                 configuration: SampleServices.databases(.populated), states: states,
                 started: [SampleServices.studioID, SampleServices.cacheID])
+        case .databaseRuntimeMissing:
+            let configuration = SampleServices.databases(.populated)
+            return InMemoryDatabases(
+                configuration: DatabaseConfiguration(
+                    runtimes: configuration.runtimes.filter { $0.engine != .postgresql },
+                    services: configuration.services),
+                states: SampleServices.databaseStates(.populated),
+                started: [SampleServices.studioID, SampleServices.cacheID, SampleServices.reportingID])
         default:
             return base
         }
@@ -49,6 +57,15 @@ extension ServiceScenario {
             return InMemoryStorage()
         case .storageEmpty, .addBucket, .addBucketInvalid:
             return InMemoryStorage(settings: StorageSettings(runtime: SampleServices.storageRuntime))
+        case .storageStuck:
+            return InMemoryStorage(
+                settings: StorageSettings(runtime: SampleServices.storageRuntime, buckets: SampleServices.buckets),
+                state: .stuck(pid: 4401, reason: "RustFS did not stop within 30 seconds."), hasData: true)
+        case .storageFailed:
+            return InMemoryStorage(
+                settings: StorageSettings(runtime: SampleServices.storageRuntime, buckets: SampleServices.buckets),
+                state: .failed(reason: "RustFS exited before it was ready. Open the log for details."),
+                hasData: true)
         default:
             return base
         }
