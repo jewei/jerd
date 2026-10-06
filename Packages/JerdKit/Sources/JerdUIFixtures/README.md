@@ -18,5 +18,9 @@ the window scenarios for snapshots. Tests and `jerd-snapshots` use it; the app n
 | `InMemorySitesPort`, `InMemoryTunnelsPort`, `SampleData+Sites` | Sites, the environment, HTTPS approval, and tunnels in memory. |
 | `SitesSheetScenario` | Each Sites and tunnel sheet, rendered alone (`sheet-*` snapshots). |
 
+Long pages and sheets (`showsFullPage`, `showsEnd`) add an `<name>-end` entry that renders
+scrolled to the end at the real size. Every sheet, and at least one scenario of each page,
+renders in all four appearances (`SnapshotCoverageTests`).
+
 `Resources/AppIcons` holds 144-pixel copies of the shipped icon designs.
 See [JerdUI](../JerdUI/README.md) for how to add a scenario.

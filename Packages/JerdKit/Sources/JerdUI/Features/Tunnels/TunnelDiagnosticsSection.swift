@@ -12,8 +12,8 @@ struct TunnelDiagnosticsSection: View {
     var body: some View {
         Section("Runtime and Diagnostics") {
             ActionRow("cloudflared", detail: model.runtimeMessage) {
-                Button("Runtimes") { state.navigation.show(.dashboard(.runtimes)) }
-                    .accessibilityLabel("Manage runtimes")
+                Button("View Runtimes") { state.navigation.show(.dashboard(.runtimes)) }
+                    .accessibilityIdentifier("tunnel.view-runtimes")
                 if model.configuration.runtime == nil {
                     Button("Choose Executable…") { model.chooseRuntime() }
                         .disabled(!(model.canChange && !isQuitting))

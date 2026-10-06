@@ -18,6 +18,10 @@ struct DatabasesSidebar: View {
                     .tag(SidebarSelection.database(service.id))
                     .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "database", service.name))
                 }
+                if model.services.isEmpty {
+                    SidebarPlaceholder(
+                        SidebarPlaceholder.text(for: model.loadState, items: "services", settings: "Database"))
+                }
             }
         }
         .listStyle(.sidebar)

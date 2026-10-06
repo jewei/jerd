@@ -10,7 +10,7 @@ struct SitesToolbar: View {
         if model.operation.isWorking {
             BusyIndicator(model.operation.workingMessage ?? "Working")
         }
-        Button("Runtimes", systemImage: "shippingbox") { model.shell.show(.dashboard(.runtimes)) }
+        Button("View Runtimes", systemImage: "shippingbox") { model.shell.show(.dashboard(.runtimes)) }
             .help("Manage runtimes")
             .accessibilityIdentifier("sites.toolbar.runtimes")
         SystemSetupMenu(model: model)

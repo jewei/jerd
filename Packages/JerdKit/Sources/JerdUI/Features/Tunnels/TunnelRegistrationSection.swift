@@ -12,12 +12,12 @@ struct TunnelRegistrationSection: View {
     var body: some View {
         let isActive = model.isActive(tunnel.id)
         Section {
-            ActionRow("Registration", detail: "Edit the token, destination reference, or startup settings.") {
+            ActionRow("Settings", detail: "Edit the token, destination reference, or startup settings.") {
                 Button("Edit Tunnel…") { model.beginEdit(tunnel, sites: sites.sites) }
                     .disabled(!(model.canChange && !isQuitting) || isActive)
                     .accessibilityIdentifier("tunnel.edit")
             }
-            ActionRow("Remove from Jerd", detail: "Keep the Cloudflare tunnel and DNS settings.") {
+            ActionRow("Registration", detail: "Keep the Cloudflare tunnel and DNS settings.") {
                 Button("Remove Registration…", role: .destructive) { model.confirmation = .remove(tunnel) }
                     .disabled(!(model.canChange && !isQuitting))
                     .accessibilityIdentifier("tunnel.remove")
