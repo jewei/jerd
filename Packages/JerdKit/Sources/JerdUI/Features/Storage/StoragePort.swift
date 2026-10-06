@@ -6,6 +6,9 @@ public protocol StoragePort: Sendable {
     /// Reads `storage/settings.json` once and returns the first snapshot.
     /// - Throws: when the settings cannot be read. The file stays as it is.
     func load() async throws -> StorageSnapshot
+    /// Why the setup of the bundled RustFS in the last `load()` failed, or nil. The load stays
+    /// usable without it; the page shows this reason with the way to install it.
+    func runtimeSetupFailure() async -> String?
     /// The settings, the state, and the listed buckets. It also detects an unexpected exit.
     func snapshot() async -> StorageSnapshot
     /// The data folder and the server log.

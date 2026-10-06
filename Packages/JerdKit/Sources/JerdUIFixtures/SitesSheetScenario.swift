@@ -18,6 +18,14 @@ public enum SitesSheetScenario: String, CaseIterable, Sendable {
     case tunnelLog = "sheet-tunnel-log"
     case tunnelLogLong = "sheet-tunnel-log-long"
 
+    /// Sheets taller than their maximum height also render scrolled to their end.
+    public var showsEnd: Bool {
+        switch self {
+        case .httpsApproval, .siteEditorAdd, .tunnelEditorAdd: true
+        default: false
+        }
+    }
+
     @MainActor
     public func makeFixture() -> AppFixture {
         let needsApproval = [.httpsApproval, .httpsApprovalRunning, .httpsApprovalFailure].contains(self)

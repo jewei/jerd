@@ -1,19 +1,21 @@
 import JerdDesign
 import SwiftUI
 
-/// The banners of the Mail page: a failed load, the service state, a missing runtime, a
-/// cancelled save that still runs, and the last failed operation. Each problem shows once.
+/// The banners of the Mail page: a failed load, a missing runtime (with the reason of a failed
+/// bundled setup), the service state, a cancelled save that still runs, and the last failed
+/// operation. Each problem shows once.
 struct MailPageMessages: View {
+    static let runtimeCopy = MissingRuntimeBanner.Copy(
+        runtime: "Mailpit", failedTitle: "Mailpit setup failed", purpose: "to start the inbox", identifier: "mail")
+
     let model: MailModel
 
     var body: some View {
         if let message = model.loadState.failureMessage {
             InlineMessage(message, kind: .error, style: .banner, identifier: "mail.load-error")
         } else if model.loadState.isLoaded, !model.hasRuntime {
-            InlineMessage(
-                "Mailpit is not installed. Install it in Runtimes to start the inbox.", kind: .info, style: .banner,
-                action: PageAction("View Runtimes", identifier: "mail.view-runtimes") { model.showRuntimes() },
-                identifier: "mail.no-runtime")
+            MissingRuntimeBanner(
+                copy: Self.runtimeCopy, setupFailure: model.runtimeSetupFailure, showRuntimes: model.showRuntimes)
         }
         ServiceStateBanner(state: model.state, subject: "Mail", stopTitle: "Stop Mail", identifier: "mail")
         if let message = model.cancelledSaveMessage {

@@ -5,11 +5,11 @@ import SwiftUI
 /// sheets and confirmations of both models.
 struct SitesSection: View {
     let state: AppState
-    @Bindable var model: SitesModel
+    let model: SitesModel
 
     var body: some View {
         content
-            .sheet(item: $model.sheet) { sheet in
+            .sheet(item: SheetBinding.item({ model.sheet }, dismiss: model.dismissSheet)) { sheet in
                 switch sheet {
                 case .editor(let editor): SiteEditorSheet(model: model, editor: editor)
                 case .approval(let approval): HTTPSApprovalSheet(model: model, approval: approval)

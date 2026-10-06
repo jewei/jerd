@@ -75,11 +75,12 @@ extension FixtureScenario {
         }
     }
 
-    /// The window appearances of a scenario. The Sites and tunnel pages with tinted banners and
-    /// badges also render with Increase Contrast.
-    var snapshotAppearances: [SnapshotAppearance] {
+    /// The window appearances of a scenario. At least one scenario of each page, and the Sites
+    /// and tunnel pages with tinted banners and badges, also render with Increase Contrast.
+    package var snapshotAppearances: [SnapshotAppearance] {
         switch self {
-        case .sitesRunning, .sitesSetupRequired, .sitesRecovery, .tunnelFailed, .tunnelConnected:
+        case .dashboard, .appearance, .runtimesChecked, .advanced, .about, .sitesEmpty, .sitesRunning, .sitesDisabled,
+            .sitesSetupRequired, .sitesRecovery, .tunnelFailed, .tunnelConnected:
             SnapshotAppearance.allCases
         default: SnapshotAppearance.standard
         }

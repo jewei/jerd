@@ -13,15 +13,16 @@ package struct SnapshotCatalog {
     ///   - sizes: Defaults to both window sizes, standard and compact.
     ///   - appearances: Defaults to light and dark. Add the contrast variants where useful.
     ///   - chrome: Defaults to a titled window with the toolbar.
+    ///   - scroll: Defaults to the top. `.end` shows the end of a long page or sheet.
     ///   - isReady: For content that loads in `.task`: the renderer waits until it is true.
     package mutating func add(
         _ name: String, sizes: [SnapshotSize] = SnapshotSize.windowSizes,
         appearances: [SnapshotAppearance] = SnapshotAppearance.standard,
-        chrome: SnapshotChrome = .window(title: "Jerd"), isReady: @escaping @MainActor () -> Bool = { true },
-        @ViewBuilder view: @escaping @MainActor () -> some View
+        chrome: SnapshotChrome = .window(title: "Jerd"), scroll: SnapshotScrollPosition = .top,
+        isReady: @escaping @MainActor () -> Bool = { true }, @ViewBuilder view: @escaping @MainActor () -> some View
     ) {
         let entry = SnapshotEntry(
-            name: name, sizes: sizes, appearances: appearances, chrome: chrome, isReady: isReady
+            name: name, sizes: sizes, appearances: appearances, chrome: chrome, scroll: scroll, isReady: isReady
         ) {
             AnyView(view())
         }

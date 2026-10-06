@@ -8,11 +8,16 @@ package struct LiveMailPort: MailPort {
     let manager: any MailManaging
     let runtimes: any ServiceRuntimeSource
     let layout: MailLayout
+    let setup: BundledSetupRecord
 
-    package init(manager: any MailManaging, runtimes: any ServiceRuntimeSource, layout: MailLayout) {
+    package init(
+        manager: any MailManaging, runtimes: any ServiceRuntimeSource, layout: MailLayout,
+        setup: BundledSetupRecord = BundledSetupRecord()
+    ) {
         self.manager = manager
         self.runtimes = runtimes
         self.layout = layout
+        self.setup = setup
     }
 
     package init(domain: LiveDomain) {
@@ -26,11 +31,17 @@ package struct LiveMailPort: MailPort {
         if try await manager.load().runtime == nil {
             do {
                 try await manager.registerRuntime(try await runtimes.mailRuntime())
+                await setup.record(nil)
             } catch {
                 BundledServiceRuntimes.report(error, service: "mail")
+                await setup.record(BundledServiceRuntimes.message(for: error))
             }
         }
         return await manager.snapshot()
+    }
+
+    package func runtimeSetupFailure() async -> String? {
+        await setup.failure
     }
 
     package func snapshot() async -> MailSnapshot {

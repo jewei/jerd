@@ -46,24 +46,35 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
             }
             return FeatureSummary(status: status, summary: "Add MySQL, PostgreSQL, or Redis services.", actions: [add])
         }
-        return FeatureSummary(status: status, summary: services.map(\.name).joined(separator: ", "))
+        return FeatureSummary(
+            status: status, summary: services.map(\.name).joined(separator: ", "), actions: cardActions)
+    }
+
+    /// Start or Stop for each service, as in the menu bar. The first service that can start is
+    /// the next step; Stop is never the next step. A narrow card keeps the next step as a button
+    /// and moves the others into its More menu.
+    private var cardActions: [FeatureAction] {
+        let next = services.first { canStart($0.id) }?.id
+        return services.map { controlAction(for: $0, isPrimary: $0.id == next) }
     }
 
     public var menuItems: [MenuBarItem] {
         guard !services.isEmpty else { return [] }
-        let items = services.map { service in
-            MenuBarItem.action(
-                state(of: service.id).offersStop
-                    ? FeatureAction(
-                        id: "databases.stop.\(service.id)", title: "Stop \(service.name)",
-                        isEnabled: canStop(service.id)
-                    ) { [weak self] in self?.stop(service.id) }
-                    : FeatureAction(
-                        id: "databases.start.\(service.id)", title: "Start \(service.name)",
-                        isEnabled: canStart(service.id)
-                    ) { [weak self] in self?.start(service.id) })
-        }
+        let items = services.map { MenuBarItem.action(controlAction(for: $0, isPrimary: false)) }
         return [.submenu("Databases", id: "databases.menu", items: items)]
+    }
+
+    /// Stop for a service that runs or did not stop, else Start.
+    private func controlAction(for service: DatabaseService, isPrimary: Bool) -> FeatureAction {
+        if state(of: service.id).offersStop {
+            return FeatureAction(
+                id: "databases.stop.\(service.id)", title: "Stop \(service.name)", isEnabled: canStop(service.id)
+            ) { [weak self] in self?.stop(service.id) }
+        }
+        return FeatureAction(
+            id: "databases.start.\(service.id)", title: "Start \(service.name)", isEnabled: canStart(service.id),
+            isPrimary: isPrimary
+        ) { [weak self] in self?.start(service.id) }
     }
 
     public func launch() async {

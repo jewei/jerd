@@ -4,7 +4,7 @@ import SwiftUI
 /// The Mail section: one page with the inbox status, its connection, the Laravel settings,
 /// a test email, its files, and its ports. Mail has no sidebar.
 struct MailPage: View {
-    @Bindable var model: MailModel
+    let model: MailModel
     @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
@@ -34,16 +34,8 @@ struct MailPage: View {
                 reveal: model.revealInbox, openLog: model.openLog)
             MailServiceSection(model: model)
         }
-        .sheet(isPresented: isEditingPorts) {
+        .sheet(isPresented: SheetBinding.isPresented({ model.portsDraft != nil }, dismiss: model.cancelPorts)) {
             MailPortsSheet(model: model)
-        }
-    }
-
-    private var isEditingPorts: Binding<Bool> {
-        Binding {
-            model.portsDraft != nil
-        } set: { isPresented in
-            if !isPresented { model.cancelPorts() }
         }
     }
 }

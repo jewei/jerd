@@ -9,11 +9,16 @@ package struct LiveDatabasesPort: DatabasesPort {
     let manager: any DatabaseManaging
     let runtimes: any ServiceRuntimeSource
     let layout: DatabasesLayout
+    let setup: BundledSetupRecord
 
-    package init(manager: any DatabaseManaging, runtimes: any ServiceRuntimeSource, layout: DatabasesLayout) {
+    package init(
+        manager: any DatabaseManaging, runtimes: any ServiceRuntimeSource, layout: DatabasesLayout,
+        setup: BundledSetupRecord = BundledSetupRecord()
+    ) {
         self.manager = manager
         self.runtimes = runtimes
         self.layout = layout
+        self.setup = setup
     }
 
     package init(domain: LiveDomain) {
@@ -30,11 +35,17 @@ package struct LiveDatabasesPort: DatabasesPort {
             do {
                 let installed = try await runtimes.databaseRuntimes(excluding: registered)
                 if !installed.isEmpty { try await manager.registerRuntimes(installed) }
+                await setup.record(nil)
             } catch {
                 BundledServiceRuntimes.report(error, service: "database")
+                await setup.record(BundledServiceRuntimes.message(for: error))
             }
         }
         return await manager.snapshot()
+    }
+
+    package func runtimeSetupFailure() async -> String? {
+        await setup.failure
     }
 
     package func snapshot() async -> DatabaseSnapshot {

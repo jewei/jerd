@@ -13,6 +13,8 @@ public actor InMemoryDatabases: DatabasesPort {
     public var started: Set<UUID>
     public var retained: [RetainedDatabase]
     public var loadFailure: String?
+    /// The reason of a failed bundled runtime setup that `runtimeSetupFailure()` reports.
+    public var setupFailure: String?
     public var startBehavior = ServiceBehavior.succeed
     public var stopBehavior = ServiceBehavior.succeed
     /// When set, registry changes throw this message.
@@ -42,6 +44,10 @@ public actor InMemoryDatabases: DatabasesPort {
         calls.append("load")
         if let loadFailure { throw JerdError.corrupt(loadFailure) }
         return await snapshot()
+    }
+
+    public func runtimeSetupFailure() async -> String? {
+        setupFailure
     }
 
     public func snapshot() async -> DatabaseSnapshot {

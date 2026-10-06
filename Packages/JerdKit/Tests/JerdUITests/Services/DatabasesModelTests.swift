@@ -170,6 +170,24 @@ struct DatabasesModelTests {
         #expect(model.editor?.engine == .mysql)
     }
 
+    @Test("The card has Start or Stop for each service; the first Start is the next step")
+    func cardActions() async throws {
+        let databases = sample()
+        let fixture = await launched(databases)
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.databases
+        let actions = model.summary.actions
+        #expect(actions.map(\.title) == ["Stop Studio development", "Stop Studio cache", "Start Reporting"])
+        #expect(actions.map(\.isPrimary) == [false, false, true])
+        #expect(actions.map(\.isEnabled) == [true, true, true])
+        let compact = FeatureCard.arrangement(of: actions, in: .overflow)
+        #expect(compact.buttons.map(\.title) == ["Start Reporting"])
+        #expect(compact.menu.map(\.title) == ["Stop Studio development", "Stop Studio cache"])
+        try #require(actions.last).perform()
+        await waitUntil { model.busyServices.isEmpty && model.state(of: SampleServices.reportingID).isRunning }
+        #expect(model.summary.actions.map(\.isPrimary) == [false, false, false])
+    }
+
     @Test("The menu has Start or Stop for each service")
     func menu() async {
         let fixture = await launched(sample())

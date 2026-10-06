@@ -1,19 +1,21 @@
 import JerdDesign
 import SwiftUI
 
-/// The banners that both Storage pages share: a failed load, a missing runtime, the service
-/// state, a cancelled save that still runs, and the last failed operation.
+/// The banners that both Storage pages share: a failed load, a missing runtime (with the reason
+/// of a failed bundled setup), the service state, a cancelled save that still runs, and the last
+/// failed operation.
 struct StoragePageMessages: View {
+    static let runtimeCopy = MissingRuntimeBanner.Copy(
+        runtime: "RustFS", failedTitle: "RustFS setup failed", purpose: "to start storage", identifier: "storage")
+
     let model: StorageModel
 
     var body: some View {
         if let message = model.loadState.failureMessage {
             InlineMessage(message, kind: .error, style: .banner, identifier: "storage.load-error")
         } else if model.loadState.isLoaded, !model.hasRuntime {
-            InlineMessage(
-                "RustFS is not installed. Install it in Runtimes to start storage.", kind: .info, style: .banner,
-                action: PageAction("View Runtimes", identifier: "storage.view-runtimes") { model.showRuntimes() },
-                identifier: "storage.no-runtime")
+            MissingRuntimeBanner(
+                copy: Self.runtimeCopy, setupFailure: model.runtimeSetupFailure, showRuntimes: model.showRuntimes)
         }
         ServiceStateBanner(state: model.state, subject: "Storage", stopTitle: "Stop Storage", identifier: "storage")
         if let message = model.cancelledSaveMessage {

@@ -1,12 +1,15 @@
 import Foundation
 import JerdDatabases
 import JerdServiceKit
+import JerdSnapshotSupport
 import JerdUI
 
 /// The window and sheet states of the Databases, Storage, and Mail sections, for snapshots.
 public enum ServiceScenario: String, CaseIterable, Sendable {
     case databasesEmpty = "databases-empty"
     case databasesNoRuntimes = "databases-no-runtimes"
+    /// The bundled setup failed at launch: only MySQL has a runtime.
+    case databasesSetupFailed = "databases-setup-failed"
     case databases
     case databaseStopped = "database-stopped"
     case databaseFailed = "database-failed"
@@ -26,6 +29,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case storage
     case storageEmpty = "storage-empty"
     case storageNoRuntime = "storage-no-runtime"
+    case storageSetupFailed = "storage-setup-failed"
     case storageStuck = "storage-stuck"
     case storageFailed = "storage-failed"
     case bucket
@@ -37,6 +41,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case mailStopped = "mail-stopped"
     case mailStuck = "mail-stuck"
     case mailNoRuntime = "mail-no-runtime"
+    case mailSetupFailed = "mail-setup-failed"
     case mailPorts = "mail-ports"
     /// A quit waits for storage: the Mail controls are off before their own stage.
     case mailQuitting = "mail-quitting"
@@ -57,6 +62,24 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         }
     }
 
+    /// Long pages also render scrolled to their end at both window sizes.
+    public var showsEnd: Bool {
+        switch self {
+        case .databases, .bucket, .storage, .mail, .advancedCommandLineTools: true
+        default: false
+        }
+    }
+
+    /// Every sheet, and at least one scenario of each page, also renders with Increase Contrast.
+    package var snapshotAppearances: [SnapshotAppearance] {
+        switch self {
+        case .databases, .databasesEmpty, .databasesSetupFailed, .databaseRuntimeMissing, .databaseStuck, .storage,
+            .bucket, .storageStuck, .mail, .mailSetupFailed:
+            SnapshotAppearance.allCases
+        default: kind == .sheet ? SnapshotAppearance.allCases : SnapshotAppearance.standard
+        }
+    }
+
     /// The fixture with the scenario's service data and navigation. Run `prepare` before rendering.
     @MainActor
     public func makeFixture() -> AppFixture {
@@ -66,7 +89,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         return fixture
     }
 
-    private var destination: Destination {
+    package var destination: Destination {
         switch self {
         case .databases, .databasesLong, .databaseEditor, .databaseEditorInvalid, .retainedDatabases,
             .restoreDatabase:
@@ -75,13 +98,14 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .databaseCancelledSave, .databaseQuitting:
             .item(.database(SampleServices.reportingID))
         case .databaseStuck: .item(.database(SampleServices.cacheID))
-        case .databasesEmpty, .databasesNoRuntimes, .databasesLoadFailed: .section(.databases)
-        case .storage, .storageEmpty, .storageNoRuntime, .storageStuck, .storageFailed, .addBucket,
-            .addBucketInvalid, .storagePorts:
+        case .databasesEmpty, .databasesNoRuntimes, .databasesSetupFailed, .databasesLoadFailed: .section(.databases)
+        case .storage, .storageEmpty, .storageNoRuntime, .storageSetupFailed, .storageStuck, .storageFailed,
+            .addBucket, .addBucketInvalid, .storagePorts:
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))
-        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailPorts, .mailQuitting: .section(.mail)
+        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailSetupFailed, .mailPorts, .mailQuitting:
+            .section(.mail)
         case .advancedCommandLineTools: .dashboard(.advanced)
         }
     }

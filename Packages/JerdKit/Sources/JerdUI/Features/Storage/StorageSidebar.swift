@@ -17,6 +17,10 @@ struct StorageSidebar: View {
                     .tag(SidebarSelection.bucket(bucket.name))
                     .accessibilityIdentifier(AccessibilityIdentifier.make("sidebar", "bucket", bucket.name))
                 }
+                if model.buckets.isEmpty {
+                    SidebarPlaceholder(
+                        SidebarPlaceholder.text(for: model.loadState, items: "buckets", settings: "Storage"))
+                }
             }
         }
         .listStyle(.sidebar)

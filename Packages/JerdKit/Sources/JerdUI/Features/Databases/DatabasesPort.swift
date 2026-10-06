@@ -7,6 +7,9 @@ public protocol DatabasesPort: Sendable {
     /// Reads `databases/services.json` once and returns the first snapshot.
     /// - Throws: when the settings cannot be read. The file stays as it is.
     func load() async throws -> DatabaseSnapshot
+    /// Why the setup of the bundled runtimes in the last `load()` failed, or nil. The load stays
+    /// usable without them; the page shows this reason with the way to install them.
+    func runtimeSetupFailure() async -> String?
     /// The registry and every state. It also detects unexpected exits.
     func snapshot() async -> DatabaseSnapshot
     /// The data folder and the server log of one service.

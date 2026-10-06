@@ -15,7 +15,7 @@ struct SitesSidebar: View {
                         .tag(SidebarSelection.site(site.id))
                 }
                 if model.sites.isEmpty {
-                    placeholder(sitePlaceholder)
+                    SidebarPlaceholder(sitePlaceholder)
                 }
             }
             Section("Tunnels") {
@@ -24,7 +24,7 @@ struct SitesSidebar: View {
                         .tag(SidebarSelection.tunnel(tunnel.id))
                 }
                 if model.tunnels.registrations.isEmpty {
-                    placeholder(tunnelPlaceholder)
+                    SidebarPlaceholder(tunnelPlaceholder)
                 }
             }
         }
@@ -42,13 +42,6 @@ struct SitesSidebar: View {
     private var tunnelPlaceholder: String {
         if model.tunnels.loadFailure != nil { return "Tunnel settings could not be loaded" }
         return model.tunnels.isLoaded ? "No tunnels added" : "Loading tunnels…"
-    }
-
-    private func placeholder(_ text: String) -> some View {
-        Text(text)
-            .textRole(.detail)
-            .padding(.vertical, Spacing.tight)
-            .selectionDisabled()
     }
 
     /// The shell's selection, shown with the same fallback as the page: the first site when

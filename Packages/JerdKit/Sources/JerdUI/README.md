@@ -17,7 +17,7 @@ implements them in memory.
 | `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
 | `Features/Mail/` | `MailPort`, `MailModel`, the Mail page, and the ports sheet. |
-| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet. |
+| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet, and the missing-runtime banner with the reason of a failed bundled setup (`MissingRuntimeBanner`). |
 | `Features/Sites/` | `SitesModel` (`SitesPort`): the sidebar, site page, site editor, HTTPS approval, system setup states. |
 | `Features/Tunnels/` | `TunnelsModel` (`TunnelsPort`): the tunnel page, tunnel editor, and connector log, inside Sites. |
 
@@ -44,6 +44,27 @@ implements them in memory.
 9. Read and change PHP registrations and the default PHP only through
    `AppState.registrations` (`RegistrationStore`), so every page shows the same values.
 
+## Sheets and Quit
+
+AppKit does not start a quit while a window shows a sheet, so Quit (⌘Q, the menu bar item,
+or a Sparkle update) first ends every open sheet (`ApplicationQuit.request()` in JerdLive).
+The decision, checked against the macOS Human Interface Guidelines:
+
+- Jerd's sheets are short dialogs: a name, a port, a folder, a token. They are not documents.
+  Every saved value is already on disk; a sheet holds only input that the user has not
+  confirmed yet.
+- Cancel and Escape end a sheet without a question. The HIG keeps confirmations for actions
+  that destroy data that the user cannot get back. A Quit that asks while Cancel does not
+  would give one sheet two rules.
+- So Quit ends a sheet exactly as its Cancel does, and does not ask: the draft goes, a typed
+  tunnel token is cleared from memory, and a waiting HTTPS approval is discarded. Work that the
+  sheet already started is not cut: the staged quit waits for it.
+- Every presenter builds its binding with `SheetBinding`. When SwiftUI or AppKit ends a sheet,
+  the binding runs the sheet's own dismissal (`dismissSheet()`, `cancelEditor()`,
+  `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves it.
+- If a sheet ever holds input that is expensive to type again, it asks once, with the same
+  alert, from its Cancel and from Quit; never from only one of them.
+
 ## Add a feature
 
 Each feature package touches the shell in a few marked lines only. Every other line of the
@@ -67,7 +88,7 @@ shell stays as it is.
    accessibility identifier.
 6. **Sheets.** Keep the sheet state in the model (`var sheet: <Feature>Sheet?`), so the
    page, the sidebar, the toolbar, and ⌘N all open the same sheet. Present it with
-   `.sheet(item:)` on the page root. Navigation never closes it.
+   `.sheet(item: SheetBinding.item(…))` on the page root. Navigation never closes it.
 7. **Quit.** The quit stops a feature only after its `launch()` finished. While a quit runs,
    the shell turns off every card and menu bar action of the feature. Pages, sidebars, and
    toolbars read `@Environment(\.isQuitting)` and turn off each control that starts work;
@@ -116,7 +137,9 @@ struct MailPage: View {
             Button("Send Test Email…") { model.sheet = .testEmail }
                 .disabled(isQuitting || model.isShuttingDown)
         }
-        .sheet(item: $model.sheet) { sheet in MailSheetView(model: model, sheet: sheet) }
+        .sheet(item: SheetBinding.item({ model.sheet }, dismiss: model.dismissSheet)) { sheet in
+            MailSheetView(model: model, sheet: sheet)
+        }
     }
 }
 

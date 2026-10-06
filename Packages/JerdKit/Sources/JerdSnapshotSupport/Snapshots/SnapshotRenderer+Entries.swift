@@ -9,8 +9,8 @@ extension SnapshotRenderer {
             for appearance in entry.appearances where appearance.contrast == contrast {
                 let fileName = entry.fileName(appearance: appearance, size: size)
                 let data = try await renderPNG(
-                    entry.makeView(), size: size, appearance: appearance, chrome: entry.chrome, name: fileName,
-                    isReady: entry.isReady)
+                    entry.makeView(), size: size, appearance: appearance, chrome: entry.chrome, scroll: entry.scroll,
+                    name: fileName, isReady: entry.isReady)
                 result.append(SnapshotRendering(fileName: fileName, pngData: data))
             }
         }

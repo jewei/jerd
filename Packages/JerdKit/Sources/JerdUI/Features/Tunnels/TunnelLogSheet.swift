@@ -9,12 +9,7 @@ struct TunnelLogSheet: View {
     var body: some View {
         SheetScaffold(
             log.title, message: log.subtitle, size: .wide,
-            confirmation: SheetConfirmation(
-                "Refresh", cancelTitle: "Done", isEnabled: !log.isLoading, returnKey: .cancel,
-                identifier: "tunnel-log"
-            ) {
-                Task { await log.load() }
-            },
+            confirmation: Self.confirmation(model: model, log: log),
             workingMessage: log.isLoading ? "Loading the log…" : nil, cancel: { model.sheet = nil }
         ) {
             if let failure = log.failure {
@@ -30,5 +25,14 @@ struct TunnelLogSheet: View {
             }
         }
         .task { await log.load() }
+    }
+
+    /// The log is information, so Done is the one default button on the far right. Refresh
+    /// reads the log again inside the sheet, so it is the secondary button on the leading side.
+    static func confirmation(model: TunnelsModel, log: TunnelLogModel) -> SheetConfirmation {
+        .done(
+            secondary: SheetSecondaryAction("Refresh", isEnabled: !log.isLoading) { Task { await log.load() } },
+            identifier: "tunnel-log"
+        ) { model.sheet = nil }
     }
 }

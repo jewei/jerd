@@ -51,7 +51,7 @@ struct StorageOverviewPage: View {
 
     private var bucketDetail: String {
         model.buckets.isEmpty
-            ? "Give your application an S3 bucket for uploads and files. Jerd starts storage and checks the bucket when you save."
+            ? "Give your application an S3 bucket for uploads and files. Jerd starts storage and checks the bucket when you create it."
             : "Select a bucket in the sidebar to see its connection and access settings."
     }
 }

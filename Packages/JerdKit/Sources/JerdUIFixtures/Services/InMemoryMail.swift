@@ -9,6 +9,8 @@ public actor InMemoryMail: MailPort {
     public var state: ServiceState
     public var hasData: Bool
     public var loadFailure: String?
+    /// The reason of a failed bundled runtime setup that `runtimeSetupFailure()` reports.
+    public var setupFailure: String?
     public var startBehavior = ServiceBehavior.succeed
     public var stopBehavior = ServiceBehavior.succeed
     /// When set, the test email, the port suggestion, and the port change throw this message.
@@ -32,6 +34,10 @@ public actor InMemoryMail: MailPort {
         calls.append("load")
         if let loadFailure { throw JerdError.corrupt(loadFailure) }
         return MailSnapshot(settings: settings, state: state)
+    }
+
+    public func runtimeSetupFailure() async -> String? {
+        setupFailure
     }
 
     public func snapshot() async -> MailSnapshot { MailSnapshot(settings: settings, state: state) }

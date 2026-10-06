@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// The one sheet layout: title, optional message, a grouped form, and a footer with Cancel
-/// and a confirm button. Escape cancels. Return confirms, except for a destructive confirm,
-/// so a destructive step always needs a deliberate click or Space. `SheetReturnKey` can give
-/// Return to the cancel-side button (Done) or to no button.
-/// The sheet is as tall as its content, between the minimum and maximum of its `SheetSize`.
-/// Cancel stays enabled while the sheet works; it ends the wait, never other work.
+/// The one sheet layout: title, optional message, a grouped form, and a footer. The footer has
+/// Cancel and a confirm button, or one Done button, and optionally a secondary button on the
+/// leading side. The default button is always on the far right. Escape cancels. Return confirms,
+/// except for a destructive confirm, so a destructive step always needs a deliberate click or
+/// Space. The sheet is as tall as its content, between the minimum and maximum of its
+/// `SheetSize`. Cancel and Done stay enabled while the sheet works; they end the wait, never
+/// other work.
 public struct SheetScaffold<Content: View>: View {
     private let title: String
     private let message: String?
@@ -51,9 +52,15 @@ public struct SheetScaffold<Content: View>: View {
         .frame(minHeight: size.minimumHeight, maxHeight: size.maximumHeight)
     }
 
-    /// Confirm waits for running work, so one click cannot start the same work twice.
+    /// Confirm waits for running work, so one click cannot start the same work twice. Done only
+    /// ends the sheet, so it never waits.
     var isConfirmEnabled: Bool {
-        confirmation.isEnabled && workingMessage == nil
+        confirmation.isEnabled && (workingMessage == nil || confirmation.endsSheet)
+    }
+
+    /// The secondary button starts work in the sheet, so it also waits for running work.
+    var isSecondaryEnabled: Bool {
+        (confirmation.secondary?.isEnabled ?? false) && workingMessage == nil
     }
 
     private var heading: some View {
@@ -69,9 +76,12 @@ public struct SheetScaffold<Content: View>: View {
     }
 
     @ViewBuilder private var form: some View {
+        // A scrolled form must not draw over the heading: the grouped form's scroll view lets
+        // content run past its top edge, so the scaffold clips it to its own frame.
         let form = Form { content }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
+            .clipped()
         if #available(macOS 15, *) {
             // A form scrolls, so its own ideal height is not its content height on every macOS
             // version. Measure the content and ask for exactly that height.
@@ -89,6 +99,11 @@ public struct SheetScaffold<Content: View>: View {
 
     private var footer: some View {
         HStack(spacing: Spacing.small) {
+            if let secondary = confirmation.secondary {
+                Button(secondary.title, action: secondary.perform)
+                    .disabled(!isSecondaryEnabled)
+                    .accessibilityIdentifier(ifPresent: confirmation.secondaryIdentifier)
+            }
             if let workingMessage {
                 ProgressView()
                     .controlSize(.small)
@@ -98,9 +113,11 @@ public struct SheetScaffold<Content: View>: View {
                     .lineLimit(2)
             }
             Spacer(minLength: Spacing.small)
-            Button(confirmation.cancelTitle, role: .cancel, action: cancel)
-                .keyboardShortcut(confirmation.cancelUsesReturnKey ? .defaultAction : .cancelAction)
-                .accessibilityIdentifier(ifPresent: confirmation.cancelIdentifier)
+            if let cancelTitle = confirmation.cancelTitle {
+                Button(cancelTitle, role: .cancel, action: cancel)
+                    .keyboardShortcut(.cancelAction)
+                    .accessibilityIdentifier(ifPresent: confirmation.cancelIdentifier)
+            }
             SheetConfirmButton(confirmation: confirmation, isEnabled: isConfirmEnabled)
         }
     }

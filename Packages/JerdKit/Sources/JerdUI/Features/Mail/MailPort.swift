@@ -6,6 +6,9 @@ public protocol MailPort: Sendable {
     /// Reads `mail/settings.json` once and returns the first snapshot.
     /// - Throws: when the settings cannot be read. The file stays as it is.
     func load() async throws -> MailSnapshot
+    /// Why the setup of the bundled Mailpit in the last `load()` failed, or nil. The load stays
+    /// usable without it; the page shows this reason with the way to install it.
+    func runtimeSetupFailure() async -> String?
     /// The settings and the state. It also detects an unexpected exit.
     func snapshot() async -> MailSnapshot
     /// The inbox folder and the server log.

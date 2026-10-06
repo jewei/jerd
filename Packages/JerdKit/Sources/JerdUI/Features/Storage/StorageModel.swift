@@ -13,6 +13,9 @@ public final class StorageModel {
         settings: StorageSettings(), state: .stopped, availableBuckets: [])
     public internal(set) var files: ServiceFiles?
     public internal(set) var loadState: ServiceLoadState = .loading
+    /// Why the bundled runtime setup at launch failed, or nil. The page shows it while the
+    /// runtime is still missing.
+    public internal(set) var runtimeSetupFailure: String?
     public internal(set) var operation: OperationState = .idle
     public internal(set) var isShuttingDown = false
     /// The open Add Bucket sheet, or nil.
@@ -69,6 +72,7 @@ public final class StorageModel {
     public func load() async {
         do {
             apply(try await port.load())
+            runtimeSetupFailure = await port.runtimeSetupFailure()
             loadState = .loaded
             await refreshFiles()
         } catch {

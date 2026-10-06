@@ -113,17 +113,21 @@ struct ServiceToolbarAndQuitTests {
         #expect(MailHeaderActions(model: state.mail, isQuitting: true).primary?.isEnabled == false)
     }
 
-    @Test("Return closes Retained Databases with Done; Inspect Again is secondary and off during a quit")
-    func retainedReturnKey() async {
+    @Test("Retained Databases ends with Done on the far right; Inspect Again is on the leading side")
+    func retainedFooter() async throws {
         let fixture = await launched()
         defer { fixture.removeDefaults() }
-        let confirmation = RetainedDatabasesSheet.confirmation(model: fixture.state.databases, isQuitting: false)
-        #expect(confirmation.title == "Inspect Again")
-        #expect(confirmation.cancelTitle == "Done")
-        #expect(confirmation.returnKey == .cancel)
-        #expect(confirmation.cancelUsesReturnKey)
-        #expect(!confirmation.usesReturnKey)
-        #expect(confirmation.isEnabled)
-        #expect(!RetainedDatabasesSheet.confirmation(model: fixture.state.databases, isQuitting: true).isEnabled)
+        let model = fixture.state.databases
+        model.showRetained()
+        let confirmation = RetainedDatabasesSheet.confirmation(model: model, isQuitting: false)
+        #expect(confirmation.title == "Done")
+        #expect(confirmation.cancelTitle == nil)
+        #expect(confirmation.usesReturnKey)
+        let secondary = try #require(confirmation.secondary)
+        #expect(secondary.title == "Inspect Again")
+        #expect(secondary.isEnabled)
+        #expect(RetainedDatabasesSheet.confirmation(model: model, isQuitting: true).secondary?.isEnabled == false)
+        confirmation.perform()
+        #expect(model.sheet == nil)
     }
 }

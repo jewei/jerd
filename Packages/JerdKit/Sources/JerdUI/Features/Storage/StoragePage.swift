@@ -5,7 +5,7 @@ import SwiftUI
 /// Both pages hold the storage controls in their header.
 struct StoragePage: View {
     let state: AppState
-    @Bindable var model: StorageModel
+    let model: StorageModel
 
     var body: some View {
         Group {
@@ -16,27 +16,11 @@ struct StoragePage: View {
                 StorageOverviewPage(model: model)
             }
         }
-        .sheet(isPresented: isAddingBucket) {
+        .sheet(isPresented: SheetBinding.isPresented({ model.bucketDraft != nil }, dismiss: model.cancelAddBucket)) {
             AddBucketSheet(model: model)
         }
-        .sheet(isPresented: isEditingPorts) {
+        .sheet(isPresented: SheetBinding.isPresented({ model.portsDraft != nil }, dismiss: model.cancelPorts)) {
             StoragePortsSheet(model: model)
-        }
-    }
-
-    private var isAddingBucket: Binding<Bool> {
-        Binding {
-            model.bucketDraft != nil
-        } set: { isPresented in
-            if !isPresented { model.cancelAddBucket() }
-        }
-    }
-
-    private var isEditingPorts: Binding<Bool> {
-        Binding {
-            model.portsDraft != nil
-        } set: { isPresented in
-            if !isPresented { model.cancelPorts() }
         }
     }
 }

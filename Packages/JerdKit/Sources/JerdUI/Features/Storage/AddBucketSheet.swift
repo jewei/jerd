@@ -17,7 +17,7 @@ package struct AddBucketSheet: View {
         SheetScaffold(
             "Add Bucket", message: "Jerd starts storage if needed, then creates and checks your bucket.",
             confirmation: SheetConfirmation(
-                "Save", isEnabled: draft.canSave(in: model.settings) && !isQuitting, identifier: "add-bucket"
+                "Create Bucket", isEnabled: draft.canSave(in: model.settings) && !isQuitting, identifier: "add-bucket"
             ) { model.saveBucket() },
             workingMessage: model.bucketOperation.workingMessage, cancel: model.cancelAddBucket
         ) {
@@ -43,7 +43,6 @@ package struct AddBucketSheet: View {
                 }
             }
         }
-        .interactiveDismissDisabled(model.bucketOperation.isWorking)
         .onAppear { isNameFocused = true }
     }
 

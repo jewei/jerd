@@ -41,6 +41,13 @@ By default an entry renders the full window with its toolbar, at both window siz
 | `appearances:` | Add `.lightContrast` and `.darkContrast` for pages with tinted fills and outlines. |
 | `chrome: .content` | Only the view, without the window frame. |
 | `isReady:` | For content that loads in `.task`: the renderer waits until the closure returns true. |
+| `scroll: .end` | Every scroll view that can scroll stands at its end, so the image shows the end of a long page or sheet at its real size. Name the entry `<page>-end`. |
+
+The offscreen window takes no scroll events, so for `.end` the renderer moves each clip view
+itself after the layout of every pass (`SnapshotScroller`). Content that loads late can grow,
+and the next pass follows it. A scroll would show an overlay scroller that fades out on a
+timer, so the scrolled view hides its vertical scroller: the image does not depend on how long
+the view takes to settle, and like a top capture it shows no scroller.
 
 The renderer runs layout passes until `isReady` is true and two passes in a row
 draw the same pixels. It suspends between passes, so `.task` and `onChange` work
