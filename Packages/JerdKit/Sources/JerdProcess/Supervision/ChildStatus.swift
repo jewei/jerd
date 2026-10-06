@@ -18,9 +18,10 @@ enum ChildStatus {
 
     /// Maps a `waitid` report to a state.
     ///
-    /// Darwin also reports a paused child (`CLD_STOPPED`, for example after `SIGSTOP` or a
-    /// debugger attach) to `WEXITED`. Such a child is alive: it keeps its record and its lock, and
-    /// a stop must still signal it. Only `CLD_EXITED`, `CLD_KILLED`, and `CLD_DUMPED` are ends.
+    /// Darwin also reports a paused child (`CLD_STOPPED`, for example after `SIGSTOP` or
+    /// `SIGTSTP`) to `WEXITED`. Such a child is alive: it keeps its record and its lock, and a stop
+    /// must still signal it. Only `CLD_EXITED`, `CLD_KILLED`, and `CLD_DUMPED` are ends. A traced
+    /// child (`CLD_TRAPPED`) maps to running too; no test attaches a real debugger.
     static func state(code: Int32, status: Int32) -> ProcessState {
         switch code {
         case CLD_EXITED: .exited(status: status)

@@ -142,7 +142,7 @@ import Testing
         #expect(await instance.state == .stopped)
     }
 
-    /// A paused server (`kill -STOP`, a debugger) is alive: it keeps its state, and Stop continues it.
+    /// A paused server (`kill -STOP`) is alive: it keeps its state, and Stop continues it.
     @Test func aPausedServiceStaysRunningAndStopsGracefully() async throws {
         let setup = try Setup()
         defer { setup.directory.remove() }
@@ -201,8 +201,8 @@ import Testing
         let lock = setup.folder.appendingPathComponent("service.lock")
         #expect(await ProcessPause.pause(pid))
         await #expect(throws: (any Error).self) { try await instance.stop() }
-        // The stop continued the fixture, and it ignored SIGTERM. Pause it again, as a debugger
-        // does, with its end (SIGINT) pending until it continues. The PID is an unreaped own child.
+        // The stop continued the fixture, and it ignored SIGTERM. Pause it again, with its end
+        // (SIGINT) pending until it continues. The PID is an unreaped own child.
         #expect(await ProcessPause.pause(pid))
         kill(pid, SIGINT)
         guard case .stuck(pid, let reason) = await instance.refresh() else {

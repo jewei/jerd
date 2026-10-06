@@ -8,7 +8,7 @@ import JerdServiceKitTestSupport
 import JerdTestSupport
 import Testing
 
-/// An opt-in test with real runtimes: a paused server (`kill -STOP`, a debugger) is not an exit,
+/// An opt-in test with real runtimes: a paused server (`kill -STOP`) is not an exit,
 /// and Quit still stops it gracefully. It uses a temporary data folder and free loopback ports.
 @Suite(.serialized) struct DatabasePauseIntegrationTests {
     static let environment = ProcessInfo.processInfo.environment

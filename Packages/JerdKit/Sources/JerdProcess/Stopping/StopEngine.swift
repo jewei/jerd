@@ -14,8 +14,8 @@ import Darwin
 /// A policy without signals (`StopPolicy.completeExited`) stops after step 3: it gives
 /// `.stopped` for an exited leader with an empty group, and `.timedOut` otherwise.
 ///
-/// `SIGCONT` follows each stop signal because a paused process (`SIGSTOP`, a debugger, a job-control
-/// stop) keeps a caught signal pending until it continues. Without it, a paused data service could
+/// `SIGCONT` follows each stop signal because a paused process (`SIGSTOP`, or a job-control stop
+/// such as `SIGTSTP`) keeps a caught signal pending until it continues. Without it, a paused data service could
 /// never shut down gracefully. `SIGKILL` needs no `SIGCONT`: it also ends a paused process.
 ///
 /// Ownership is read again after every wait: a leader that something else reaped during the stop

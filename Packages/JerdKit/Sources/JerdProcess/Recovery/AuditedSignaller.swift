@@ -38,7 +38,7 @@ public struct AuditedSignaller: Sendable {
         try deliver(signal, to: words)
     }
 
-    /// Continues a paused saved process (`SIGSTOP`, a debugger), so that it can act on the graceful
+    /// Continues a paused saved process (`SIGSTOP`, `SIGTSTP`), so that it can act on the graceful
     /// signal: a paused process keeps a caught signal pending until it continues.
     ///
     /// A process that is not verified again as the same running process of this user gets nothing.
