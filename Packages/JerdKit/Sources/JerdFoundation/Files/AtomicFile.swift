@@ -5,22 +5,41 @@ import Foundation
 ///
 /// A write never leaves a partial file at the target path: the bytes go to a temporary file
 /// in the same folder (so the rename is atomic), the data is flushed, the temporary file
-/// replaces the target with `rename`, and then the folder entry is flushed.
+/// replaces the target with `rename`, and then the folder entry is flushed with the same durability.
 public enum AtomicFile {
     /// How much a write waits for the storage device before the rename.
     public enum Durability: Sendable, Equatable {
         /// `fsync`: the data reaches the drive, but the drive cache can still lose it on power loss.
         case standard
-        /// `F_FULLFSYNC`: the drive also flushes its cache. Use for records that protect user data.
+        /// `F_FULLFSYNC` for the data and the folder: the drive also flushes its cache, so after a
+        /// power loss the file has the new name and the new bytes. Use for records that protect user data.
         case full
     }
 
     /// The mode of every file that this type creates.
     public static let fileMode: mode_t = 0o600
 
+    /// Flushes one open descriptor (the temporary file, then the folder) with a durability.
+    /// Returns false when the flush failed.
+    package typealias Flush = (_ descriptor: Int32, _ durability: Durability) -> Bool
+
     /// Replaces `url` with `data` (mode 0600). The parent folder must exist.
     /// A symbolic link at `url` is replaced, never followed.
     public static func write(_ data: Data, to url: URL, durability: Durability = .full) throws {
+        try write(data, to: url, durability: durability, exclusive: false, flush: flush)
+    }
+
+    /// Writes `data` (mode 0600) at `url` only when nothing is there, as one atomic step
+    /// (`renamex_np` with `RENAME_EXCL`), so two writers cannot both succeed.
+    /// - Throws: `.unavailable` when a file or link already exists at `url`. It is not changed.
+    public static func create(_ data: Data, at url: URL, durability: Durability = .full) throws {
+        try write(data, to: url, durability: durability, exclusive: true, flush: flush)
+    }
+
+    /// The shared write. `flush` is a parameter so that tests can see each flush and its durability.
+    package static func write(
+        _ data: Data, to url: URL, durability: Durability, exclusive: Bool, flush: Flush
+    ) throws {
         let folder = url.deletingLastPathComponent()
         let temporary = folder.appendingPathComponent(".\(UUID().uuidString).tmp")
         let descriptor = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, fileMode)
@@ -37,15 +56,31 @@ public enum AtomicFile {
         guard writeError == 0 else {
             throw JerdError.unavailable("Cannot write \(url.path) (\(SystemError.describe(writeError))).")
         }
-        guard flush(descriptor, durability), rename(temporary.path, url.path) == 0 else {
+        guard flush(descriptor, durability) else {
             throw JerdError.unavailable("Cannot save \(url.path) (\(SystemError.describe(errno))).")
         }
+        try commit(temporary, to: url, exclusive: exclusive)
         renamed = true
         // The rename is complete. A failed folder flush cannot undo it, so it is not reported.
+        // The folder gets the same durability as the data: with `.full`, the new name also
+        // passes the drive cache.
         let parent = open(folder.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
         if parent >= 0 {
-            _ = fsync(parent)
+            _ = flush(parent, durability)
             close(parent)
+        }
+    }
+
+    private static func commit(_ temporary: URL, to url: URL, exclusive: Bool) throws {
+        let result =
+            exclusive
+            ? renamex_np(temporary.path, url.path, UInt32(RENAME_EXCL)) : rename(temporary.path, url.path)
+        guard result == 0 else {
+            let code = errno
+            if exclusive, code == EEXIST {
+                throw JerdError.unavailable("\(url.path) already exists. It was not changed.")
+            }
+            throw JerdError.unavailable("Cannot save \(url.path) (\(SystemError.describe(code))).")
         }
     }
 
@@ -83,7 +118,8 @@ public enum AtomicFile {
         }
     }
 
-    private static func flush(_ descriptor: Int32, _ durability: Durability) -> Bool {
+    /// The system flush. `F_FULLFSYNC` also works on a folder descriptor.
+    package static func flush(_ descriptor: Int32, _ durability: Durability) -> Bool {
         switch durability {
         case .standard: fsync(descriptor) == 0
         // Some file systems do not support F_FULLFSYNC. fsync is then the strongest flush available.
