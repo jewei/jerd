@@ -128,7 +128,8 @@ These rules protect user data and the user's Mac. Do not weaken them.
 ## Compatibility contract
 
 Installed copies of Jerd have user data. Keep these stable, or add a migration
-with a test that reads the old form:
+with a test that reads the old form. [Data reference](Docs/Reference.md) lists
+the paths, helper records, defaults keys, and Keychain items:
 
 - Every path under `~/Library/Application Support/Jerd` and
   `/Library/Application Support/JerdHelper`.

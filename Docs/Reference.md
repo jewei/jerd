@@ -120,3 +120,44 @@ private (mode 0700).
 Every lock is an exclusive, non-blocking `flock` on a private file. Old and new
 builds use the same lock files, so they exclude each other during an upgrade.
 A run record is written or deleted only while its lock is held.
+
+## Helper records
+
+The helper keeps these files in `/Library/Application Support/JerdHelper`. The
+folder has mode 0700 and the owner root. `RootRecordDirectory` in JerdSystem is
+their one reader and writer. `HelperRecordReferenceTests` checks this list.
+
+| File | Contents |
+| --- | --- |
+| `registration.json` | The committed setup: hostnames, the CA, and its trust. Versions 1 to 3 are read; version 3 is written |
+| `pending.json` | The journal of an unfinished setup change, for recovery |
+| `hosts.previous` | The hosts file bytes before the latest change (evidence only) |
+| `recovery.previous.json` | The journal bytes from the first recovery attempt of a change |
+
+The helper edits only the lines between `# BEGIN JERD` and `# END JERD` in
+`/etc/hosts`.
+
+## Defaults
+
+The app keeps these keys in the `dev.jerd.app` defaults domain.
+`AppearanceDefaults` in JerdUI is their one reader and writer.
+`AppearanceDefaultsReferenceTests` checks this list.
+
+| Key | Value |
+| --- | --- |
+| `showMenuBar` | Bool. Show the menu bar item. Missing means true |
+| `showDock` | Bool. Show the Dock icon. Missing means true |
+| `appIcon` | String: `rainbow`, `monogram`, `elephant`, or `dots`. Old values (`original`, `stack`, `lock`), unknown values, and a missing value read as `rainbow` without a rewrite |
+
+Sparkle keeps its own `SU…` keys in the same domain, for example the choice of
+automatic update checks. Jerd does not write them directly.
+
+A Debug run with another data root uses the domain
+`dev.jerd.app.debug.<16 hex digits>`, so it never changes these choices.
+
+## Keychain
+
+| Item | Name |
+| --- | --- |
+| Tunnel token | Generic password, service `dev.jerd.cloudflared.tunnel-token`, account = the registration UUID in upper case. `TunnelKeychainReferenceTests` checks the service |
+| Installation CA | Certificate `Jerd Local CA <installation ID>` in the System keychain, with admin trust settings for TLS. The helper adds and removes it |
