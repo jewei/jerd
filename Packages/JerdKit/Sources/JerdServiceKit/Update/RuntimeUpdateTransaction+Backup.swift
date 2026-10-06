@@ -9,7 +9,7 @@ extension RuntimeUpdateTransaction {
     /// A crash before the journal write leaves only an unused backup folder. A journal never
     /// names a copy that a power loss can make incomplete. A symbolic link at a name, also a
     /// dangling one, stops the update.
-    public func beginBackup(holding lease: MaintenanceLease) async throws -> RuntimeUpdateJournal {
+    package func beginBackup(holding lease: MaintenanceLease) async throws -> RuntimeUpdateJournal {
         try requireLease(lease)
         guard !isPending else { throw JerdError.unavailable(Self.pendingMessage) }
         let id = UUID()
@@ -29,7 +29,7 @@ extension RuntimeUpdateTransaction {
     }
 
     /// Deletes the journal. The backup folder stays.
-    public func commit(holding lease: MaintenanceLease) throws {
+    package func commit(holding lease: MaintenanceLease) throws {
         try requireLease(lease)
         try AtomicFile.remove(journalFile)
     }
@@ -40,7 +40,7 @@ extension RuntimeUpdateTransaction {
     /// deleted) into `failed-attempt-<UUID>/` in the backup folder. A restore that a crash
     /// interrupts can run again: the journal stays until the restored items are flushed to the
     /// drive.
-    public func restore(holding lease: MaintenanceLease) async throws {
+    package func restore(holding lease: MaintenanceLease) async throws {
         try requireLease(lease)
         guard isPending else { return }
         let journal = try readJournal()

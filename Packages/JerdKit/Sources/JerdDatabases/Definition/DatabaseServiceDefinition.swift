@@ -12,7 +12,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
     /// The limit of `initdb` and `mysqld --initialize-insecure`.
     public static let initializationTimeout: Duration = .seconds(120)
 
-    public let engine: any DatabaseEngineDefinition
+    package let engine: any DatabaseEngineDefinition
     public let profile: ServiceProfile
     let temporaryRoot: URL
 
@@ -28,7 +28,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
     }
 
     /// The engine definition for the engine of `runtime`.
-    public static func engine(
+    package static func engine(
         runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles
     )
         -> any DatabaseEngineDefinition

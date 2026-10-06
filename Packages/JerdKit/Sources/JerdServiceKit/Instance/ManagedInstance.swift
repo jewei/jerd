@@ -58,7 +58,7 @@ public actor ManagedInstance {
     }
 
     /// Waits until a stop that is in progress has finished, for example one that exit detection began.
-    public func waitForPendingStop() async {
+    package func waitForPendingStop() async {
         if let pendingStop { _ = await pendingStop.task.value }
     }
 

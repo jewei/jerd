@@ -3,7 +3,7 @@ import JerdProcess
 
 /// The pure, engine-specific part of a database service: exact arguments, environment, and
 /// configuration files. A password never appears in an argument.
-public protocol DatabaseEngineDefinition: Sendable {
+package protocol DatabaseEngineDefinition: Sendable {
     var runtime: DatabaseRuntime { get }
     var service: DatabaseService { get }
     var files: DatabaseInstanceFiles { get }
@@ -25,9 +25,9 @@ public protocol DatabaseEngineDefinition: Sendable {
 }
 
 extension DatabaseEngineDefinition {
-    public func initializerFiles(_ credentials: DatabaseCredentials) -> [EngineFile] { [] }
+    package func initializerFiles(_ credentials: DatabaseCredentials) -> [EngineFile] { [] }
 
-    public func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase? { nil }
+    package func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase? { nil }
 
     /// A request for an executable in the runtime, with the instance folder as working folder.
     func request(_ executable: String, _ arguments: [String], environment: [String: String] = [:]) -> ProcessRequest {
