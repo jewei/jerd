@@ -38,7 +38,7 @@ public final class LiveApp {
         iconImages = images
         preparation = LaunchPreparation(
             staging: [domain.bootstrap, runtimes],
-            launcher: configuration.usesCurrentUserData ? commandLineTools : nil)
+            launcher: configuration.refreshesCommandLineLauncher ? commandLineTools : nil)
     }
 
     /// Starts Jerd independent of any window: removes abandoned staging folders and refreshes an

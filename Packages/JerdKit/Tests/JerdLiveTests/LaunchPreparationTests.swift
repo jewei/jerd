@@ -55,7 +55,7 @@ struct LaunchPreparationTests {
             layout: try Fixture.layout(), appBundle: URL(fileURLWithPath: "/Applications/Jerd.app"),
             resources: URL(fileURLWithPath: "/Applications/Jerd.app/Contents/Resources"), appVersion: "1.0")
 
-        #expect(!configuration.usesCurrentUserData)
-        #expect(LiveConfiguration(bundle: .main).usesCurrentUserData)
+        #expect(!configuration.refreshesCommandLineLauncher)
+        #expect(LiveConfiguration(bundle: .main).refreshesCommandLineLauncher)
     }
 }

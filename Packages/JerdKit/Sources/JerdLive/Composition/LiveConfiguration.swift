@@ -11,12 +11,16 @@ public struct LiveConfiguration: Sendable {
     public let resources: URL
     /// `CFBundleShortVersionString`, for the user agent of runtime downloads.
     public let appVersion: String?
+    /// True when the launch replaces an outdated command-line launcher in `bin/`. It starts true
+    /// only for the current user's data root, because the launcher in `bin/` is the user's.
+    public var refreshesCommandLineLauncher: Bool
 
     public init(layout: DataLayout, appBundle: URL, resources: URL, appVersion: String?) {
         self.layout = layout
         self.appBundle = appBundle
         self.resources = resources
         self.appVersion = appVersion
+        refreshesCommandLineLauncher = layout == .currentUser()
     }
 
     /// The running app and a data root.
@@ -28,10 +32,6 @@ public struct LiveConfiguration: Sendable {
             resources: bundle.resourceURL ?? bundle.bundleURL.appendingPathComponent("Contents/Resources"),
             appVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
     }
-
-    /// True when the data root is the current user's own, so user-wide setup such as the
-    /// command-line launcher in `bin/` belongs to it.
-    public var usesCurrentUserData: Bool { layout == .currentUser() }
 
     /// `Contents/Resources/RuntimePayloads`: the bundled runtime payloads.
     public var payloads: URL { resources.appendingPathComponent("RuntimePayloads", isDirectory: true) }

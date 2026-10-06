@@ -37,8 +37,9 @@ calls. Pure mappings are `package static` functions with their own tests.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated
-  command-line launcher is refreshed once, off the main actor. A Debug run with its own data
-  root never touches the user's launcher.
+  command-line launcher is refreshed once, off the main actor
+  (`LiveConfiguration.refreshesCommandLineLauncher`). A run with another data root never
+  touches the user's launcher.
 
 ## Test
 

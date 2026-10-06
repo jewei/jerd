@@ -47,14 +47,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         .applicationReply
     }
 
-    /// The data root. A Debug build reads `JERD_DEBUG_DATA_ROOT`, so a test run can use an empty
-    /// folder instead of the user's data. Release builds always use the user's data root.
+    /// The data root and launch options. A Debug build reads `JERD_DEBUG_DATA_ROOT`, so a test
+    /// run can use an empty folder instead of the user's data, and `JERD_DEBUG_KEEP_LAUNCHER=1`,
+    /// so a test run on the user's data keeps the user's command-line launcher. Release builds
+    /// always use the user's data root.
     private static func configuration() -> LiveConfiguration {
+        var configuration = LiveConfiguration(bundle: .main)
         #if DEBUG
-        if let root = ProcessInfo.processInfo.environment["JERD_DEBUG_DATA_ROOT"], root.hasPrefix("/") {
-            return LiveConfiguration(bundle: .main, dataRoot: URL(fileURLWithPath: root, isDirectory: true))
+        let environment = ProcessInfo.processInfo.environment
+        if let root = environment["JERD_DEBUG_DATA_ROOT"], root.hasPrefix("/") {
+            configuration = LiveConfiguration(bundle: .main, dataRoot: URL(fileURLWithPath: root, isDirectory: true))
+        }
+        if environment["JERD_DEBUG_KEEP_LAUNCHER"] == "1" {
+            configuration.refreshesCommandLineLauncher = false
         }
         #endif
-        return LiveConfiguration(bundle: .main)
+        return configuration
     }
 }
