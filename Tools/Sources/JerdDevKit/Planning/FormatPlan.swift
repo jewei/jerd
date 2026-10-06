@@ -7,6 +7,7 @@ enum FormatPlan {
         "Apps",
         "Tools/Sources",
         "Tools/Tests",
+        "Tools/Fixtures",
     ]
 
     /// Rewrites the files in place.

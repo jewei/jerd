@@ -30,17 +30,24 @@ extension RuntimePipeline {
             throw JerdError.invalid("The runtime download failed its SHA-256 check.")
         }
         if let signatureURL = release.signatureURL {
-            try await verifySignature(of: file, at: signatureURL, kind: release.kind, staging: staging)
+            try await verifySignature(of: file, at: signatureURL, release: release)
         }
         return VerifiedArtifact(file: file, sha256: sha256)
     }
 
-    /// Checks the detached publisher signature with the pinned key of the kind.
-    private func verifySignature(of file: URL, at url: URL, kind: RuntimeKind, staging: StagingFolder) async throws {
+    /// Checks the detached publisher signature with the pinned key of the kind. A pinned release
+    /// also needs exactly its reviewed signature file: its URL, size limit, and SHA-256 (RT-4).
+    private func verifySignature(of file: URL, at url: URL, release: RuntimeRelease) async throws {
+        let kind = release.kind
         guard let key = Self.publisherKey(for: kind) else {
             throw JerdError.invalid("The runtime download has no verification method.")
         }
-        let signature = try await fetcher.data(from: url, limit: Self.signatureLimit)
+        let pin = release.pinnedSignature
+        let mismatch = JerdError.invalid("The \(kind.title) signature file does not match its reviewed pin.")
+        if let pin, pin.url != url { throw mismatch }
+        let limit = pin.map { Int($0.sizeLimit) } ?? Self.signatureLimit
+        let signature = try await fetcher.data(from: url, limit: limit)
+        if let pin, FileDigest.hexSHA256(of: signature) != pin.sha256 { throw mismatch }
         try await BlockingWork.run {
             try PinnedRSAVerifier(key: key).verify(file: file, armoredSignature: signature)
         }

@@ -44,8 +44,10 @@ It depends on JerdFoundation and on the macOS system libarchive (`CArchive`).
 
 ## Use
 
-Both operations are synchronous. Run them off the cooperative thread pool, for example
-in a detached task of the installer actor.
+Both operations are synchronous. Run them off the cooperative thread pool, but inside a
+task, for example with `BlockingWork.run` of JerdRuntimes. The cancellation checks use
+`Task.checkCancellation()`. Work that a plain `DispatchQueue.async` runs has no task, so
+there these checks never stop it.
 
 ## Test
 

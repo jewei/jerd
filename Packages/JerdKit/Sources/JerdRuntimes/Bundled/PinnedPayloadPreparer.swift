@@ -44,7 +44,8 @@ public struct PinnedPayloadPreparer: Sendable {
         }
         return RuntimeRelease(
             kind: pin.kind, version: pin.version, artifact: artifact, archiveSHA256: pin.artifactSHA256,
-            signatureURL: pin.signature?.url, releasePage: pin.releasePage, architecture: architecture)
+            signatureURL: pin.signature?.url, releasePage: pin.releasePage, architecture: architecture,
+            pinnedSignature: pin.signature)
     }
 
     /// The folder of a prepared pin.
@@ -72,6 +73,18 @@ public struct PinnedPayloadPreparer: Sendable {
         try Task.checkCancellation()
         try FolderMove.withoutReplacing(prepared.directory, to: target)
         return receipt
+    }
+
+    /// Removes the staging folders that an interrupted preparation left in the group folders of
+    /// `output` (P-I6, RT-7). A folder whose preparation still runs holds its lock and is kept.
+    /// - Returns: `<group>/<name>` of each removed folder.
+    @discardableResult
+    public func removeAbandonedStaging() -> [String] {
+        PayloadGroup.allCases.flatMap { group in
+            StagingFolder.removeAbandoned(in: output.appendingPathComponent(group.rawValue)).map {
+                "\(group.rawValue)/\($0)"
+            }
+        }
     }
 
     /// The prepared PHP CLI and `composer.phar`, which the Laravel installer needs.

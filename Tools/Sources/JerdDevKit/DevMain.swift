@@ -48,7 +48,7 @@ public enum DevMain {
             guard DevCommand.exitCode(for: error) != .success else {
                 return .exit(.success, message: DevCommand.fullMessage(for: error))
             }
-            let command = UsageMessage.command(named: arguments.first)
+            let command = UsageMessage.command(for: arguments)
             return .exit(.usage, message: UsageMessage.text(DevCommand.message(for: error), command: command))
         }
     }
@@ -56,7 +56,9 @@ public enum DevMain {
     /// Runs the command. With `--json`, it also prints one JSON summary on standard output at the end.
     static func execute(_ command: any AsyncParsableCommand, output: any TextOutput) async -> ExitStatus {
         let report = (command as? any DevSubcommand)?.options.json == true ? RunReport() : nil
-        let (status, message) = await RunReport.$current.withValue(report) { await runReportingErrors(command) }
+        let (status, message) = await RunReport.$current.withValue(report) {
+            await runReportingErrors(command, output: output)
+        }
         if let message {
             let text = status == .usage ? UsageMessage.text(message, command: type(of: command)) : "error: \(message)"
             output.write(text + "\n", to: .standardError)
@@ -69,12 +71,19 @@ public enum DevMain {
         return status
     }
 
-    private static func runReportingErrors(_ command: any AsyncParsableCommand) async -> (ExitStatus, String?) {
+    /// A command group without a subcommand, for example `./dev runtimes`, shows its help and succeeds.
+    private static func runReportingErrors(
+        _ command: any AsyncParsableCommand, output: any TextOutput
+    ) async -> (ExitStatus, String?) {
         var command = command
         do {
             try await command.run()
             return (.success, nil)
         } catch {
+            if !(error is DevFailure), DevCommand.exitCode(for: error) == .success {
+                output.write(DevCommand.fullMessage(for: error) + "\n", to: .standardOutput)
+                return (.success, nil)
+            }
             return describe(error)
         }
     }

@@ -1,0 +1,22 @@
+{
+  "archiveSHA256": "13dbcfc6a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a8a3c",
+  "files": {
+    "LICENSE": {
+      "executable": false,
+      "sha256": "f824ab0b51c352d296a3fbe02cc0543266f7786e58c7cea63fdf07aa26b27749"
+    },
+    "bin/redis-cli": {
+      "executable": true,
+      "sha256": "3eacf5965a29af7aec1b1589cfe746634a4874b0804dc16d377c780a8965e7cc"
+    },
+    "bin/redis-server": {
+      "executable": true,
+      "sha256": "9c057e1d1962c39f1ce5be851503031f5ffee27f0f5078154d44c384f245f4b2"
+    }
+  },
+  "releaseSigning": {
+    "sourceReceiptSHA256": "0a995110d7e2960de0444c70d14fe8a2e7542876b4dd263785dd41f3d4aa4aa3",
+    "teamID": "ABCDE12345"
+  },
+  "schemaVersion": 1
+}

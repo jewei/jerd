@@ -12,13 +12,19 @@ Run every task through `./dev`. It works from any folder in the repository.
 | --- | --- |
 | `./dev check` | Run everything CI runs: lint, JerdKit tests, Tools tests, the Debug build, and an unsigned Release build without runtimes |
 | `./dev test [TARGET...] [--filter X]` | Run JerdKit unit tests, for example `./dev test JerdWeb` |
-| `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests; see [Tools](Tools/README.md) |
+| `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests with the prepared payloads; see [Tools](Tools/README.md) |
 | `./dev test --tools` | Run the tests of the `./dev` tool |
 | `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default), check the built app, and print its path |
 | `./dev snapshots [PAGE...]` | Render UI pages to PNG files in `.build/snapshots` |
 | `./dev format [--check]` | Format all Swift code with swift-format |
 | `./dev lint` | Check the format, `generate --check`, and the repository policies |
 | `./dev generate [--check]` | Generate `Jerd.xcodeproj` from `project.yml` |
+| `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned runtime payloads (`development`, `database`, `mail`, `storage`, `xz`) |
+| `./dev runtimes verify` / `status` | Verify each payload file by file, or list versions, sizes, and states |
+| `./dev release bump --version V --build B` | Set the version in `Configuration/Version.xcconfig` and promote the changelog, for a pull request |
+| `./dev release prepare --version V --build B --minimum-macos M --identity ID --team T` | Build, sign, notarize, and validate a private candidate in `.build/releases` |
+| `./dev release validate DIR [--public-key-only]` / `publish DIR` / `status DIR` / `resume DIR` / `clean [--keep N]` | Check, publish, inspect, continue, or remove candidates; see [Tools](Tools/README.md#release) |
+| `./dev check updates --identity ID` / `check xpc --identity ID` | Manual harnesses that need a signing identity; each writes evidence to `.build/evidence` |
 | `./dev doctor` | Check Xcode, Swift, swift-format, XcodeGen, and `gh`, with install hints |
 | `./dev clean [--all]` | Remove build output; `--all` also removes packages and runtimes |
 | `./dev help [COMMAND]` | List every command, or show the options of one command |
@@ -30,7 +36,8 @@ prerequisite is missing, 128 plus the signal number when a signal stops `./dev`.
 A failed quiet step writes its full output to `.build/logs/<step>.log`.
 
 `./dev build --release` requires the prepared runtime payloads. Only `./dev check`
-and CI use `--allow-missing-runtimes`; never ship such a build.
+and CI use `--allow-missing-runtimes`; never ship such a build. Every build
+verifies each payload receipt and file digest before it embeds the payload.
 
 For quick loops inside the package, `swift test --package-path Packages/JerdKit
 --filter JerdWebTests` also works.

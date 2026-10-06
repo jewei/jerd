@@ -7,6 +7,10 @@ import JerdManifest
 /// The CLI setup uses it before it links `php` into the user's PATH. The executable must be inside
 /// `runtimes/<build>/` (bundled payloads: `payload-receipt.json`, or the legacy `jerd-receipt.json`)
 /// or `runtime-updates/<build>/` (`update-receipt.json` of kind PHP). Both receipt generations are read.
+///
+/// Only the PHP CLI passes (spec B 3.19 step 2, RT-5): the file that the receipt names as its
+/// `executable`. A legacy development receipt names no executable; there the CLI is the top-level
+/// `php-native-<major>.<minor>` file that the old bootstrap used. FPM and notice files never pass.
 public struct ManagedExecutableVerifier: Sendable {
     private let layout: RuntimeLayout
 
@@ -43,17 +47,18 @@ public struct ManagedExecutableVerifier: Sendable {
     private func recordedHash(of entry: RelativePath, in build: URL, managed: Bool) throws -> String {
         if managed {
             let receipt = try ManagedRuntimeStore(directory: build.deletingLastPathComponent()).receipt(at: build)
-            guard receipt.kind == .php, [receipt.executable, receipt.secondaryExecutable].contains(entry.string),
-                let hash = receipt.files[entry.string]
+            guard receipt.kind == .php, receipt.executable == entry.string, let hash = receipt.files[entry.string]
             else { throw Self.mismatch }
             return hash
         }
         let current = build.appendingPathComponent(PayloadReceipt.fileName)
         if FileProbe.presence(at: current) == .present {
             let receipt = try PayloadReceipt.decode(AtomicFile.read(current, limit: PayloadReceipt.sizeLimit))
-            guard receipt.kind == .php, let record = receipt.files[entry.string] else { throw Self.mismatch }
+            guard receipt.kind == .php, receipt.executable == entry, let record = receipt.files[entry.string]
+            else { throw Self.mismatch }
             return record.sha256
         }
+        guard Self.isLegacyCLIName(entry) else { throw Self.mismatch }
         let legacy = build.appendingPathComponent(LegacyPayloadReceipt.Format.development.fileName)
         let data = try AtomicFile.read(legacy, limit: LegacyPayloadReceipt.sizeLimit)
         let receipt: LegacyPayloadReceipt
@@ -65,6 +70,17 @@ public struct ManagedExecutableVerifier: Sendable {
         guard let hash = receipt.fileHashes[entry] else { throw Self.mismatch }
         return hash
     }
+
+    /// True for `php-native-<major>.<minor>` at the top of a build, the CLI name of every legacy PHP payload.
+    static func isLegacyCLIName(_ entry: RelativePath) -> Bool {
+        guard entry.components.count == 1, entry.string.hasPrefix(legacyCLIPrefix) else { return false }
+        let parts = entry.string.dropFirst(legacyCLIPrefix.count).split(
+            separator: ".", omittingEmptySubsequences: false)
+        return parts.count == 2
+            && parts.allSatisfy { !$0.isEmpty && $0.allSatisfy(\.isASCII) && $0.allSatisfy(\.isNumber) }
+    }
+
+    private static let legacyCLIPrefix = "php-native-"
 
     static var notManaged: JerdError {
         .invalid("Select a managed Jerd PHP runtime before setting up its CLI command.")
