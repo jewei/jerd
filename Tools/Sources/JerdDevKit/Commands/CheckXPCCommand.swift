@@ -6,8 +6,8 @@ struct CheckXPCCommand: DevSubcommand {
         commandName: "xpc",
         abstract: "Check that signed XPC accepts only the Jerd code identities.",
         discussion: """
-            Runs the JerdKit test JerdXPCCheck with JERD_XPC_IDENTITY set to the identity. The test signs \
-            a probe as the app and as the helper and checks the socket transfer and both refusals. It \
+            Runs the JerdKit test SignedXPCCheckTests with JERD_XPC_IDENTITY set to the identity. The \
+            test signs the JerdXPCCheck probe as the app and checks the socket transfer and both refusals. It \
             does not register a service or change system files. Writes .build/evidence/<date>-xpc.json.
             """)
 

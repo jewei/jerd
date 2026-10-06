@@ -9,7 +9,7 @@ struct XPCCheckTests {
         InvocationResult(commandLine: "swift test", status: status, standardOutput: output)
     }
 
-    @Test("Runs only the JerdXPCCheck test with the identity and without inherited JERD_* values")
+    @Test("Runs only the SignedXPCCheckTests test with the identity and without inherited JERD_* values")
     func plansTheTest() {
         let invocation = XPCCheckPlan.invocation(
             repository: TestFixtures.repository, toolchain: TestFixtures.toolchain, identity: "Developer ID",
@@ -17,7 +17,7 @@ struct XPCCheckTests {
         #expect(invocation.executable.path == "/usr/bin/xcrun")
         #expect(
             invocation.arguments == [
-                "swift", "test", "--package-path", "/work/jerd/Packages/JerdKit", "--filter", "JerdXPCCheck",
+                "swift", "test", "--package-path", "/work/jerd/Packages/JerdKit", "--filter", "SignedXPCCheckTests",
             ])
         #expect(invocation.environment == ["PATH": "/usr/bin", "JERD_XPC_IDENTITY": "Developer ID"])
     }
@@ -40,7 +40,7 @@ struct XPCCheckTests {
     @Test("Fails when no test ran, when a test was skipped, or when a test failed")
     func refusesRunsThatProveNothing() {
         let none = XPCCheckPlan.evaluate(result("warning: No matching test cases were run"))
-        #expect(none.failure?.contains("No JerdXPCCheck test ran") == true)
+        #expect(none.failure?.contains("No SignedXPCCheckTests test ran") == true)
         let empty = XPCCheckPlan.evaluate(result("✔ Test run with 0 tests in 0 suites passed after 0.0 seconds."))
         #expect(empty.failure != nil && empty.cases.isEmpty)
         let skipped = XPCCheckPlan.evaluate(result("➜ Test xpcCheck() skipped: \"Set JERD_XPC_IDENTITY.\""))

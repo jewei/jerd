@@ -1,12 +1,12 @@
 import Foundation
 
-/// Plans and judges `./dev check xpc`. The check itself is the opt-in JerdKit test `JerdXPCCheck`,
-/// which runs only when `JERD_XPC_IDENTITY` names a code-signing identity. It signs a probe as the app
-/// and as the helper and proves that signed XPC transfers the listener sockets only between the
+/// Plans and judges `./dev check xpc`. The check itself is the opt-in JerdKit test `SignedXPCCheckTests`,
+/// which runs only when `JERD_XPC_IDENTITY` names a code-signing identity. It signs the `JerdXPCCheck` probe
+/// as the app and proves that signed XPC transfers the listener sockets only between the
 /// right code identities.
 enum XPCCheckPlan {
     /// The test filter. The JerdKit test of the signed XPC check has this name.
-    static let testFilter = "JerdXPCCheck"
+    static let testFilter = "SignedXPCCheckTests"
     static let identityVariable = "JERD_XPC_IDENTITY"
 
     /// `swift test` of only the XPC check. Inherited `JERD_*` values are removed, as in `./dev test`.
