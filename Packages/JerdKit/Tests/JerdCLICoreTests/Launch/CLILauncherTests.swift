@@ -27,9 +27,9 @@ import Testing
         try fixture.saveDefault(php)
         let plan = try launcher(fixture).prepare(invocation(["php", "-v"]))
         let runtimes = fixture.layout.runtimes
-        #expect(plan.arguments == [php.cliPath, "-c", runtimes.cliINIFile.path, "-v"])
-        #expect(plan.environmentChanges["PHP_INI_SCAN_DIR"] == runtimes.cliEmptyINIDirectory.path)
-        #expect(plan.environmentChanges["PATH"] == fixture.layout.binDirectory.path + ":/usr/bin:/bin")
+        #expect(plan.argumentText == [php.cliPath, "-c", runtimes.cliINIFile.path, "-v"])
+        #expect(plan.environment.text("PHP_INI_SCAN_DIR") == runtimes.cliEmptyINIDirectory.path)
+        #expect(plan.environment.text("PATH") == fixture.layout.binDirectory.path + ":/usr/bin:/bin")
         #expect(text(runtimes.cliINIFile).hasPrefix(PHPIniPolicy.cli))
     }
 
@@ -53,11 +53,11 @@ import Testing
         let companions = try fixture.installCompanions()
         let composer = try launcher(fixture).prepare(invocation(["composer", "-n", "install"]))
         #expect(
-            composer.arguments == [
+            composer.argumentText == [
                 php.cliPath, "-c", fixture.layout.runtimes.cliINIFile.path, companions.composerPath, "-n", "install",
             ])
         let laravel = try launcher(fixture).prepare(invocation(["/x/laravel", "new", "blog"]))
-        #expect(Array(laravel.arguments.suffix(3)) == [companions.laravelPath, "new", "blog"])
+        #expect(Array(laravel.argumentText.suffix(3)) == [companions.laravelPath, "new", "blog"])
     }
 
     @Test(arguments: [CLICommand.composer, .laravel])
@@ -169,7 +169,7 @@ import Testing
         let bundle = fixture.layout.runtimes.cliCABundleFile
         let bundles = FakeCABundles(.success(bundle))
         let plan = try launcher(fixture, bundles: bundles).prepare(invocation(["php"]))
-        #expect(plan.arguments[2] == fixture.layout.runtimes.cliLocalTLSINIFile.path)
+        #expect(plan.argumentText[2] == fixture.layout.runtimes.cliLocalTLSINIFile.path)
         #expect(text(fixture.layout.runtimes.cliLocalTLSINIFile).contains("openssl.cafile = \"\(bundle.path)\""))
         #expect(bundles.callCount == 1)
     }
@@ -188,7 +188,7 @@ import Testing
         let bundles = FakeCABundles(.success(fixture.layout.runtimes.cliCABundleFile))
         let plan = try launcher(fixture, bundles: bundles).prepare(invocation(arguments, environment: environment))
         #expect(bundles.callCount == 0)
-        #expect(!plan.arguments.contains(fixture.layout.runtimes.cliLocalTLSINIFile.path))
+        #expect(!plan.argumentText.contains(fixture.layout.runtimes.cliLocalTLSINIFile.path))
     }
 
     @Test func userScanFolderStaysUnchanged() throws {
@@ -196,7 +196,7 @@ import Testing
         defer { fixture.remove() }
         try fixture.saveDefault(try fixture.installPHP("8.5"))
         let plan = try launcher(fixture).prepare(invocation(["php"], environment: ["PHP_INI_SCAN_DIR": "/fragments"]))
-        #expect(plan.environmentChanges["PHP_INI_SCAN_DIR"] == nil)
+        #expect(plan.environment.text("PHP_INI_SCAN_DIR") == "/fragments")
         #expect(isAbsent(fixture.layout.runtimes.cliEmptyINIDirectory))
     }
 
@@ -207,7 +207,7 @@ import Testing
         let diagnostics = RecordingDiagnostics()
         let bundles = FakeCABundles(.failure(.corrupt("The installation identity is invalid. It was preserved.")))
         let plan = try launcher(fixture, bundles: bundles, diagnostics: diagnostics).prepare(invocation(["php", "-v"]))
-        #expect(plan.arguments[2] == fixture.layout.runtimes.cliINIFile.path)
+        #expect(plan.argumentText[2] == fixture.layout.runtimes.cliINIFile.path)
         #expect(
             diagnostics.recorded == [
                 "Jerd: warning: PHP runs without the local HTTPS CA. The installation identity is invalid. It was preserved."
@@ -221,7 +221,7 @@ import Testing
         let diagnostics = RecordingDiagnostics()
         let bundles = FakeCABundles(.success(URL(fileURLWithPath: "/x/${HOME}/ca.pem")))
         let plan = try launcher(fixture, bundles: bundles, diagnostics: diagnostics).prepare(invocation(["php"]))
-        #expect(plan.arguments[2] == fixture.layout.runtimes.cliINIFile.path)
+        #expect(plan.argumentText[2] == fixture.layout.runtimes.cliINIFile.path)
         #expect(diagnostics.recorded.count == 1)
     }
 
@@ -235,7 +235,7 @@ import Testing
         #expect(image.recorded.isEmpty)
         #expect(
             diagnostics.recorded == [
-                "Jerd: Run Jerd's launcher as php, composer, or laravel. Set up these commands in Jerd first."
+                "Jerd: Run Jerd's launcher as php, composer, or laravel. To install these commands, open Jerd, go to Advanced, and choose Install Command-Line Tools."
             ])
     }
 

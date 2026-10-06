@@ -6,8 +6,12 @@ import JerdWeb
 ///
 /// Each invocation reads the current saved configuration, so a change in Jerd applies to the next
 /// command. The launcher writes only the CLI INI files and the CLI CA bundle. On success PHP
-/// replaces the launcher with `execv`: standard streams, signals, and the exit status belong to PHP.
+/// replaces the launcher with `execve`: standard streams, signals, and the exit status belong to PHP.
 /// On failure the launcher writes `Jerd: <message>` to standard error and exits with status 1.
+///
+/// Trust: the launcher does not hash the runtime on each call (that costs a full read of PHP). It
+/// checks only that the selected executable is a regular file that the user can run. The shell
+/// setup verifies managed runtimes against their receipts; see `ShellSetupInstaller`.
 public struct CLILauncher: Sendable {
     /// The exit status when the command cannot start.
     public static let failureStatus: Int32 = 1
@@ -18,7 +22,7 @@ public struct CLILauncher: Sendable {
     let processImage: any ProcessImageReplacing
     let diagnostics: any DiagnosticWriting
 
-    public init(
+    package init(
         layout: DataLayout, resolver: CLIRuntimeResolver = CLIRuntimeResolver(),
         caBundles: any CLICABundlePreparing = PHPCABundleBuilder(),
         processImage: any ProcessImageReplacing = ProcessImage(),
@@ -31,9 +35,10 @@ public struct CLILauncher: Sendable {
         self.diagnostics = diagnostics
     }
 
-    /// The launcher of the current user with the live system.
+    /// The launcher of the current user with the live system. The data root is below `$HOME`,
+    /// the same folder that the shell PATH block names.
     public static func live() -> CLILauncher {
-        CLILauncher(layout: .currentUser())
+        CLILauncher(layout: UserHome.dataLayout(home: UserHome.current()))
     }
 
     /// Runs the command. Returns only when it cannot start, with `failureStatus`.
@@ -49,9 +54,9 @@ public struct CLILauncher: Sendable {
     }
 
     /// Selects PHP, writes the INI when needed, and returns the plan. It starts nothing.
-    public func prepare(_ invocation: CLIInvocation) throws -> CLILaunchPlan {
-        let command = try CLICommand(invocationName: invocation.arguments.first ?? "")
-        let userArguments = Array(invocation.arguments.dropFirst())
+    func prepare(_ invocation: CLIInvocation) throws -> CLILaunchPlan {
+        let names = invocation.decodedArguments
+        let command = try CLICommand(invocationName: names.first ?? "")
         guard let workingDirectory = invocation.workingDirectory else {
             throw JerdError.unavailable("Cannot read the current folder. Change to an existing folder and try again.")
         }
@@ -62,7 +67,8 @@ public struct CLILauncher: Sendable {
             throw JerdError.unavailable(
                 "PHP \(selection.runtime.version) selected for \(selection.selectorName) is unavailable: \(executable)")
         }
-        let decision = CLIIniDecision(command: command, arguments: userArguments, environment: invocation.environment)
+        let decision = CLIIniDecision(
+            command: command, arguments: Array(names.dropFirst()), environment: invocation.environment)
         let writer = CLIIniWriter(layout: layout)
         var iniEnvironment: [String: String] = [:]
         if decision.usesEmptyScanDirectory {
@@ -72,8 +78,8 @@ public struct CLILauncher: Sendable {
             CLILaunchRequest(
                 command: command, phpExecutable: executable,
                 iniArguments: try iniArguments(for: decision, writer: writer),
-                companionScript: try companionScript(for: command), userArguments: userArguments,
-                environment: invocation.environment, iniEnvironment: iniEnvironment,
-                binDirectory: layout.binDirectory.path))
+                companionScript: try companionScript(for: command),
+                userArguments: Array(invocation.arguments.dropFirst()), environment: invocation.environment,
+                iniEnvironment: iniEnvironment, binDirectory: layout.binDirectory.path))
     }
 }
