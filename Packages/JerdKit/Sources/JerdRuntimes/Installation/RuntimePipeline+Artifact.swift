@@ -15,7 +15,7 @@ extension RuntimePipeline {
         progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> VerifiedArtifact? {
         guard case .archive(let url, let size) = release.artifact else { return nil }
-        let message = "Downloading \(release.kind.title) \(release.version)…"
+        let message = "Downloading \(release.title)…"
         progress(RuntimeInstallProgress(message, 0))
         let file = staging.url.appendingPathComponent("download")
         let count = try await fetcher.download(from: url, to: file, limit: size.limit) { fraction in

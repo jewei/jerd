@@ -26,4 +26,15 @@ public enum MarkerFile {
     public static func write<Value: Encodable>(_ value: Value, to file: URL) throws {
         try AtomicFile.write(JSONFileFormat.compact.makeEncoder().encode(value), to: file)
     }
+
+    /// Writes `value` only when no marker is saved or the saved one decodes to another value. The
+    /// compact format has no stable key order, so writing an equal marker again would change its bytes.
+    /// - Returns: true when the file was written.
+    /// - Throws: `.corrupt` for an unreadable saved marker, which stays in place.
+    @discardableResult
+    public static func writeIfChanged<Value: Codable & Equatable>(_ value: Value, to file: URL) throws -> Bool {
+        if FileProbe.presence(at: file).mayExist, try read(Value.self, from: file) == value { return false }
+        try write(value, to: file)
+        return true
+    }
 }

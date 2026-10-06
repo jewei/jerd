@@ -8,17 +8,17 @@ struct OperationLockTests {
     @Test("Only one operation holds the lock; a second one does not run")
     func exclusive() async {
         let lock = OperationLock()
-        var isHeld = true
+        let hold = Hold()
         var runs: [String] = []
         let first = lock.run("First…") {
             runs.append("first")
-            while isHeld { await Task.yield() }
+            while hold.isHeld { await Task.yield() }
         }
         #expect(first != nil)
         #expect(lock.work == OperationLock.Work(message: "First…", canCancel: false))
         #expect(!lock.isFree)
         #expect(lock.run("Second…") { runs.append("second") } == nil)
-        isHeld = false
+        hold.isHeld = false
         await first?.value
         #expect(lock.isFree)
         #expect(runs == ["first"])
@@ -27,16 +27,16 @@ struct OperationLockTests {
     @Test("Waiting work runs after the current work, in turn")
     func runWhenFreeWaits() async throws {
         let lock = OperationLock()
-        var isHeld = true
+        let hold = Hold()
         var runs: [String] = []
         let first = lock.run("First…") {
-            while isHeld { await Task.yield() }
+            while hold.isHeld { await Task.yield() }
             runs.append("first")
         }
         let waiting = Task { try await lock.runWhenFree("Activating…") { runs.append("activation") } }
         for _ in 0..<20 { await Task.yield() }
         #expect(runs.isEmpty)
-        isHeld = false
+        hold.isHeld = false
         await first?.value
         try await waiting.value
         #expect(runs == ["first", "activation"])
@@ -46,10 +46,10 @@ struct OperationLockTests {
     @Test("The quit closes the lock and waits for work that cannot stop")
     func shutdownWaits() async {
         let lock = OperationLock()
-        var isHeld = true
+        let hold = Hold()
         var finished = false
         let work = lock.run("Recovering HTTPS setup…") {
-            while isHeld { await Task.yield() }
+            while hold.isHeld { await Task.yield() }
             finished = true
         }
         #expect(lock.shutdownMessage == "Recovering HTTPS setup…")
@@ -57,7 +57,7 @@ struct OperationLockTests {
         for _ in 0..<20 { await Task.yield() }
         #expect(!finished)
         #expect(!lock.isFree)
-        isHeld = false
+        hold.isHeld = false
         #expect(await quit.value)
         await work?.value
         #expect(finished)
@@ -80,4 +80,10 @@ struct OperationLockTests {
         #expect(await lock.shutdown())
         #expect(wasCancelled)
     }
+}
+
+/// Holds work open until the test releases it. A reference, so the work closure sees the change
+/// without capturing a mutable local.
+@MainActor private final class Hold {
+    var isHeld = true
 }

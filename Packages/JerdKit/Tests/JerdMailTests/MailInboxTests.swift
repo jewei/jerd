@@ -59,6 +59,22 @@ import Testing
         #expect(!exists(layout.inboxDatabaseFile))
     }
 
+    /// The compact marker format has no stable key order, so an equal marker is never written again.
+    @Test func aStartWithAnUnchangedMarkerKeepsTheSavedFile() throws {
+        defer { directory.remove() }
+        try inbox.prepare(for: runtime)
+        try inbox.markInitialized(runtime)
+        let saved = inode(layout.initializedMarkerFile)
+        let bytes = contents(layout.initializedMarkerFile)
+        try inbox.prepare(for: runtime)
+        try inbox.markInitialized(runtime)
+        #expect(inode(layout.initializedMarkerFile) == saved)
+        #expect(contents(layout.initializedMarkerFile) == bytes)
+        try inbox.adopt(other)
+        #expect(inode(layout.initializedMarkerFile) != saved)
+        #expect(try MarkerFile.read(MailRuntime.self, from: layout.initializedMarkerFile) == other)
+    }
+
     @Test func anInitializedMarkerOfAnotherRuntimeIsRefused() throws {
         defer { directory.remove() }
         try inbox.prepare(for: runtime)

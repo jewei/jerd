@@ -94,7 +94,7 @@ import Testing
         defer { context.folder.remove() }
         let saved = try FakeSystem.approved(["a.test"], policy: .hostnames)
         try await context.gateway.restore(saved)
-        #expect(try await context.system.status() == saved)
+        #expect(await context.system.status() == saved)
         try await context.gateway.restore(HTTPSSetupStatus())
         #expect(await context.system.removals == 1)
         #expect(await context.coordinator.halts == 2)

@@ -40,26 +40,52 @@ struct RuntimesPrepareStep: Sendable {
         return try await builder.build()
     }
 
-    /// Prepares every pin of `group` in catalog order. The Laravel installer needs the PHP and Composer
-    /// payloads of the same group, which come first in the catalog.
+    /// Prepares every pin of `group` in preparation order. Composer and the Laravel installer run with
+    /// the PHP CLI (and `composer.phar`) that this run prepared before them.
     func prepare(_ group: PayloadGroup, catalog: RuntimePinCatalog, lzma: SupportLibrary?) async throws {
         let preparer = preparer
-        for pin in catalog.pins(in: group) {
-            let tools: PreparationTools
-            switch pin.kind {
-            case .laravel: tools = try preparer.developmentTools(catalog: catalog, lzma: lzma)
-            case .rustfs: tools = PreparationTools(lzma: lzma)
-            default: tools = PreparationTools()
-            }
+        for pin in Self.preparationOrder(catalog.pins(in: group)) {
             let existed = FileProbe.presence(at: try preparer.folder(for: pin)).mayExist
+            var tools = PreparationTools()
             if !existed {
                 context.console.detail("Preparing \(pin.id)…")
+                tools = try Self.tools(for: pin, preparer: preparer, catalog: catalog, lzma: lzma)
             }
             let receipt = try await prepareReportingProgress(pin, preparer: preparer, catalog: catalog, tools: tools)
             let verb = existed ? "Verified the prepared" : "Prepared"
             context.console.success("\(verb) \(pin.id): \(pin.kind.rawValue) \(receipt.version).")
         }
         try preparer.writeCatalog()
+    }
+
+    /// The pins in an order where each pin comes after the pins whose tools it needs: PHP, then Composer,
+    /// then the rest in catalog order. The sort is stable, so the catalog order decides everything else.
+    static func preparationOrder(_ pins: [RuntimePin]) -> [RuntimePin] {
+        func rank(_ kind: RuntimeKind) -> Int {
+            switch kind {
+            case .php: 0
+            case .composer: 1
+            default: 2
+            }
+        }
+        return pins.enumerated().sorted { (rank($0.element.kind), $0.offset) < (rank($1.element.kind), $1.offset) }
+            .map(\.element)
+    }
+
+    /// The tools that a new preparation of `pin` needs from the payloads that this run prepared before it.
+    static func tools(
+        for pin: RuntimePin, preparer: PinnedPayloadPreparer, catalog: RuntimePinCatalog, lzma: SupportLibrary?
+    ) throws -> PreparationTools {
+        do {
+            switch pin.kind {
+            case .composer: return PreparationTools(phpCLI: try preparer.preparedExecutable(.php, catalog: catalog))
+            case .laravel: return try preparer.developmentTools(catalog: catalog, lzma: lzma)
+            case .rustfs: return PreparationTools(lzma: lzma)
+            default: return PreparationTools()
+            }
+        } catch let error as JerdError {
+            throw DevFailure.checkFailed("\(pin.id): \(error.message)")
+        }
     }
 
     private func prepareReportingProgress(

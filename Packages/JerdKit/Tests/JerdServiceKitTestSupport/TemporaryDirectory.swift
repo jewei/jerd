@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import Testing
 
 /// A private temporary folder for one test. The name has a space and non-ASCII text on purpose.
 package struct TemporaryDirectory {
@@ -13,7 +14,15 @@ package struct TemporaryDirectory {
 
     package func path(_ relative: String) -> URL { url.appendingPathComponent(relative) }
 
-    package func remove() { try? FileManager.default.removeItem(at: url) }
+    /// Removes the folder after the guard against leaked fixtures: a process that still runs in the
+    /// folder fails the test and is killed, so no fixture outlives the test run.
+    package func remove() {
+        let survivors = FixtureReaper.reap(in: url)
+        if !survivors.isEmpty {
+            Issue.record("Fixture processes \(survivors) outlived their test. They were killed.")
+        }
+        try? FileManager.default.removeItem(at: url)
+    }
 }
 
 /// The bytes of a file, or nil when it cannot be read.
@@ -39,6 +48,13 @@ package func mode(_ url: URL) -> mode_t {
     var info = stat()
     guard lstat(url.path, &info) == 0 else { return 0 }
     return info.st_mode & 0o777
+}
+
+/// The inode of a file, or 0. An atomic write replaces the file, so a new inode proves a write.
+package func inode(_ url: URL) -> UInt64 {
+    var info = stat()
+    guard lstat(url.path, &info) == 0 else { return 0 }
+    return info.st_ino
 }
 
 /// Polls `condition` every 10 ms until it is true or the timeout passes. Returns the last result.

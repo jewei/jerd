@@ -84,4 +84,9 @@ import Testing
                 == .composerLock)
         #expect(release(.postgresql, version: "2.9.6").versionLabel == "Postgres.app 2.9.6")
     }
+
+    @Test func theDownloadTitleNeverCallsThePostgresAppVersionAPostgreSQLVersion() {
+        #expect(release(.postgresql, version: "2.9.6").title == "Postgres.app 2.9.6")
+        #expect(release(.php, version: "8.5.11").title == "PHP 8.5.11")
+    }
 }

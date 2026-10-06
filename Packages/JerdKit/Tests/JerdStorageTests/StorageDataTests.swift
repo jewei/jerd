@@ -57,6 +57,25 @@ import Testing
         #expect(contents(layout.initializedMarkerFile) == (try golden("storage-initialized.json")))
     }
 
+    /// The compact marker format has no stable key order, so an equal marker is never written again.
+    @Test func aStartWithAnUnchangedMarkerKeepsTheSavedFile() throws {
+        defer { directory.remove() }
+        try OwnedDirectory.create(layout.dataDirectory)
+        try AtomicFile.write(try golden("storage-credentials.json"), to: layout.credentialsFile)
+        try AtomicFile.write(try golden("storage-runtime.json"), to: layout.runtimeIdentityFile)
+        try AtomicFile.write(try golden("storage-initialized.json"), to: layout.initializedMarkerFile)
+        try write(String(decoding: try golden("storage-format.json"), as: UTF8.self), to: layout.formatFile)
+        let saved = inode(layout.initializedMarkerFile)
+        try data.markInitialized(runtime)
+        try data.markInitialized(runtime)
+        #expect(inode(layout.initializedMarkerFile) == saved)
+        #expect(contents(layout.initializedMarkerFile) == (try golden("storage-initialized.json")))
+        try data.adopt(other)
+        #expect(inode(layout.initializedMarkerFile) != saved)
+        let marker = try MarkerFile.read(StorageInitializedMarker.self, from: layout.initializedMarkerFile)
+        #expect(marker.runtime == other)
+    }
+
     /// Spec 3.4.6.d: after a successful start, a changed credential file fails the pure hash
     /// compare first, so the message names changed data, not invalid credentials.
     @Test func unreadableCredentialsOfInitializedDataAreReportedAsChangedData() throws {

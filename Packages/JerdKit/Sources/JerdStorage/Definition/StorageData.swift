@@ -68,9 +68,10 @@ struct StorageData: Sendable {
         if FileProbe.presence(at: layout.initializedMarkerFile).mayExist { try markInitialized(runtime) }
     }
 
-    /// Saves the marker of a successful start with the hashes of the format and credential files.
+    /// Saves the marker of a successful start with the hashes of the format and credential files,
+    /// unless the saved marker is equal.
     func markInitialized(_ runtime: StorageRuntime) throws {
-        try MarkerFile.write(currentMarker(for: runtime), to: layout.initializedMarkerFile)
+        try MarkerFile.writeIfChanged(currentMarker(for: runtime), to: layout.initializedMarkerFile)
     }
 
     /// The saved credentials.

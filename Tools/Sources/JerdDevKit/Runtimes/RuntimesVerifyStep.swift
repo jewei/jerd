@@ -34,7 +34,7 @@ enum RuntimesVerifyStep {
         let inventory = PayloadInventory(root: context.repository.payloads, catalog: catalog)
         var rows: [[String]] = [["Group", "Payload", "Version", "Size", "State"]]
         for entry in inventory.entries() {
-            let version = entry.payload?.receipt.version ?? entry.pin.version
+            let version = versionText(of: entry)
             let size = entry.payload.map { Self.formatted(bytes: FolderSize.bytes(of: $0.origin)) } ?? "-"
             rows.append([entry.group.rawValue, entry.pin.id, version, size, stateText(entry.state)])
         }
@@ -43,6 +43,13 @@ enum RuntimesVerifyStep {
             rows.append(["support", "xz-\(source.version)", source.version, sizeText(folder), xzState(folder)])
         }
         context.console.detail(TextTable.render(rows))
+    }
+
+    /// The version that the runtime reports, from the receipt. Without a receipt only the catalog version
+    /// is known, which for PostgreSQL is the Postgres.app version, so the text names Postgres.app.
+    static func versionText(of entry: PayloadInventory.Entry) -> String {
+        if let receipt = entry.payload?.receipt { return receipt.version }
+        return entry.pin.kind == .postgresql ? "Postgres.app \(entry.pin.version)" : entry.pin.version
     }
 
     static func missingMessage(_ entry: PayloadInventory.Entry) -> String {

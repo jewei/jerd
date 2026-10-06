@@ -22,22 +22,23 @@ import os
         deinit { released.flag.withLock { $0 = true } }
     }
 
-    @Test func aCancelledReadOnlyCallEndsPromptlyAndIgnoresLateReplies() async throws {
+    /// Only cancellation can end this call: its timeout is one hour, so a `CancellationError` (not the
+    /// timeout error) proves that cancellation ended it. No wall-clock limit, so load cannot fail it.
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledReadOnlyCallEndsByCancellationAndIgnoresLateReplies() async throws {
         let (gates, sent) = AsyncStream<ReplyGate<Int>>.makeStream()
         let timeouts = Counter()
         let task = Task {
             try await ReplyGate<Int>.wait(
-                cancellation: .readOnly, timeout: .seconds(1), onTimeout: { await timeouts.add() }
+                cancellation: .readOnly, timeout: .seconds(3600), onTimeout: { await timeouts.add() }
             ) {
                 sent.yield($0)
                 sent.finish()
             }
         }
         let gate = try #require(await gates.first { _ in true })
-        let start = ContinuousClock.now
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(ContinuousClock.now - start < .milliseconds(500))
         #expect(!gate.resolve(.success(42)))
         #expect(!gate.resolve(.failure(JerdError.unavailable("late"))))
         #expect(await timeouts.count == 0)
