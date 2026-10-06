@@ -35,6 +35,33 @@ struct ProcessGroupTests {
         #expect(try await Self.processes(containing: "sleep \(seconds)").isEmpty)
     }
 
+    @Test("a paused child is not an exit: the run waits for its real end")
+    func pausedChildIsNotAnExit() async throws {
+        let groups = ChildProcessGroups()
+        let runner = ProcessRunner(output: RecordingTextOutput(), groups: groups)
+        let command = Invocation(executable: URL(filePath: "/bin/sleep"), arguments: ["30"], timeout: .seconds(60))
+        let running = Task { try await runner.run(command, output: .capture) }
+        while groups.running.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let group = try #require(groups.running.first)
+        kill(group, SIGSTOP)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(groups.running == [group])
+        kill(group, SIGKILL)
+        let result = try await running.value
+        #expect(result.status == 128 + SIGKILL)
+    }
+
+    @Test("only an exit, a kill, or a core dump ends a child")
+    func onlyRealEndsAreStatuses() {
+        #expect(ChildProcess.endStatus(code: CLD_EXITED, status: 3) == 3)
+        #expect(ChildProcess.endStatus(code: CLD_KILLED, status: SIGTERM) == 128 + SIGTERM)
+        #expect(ChildProcess.endStatus(code: CLD_DUMPED, status: SIGABRT) == 128 + SIGABRT)
+        #expect(ChildProcess.endStatus(code: CLD_STOPPED, status: SIGSTOP) == nil)
+        #expect(ChildProcess.endStatus(code: CLD_CONTINUED, status: SIGCONT) == nil)
+    }
+
     @Test("a forwarded signal stops the running child group, and no new child starts after it")
     func forwardedSignalStopsChildren() async throws {
         let groups = ChildProcessGroups()

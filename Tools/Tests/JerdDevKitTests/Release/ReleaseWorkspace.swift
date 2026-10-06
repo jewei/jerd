@@ -46,7 +46,11 @@ final class ReleaseWorkspace: Sendable {
         }
     }
 
-    deinit { try? FileManager.default.removeItem(at: root) }
+    deinit { remove() }
+
+    /// Removes the temporary repository. Each test calls it, so that a fake runner closure that keeps
+    /// the workspace alive cannot leave the folder in `$TMPDIR`.
+    func remove() { try? FileManager.default.removeItem(at: root) }
 
     var repository: Repository { Repository(root: root) }
 

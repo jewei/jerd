@@ -8,6 +8,7 @@ extension ProcessRecoveryService {
     /// A running leader: every live group member and every descendant that left the group is
     /// verified and saved in the record first, so a second attempt can finish if Jerd exits during
     /// the stop. An exited leader: each saved descendant that still runs gets the same recorded signal.
+    /// Each signalled process and member then gets `SIGCONT`, so that a paused orphan can stop.
     func requestStop(
         _ record: inout ActiveRunRecord, _ observation: ProcessObservation, at location: RecordLocation,
         holding lock: InstanceLock
@@ -19,10 +20,13 @@ extension ProcessRecoveryService {
             record.descendants = try verifiedMembers(record, identity)
             try ActiveRunRecordFile.write(record, at: location, holding: lock)
             try signaller.signal(identity, with: record.signal)
+            try signaller.resume(identity)
+            for member in record.descendants ?? [] { try signaller.resume(member) }
             return
         }
         for (member, match) in zip(record.descendants ?? [], observation.descendants) where match == .running {
             try signaller.signal(member, with: record.signal)
+            try signaller.resume(member)
         }
     }
 

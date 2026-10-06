@@ -60,12 +60,30 @@ enum ChildProcess {
     }
 
     /// The exit status as a shell reports it: 128 plus the signal number for a signal.
-    static func exitStatus(waitingFor processIdentifier: pid_t) -> Int32 {
+    ///
+    /// Darwin also reports a paused child (`CLD_STOPPED`, for example after `SIGSTOP`) to `WEXITED`.
+    /// A paused child has not ended, so the wait goes on until it exits, is killed, or dumps core.
+    static func exitStatus(
+        waitingFor processIdentifier: pid_t, pausedRetryInterval: useconds_t = 50_000
+    ) -> Int32 {
         var information = siginfo_t()
-        while waitid(P_PID, id_t(processIdentifier), &information, WEXITED | WNOWAIT) != 0 {
-            guard errno == EINTR else { return -1 }
+        while true {
+            guard waitid(P_PID, id_t(processIdentifier), &information, WEXITED | WNOWAIT) == 0 else {
+                guard errno == EINTR else { return -1 }
+                continue
+            }
+            if let status = endStatus(code: information.si_code, status: information.si_status) { return status }
+            usleep(pausedRetryInterval)
         }
-        return information.si_code == CLD_EXITED ? information.si_status : 128 + information.si_status
+    }
+
+    /// The shell-style status of a `waitid` report that ends the child, or nil for a pause.
+    static func endStatus(code: Int32, status: Int32) -> Int32? {
+        switch code {
+        case CLD_EXITED: status
+        case CLD_KILLED, CLD_DUMPED: 128 + status
+        default: nil
+        }
     }
 
     /// Removes the exited child from the process table.
@@ -74,9 +92,11 @@ enum ChildProcess {
         while waitpid(processIdentifier, &status, 0) == -1, errno == EINTR {}
     }
 
-    /// Sends a signal to every process in the group that the child leads.
+    /// Sends a signal to every process in the group that the child leads. `SIGCONT` follows, so that
+    /// a paused member acts on a caught signal now; it has no effect on a running process.
     static func signalGroup(_ processIdentifier: pid_t, _ signal: Int32) {
         kill(-processIdentifier, signal)
+        if signal != SIGKILL { kill(-processIdentifier, SIGCONT) }
     }
 
     /// Passes a NULL-terminated array of C strings to `body` and frees the strings after it.

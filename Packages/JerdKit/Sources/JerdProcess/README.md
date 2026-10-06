@@ -33,6 +33,10 @@ checks loopback listeners. It depends only on JerdFoundation.
 - A stop first records the descendants of the running leader by parent chain. A descendant
   that left the group (`setsid`, `setpgid`) gets each group signal by PID, after a check of
   its start time. It blocks `.stopped` until it exits.
+- A paused child (`SIGSTOP`, a debugger, a job-control stop) is running. Darwin reports it to
+  `waitid(WEXITED)` as `CLD_STOPPED`; only `CLD_EXITED`, `CLD_KILLED`, and `CLD_DUMPED` are exits.
+- Each stop signal is followed by a group `SIGCONT`, so that a paused child acts on it. Recovery
+  sends `SIGCONT` through the audit token after the recorded signal.
 - The graceful policy never sends `SIGKILL`. A timeout keeps the process owned.
 - `ProcessSupervisor()` has the `.graceful` ceiling: it never sends `SIGKILL`, whatever policy
   a caller passes. Only `ProcessSupervisor(ceiling: .forceful)` (Caddy, PHP-FPM, commands) kills.
