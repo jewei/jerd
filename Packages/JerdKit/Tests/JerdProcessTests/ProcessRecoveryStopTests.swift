@@ -35,7 +35,9 @@ struct ProcessRecoveryStopTests {
             ActiveRunRecord(
                 processID: childPID, runtimeID: "isolated", identity: child, controller: controller, gracefulSignal: 15),
             to: mail.activeRunFile)
-        #expect(await supervisor.stop(token, policy: .forceful()) == .stopped)
+        // The controller ends on its own. A supervisor stop would also stop its escaped child.
+        kill(controller.processID, SIGTERM)
+        #expect(await supervisor.waitForExit(of: token, timeout: .seconds(5)) == .signalled(signal: SIGTERM))
         #expect(controller.liveMatch() == .exited)
         #expect(child.liveMatch() == .running)
         let service = ProcessRecoveryService(layout: DataLayout(root: folder.url))
@@ -43,6 +45,7 @@ struct ProcessRecoveryStopTests {
         try await service.recover("Mail", timeout: .seconds(3))
         #expect(child.liveMatch() != .running)
         #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
+        #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
     }
 
     @Test func savedDescendantsReceiveTheRecordedSignal() async throws {
@@ -72,7 +75,7 @@ struct ProcessRecoveryStopTests {
         defer { folder.remove() }
         let mail = DataLayout(root: folder.url).mail
         try OwnedDirectory.create(mail.root)
-        let supervisor = ProcessSupervisor()
+        let supervisor = ProcessSupervisor(ceiling: .forceful)
         let token = try await start("sleeper", ["ignore-term"], in: folder, using: supervisor)
         let pid = try #require(await waitForPID(in: folder.path("sleeper.pid")))
         let identity = try ProcessIdentity.capture(pid)

@@ -1,8 +1,9 @@
 import Darwin
 import Foundation
 import JerdFoundation
-import JerdProcess
 import Testing
+
+@testable import JerdProcess
 
 @Suite struct AuditedSignallerTests {
     private let refusal = JerdError.unavailable("Process ownership cannot be verified. No process was signalled.")
@@ -82,5 +83,12 @@ import Testing
         try AuditedSignaller.system.signal(try ProcessIdentity.capture(pid), with: SIGTERM)
         #expect(await supervisor.waitForExit(of: token, timeout: .seconds(5)) == .signalled(signal: SIGTERM))
         #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
+    }
+
+    /// Fixed spec A 7 #11, tested at last (review L11): libproc can return -1 and set `errno`.
+    @Test func aMinusOneResultIsReadFromErrno() {
+        #expect(AuditedSignaller.errorNumber(returned: -1, errno: ESRCH) == ESRCH)
+        #expect(AuditedSignaller.errorNumber(returned: 0, errno: EPERM) == 0)
+        #expect(AuditedSignaller.errorNumber(returned: EPERM, errno: 0) == EPERM)
     }
 }

@@ -5,7 +5,8 @@ import JerdFoundation
 /// Finds the active-run records on disk, from the fixed scans of a `DataLayout`.
 ///
 /// A folder with a wrong type or owner gives one failure entry for its part only, so healthy
-/// services still appear. Names that are not UUIDs are ignored; linked instance folders are skipped.
+/// services still appear. Names that are not UUIDs are ignored; linked instance folders and linked
+/// record files are skipped.
 enum RecordLocationScanner {
     /// One scan result, in display order.
     enum Entry: Equatable, Sendable {
@@ -37,8 +38,8 @@ enum RecordLocationScanner {
                     folderEntry(id: id, folder: url, family: scan.family, root: root, locate: locate)
                 }
             case .filePerInstance(let fileExtension, let locate):
-                return try instances(in: scan.directory, fileExtension: fileExtension).map { id, url in
-                    .location(locate(id, url))
+                return try instances(in: scan.directory, fileExtension: fileExtension).compactMap { id, url in
+                    isLink(url) ? nil : .location(locate(id, url))
                 }
             }
         } catch {
@@ -47,11 +48,17 @@ enum RecordLocationScanner {
         }
     }
 
+    /// True when `url` is a symbolic link. Linked children are skipped, as in old builds.
+    private static func isLink(_ url: URL) -> Bool {
+        var info = stat()
+        return lstat(url.path, &info) == 0 && info.st_mode & S_IFMT == S_IFLNK
+    }
+
     private static func folderEntry(
         id: UUID, folder: URL, family: RecordFamily, root: URL, locate: RecordScan.Locate
     ) -> Entry? {
         var info = stat()
-        guard lstat(folder.path, &info) == 0, info.st_mode & S_IFMT != S_IFLNK else { return nil }
+        guard lstat(folder.path, &info) == 0, !isLink(folder) else { return nil }
         let location = locate(id, folder)
         do {
             try OwnedDirectory.requireContained(folder, in: root)

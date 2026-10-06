@@ -1,8 +1,9 @@
 import Darwin
 import Foundation
 import JerdFoundation
-import JerdProcess
 import Testing
+
+@testable import JerdProcess
 
 @Suite struct ProcessSupervisorTests {
     private func request(
@@ -105,5 +106,33 @@ import Testing
         async let second = supervisor.stop(token, policy: .graceful(timeout: .seconds(5)))
         let outcomes = await [first, second]
         #expect(outcomes == [.stopped, .stopped], "\(outcomes)")
+        #expect(await supervisor.engineRuns == 1)
+    }
+
+    /// Fixed review L6: the final log problem of a stopped child stays visible, and the finished
+    /// results are bounded.
+    @Test func theFinalTrimFailureOfAStoppedChildIsReported() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let elsewhere = try TemporaryDirectory()
+        defer { elsewhere.remove() }
+        let supervisor = ProcessSupervisor(logTrimInterval: .seconds(3_600))
+        let log = ProcessLogFile(url: folder.path("replaced.log"))
+        let token = try await supervisor.start(request("/bin/sleep", ["30"], in: folder), log: log)
+        #expect(await supervisor.logProblem(of: token) == nil)
+        try FileManager.default.removeItem(at: log.url)
+        try FileManager.default.createSymbolicLink(at: log.url, withDestinationURL: elsewhere.path("other.log"))
+        #expect(await supervisor.stop(token, policy: .graceful(timeout: .seconds(5))) == .stopped)
+        let problem = try #require(await supervisor.logProblem(of: token))
+        #expect(problem.contains("not an owned regular file"))
+    }
+
+    @Test func finishedStopsKeepOnlyTheNewestResults() {
+        var finished = FinishedStops(capacity: 2)
+        let tokens = [ProcessToken(), ProcessToken(), ProcessToken()]
+        for token in tokens { finished.record(token, .init(outcome: .stopped, logProblem: nil)) }
+        #expect(finished.count == 2)
+        #expect(finished[tokens[0]] == nil)
+        #expect(finished[tokens[2]]?.outcome == .stopped)
     }
 }
