@@ -8,3 +8,5 @@ package protocol StagingCleaning: Sendable {
 }
 
 extension BundledRuntimeBootstrap: StagingCleaning {}
+
+extension LiveRuntimeInventory: StagingCleaning {}

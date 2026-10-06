@@ -24,7 +24,7 @@ public final class AppPresence: AppPresenceApplying {
         NSApp.applicationIconImage = image
     }
 
-    package static func activationPolicy(showInDock: Bool) -> NSApplication.ActivationPolicy {
+    package nonisolated static func activationPolicy(showInDock: Bool) -> NSApplication.ActivationPolicy {
         showInDock ? .regular : .accessory
     }
 }

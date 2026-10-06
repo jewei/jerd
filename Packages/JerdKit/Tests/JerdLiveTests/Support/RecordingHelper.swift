@@ -23,9 +23,11 @@ actor RecordingHelper: HelperControlling {
     var statusResult: Result<HelperStatus, JerdError> = .success(
         HelperStatus(availability: .notRegistered, setup: .empty))
     var failure: JerdError?
+    let journal: CallJournal?
 
-    init(status: HelperStatus? = nil) {
+    init(status: HelperStatus? = nil, journal: CallJournal? = nil) {
         if let status { statusResult = .success(status) }
+        self.journal = journal
     }
 
     func setStatus(_ status: HelperStatus) { statusResult = .success(status) }
@@ -53,8 +55,9 @@ actor RecordingHelper: HelperControlling {
 
     func releaseListeners() { calls.append(.releaseListeners) }
 
-    func removeSetup() throws {
+    func removeSetup() async throws {
         calls.append(.removeSetup)
+        await journal?.record("helper.removeSetup")
         try failIfSet()
     }
 
@@ -63,22 +66,28 @@ actor RecordingHelper: HelperControlling {
         try failIfSet()
     }
 
-    func approve() throws {
+    func approve() async throws {
         calls.append(.approve)
+        await journal?.record("helper.approve")
         try failIfSet()
     }
 
-    func reconnect() throws {
+    func reconnect() async throws {
         calls.append(.reconnect)
+        await journal?.record("helper.reconnect")
         try failIfSet()
     }
 
-    func unregister() throws {
+    func unregister() async throws {
         calls.append(.unregister)
+        await journal?.record("helper.unregister")
         try failIfSet()
     }
 
-    func invalidate() { calls.append(.invalidate) }
+    func invalidate() async {
+        calls.append(.invalidate)
+        await journal?.record("helper.invalidate")
+    }
 
     private func failIfSet() throws {
         if let failure { throw failure }

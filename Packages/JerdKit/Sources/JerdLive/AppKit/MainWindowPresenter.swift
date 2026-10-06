@@ -9,7 +9,7 @@ import JerdUI
 @MainActor
 public final class MainWindowPresenter: WindowPresenting {
     /// The scene ID of the main window.
-    public static let windowID = "main"
+    public nonisolated static let windowID = "main"
 
     private var openWindow: (@MainActor () -> Void)?
 
@@ -37,7 +37,7 @@ public final class MainWindowPresenter: WindowPresenting {
         }
     }
 
-    package static func isMainWindow(identifier: String?) -> Bool {
+    package nonisolated static func isMainWindow(identifier: String?) -> Bool {
         guard let identifier else { return false }
         return identifier == windowID || identifier.hasPrefix("\(windowID)-")
     }

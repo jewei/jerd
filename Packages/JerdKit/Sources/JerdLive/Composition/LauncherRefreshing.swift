@@ -3,3 +3,5 @@ package protocol LauncherRefreshing: Sendable {
     @discardableResult
     func refreshLauncherIfInstalled() async throws -> Bool
 }
+
+extension LiveCommandLineTools: LauncherRefreshing {}
