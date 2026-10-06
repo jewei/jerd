@@ -1,6 +1,15 @@
 extension TunnelsModel: ShutdownParticipant {
     public var shutdownPhase: ShutdownPhase { .tunnels }
 
+    /// The page of the first connector that still runs, where its failure shows; else the
+    /// Sites section.
+    public var shutdownFailureDestination: Destination {
+        guard let tunnel = registrations.first(where: { isActive($0.id) }) else {
+            return shutdownPhase.failureDestination
+        }
+        return .item(.tunnel(tunnel.id))
+    }
+
     /// Stops every connector, waits for running edits and stops, then stops again in case a
     /// running Connect started one. A connector that does not stop keeps Jerd open.
     public func shutdown() async -> Bool {

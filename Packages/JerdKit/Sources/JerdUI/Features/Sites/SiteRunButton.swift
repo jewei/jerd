@@ -12,13 +12,10 @@ struct SiteRunButton: View {
             Button("Stop Site", systemImage: "stop.fill") { model.stop(site) }
                 .disabled(!model.canChange)
         } else {
-            Button(SiteRunButton.startTitle(model: model, site: site), systemImage: "play.fill") { model.start(site) }
-                .disabled(!model.canStart || !site.isEnabled)
+            Button(SiteNextStep.start(needsApproval: !model.isApproved(site)).title, systemImage: "play.fill") {
+                model.start(site)
+            }
+            .disabled(!model.canChange || !site.isEnabled)
         }
-    }
-
-    @MainActor
-    static func startTitle(model: SitesModel, site: Site) -> String {
-        model.isApproved(site) ? "Start Site" : "Start Site…"
     }
 }

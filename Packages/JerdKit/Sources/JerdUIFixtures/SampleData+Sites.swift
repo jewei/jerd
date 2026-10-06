@@ -10,6 +10,12 @@ extension SampleData {
     public static let docsTunnelID = UUID(uuidString: "90415263-7E8F-4091-82A3-B4C5D6E7F809") ?? UUID()
     /// The SHA-256 of the sample installation CA.
     public static let caFingerprint = "9f2c4be17a03d5e86c41f0b29d7a3e5c18b06f4d2a97e3c50b1d8f6a4c2e9b70"
+    /// A site that a tunnel still names after the site was removed.
+    public static let removedSiteID = UUID(uuidString: "B2C3D4E5-F607-4182-93A4-B5C6D7E8F901") ?? UUID()
+    /// The ID of the sample installation.
+    public static let installationID = UUID(uuidString: "A1B2C3D4-E5F6-4071-8293-A4B5C6D7E8F9") ?? UUID()
+    /// The sample installation CA, as an approval names it.
+    public static let authority = InstallationAuthority(installationID: installationID, fingerprint: caFingerprint)
 
     public static let studio = Site(
         id: studioID, displayName: "Studio", projectPath: "\(user)/Projects/studio",
@@ -30,7 +36,8 @@ extension SampleData {
 
     /// A setup that approves every sample hostname.
     public static let approvedSetup = HTTPSSetupStatus(
-        hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], certificateSHA256: caFingerprint,
+        hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], installationID: installationID,
+        certificateSHA256: caFingerprint,
         hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS)
 
     /// Many sites with long names, for truncation.
@@ -67,4 +74,13 @@ extension SampleData {
         2026-10-06T09:40:13Z INF Registered tunnel connection connIndex=0 location=lhr01 protocol=quic
         2026-10-06T09:40:13Z INF Registered tunnel connection connIndex=1 location=ams02 protocol=quic
         """
+
+    /// A long connector log with wide lines, for scrolling and wrapping.
+    public static let longTunnelLog: String = (0..<60).map { index in
+        let second = String(format: "%02d", index % 60)
+        return index.isMultiple(of: 7)
+            ? "2026-10-06T09:41:\(second)Z WRN Connection terminated error=\"timeout: no recent network activity\" "
+                + "connIndex=\(index % 4) event=0 ip=198.41.192.\(index) originService=https://studio.test"
+            : "2026-10-06T09:41:\(second)Z INF Registered tunnel connection connIndex=\(index % 4) location=lhr01"
+    }.joined(separator: "\n")
 }

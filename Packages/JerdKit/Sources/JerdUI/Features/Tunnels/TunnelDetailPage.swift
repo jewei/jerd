@@ -31,15 +31,29 @@ struct TunnelDetailPage: View {
 
     private var isActive: Bool { model.isActive(tunnel.id) }
 
-    /// The next step: Open in Browser while the connector runs, else Connect.
+    /// The next step: Open in Browser while the connector runs, Edit Tunnel… after a failure or
+    /// with settings that need an edit, else Connect….
     private var primaryAction: PageAction {
-        if isActive {
-            return PageAction("Open in Browser", systemImage: "safari", identifier: "tunnel.open") {
+        switch model.nextStep(for: tunnel.id) {
+        case .open:
+            PageAction("Open in Browser", systemImage: "safari", identifier: "tunnel.open") {
                 model.openInBrowser(tunnel)
             }
+        case .edit:
+            PageAction(
+                TunnelNextStep.edit.title, systemImage: "pencil", isEnabled: model.canChange && !isQuitting,
+                identifier: "tunnel.edit-primary"
+            ) {
+                model.beginEdit(tunnel, sites: sites.sites)
+            }
+        case .connect:
+            connectAction
         }
-        return PageAction(
-            "Connect…", systemImage: "play.fill",
+    }
+
+    private var connectAction: PageAction {
+        PageAction(
+            TunnelNextStep.connect.title, systemImage: "play.fill",
             isEnabled: (model.canChange && !isQuitting) && model.configuration.runtime != nil,
             help: model.configuration.runtime == nil ? model.runtimeMessage : nil, identifier: "tunnel.connect"
         ) {
@@ -48,14 +62,18 @@ struct TunnelDetailPage: View {
     }
 
     private var secondaryActions: [PageAction] {
-        guard isActive else { return [] }
-        return [
-            PageAction(
-                "Stop Connector", systemImage: "stop.fill", isEnabled: model.canStop(tunnel.id),
-                identifier: "tunnel.stop"
-            ) {
-                model.stop(tunnel)
-            }
-        ]
+        switch model.nextStep(for: tunnel.id) {
+        case .open:
+            [
+                PageAction(
+                    "Stop Connector", systemImage: "stop.fill", isEnabled: model.canStop(tunnel.id),
+                    identifier: "tunnel.stop"
+                ) {
+                    model.stop(tunnel)
+                }
+            ]
+        case .edit: [connectAction]
+        case .connect: []
+        }
     }
 }

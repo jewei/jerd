@@ -51,6 +51,10 @@ package actor LiveSitesPort: SitesPort {
         try await gateway.status()
     }
 
+    package func localAuthority() async throws -> InstallationAuthority? {
+        try InstallationAuthority.read(environmentLayout)
+    }
+
     package func apply(_ change: SiteChange, startIfStopped: Bool) async throws -> SiteChangeOutcome {
         await outcome(of: try await sites.apply(change, startIfStopped: startIfStopped))
     }

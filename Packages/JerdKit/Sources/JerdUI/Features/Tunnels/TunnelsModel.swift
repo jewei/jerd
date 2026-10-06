@@ -16,11 +16,13 @@ public final class TunnelsModel {
     public internal(set) var stoppingIDs: Set<UUID> = []
     /// Tunnels that could not connect when Jerd opened, with the reason.
     public internal(set) var startupFailures: [UUID: String] = [:]
+    /// Connectors that did not stop, with the reason, shown on their tunnel page.
+    public internal(set) var stopFailures: [UUID: String] = [:]
     public internal(set) var isShuttingDown = false
     public var sheet: TunnelsSheet?
     public var confirmation: TunnelConfirmation?
-    /// The window services, shared with the Sites model.
-    @ObservationIgnored public var shell = SitesShell.detached
+    /// Navigation and the window, shared with the Sites model.
+    @ObservationIgnored let shell: SitesShell
 
     @ObservationIgnored let port: any TunnelsPort
     @ObservationIgnored let panels: any FilePanelPresenting
@@ -30,8 +32,10 @@ public final class TunnelsModel {
     @ObservationIgnored var stopWork: [UUID: Task<Void, Never>] = [:]
 
     public init(
-        port: any TunnelsPort, panels: any FilePanelPresenting, workspace: any WorkspaceOpening, clipboard: Clipboard
+        port: any TunnelsPort, panels: any FilePanelPresenting, workspace: any WorkspaceOpening, clipboard: Clipboard,
+        shell: SitesShell
     ) {
+        self.shell = shell
         self.port = port
         self.panels = panels
         self.workspace = workspace
@@ -51,6 +55,14 @@ public final class TunnelsModel {
     /// True while a connector runs, a Connect or Stop runs, or Jerd still owns its process.
     public func isActive(_ id: UUID) -> Bool {
         state(of: id).isActive || snapshots[id]?.processID != nil
+    }
+
+    /// The next step of a tunnel page: open a running connector, edit a failed one or one
+    /// whose settings need an edit, else connect.
+    public func nextStep(for id: UUID) -> TunnelNextStep {
+        if isActive(id) { return .open }
+        if state(of: id).failureMessage != nil || snapshots[id]?.settingsIssue != nil { return .edit }
+        return .connect
     }
 
     public var connectedCount: Int {

@@ -18,8 +18,14 @@ public actor InMemorySitesPort: SitesPort {
     /// When true, reading the configuration waits until `releaseLoad()`, for launch tests.
     public var holdsLoad = false
     private var heldLoads: [CheckedContinuation<Void, Never>] = []
+    /// When set, Approve waits at this gate before it applies the setup, like a macOS prompt.
+    public var approvalGate: FixtureGate?
+    /// When set, an inspection of this folder waits at this gate, for race tests.
+    public var inspectionGates: [String: FixtureGate] = [:]
     public var suggestions: [String: DocumentRootSuggestion] = [:]
     public var logsURL: URL?
+    /// The local CA of this installation. Nil means that no CA is prepared yet.
+    public var authority: InstallationAuthority? = SampleData.authority
     public private(set) var calls: [String] = []
     /// How often the environment was read, for polling tests.
     public private(set) var environmentReads = 0
@@ -65,6 +71,7 @@ public actor InMemorySitesPort: SitesPort {
         return environmentValue
     }
     public func setupStatus() async throws -> HTTPSSetupStatus { setup }
+    public func localAuthority() async throws -> InstallationAuthority? { authority }
 
     public func apply(_ change: SiteChange, startIfStopped: Bool) async throws -> SiteChangeOutcome {
         try await record("apply \(Self.describe(change))")
@@ -98,10 +105,12 @@ public actor InMemorySitesPort: SitesPort {
     }
 
     public func approve(_ approval: HTTPSApproval) async throws -> AppConfiguration {
+        if let approvalGate { await approvalGate.pass() }
         try await record("approve \(approval.hostnames.joined(separator: ","))")
         setup = HTTPSSetupStatus(
-            hostnames: approval.hostnames, certificateSHA256: approval.fingerprint, hostsConfigured: true,
-            trustConfigured: true, trustPolicy: .serverTLS)
+            hostnames: approval.hostnames, installationID: authority?.installationID,
+            certificateSHA256: approval.fingerprint, hostsConfigured: true, trustConfigured: true,
+            trustPolicy: .serverTLS)
         environmentValue = EnvironmentSnapshot(state: .running, siteIDs: pending[approval.id] ?? [])
         pending[approval.id] = nil
         return configurationValue
@@ -127,6 +136,7 @@ public actor InMemorySitesPort: SitesPort {
 
     public func suggestDocumentRoot(projectPath: String) async throws -> DocumentRootSuggestion {
         calls.append("inspect \(projectPath)")
+        if let gate = inspectionGates[projectPath] { await gate.pass() }
         return suggestions[projectPath] ?? DocumentRootSuggestion(path: projectPath, isLaravel: false)
     }
 
@@ -149,7 +159,7 @@ public actor InMemorySitesPort: SitesPort {
     /// Serves `ids`, or asks for approval when the setup does not cover their hostnames.
     private func serve(_ ids: Set<UUID>) async throws -> SiteChangeOutcome {
         let hostnames = configurationValue.sites.filter { ids.contains($0.id) }.map(\.hostname)
-        guard ids.isEmpty || ApprovalPredicate.covers(setup, hostnames: hostnames) else {
+        guard ids.isEmpty || ApprovalPredicate.approves(setup, hostnames: hostnames, authority: authority) else {
             let approval = HTTPSApproval(
                 hostnames: configurationValue.sites.map(\.hostname).sorted(), fingerprint: SampleData.caFingerprint)
             pending[approval.id] = ids

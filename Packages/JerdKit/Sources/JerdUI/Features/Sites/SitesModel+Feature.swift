@@ -43,7 +43,7 @@ extension SitesModel: WorkspaceFeature {
                 .action(
                     FeatureAction(
                         id: "sites.open.\(site.id.uuidString)", title: "Open \(site.displayName)",
-                        isEnabled: environment.siteIDs.contains(site.id)
+                        isEnabled: environment.siteIDs.contains(site.id) && !isBusy
                     ) { [weak self] in self?.openInBrowser(site) }))
         }
         if let runAction = runAllAction(primary: false) { items.append(.action(runAction)) }
@@ -82,10 +82,10 @@ extension SitesModel: WorkspaceFeature {
 
     /// Stop All Sites while sites run or work runs, else Start All Sites.
     private func runAllAction(primary: Bool) -> FeatureAction? {
-        if canStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
+        if showsStopAll { return stopAllAction(id: "sites.stop-all", title: "Stop All Sites") }
         guard !enabledSiteIDs.isEmpty else { return nil }
         return FeatureAction(
-            id: "sites.start-all", title: "Start All Sites", isEnabled: canStart && hasStoppedEnabledSite,
+            id: "sites.start-all", title: startAllTitle, isEnabled: canChange && hasStoppedEnabledSite,
             isPrimary: primary
         ) { [weak self] in self?.startAll() }
     }

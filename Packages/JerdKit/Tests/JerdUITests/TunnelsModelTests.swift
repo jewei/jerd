@@ -57,7 +57,8 @@ struct TunnelsModelTests {
         let harness = await SitesHarness.launched(tunnels: port)
         await port.configure { $0.stopFails = true }
         await harness.model.tunnels.stop(SampleData.previewTunnel)?.value
-        #expect(harness.model.tunnels.operation.failureMessage == "The tunnel has not stopped. Retry Stop.")
+        #expect(
+            harness.model.tunnels.stopFailures[SampleData.previewTunnelID] == "The tunnel has not stopped. Retry Stop.")
         #expect(harness.model.tunnels.stoppingIDs.isEmpty)
         #expect(harness.model.tunnels.isActive(SampleData.previewTunnelID))
     }
@@ -132,7 +133,8 @@ struct TunnelsModelTests {
         }
         await log.load()
         #expect(log.text == SampleData.tunnelLog)
-        #expect(log.title == "Studio preview Log")
+        #expect(log.title == "Connector Log")
+        #expect(log.subtitle.hasPrefix("Studio preview. "))
     }
 
     @Test("Copy and Open use the public address")

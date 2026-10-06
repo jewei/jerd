@@ -2,8 +2,9 @@ import JerdDesign
 import JerdTunnels
 import SwiftUI
 
-/// The banners of a tunnel page. Each message shows once: the failed operation, the reason
-/// of a failed connector, a failed connect at launch, and saved settings that need an edit.
+/// The banners of a tunnel page. Each message shows once, with a title: the failed operation,
+/// the reason of a failed connector, a failed connect at launch, a connector that did not
+/// stop, and saved settings that need an edit. Only one banner carries Edit Tunnel….
 struct TunnelMessages: View {
     let model: TunnelsModel
     @Environment(\.isQuitting) private var isQuitting
@@ -12,28 +13,24 @@ struct TunnelMessages: View {
 
     var body: some View {
         OperationFailureBanner(operation: model.operation, identifier: "tunnel.error") { model.dismissFailure() }
-        ForEach(messages, id: \.self) { message in
-            InlineMessage(message, kind: .error, style: .banner, identifier: "tunnel.state-error")
+        ForEach(model.banners(for: tunnel.id), id: \.message) { banner in
+            InlineMessage(
+                banner.message, kind: .error, title: banner.title, style: .banner,
+                action: banner.offersEdit ? editAction : nil, identifier: "tunnel.state-error")
         }
         if let issue = model.snapshots[tunnel.id]?.settingsIssue {
             InlineMessage(
-                issue, kind: .warning, title: "These settings need an edit", style: .banner,
-                action: PageAction(
-                    "Edit Tunnel…", isEnabled: (model.canChange && !isQuitting) && !model.isActive(tunnel.id)
-                ) {
-                    model.beginEdit(tunnel, sites: sites.sites)
-                }, identifier: "tunnel.settings-issue")
+                issue, kind: .warning, title: "These settings need an edit", style: .banner, action: editAction,
+                identifier: "tunnel.settings-issue")
         }
     }
 
-    /// The connector failure and the launch failure, without the operation failure again.
-    private var messages: [String] {
-        let candidates = [model.state(of: tunnel.id).failureMessage, model.startupFailures[tunnel.id]]
-        var shown: [String] = []
-        for case let message? in candidates where message != model.operation.failureMessage && !shown.contains(message)
-        {
-            shown.append(message)
+    private var editAction: PageAction {
+        PageAction(
+            "Edit Tunnel…", isEnabled: model.canChange && !isQuitting && !model.isActive(tunnel.id),
+            identifier: "tunnel.banner-edit"
+        ) {
+            model.beginEdit(tunnel, sites: sites.sites)
         }
-        return shown
     }
 }

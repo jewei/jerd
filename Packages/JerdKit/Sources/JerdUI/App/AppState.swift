@@ -64,7 +64,8 @@ public final class AppState {
         storage = StorageModel(port: services.storage, clipboard: clipboard, workspace: workspace)
         mail = MailModel(port: services.mail, clipboard: clipboard, workspace: workspace)
         commandLineTools = CommandLineToolsModel(port: services.commandLineTools, lock: operationLock)
-        sites = Self.makeSites(dependencies, clipboard: clipboard, lock: operationLock)
+        let sitesHandle = AppStateHandle()
+        sites = Self.makeSites(dependencies, clipboard: clipboard, lock: operationLock, handle: sitesHandle)
         let builtFeatures: [any WorkspaceFeature] = [sites, databases, storage, mail]
         let built = Set(builtFeatures.map(\.section))
         self.features = (features.filter { !built.contains($0.section) } + builtFeatures).sorted {
@@ -74,7 +75,7 @@ public final class AppState {
         pollers = self.features.flatMap(\.pollingTasks).map { task in
             ServicePoller(policy: task.policy, sleeper: dependencies.sleeper, refresh: task.refresh)
         }
-        connectSitesShell()
+        sitesHandle.state = self
     }
 
     /// The feature that a section shows, if it is built.

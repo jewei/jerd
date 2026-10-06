@@ -18,6 +18,7 @@ struct TunnelEditorSheet: View {
             },
             workingMessage: model.operation.workingMessage, cancel: model.cancelEditor
         ) {
+            SheetTopMessage(message: topMessage?.text, kind: topMessage?.kind ?? .info, identifier: topIdentifier)
             TunnelEditorTunnelSection(editor: editor)
             TunnelEditorDestinationSection(editor: editor)
             Section("Startup") {
@@ -35,10 +36,17 @@ struct TunnelEditorSheet: View {
                     Button("Open Cloudflare", systemImage: "arrow.up.right") { model.openCloudflare() }
                 }
             }
-            if let message = editor.failure ?? editor.validationMessage {
-                InlineMessage(
-                    message, kind: editor.failure == nil ? .warning : .error, identifier: "tunnel-editor.error")
-            }
         }
+    }
+
+    /// A failure first, then a broken rule, then why Save is off.
+    private var topMessage: (text: String, kind: MessageKind)? {
+        if let failure = editor.failure { return (failure, .error) }
+        if let rule = editor.validationMessage { return (rule, .warning) }
+        return editor.saveRequirement.map { ($0, .info) }
+    }
+
+    private var topIdentifier: String {
+        editor.failure == nil && editor.validationMessage == nil ? "tunnel-editor.requirement" : "tunnel-editor.error"
     }
 }

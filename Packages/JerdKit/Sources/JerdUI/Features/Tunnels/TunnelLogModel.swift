@@ -18,7 +18,12 @@ public final class TunnelLogModel: Identifiable {
         self.port = port
     }
 
-    public var title: String { "\(name) Log" }
+    /// The sheet title. The tunnel name is in the subtitle, so user text never mixes with the
+    /// Title Case of the title.
+    public var title: String { "Connector Log" }
+
+    /// The subtitle: whose log this is, and how to update it.
+    public var subtitle: String { "\(name). Recent events; select Refresh to load new entries." }
 
     /// Reads the recent connector events again.
     public func load() async {

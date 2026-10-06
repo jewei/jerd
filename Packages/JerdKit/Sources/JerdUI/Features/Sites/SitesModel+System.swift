@@ -7,20 +7,21 @@ extension SitesModel {
 
     /// The state of the HTTPS setup that the page explains, or nil when nothing needs the user.
     public var systemSetupState: SystemSetupState? {
-        if operation.workingMessage == Self.approvalMessage { return .inProgress(Self.approvalMessage) }
+        if runningApprovalID != nil { return .inProgress(Self.approvalMessage) }
         if setup?.hasPendingRecovery == true { return .recoveryPending }
         if let setupReadFailure { return .unreadable(setupReadFailure) }
         if environment.state == .setupRequired { return .approvalRequired }
         return nil
     }
 
-    /// Applies the approved HTTPS setup and continues the waiting change. Cancel stays
-    /// available: it closes the sheet, and the operation banner can stop the work.
+    /// Applies the approved HTTPS setup and continues the waiting change. The work changes the
+    /// Mac, so it cannot stop; Cancel only closes the sheet. `runningApprovalID` marks it.
     @discardableResult
     public func approve(_ approval: HTTPSApproval) -> Task<Void, Never>? {
         guard canChange else { return nil }
         approvalFailure = nil
-        return startWork(Self.approvalMessage) { [self] in
+        runningApprovalID = approval.id
+        let task = startWork(Self.approvalMessage) { [self] in
             do {
                 configuration = try await port.approve(approval)
                 operation = .idle
@@ -31,7 +32,10 @@ extension SitesModel {
                 operation = .idle
                 reportApprovalFailure(ErrorText.message(for: error), approval: approval)
             }
+            runningApprovalID = nil
         }
+        if task == nil { runningApprovalID = nil }
+        return task
     }
 
     /// Cancel of the approval sheet.
@@ -46,7 +50,7 @@ extension SitesModel {
         guard let approval = sheet?.approval else { return nil }
         sheet = nil
         approvalFailure = nil
-        guard operation.workingMessage != Self.approvalMessage else { return nil }
+        guard runningApprovalID != approval.id else { return nil }
         let port = port
         return Task { await port.discard(approval) }
     }

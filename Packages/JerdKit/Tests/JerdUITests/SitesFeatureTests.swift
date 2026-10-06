@@ -101,6 +101,24 @@ struct SitesFeatureTests {
         #expect(harness.model.sheet?.editor?.isNew == true)
     }
 
+    @Test("While site work runs, Open <site> and Retry Load are off, and the page leaves Stop to the banner")
+    func busyGuardsOutsideThePage() async {
+        let port = InMemorySitesPort(environment: EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID]))
+        let harness = await SitesHarness.launched(sites: port)
+        let open = { harness.model.menuItems.compactMap(\.action).first { $0.id.hasPrefix("sites.open.") } }
+        #expect(open()?.isEnabled == true)
+        #expect(harness.model.showsStopAllOnPage)
+        await port.configure { $0.suspendsChanges = true }
+        let start = harness.model.start(SampleData.northwind)
+        #expect(open()?.isEnabled == false)
+        #expect(!harness.model.canRetryLoad)
+        #expect(harness.model.bannerActivity?.stop != nil)
+        #expect(!harness.model.showsStopAllOnPage)
+        await port.configure { $0.suspendsChanges = false }
+        await harness.model.stopAll()?.value
+        await start?.value
+    }
+
     @Test("Sites polls the environment and the tunnels at their own intervals")
     func pollingTasks() async {
         let harness = await SitesHarness.launched()
@@ -122,5 +140,20 @@ struct SitesFeatureTests {
         }
         #expect(fixture.state.navigation.selection(in: .sites) == .tunnel(SampleData.previewTunnelID))
         #expect(fixture.shell.windowRequests == 1)
+    }
+
+    @Test("The app state gives the Sites models its shell at init, so a failed system setup reaches the window alert")
+    func appStateShellAlert() async {
+        let fixture = AppFixture()
+        defer { fixture.removeDefaults() }
+        await fixture.state.launch()
+        await fixture.sites.configure { $0.failure = "The helper could not be registered." }
+        fixture.state.sites.confirmation = .reconnectHelper
+        await fixture.state.sites.confirm()?.value
+        #expect(
+            fixture.state.alert
+                == AppAlert(title: "System Setup Did Not Finish", message: "The helper could not be registered."))
+        fixture.state.sites.shell.show(.item(.site(SampleData.northwindID)))
+        #expect(fixture.state.navigation.selection(in: .sites) == .site(SampleData.northwindID))
     }
 }
