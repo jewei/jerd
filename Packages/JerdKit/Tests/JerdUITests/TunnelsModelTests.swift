@@ -137,6 +137,24 @@ struct TunnelsModelTests {
         #expect(log.subtitle.hasPrefix("Studio preview. "))
     }
 
+    @Test("The log sheet ends with one Done button on the far right; Refresh is on the leading side")
+    func logFooter() async throws {
+        let harness = await SitesHarness.launched()
+        let model = harness.model.tunnels
+        model.showLog(SampleData.previewTunnel)
+        guard case .log(let log) = model.sheet else {
+            Issue.record("No log sheet")
+            return
+        }
+        let confirmation = TunnelLogSheet.confirmation(model: model, log: log)
+        #expect(confirmation.title == "Done")
+        #expect(confirmation.cancelTitle == nil)
+        #expect(confirmation.usesReturnKey)
+        #expect(try #require(confirmation.secondary).title == "Refresh")
+        confirmation.perform()
+        #expect(model.sheet == nil)
+    }
+
     @Test("Copy and Open use the public address")
     func links() async {
         let harness = await SitesHarness.launched()

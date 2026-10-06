@@ -72,7 +72,7 @@ The symbols differ from the old app on purpose (spec F 4.2 and 8.4):
 | `FormFooter` | The one style for text under a form section. |
 | `InlineMessage` | A message in a row, or a dismissible banner at the top of a page. |
 | `EmptyState` | A page with no content yet, with its first action. |
-| `SheetScaffold`, `SheetConfirmation` | Every sheet. Escape cancels. Return confirms if not destructive. |
+| `SheetScaffold`, `SheetConfirmation`, `SheetSecondaryAction` | Every sheet. Escape cancels. Return confirms if not destructive. |
 | `SummaryCard` | A dashboard card: icon, title, status, summary, actions, Open. |
 | `OperationBanner` | Global progress with a message and an optional Stop button. |
 | `detailColumn(copyFeedback:operation:)` | The bottom of the detail column: operation banner and copy toast. |
@@ -95,11 +95,20 @@ toast then covers the operation message, and the banner covers the sidebar foote
 `SheetScaffold` has a fixed width and takes the height of its content, between
 `SheetSize.minimumHeight` and `maximumHeight`. Longer content scrolls. Do not set a
 sheet height in a page. On macOS 15 and later the scaffold measures its form; on
-macOS 14 it uses the ideal height that the system form reports. While
-`workingMessage` shows, Confirm is disabled and Cancel stays enabled. Return presses the
-confirm button by default; pass `returnKey: .cancel` to make a plain Done or Close the
-default button, or `.none` for no Return shortcut. A destructive confirm never gets Return,
-and Escape always cancels. A destructive
+macOS 14 it uses the ideal height that the system form reports.
+
+The footer follows the HIG: the default button is always on the far right.
+
+| Footer | Use | Buttons, leading to trailing |
+| --- | --- | --- |
+| `SheetConfirmation(_:)` | A sheet that changes something | optional secondary, Cancel, confirm (default) |
+| `SheetConfirmation.done(…)` | A sheet that only informs, for example a log or a list | optional secondary, Done (default) |
+
+A `SheetSecondaryAction` (for example Inspect Again or Refresh) does work inside the sheet and
+never ends it, so it stands apart on the leading side. While `workingMessage` shows, the
+confirm and secondary buttons are disabled; Cancel and Done stay enabled, because they only
+end the sheet. Return presses the confirm button; pass `returnKey: .none` for no Return
+shortcut. A destructive confirm never gets Return, and Escape always cancels. A destructive
 confirm uses the plain push button label, because red text on a gray bezel is
 hard to read.
 
