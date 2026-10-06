@@ -117,6 +117,60 @@ import Testing
         #expect(harness.hosts == StoreHarness.originalHosts)
     }
 
+    /// Fixed review M2: when another tool deleted the section, removal still removes the trust and the
+    /// registration, and changes no hosts byte.
+    @Test func removalAfterTheSectionWasDeletedRemovesTrustAndRegistration() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        let rewritten = StoreHarness.originalHosts + Data("10.0.0.5 printer.local\n".utf8)
+        try rewritten.write(to: harness.hostsURL)
+        #expect(try await store.status(ownerUID: owner).hostsConfigured == false)
+        try await store.remove(ownerUID: owner, trust: harness.trust)
+        #expect(harness.hosts == rewritten)
+        #expect(harness.trust.installed(try Fixture.certificate()) == nil)
+        #expect(harness.record(.registration) == nil && harness.record(.pending) == nil)
+        #expect(try await store.status(ownerUID: owner) == .empty)
+    }
+
+    /// Fixed review M2: a failed removal without a section rolls back trust and keeps the hosts bytes.
+    @Test func aFailedRemovalWithoutASectionKeepsTheHostsBytes() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try StoreHarness.originalHosts.write(to: harness.hostsURL)
+        let bytes = harness.record(.registration)
+        harness.trust.failNextRemoval(.partial)
+        await #expect(throws: JerdError.unavailable("Test partial removal failure")) {
+            try await store.remove(ownerUID: owner, trust: harness.trust)
+        }
+        #expect(harness.hosts == StoreHarness.originalHosts)
+        #expect(harness.record(.registration) == bytes && harness.record(.pending) == nil)
+        #expect(harness.trust.installed(try Fixture.certificate()) != nil)
+    }
+
+    /// Fixed review M2: configure writes a deleted section again, but still refuses an external mapping.
+    @Test func configureAfterTheSectionWasDeletedWritesItAgain() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        let external = StoreHarness.originalHosts + Data("10.0.0.1 demo.test\n".utf8)
+        try external.write(to: harness.hostsURL)
+        await #expect(throws: JerdError.invalid("The hostname demo.test already has an external hosts mapping.")) {
+            try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        }
+        #expect(harness.hosts == external)
+        try StoreHarness.originalHosts.write(to: harness.hostsURL)
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        #expect(try await store.status(ownerUID: owner).isReadyForServing)
+        #expect(
+            harness.hosts == StoreHarness.originalHosts
+                + Data(HostsSection.render(try Fixture.hostnames("demo.test")).utf8))
+    }
+
     @Test func aFailedRemovalReinstallsTrustAndHosts() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }

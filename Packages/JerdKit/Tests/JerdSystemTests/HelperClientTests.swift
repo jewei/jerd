@@ -161,6 +161,32 @@ import os
         #expect(opener.opened.withLock { $0 } == 3)
     }
 
+    /// Fixed review M1: a 20-second call that times out does not drop the one shared link while a
+    /// change on it waits for macOS approval. Without a waiting change, a timeout still drops it.
+    @Test func aTimeoutKeepsTheLinkWhileAChangeWaitsForApproval() async throws {
+        let (client, opener) = client(FakeHelper())
+        let connection = client.connection
+        let held = OSAllocatedUnfairLock<ReplyGate<Bool>?>(initialState: nil)
+        let change = Task { () async throws -> Bool in
+            try await connection.call(timeout: nil) { _, gate in held.withLock { $0 = gate } }
+        }
+        while held.withLock({ $0 }) == nil { try await Task.sleep(for: .milliseconds(5)) }
+        let unanswered: @Sendable (any JerdHelperProtocol, ReplyGate<Bool>) -> Void = { _, _ in }
+        await #expect(throws: ReplyGate<Bool>.timeoutError) {
+            try await connection.call(timeout: .milliseconds(20), unanswered)
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(await connection.isConnected)
+        held.withLock { $0 }?.resolve(.success(true))
+        #expect(try await change.value)
+        await #expect(throws: ReplyGate<Bool>.timeoutError) {
+            try await connection.call(timeout: .milliseconds(20), unanswered)
+        }
+        for _ in 0..<100 where await connection.isConnected { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(!(await connection.isConnected))
+        #expect(opener.opened.withLock { $0 } == 1)
+    }
+
     @Test func aCancelledStatusReturnsPromptly() async throws {
         let helper = FakeHelper(.init(unanswered: true))
         let (client, _) = client(helper)

@@ -16,19 +16,47 @@ import Testing
         }
     }
 
-    @Test func requestsRunInOrderAndErrorsCarryTheirCode() async throws {
+    @Test func changesRunInOrderAndErrorsCarryTheirCode() async throws {
         let harness = try ServiceHarness()
         defer { harness.remove() }
         let session = HelperSession(owner: ServiceHarness.owner, service: harness.service, consent: harness.consent)
         let payload = try harness.request()
-        async let configured = change { session.configureSite(payload, reply: $0) }
-        async let acquired = acquire(session)
-        #expect(await configured == nil)
-        #expect(await acquired == nil)
+        let (replies, reply) = AsyncStream<String>.makeStream()
+        session.configureSite(payload) { reply.yield("configure \($0 ?? "ok")") }
+        session.removeSetup { reply.yield("remove \($0 ?? "ok")") }
+        var received: [String] = []
+        for await text in replies.prefix(2) { received.append(text) }
+        #expect(received == ["configure ok", "remove ok"])
+        #expect(try await harness.service.setupStatus(owner: ServiceHarness.owner) == .empty)
+        #expect(await change { session.configureSite(payload, reply: $0) } == nil)
+        #expect(await acquire(session) == nil)
         let other = HelperSession(owner: ServiceHarness.owner, service: harness.service, consent: harness.consent)
         #expect(await acquire(other) == "Another Jerd connection owns the standard ports. (JERD-UNAVAILABLE)")
         await withCheckedContinuation { continuation in session.releaseListeners { continuation.resume() } }
         #expect(await acquire(other) == nil)
+    }
+
+    /// Fixed review M1: listener calls never wait behind a change that waits for macOS approval.
+    /// The old helper refused them at once; a queued call timed out in the app and dropped the link.
+    @Test func listenerCallsDuringAnOpenApprovalReplyAtOnce() async throws {
+        let harness = try ServiceHarness()
+        defer { harness.remove() }
+        let held = HeldConsent(harness.consent)
+        let session = HelperSession(owner: ServiceHarness.owner, service: harness.service, consent: held)
+        let payload = try harness.request()
+        async let configured = change { session.configureSite(payload, reply: $0) }
+        await held.waitUntilAsked()
+        let acquired: String?? = await FirstReply.within(.seconds(2)) { reply in
+            session.acquireListeners { _, _, error in reply(error) }
+        }
+        let released: Bool? = await FirstReply.within(.seconds(2)) { reply in
+            session.releaseListeners { reply(true) }
+        }
+        held.release()
+        #expect(acquired == .some("System setup is in progress. Retry shortly. (JERD-UNAVAILABLE)"))
+        #expect(released == true)
+        #expect(await configured == nil)
+        #expect(await acquire(session) == nil)
     }
 
     @Test func aClosedSessionStartsNoQueuedChangeAndReleasesItsLease() async throws {

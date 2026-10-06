@@ -1,4 +1,4 @@
-/// Runs the changing requests of one session one after another, in arrival order.
+/// Runs one kind of request of one session (changes, or listener calls) one at a time, in arrival order.
 ///
 /// Earlier helpers started an unstructured task per message, so two messages of one connection
 /// could run out of order (problem 20). Read-only status calls do not use this queue, so a status
