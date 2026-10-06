@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
@@ -29,7 +30,7 @@ import Testing
     }
 
     @Test func unreadableSettingsArePreservedAndBlockChanges() async throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         try OwnedDirectory.create(folder.layout.root)
         try AtomicFile.write(Data("not-json".utf8), to: folder.layout.settingsFile)
@@ -141,7 +142,7 @@ import Testing
     }
 
     @Test func connectGuardsExplainWhatIsMissing() async throws {
-        let folder = try TemporaryDirectory()
+        let folder = try TemporaryDirectory(" tunnels")
         defer { folder.remove() }
         let supervisor = TunnelSupervisor(layout: folder.layout, secrets: FakeSecretStore(), connector: FakeConnector())
         await #expect(throws: JerdError.unavailable(TunnelMessage.notLoaded)) { try await supervisor.start(id: UUID()) }

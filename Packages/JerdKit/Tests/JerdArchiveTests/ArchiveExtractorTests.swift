@@ -1,6 +1,7 @@
 import Foundation
 import JerdArchive
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @Suite struct ArchiveExtractorTests {

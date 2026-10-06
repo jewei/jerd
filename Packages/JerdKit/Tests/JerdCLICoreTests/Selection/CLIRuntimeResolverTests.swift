@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdWeb
 import Testing
 
@@ -96,7 +97,7 @@ import Testing
     }
 
     @Test func symbolicLinkedWorkingDirectoryUsesTheProjectSelection() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let project = try directory.folder("project")
         try directory.folder("project/src")
@@ -107,7 +108,7 @@ import Testing
     }
 
     @Test func liveResolverRejectsTwoSitesThatResolveToOneFolder() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let project = try directory.folder("project")
         let nested = try directory.folder("project/nested")
@@ -119,7 +120,7 @@ import Testing
     }
 
     @Test func privateTemporaryPathMatchesItsSavedShortForm() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let project = try directory.folder("project")
         let config = configuration([site("app", project.path, .pinned(isolated.id))])

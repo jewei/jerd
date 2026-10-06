@@ -53,6 +53,10 @@ reviewable alone.
 | `JerdSnapshotSupport` | Offscreen snapshot rendering, the snapshot catalog, and the component gallery; never linked into the app |
 | `JerdSnapshots` | Renders every page with fixtures to PNG files |
 
+Two test-only targets in `Tests/` support the test targets and never ship.
+`JerdTestSupport` holds `TemporaryDirectory` and `FixtureReaper` for every test
+target. `JerdServiceKitTestSupport` holds the fakes of the service tests.
+
 ## Patterns
 
 **Pure policy, effectful shell.** Rules are pure values and functions with

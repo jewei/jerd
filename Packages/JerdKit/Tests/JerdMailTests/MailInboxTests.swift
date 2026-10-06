@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdMail
@@ -14,7 +15,7 @@ import Testing
     let other = MailRuntime(id: "mailpit-2", version: "2.0.0", path: "/runtimes/mailpit-2")
 
     init() throws {
-        directory = try TemporaryDirectory()
+        directory = try TemporaryDirectory(" service kit ü")
         layout = DataLayout(root: directory.path("Jerd")).mail
         try OwnedDirectory.create(layout.root)
         inbox = MailInbox(layout: layout)

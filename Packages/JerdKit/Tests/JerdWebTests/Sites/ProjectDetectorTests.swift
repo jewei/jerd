@@ -1,4 +1,5 @@
 import Foundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdWeb

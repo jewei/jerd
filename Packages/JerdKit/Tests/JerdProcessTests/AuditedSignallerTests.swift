@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdProcess

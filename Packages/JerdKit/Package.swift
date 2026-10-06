@@ -82,35 +82,37 @@ let package = Package(
                           swiftSettings: strictSettings),
 
         // Tests
-        tests("JerdFoundation", [], resources: [.copy("Fixtures")]),
-        tests("JerdProcess", ["JerdFoundation"], resources: [.copy("Fixtures")]),
+        // TemporaryDirectory and FixtureReaper for every test target. It depends on no product target.
+        .target(name: "JerdTestSupport", path: "Tests/JerdTestSupport", swiftSettings: strictSettings),
+        tests("JerdFoundation", ["JerdTestSupport"], resources: [.copy("Fixtures")]),
+        tests("JerdProcess", ["JerdFoundation", "JerdTestSupport"], resources: [.copy("Fixtures")]),
         tests("JerdManifest", ["JerdFoundation"], resources: [.copy("Fixtures")]),
-        tests("JerdArchive", ["JerdFoundation"]),
+        tests("JerdArchive", ["JerdFoundation", "JerdTestSupport"]),
         tests(
             "JerdRuntimes", ["JerdFoundation", "JerdProcess", "JerdManifest", "JerdArchive"],
             resources: [.copy("Fixtures")]),
-        tests("JerdSystem", ["JerdFoundation"], resources: [.copy("Fixtures")]),
+        tests("JerdSystem", ["JerdFoundation", "JerdTestSupport"], resources: [.copy("Fixtures")]),
         tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"], resources: [.copy("Fixtures")]),
         // Opt-in signed XPC check; SignedXPCCheckTests runs it when JERD_XPC_IDENTITY is set.
         .executableTarget(name: "JerdXPCCheck", dependencies: ["JerdFoundation", "JerdSystem"],
                           path: "Tests/JerdXPCCheck", swiftSettings: strictSettings),
-        tests("JerdWeb", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
-        tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
+        tests("JerdWeb", ["JerdFoundation", "JerdProcess", "JerdTestSupport"], resources: [.copy("Fixtures")]),
+        tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb", "JerdTestSupport"]),
         // Fakes and C fixtures that the service test targets share. Only test targets depend on it.
         .target(
             name: "JerdServiceKitTestSupport", dependencies: ["JerdFoundation", "JerdProcess", "JerdServiceKit"],
             path: "Tests/JerdServiceKitTestSupport", resources: [.copy("Fixtures")], swiftSettings: strictSettings),
-        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess", "JerdServiceKitTestSupport"]),
+        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess", "JerdServiceKitTestSupport", "JerdTestSupport"]),
         tests(
-            "JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            "JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport", "JerdTestSupport"],
             resources: [.copy("Fixtures")]),
         tests(
-            "JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            "JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport", "JerdTestSupport"],
             resources: [.copy("Fixtures")]),
         tests(
-            "JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            "JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport", "JerdTestSupport"],
             resources: [.copy("Fixtures")]),
-        tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
+        tests("JerdTunnels", ["JerdFoundation", "JerdProcess", "JerdTestSupport"]),
         tests("JerdDesign", ["JerdSnapshotSupport"]),
         tests("JerdSnapshotSupport", ["JerdDesign"]),
         tests(
@@ -121,7 +123,7 @@ let package = Package(
         tests(
             "JerdLive", [
                 "JerdUI", "JerdFoundation", "JerdProcess", "JerdManifest", "JerdRuntimes", "JerdSystem", "JerdWeb",
-                "JerdCLICore", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
+                "JerdCLICore", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels", "JerdTestSupport",
             ], resources: [.copy("Fixtures")]),
     ]
 )

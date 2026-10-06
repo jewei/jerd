@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdDatabases
@@ -87,7 +88,7 @@ import Testing
     }
 
     @Test func theStoreRefusesReassignedServicesAndReplacedRuntimesAndKeepsAPreviousCopy() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url).databases
         let registry = DatabaseRegistry(layout: layout)
@@ -112,7 +113,7 @@ import Testing
 
     @Test(arguments: ["", #"{"schemaVersion":99,"runtimes":[],"services":[]}"#])
     func corruptDatabaseSettingsAreNeverReplaced(_ original: String) throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }
         let layout = DataLayout(root: directory.url).databases
         try write(original, to: layout.servicesFile)

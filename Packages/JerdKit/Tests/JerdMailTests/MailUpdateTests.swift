@@ -3,6 +3,7 @@ import JerdFoundation
 import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
+import JerdTestSupport
 import Testing
 
 @testable import JerdMail

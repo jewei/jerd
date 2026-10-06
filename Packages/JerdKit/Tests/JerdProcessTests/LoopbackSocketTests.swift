@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 @Suite struct LoopbackSocketTests {

@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdCLICore
@@ -26,14 +27,14 @@ import Testing
 
     /// A development app accepts its ad hoc launcher.
     @Test func adHocLauncherPassesForAnAdHocApp() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         try Self.adHoc.checkSignature(of: try Self.adHocLauncher(in: directory))
     }
 
     /// A signed app refuses a launcher that any other signer, also ad hoc, made.
     @Test func adHocLauncherIsRefusedForATeamSignedApp() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let launcher = try Self.adHocLauncher(in: directory)
         #expect { try Self.team.checkSignature(of: launcher) } throws: { Self.isInvalid($0) }
@@ -47,14 +48,14 @@ import Testing
     }
 
     @Test func unsignedFileIsRefused() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let file = try directory.file("JerdCLI", "test launcher", mode: 0o700)
         #expect { try Self.adHoc.checkSignature(of: file) } throws: { Self.isInvalid($0) }
     }
 
     @Test func changedCopyOfASignedLauncherIsRefused() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let launcher = try Self.adHocLauncher(in: directory)
         var bytes = try Data(contentsOf: launcher)

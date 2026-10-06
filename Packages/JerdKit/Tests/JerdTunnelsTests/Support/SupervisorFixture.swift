@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import JerdTunnels
 import Testing
 
@@ -14,7 +15,7 @@ struct SupervisorFixture {
     let registration: TunnelRegistration
 
     init(restartOnFailure: Bool = true, startOnLaunch: Bool = false) async throws {
-        folder = try TemporaryDirectory()
+        folder = try TemporaryDirectory(" tunnels")
         supervisor = TunnelSupervisor(
             layout: folder.layout, secrets: secrets, connector: connector, policy: .standard, clock: clock)
         registration = TunnelRegistration(

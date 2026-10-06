@@ -5,6 +5,7 @@ import JerdProcess
 import JerdServiceKit
 import JerdServiceKitTestSupport
 import JerdStorage
+import JerdTestSupport
 import os
 
 /// A storage manager with fake processes, commands, `lsof`, and an in-memory S3 service, in a
@@ -25,7 +26,7 @@ final class StorageHarness: Sendable {
     private let version = OSAllocatedUnfairLock(initialState: "1.0.0")
 
     init() async throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" service kit ü")
         self.directory = directory
         layout = DataLayout(root: directory.path("Jerd"))
         try OwnedDirectory.create(layout.root)

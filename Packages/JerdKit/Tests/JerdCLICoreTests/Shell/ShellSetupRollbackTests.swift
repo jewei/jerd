@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdCLICore
@@ -50,7 +51,7 @@ import Testing
 
     /// A new startup file is committed with `RENAME_EXCL`.
     @Test func newFileThatAppearsBeforeTheRenameIsNotOverwritten() throws {
-        let directory = try TemporaryDirectory()
+        let directory = try TemporaryDirectory(" cli café")
         defer { directory.remove() }
         let stage = directory.url.appendingPathComponent(".zshrc.jerd-tmp")
         let target = try directory.file(".zshrc", "saved by an editor\n")

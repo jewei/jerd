@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import JerdFoundation
 import JerdProcess
+import JerdTestSupport
 import Testing
 
 /// Regression test: a descendant that calls `setsid` is found by its parent chain.
