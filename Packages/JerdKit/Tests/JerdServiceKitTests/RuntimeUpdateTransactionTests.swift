@@ -89,6 +89,24 @@ import Testing
         #expect(isLockFree(harness.lockFile))
     }
 
+    @Test func aPendingJournalRefusesTheUpdateBeforeTheServerStops() async throws {
+        let harness = try InstanceHarness()
+        let instance = harness.instance()
+        try await instance.start()
+        let pid = try #require(await instance.processID)
+        let transaction = RuntimeUpdateBackupTests.transaction(harness, names: ["settings.json"])
+        try write("{}", to: transaction.journalFile)
+        await #expect(
+            throws: JerdError.unavailable("Recover the previous runtime update before starting another update.")
+        ) {
+            try await transaction.run(on: instance, to: harness.definition(name: "new"), steps: steps(harness))
+        }
+        #expect(await instance.state == .running(pid: pid))
+        #expect(await harness.processes.stopPolicies.isEmpty)
+        #expect(await harness.processes.requests.count == 1)
+        #expect(harness.events.events == ["prepare", "complete"])
+    }
+
     @Test func recoveryRefusesWhileAProcessRunsAndRestoresOtherwise() async throws {
         let harness = try InstanceHarness()
         let instance = harness.instance()

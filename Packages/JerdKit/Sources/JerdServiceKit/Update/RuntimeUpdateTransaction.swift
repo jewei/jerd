@@ -58,10 +58,15 @@ public struct RuntimeUpdateTransaction: Sendable {
     public var isPending: Bool { FileProbe.presence(at: journalFile).mayExist }
 
     /// Runs the whole update on `instance` and switches it to `updated`.
-    /// - Throws: `.processFailed` with "update failed" and whether the old state was restored.
+    ///
+    /// A pending journal refuses the update before the server stops, and again inside the lease,
+    /// because a journal can appear while the lease waits for the stop.
+    /// - Throws: `.unavailable(pending)` while a journal exists, or `.processFailed` with "update
+    ///   failed" and whether the old state was restored.
     public func run(
         on instance: ManagedInstance, to updated: any ServiceDefinition, steps: RuntimeUpdateSteps
     ) async throws {
+        guard !isPending else { throw JerdError.unavailable(Self.pendingMessage) }
         let lease = try await instance.beginMaintenance()
         var backedUp = false
         do {
