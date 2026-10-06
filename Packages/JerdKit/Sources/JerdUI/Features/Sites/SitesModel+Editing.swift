@@ -19,6 +19,16 @@ extension SitesModel {
         if sheet?.editor != nil { sheet = nil }
     }
 
+    /// Ends the open sheet as its Cancel does, also when AppKit ends it, for example for Quit:
+    /// the editor draft goes, and a waiting HTTPS approval is discarded.
+    public func dismissSheet() {
+        switch sheet {
+        case .editor: cancelEditor()
+        case .approval: cancelApproval()
+        case nil: break
+        }
+    }
+
     /// Saves the editor's site. A new site starts when the environment is stopped. A failure
     /// shows in the editor while it is open, else on the page.
     @discardableResult

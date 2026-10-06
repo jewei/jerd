@@ -43,7 +43,6 @@ package struct AddBucketSheet: View {
                 }
             }
         }
-        .interactiveDismissDisabled(model.bucketOperation.isWorking)
         .onAppear { isNameFocused = true }
     }
 

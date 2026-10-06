@@ -3,13 +3,7 @@ import SwiftUI
 extension View {
     /// The tunnel editor and the tunnel log sheet.
     func tunnelSheets(_ model: TunnelsModel) -> some View {
-        sheet(
-            item: Binding {
-                model.sheet
-            } set: { sheet in
-                if sheet == nil { model.cancelEditor() }
-            }
-        ) { sheet in
+        sheet(item: SheetBinding.item({ model.sheet }, dismiss: model.cancelEditor)) { sheet in
             switch sheet {
             case .editor(let editor): TunnelEditorSheet(model: model, editor: editor)
             case .log(let log): TunnelLogSheet(model: model, log: log)

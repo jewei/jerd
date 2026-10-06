@@ -6,12 +6,12 @@ import SwiftUI
 /// missing, or the empty state. It owns the sheets and the remove confirmation.
 struct DatabasesPage: View {
     let state: AppState
-    @Bindable var model: DatabasesModel
+    let model: DatabasesModel
     @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         content
-            .sheet(item: $model.sheet, onDismiss: { model.dismissSheet() }) { sheet in
+            .sheet(item: SheetBinding.item({ model.sheet }, dismiss: model.dismissSheet)) { sheet in
                 switch sheet {
                 case .editor: DatabaseEditorSheet(model: model)
                 case .retained: RetainedDatabasesSheet(model: model)
