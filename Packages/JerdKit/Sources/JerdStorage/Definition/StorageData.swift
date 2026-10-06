@@ -79,6 +79,8 @@ struct StorageData: Sendable {
         return try StoredCredentials.read(from: layout.credentialsFile).credentials
     }
 
+    /// A pure hash compare of the raw file bytes (spec 3.4.6.d). The credentials are decoded only
+    /// after it passes, so a changed credential file is reported as changed data.
     private func requireUnchangedIfInitialized(for runtime: StorageRuntime) throws {
         guard FileProbe.presence(at: layout.initializedMarkerFile).mayExist else { return }
         let saved = try MarkerFile.read(StorageInitializedMarker.self, from: layout.initializedMarkerFile)
@@ -87,10 +89,12 @@ struct StorageData: Sendable {
         }
     }
 
+    /// The marker of the current files: the SHA-256 of the exact bytes of the format file and of
+    /// `credentials.json`, which is never encoded again.
     private func currentMarker(for runtime: StorageRuntime) throws -> StorageInitializedMarker {
         StorageInitializedMarker(
             runtime: runtime, formatHash: try Self.hash(of: layout.formatFile),
-            credentialsHash: try StoredCredentials.read(from: layout.credentialsFile).hash)
+            credentialsHash: try Self.hash(of: layout.credentialsFile))
     }
 
     /// The SHA-256 of a private regular file below 64 KiB.

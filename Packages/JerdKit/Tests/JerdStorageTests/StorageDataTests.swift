@@ -57,6 +57,19 @@ import Testing
         #expect(contents(layout.initializedMarkerFile) == (try golden("storage-initialized.json")))
     }
 
+    /// Spec 3.4.6.d: after a successful start, a changed credential file fails the pure hash
+    /// compare first, so the message names changed data, not invalid credentials.
+    @Test func unreadableCredentialsOfInitializedDataAreReportedAsChangedData() throws {
+        defer { directory.remove() }
+        _ = try initialize()
+        try AtomicFile.write(Data("not json".utf8), to: layout.credentialsFile)
+        #expect(throws: StorageMessages.dataChanged) { try data.prepare(for: runtime) }
+        #expect(throws: StorageMessages.dataChanged) { try data.validate(for: runtime) }
+        #expect(contents(layout.credentialsFile) == Data("not json".utf8))
+        try FileManager.default.removeItem(at: layout.credentialsFile)
+        #expect(throws: StorageMessages.requiredFileInvalid) { try data.prepare(for: runtime) }
+    }
+
     @Test func credentialBytesAreNeverEncodedAgainAndTheMarkerFollowsThem() throws {
         defer { directory.remove() }
         let reordered = Data(
