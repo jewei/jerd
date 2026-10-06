@@ -118,8 +118,13 @@
                             ".env",
                             "*.php",
                             "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
                             "*.phtml",
-                            "*.phar"
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
                           ]
                         }
                       ],
@@ -134,12 +139,12 @@
                           "not" : [
                             {
                               "path_regexp" : {
-                                "pattern" : "(?i)^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                                "pattern" : "(?i)^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                               }
                             },
                             {
                               "path_regexp" : {
-                                "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                                "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
                               }
                             }
                           ],
@@ -159,13 +164,17 @@
                       "match" : [
                         {
                           "path_regexp" : {
-                            "pattern" : "(?i)(^|/)\\.|^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                            "pattern" : "(?i)(^|/)\\.|^/vendor(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                           }
                         }
                       ]
                     },
                     {
                       "handle" : [
+                        {
+                          "handler" : "vars",
+                          "jerd_path_info" : "{http.matchers.file.remainder}"
+                        },
                         {
                           "handler" : "rewrite",
                           "uri" : "{http.matchers.file.relative}"
@@ -193,6 +202,9 @@
                           "handler" : "reverse_proxy",
                           "transport" : {
                             "dial_timeout" : 3000000000,
+                            "env" : {
+                              "PATH_INFO" : "{http.vars.jerd_path_info}"
+                            },
                             "protocol" : "fastcgi",
                             "read_timeout" : 35000000000,
                             "root" : "/p/app/public",
@@ -209,6 +221,12 @@
                       ],
                       "match" : [
                         {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
                           "not" : [
                             {
                               "path_regexp" : {
@@ -232,7 +250,7 @@
                       "match" : [
                         {
                           "path_regexp" : {
-                            "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                            "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
                           }
                         }
                       ]
@@ -246,8 +264,13 @@
                             ".env",
                             "*.php",
                             "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
                             "*.phtml",
-                            "*.phar"
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
                           ]
                         }
                       ]
@@ -302,8 +325,13 @@
                             ".env",
                             "*.php",
                             "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
                             "*.phtml",
-                            "*.phar"
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
                           ]
                         }
                       ],
@@ -318,12 +346,12 @@
                           "not" : [
                             {
                               "path_regexp" : {
-                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                               }
                             },
                             {
                               "path_regexp" : {
-                                "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                                "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
                               }
                             }
                           ],
@@ -343,13 +371,17 @@
                       "match" : [
                         {
                           "path_regexp" : {
-                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                           }
                         }
                       ]
                     },
                     {
                       "handle" : [
+                        {
+                          "handler" : "vars",
+                          "jerd_path_info" : "{http.matchers.file.remainder}"
+                        },
                         {
                           "handler" : "rewrite",
                           "uri" : "{http.matchers.file.relative}"
@@ -377,6 +409,9 @@
                           "handler" : "reverse_proxy",
                           "transport" : {
                             "dial_timeout" : 3000000000,
+                            "env" : {
+                              "PATH_INFO" : "{http.vars.jerd_path_info}"
+                            },
                             "protocol" : "fastcgi",
                             "read_timeout" : 35000000000,
                             "root" : "/p/blog",
@@ -393,6 +428,12 @@
                       ],
                       "match" : [
                         {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
                           "not" : [
                             {
                               "path_regexp" : {
@@ -416,7 +457,7 @@
                       "match" : [
                         {
                           "path_regexp" : {
-                            "pattern" : "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"
+                            "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
                           }
                         }
                       ]
@@ -430,8 +471,13 @@
                             ".env",
                             "*.php",
                             "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
                             "*.phtml",
-                            "*.phar"
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
                           ]
                         }
                       ]

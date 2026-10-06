@@ -14,6 +14,16 @@ public enum PHPIniPolicy {
         """
 
     /// The `php.ini` of every FPM pool (before the optional trust section).
+    ///
+    /// `cgi.fix_pathinfo = 1` (the PHP default, which Caddy's FastCGI transport expects): FPM then
+    /// runs `SCRIPT_FILENAME`, the script that Caddy's routes selected. With `0`, FPM runs
+    /// `PATH_TRANSLATED` instead, which is the document root plus the request's path info, so
+    /// `/index.php/storage/upload.php` ran an upload and `/index.php/vendor/x.php` ran vendor code
+    /// (review web-r1 C1). Two independent layers close this, and the opt-in test
+    /// `ScriptSelectionIntegrationTests` proved each one alone: this setting, and the PHP route,
+    /// which sends path info only as `PATH_INFO` and never a `PATH_TRANSLATED`
+    /// (`SiteRoutePolicy.phpRoute`). `security.limit_extensions = .php` in the pool file refuses
+    /// any other extension.
     public static let fpm =
         common + """
             memory_limit = 256M
@@ -21,7 +31,7 @@ public enum PHPIniPolicy {
             post_max_size = 40M
             max_execution_time = \(RequestTimeBudget.phpExecutionSeconds)
             display_errors = Off
-            cgi.fix_pathinfo = 0
+            cgi.fix_pathinfo = 1
             [opcache]
             opcache.enable = 1
             opcache.validate_timestamps = 1

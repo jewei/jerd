@@ -17,13 +17,31 @@ actor FakeEngine: EngineControlling {
     private var waiters: [CheckedContinuation<String?, Never>] = []
     /// Runs inside `preflight`, for example to touch an executable.
     var onPreflight: @Sendable () throws -> Void = {}
+    /// True while `preflight` or `isHealthy` waits for `resumeHeld()`.
+    private(set) var isHolding = false
+    private var holdPreflight = false
+    private var holdHealthCheck = false
+    private var heldWaiter: CheckedContinuation<Void, Never>?
 
     func rejectNextStart() { failNextStart = true }
     func setOnPreflight(_ action: @escaping @Sendable () throws -> Void) { onPreflight = action }
+    /// The next `preflight` waits inside the engine until `resumeHeld()`.
+    func holdNextPreflight() { holdPreflight = true }
+    /// The next `isHealthy` decides "healthy" now, then waits until `resumeHeld()`.
+    func holdNextHealthCheck() { holdHealthCheck = true }
 
-    func preflight(_ plan: ServingPlan, layout: RunLayout) throws {
+    func resumeHeld() {
+        heldWaiter?.resume()
+        heldWaiter = nil
+    }
+
+    func preflight(_ plan: ServingPlan, layout: RunLayout) async throws {
         preflights += 1
         try OwnedDirectory.create(layout.environment.root)
+        if holdPreflight {
+            holdPreflight = false
+            await hold()
+        }
         try onPreflight()
     }
 
@@ -52,7 +70,20 @@ actor FakeEngine: EngineControlling {
         finish(nil)
     }
 
-    func isHealthy() -> Bool { state == .running }
+    func isHealthy() async -> Bool {
+        let healthy = state == .running
+        if holdHealthCheck {
+            holdHealthCheck = false
+            await hold()
+        }
+        return healthy
+    }
+
+    private func hold() async {
+        isHolding = true
+        await withCheckedContinuation { heldWaiter = $0 }
+        isHolding = false
+    }
 
     func waitForFailure(of run: EngineRunID) async -> String? {
         if let ended, ended.run == run { return ended.failure }

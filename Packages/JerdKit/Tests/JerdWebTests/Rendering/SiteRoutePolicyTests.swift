@@ -16,6 +16,7 @@ import Testing
         "/index.php.bak", "/private.PHP.txt", "/file.phar", "/config.inc.bak", "/lib.phar.txt",
         "/packages/foo/auth.json", "/composer.json", "/sub/composer.lock", "/vendor", "/vendor/x.js", "/VENDOR/a",
         "/artisan", "/storage/upload.php", "/storage/a/b.php/extra", "/x.php5", "/x.phtml", "/x.inc",
+        "/x.pht", "/x.PHT", "/x.pht.txt", "/x.phps", "/x.phpt",
     ])
     func theDenyPatternMatchesSensitivePaths(_ path: String) throws {
         #expect(try Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: false), path))
@@ -67,8 +68,72 @@ import Testing
         }
         #expect(
             routes == [
-                "static_response", "vars", "file_server", "static_response", "rewrite", "reverse_proxy",
+                "static_response", "vars", "file_server", "static_response", "vars", "reverse_proxy",
                 "static_response", "file_server",
             ])
+    }
+
+    @Test(arguments: [
+        "/x.php", "/x.PHP", "/x.php7", "/x.pht", "/x.Pht", "/x.phtml", "/x.phar", "/x.phps", "/x.phpt", "/x.inc",
+        "/x.php.txt", "/x.pht/y",
+    ])
+    func thePHPLikePatternCoversEveryExtensionThatServersTreatAsPHP(_ path: String) throws {
+        #expect(try Self.matches(SiteRoutePolicy.phpLikePattern, path))
+    }
+
+    @Test(arguments: ["/x.phpx", "/x.photo", "/x.ph", "/include.js", "/x.html"])
+    func thePHPLikePatternKeepsOtherNames(_ path: String) throws {
+        #expect(try !Self.matches(SiteRoutePolicy.phpLikePattern, path))
+    }
+
+    @Test func theStaticServerHidesEveryPHPLikeName() {
+        for name in ["*.php", "*.PHP", "*.php[0-9]", "*.pht", "*.phtml", "*.phar", "*.phps", "*.phpt", "*.inc"] {
+            #expect(SiteRoutePolicy.hiddenFiles.contains(name), "\(name)")
+        }
+    }
+
+    /// Review web-r1 C1: FPM gets path info only as `PATH_INFO`, never a `PATH_TRANSLATED`.
+    @Test func pathInfoReachesPHPOnlyAsPathInfo() throws {
+        let routes = try SiteRoutePolicy.routes(for: try CaddySamples.appendixSites()[1])
+        let handlers = try #require(try Self.object(routes[4])["handle"]?.arrayValue)
+        #expect(
+            handlers.first
+                == ["handler": "vars", SiteRoutePolicy.pathInfoVariable: "{http.matchers.file.remainder}"])
+        let proxy = try #require(try Self.object(routes[5])["handle"]?.arrayValue?.first?.objectValue)
+        let transport = try #require(proxy["transport"]?.objectValue)
+        #expect(transport["env"] == ["PATH_INFO": "{http.vars.jerd_path_info}"])
+        #expect(transport["split_path"] == [".php"])
+        let text = String(decoding: try CaddySamples.appendixOutput(), as: UTF8.self)
+        #expect(!text.contains("PATH_TRANSLATED"))
+        #expect(PHPIniPolicy.fpm.contains("\ncgi.fix_pathinfo = 1\n"))
+    }
+
+    /// Review web-r1 M1: the PHP route compares the script's name on disk case-sensitively.
+    @Test func thePHPRouteRequiresTheExactLowercaseNameOnDisk() throws {
+        let routes = try SiteRoutePolicy.routes(for: try CaddySamples.appendixSites()[1])
+        let match = try #require(try Self.object(routes[5])["match"]?.arrayValue?.first?.objectValue)
+        #expect(match["path_regexp"] == ["pattern": "\\.php$"])
+        #expect(
+            match["file"]
+                == [
+                    "try_files": ["{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"],
+                    "try_policy": "first_exist",
+                ])
+    }
+
+    private static func object(_ value: JSONValue) throws -> [String: JSONValue] {
+        try #require(value.objectValue)
+    }
+}
+
+extension JSONValue {
+    fileprivate var objectValue: [String: JSONValue]? {
+        if case .object(let members) = self { return members }
+        return nil
+    }
+
+    fileprivate var arrayValue: [JSONValue]? {
+        if case .array(let items) = self { return items }
+        return nil
     }
 }

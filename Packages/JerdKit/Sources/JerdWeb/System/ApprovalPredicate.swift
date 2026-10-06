@@ -14,4 +14,14 @@ public enum ApprovalPredicate {
     public static func matches(_ status: HTTPSSetupStatus, installationID: UUID, fingerprint: String) -> Bool {
         status.installationID == installationID && status.certificateSHA256 == fingerprint
     }
+
+    /// The complete rule: `covers`, and the approved CA is `authority`. A missing local CA
+    /// (`authority` nil) is never approved, so it leads to a new approval that prepares the CA.
+    public static func approves(
+        _ status: HTTPSSetupStatus, hostnames: some Sequence<String>, authority: InstallationAuthority?
+    ) -> Bool {
+        guard let authority else { return false }
+        return covers(status, hostnames: hostnames)
+            && matches(status, installationID: authority.installationID, fingerprint: authority.fingerprint)
+    }
 }

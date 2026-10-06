@@ -61,6 +61,32 @@ import Testing
         #expect(await harness.engine.starts == 1)
     }
 
+    /// Review web-r1 M2: keeping a run activates nothing, so a later CA change does not refuse
+    /// it. A rollback can then keep the run that a refused activation never stopped.
+    @Test(arguments: [false, true])
+    func aHealthyEquivalentRunIsKeptAfterTheLocalCAChanged(_ removeCA: Bool) async throws {
+        let harness = try CoordinatorHarness()
+        defer { harness.remove() }
+        let plan = harness.plan([try harness.site("demo.test")])
+        try await harness.ensure(plan)
+        let file = harness.layout.environment.rootCertificateFile
+        if removeCA {
+            try FileManager.default.removeItem(at: file)
+        } else {
+            try AtomicFile.write(try Certificates.pem("other-ca"), to: file)
+        }
+        try await harness.ensure(plan)
+        #expect(await harness.engine.starts == 1)
+        #expect(await harness.coordinator.snapshot().state == .running)
+        var renamed = plan.sites[0].site
+        renamed.documentRoot = try harness.folder.folder("projects/demo.test/public").path
+        await #expect(
+            throws: JerdError.unavailable(
+                "The local CA does not match the approved HTTPS setup. The active sites were kept running.")
+        ) { try await harness.ensure(harness.plan([renamed])) }
+        #expect(await harness.coordinator.snapshot().siteIDs == [plan.siteIDs.first!])
+    }
+
     @Test func anUnchangedHealthyRunIsKeptAndAChangedExecutableRestarts() async throws {
         let harness = try CoordinatorHarness()
         defer { harness.remove() }
