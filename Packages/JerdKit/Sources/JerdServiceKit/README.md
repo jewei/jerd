@@ -22,6 +22,7 @@ It depends only on JerdFoundation and JerdProcess. Tunnels do not use it.
 | `MaintenanceLease` | Exclusive use of a stopped instance with its lock held. |
 | `RuntimeUpdateTransaction`, `RuntimeUpdateJournal` | Replace a runtime with a backup, a journal, and an automatic restore. |
 | `BackupRetentionService`, `DirectorySize` | List and delete runtime update backups in Advanced. |
+| `SingleServiceCoordinator`, `SingleServiceDescribing` | The manager core of Mail and Storage: load, one operation at a time, port edits under a lease, runtime registration, update, and recovery. |
 
 ## Start order
 
@@ -55,6 +56,8 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   `LaunchPlan.didStop` runs, so a service can release resources that are not files, for example
   a URL session.
 - A maintenance lease keeps the lock from the first step to the last, also during a restore.
+- A runtime update that fails and restores a stopped service leaves it `stopped`; the error names
+  the cause. A failed restore keeps the journal and the `failed` state.
 - A runtime update copies each named item (an APFS clone when possible) off the actor, and
   flushes the copies to the drive (`fsync` on each item, then `F_FULLFSYNC`) before it writes the
   journal. A restore flushes the restored items before it removes the journal. Recovery uses the
@@ -76,4 +79,5 @@ compile C fixtures with `/usr/bin/cc` and start them. No test needs root or a ne
 
 `Tests/JerdServiceKitTestSupport` holds the fakes and C fixtures that the service test targets
 share (`FakeProcessController`, `FakeSystem`, `FakeTimeKeeper`, `ScriptedCommands`, `Gate`,
-`TemporaryDirectory`, and `Fixtures`). Only test targets depend on it; the app never links it.
+`TemporaryDirectory`, `LoopbackHTTPServer`, `goldenFixture`, and `Fixtures`). Only test targets
+depend on it; the app never links it.

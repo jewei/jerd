@@ -69,6 +69,24 @@ import Testing
         #expect(!transaction.isPending)
     }
 
+    @Test func aRestoredStoppedServiceIsStoppedAndTheErrorNamesTheCause() async throws {
+        let harness = try InstanceHarness()
+        let instance = harness.instance(harness.definition(name: "old runtime"))
+        try write("old runtime", to: settings(harness))
+        harness.setVersionOutput("server 9.9.9")
+        let transaction = RuntimeUpdateBackupTests.transaction(harness, names: ["settings.json"])
+        await #expect(
+            throws: JerdError.processFailed(
+                "Fake update failed. The previous runtime was restored. The fake server version does not match.")
+        ) {
+            try await transaction.run(on: instance, to: harness.definition(name: "new runtime"), steps: steps(harness))
+        }
+        #expect(await instance.state == .stopped)
+        #expect(text(settings(harness)) == "old runtime")
+        #expect(!transaction.isPending)
+        #expect(isLockFree(harness.lockFile))
+    }
+
     @Test func aFailedRecoveryKeepsTheBackupAndReportsBothErrors() async throws {
         let harness = try InstanceHarness()
         let instance = harness.instance()

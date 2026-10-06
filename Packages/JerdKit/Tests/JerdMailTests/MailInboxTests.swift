@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail
@@ -75,6 +76,20 @@ import Testing
         #expect(throws: MailMessages.databaseNotRegular) { try inbox.prepare(for: runtime) }
         #expect(throws: MailMessages.databaseNotRegular) { try inbox.validate(for: runtime) }
         #expect(text(target) == "outside")
+    }
+
+    /// A hard link would make Mailpit write into, and Jerd change the mode of, a file elsewhere.
+    @Test func aHardLinkedDatabaseIsRefusedAndTheOtherFileKeepsItsMode() throws {
+        defer { directory.remove() }
+        try inbox.prepare(for: runtime)
+        let target = directory.path("elsewhere.sqlite")
+        try write("outside", to: target)
+        chmod(target.path, 0o644)
+        try FileManager.default.removeItem(at: layout.inboxDatabaseFile)
+        try FileManager.default.linkItem(at: target, to: layout.inboxDatabaseFile)
+        #expect(throws: MailMessages.databaseNotRegular) { try inbox.prepare(for: runtime) }
+        #expect(throws: MailMessages.databaseNotRegular) { try inbox.validate(for: runtime) }
+        #expect(text(target) == "outside" && mode(target) == 0o644)
     }
 
     @Test func anExistingDatabaseKeepsItsBytesAndBecomesPrivate() throws {

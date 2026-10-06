@@ -11,7 +11,8 @@ import JerdServiceKit
 /// - Files in an inbox without an identity are never adopted.
 /// - After a successful start, the database must exist. A missing database is never replaced
 ///   with an empty one.
-/// - The database is a regular file with mode 0600, never a symbolic link.
+/// - The database is a regular file of this user with one link and mode 0600, never a symbolic
+///   link.
 struct MailInbox: Sendable {
     let layout: MailLayout
 
@@ -45,7 +46,10 @@ struct MailInbox: Sendable {
             throw MailMessages.untracked
         }
         if FileProbe.presence(at: layout.inboxDatabaseFile).mayExist {
-            guard DataFolder.isRegularFile(layout.inboxDatabaseFile) else { throw MailMessages.databaseNotRegular }
+            var info = stat()
+            guard lstat(layout.inboxDatabaseFile.path, &info) == 0, Self.isPrivate(info) else {
+                throw MailMessages.databaseNotRegular
+            }
         }
     }
 
@@ -66,7 +70,13 @@ struct MailInbox: Sendable {
             dataMayExist: false)
     }
 
-    /// Keeps an existing database (mode 0600) or creates an empty one.
+    /// A regular file of this user with one link. A hard link would let Mailpit write into, and
+    /// Jerd change the mode of, a file elsewhere.
+    static func isPrivate(_ info: stat) -> Bool {
+        DescriptorIO.isPrivateRegularFile(info, owner: geteuid())
+    }
+
+    /// Keeps an existing private database (mode 0600) or creates an empty one.
     private func prepareDatabase() throws {
         let file = layout.inboxDatabaseFile
         guard FileProbe.presence(at: file).mayExist else {
@@ -77,9 +87,7 @@ struct MailInbox: Sendable {
         guard descriptor >= 0 else { throw MailMessages.databaseNotRegular }
         defer { close(descriptor) }
         var info = stat()
-        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
-            throw MailMessages.databaseNotRegular
-        }
+        guard fstat(descriptor, &info) == 0, Self.isPrivate(info) else { throw MailMessages.databaseNotRegular }
         guard info.st_mode & 0o777 == AtomicFile.fileMode || fchmod(descriptor, AtomicFile.fileMode) == 0 else {
             throw JerdError.unavailable("Cannot protect the mail database (\(SystemError.describe(errno))).")
         }

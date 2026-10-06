@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdStorage
@@ -52,10 +53,10 @@ import Testing
         #expect(try await client.send("PUT", path: Self.key, body: Self.payload).status == 200)
         #expect(try await client.send("GET", path: Self.key).body == Self.payload)
         #expect(try await client.send("GET", path: Self.key, signed: false).status == 403)
-        await #expect(throws: (any Error).self) {
+        await #expect(throws: StorageMessages.alreadyRegistered("private-uploads")) {
             try await run.manager.addBucket(name: "private-uploads", publicRead: false)
         }
-        await #expect(throws: (any Error).self) {
+        await #expect(throws: StorageMessages.stopBeforeEditing) {
             try await run.manager.edit(ports: try StorageIntegrationRun.freePorts())
         }
     }
@@ -115,7 +116,13 @@ import Testing
         #expect(await run.manager.snapshot().settings.runtime == updated)
         #expect(try await run.client().send("GET", path: Self.key).body == Self.payload)
         let invalid = StorageRuntime(id: "rustfs-invalid-update", version: "99.0.0", path: run.runtime.path)
-        await #expect(throws: (any Error).self) { try await run.manager.updateRuntime(invalid) }
+        await #expect(
+            throws: JerdError.processFailed(
+                "Storage update failed. The previous runtime and data were restored. "
+                    + "The RustFS executable does not match the saved version.")
+        ) {
+            try await run.manager.updateRuntime(invalid)
+        }
         let snapshot = await run.manager.snapshot()
         #expect(snapshot.settings.runtime == updated && snapshot.processID != nil)
         #expect(try await run.client().send("GET", path: Self.key).body == Self.payload)
@@ -143,7 +150,7 @@ import Testing
         try MarkerFile.write(
             StorageRuntime(id: "different", version: "2.0.0", path: run.runtime.path),
             to: run.storage.runtimeIdentityFile)
-        await #expect(throws: (any Error).self) { try await run.manager.start() }
+        await #expect(throws: StorageMessages.identityMismatch) { try await run.manager.start() }
         try AtomicFile.write(identity, to: run.storage.runtimeIdentityFile)
     }
 

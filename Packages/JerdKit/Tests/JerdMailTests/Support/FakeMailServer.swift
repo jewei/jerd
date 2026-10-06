@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdMail
+import JerdServiceKitTestSupport
 import os
 
 /// Scripted readiness answers of Mailpit. By default it reports the given version and database
