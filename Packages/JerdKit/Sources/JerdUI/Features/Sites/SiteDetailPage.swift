@@ -38,16 +38,16 @@ struct SiteDetailPage: View {
         let step = model.nextStep(for: site)
         switch step {
         case .recover:
-            return PageAction(step.title, systemImage: "arrow.up.forward.app", identifier: "site.open-advanced") {
+            return PageAction(step.title, systemImage: step.systemImage, identifier: "site.open-advanced") {
                 model.openAdvanced()
             }
         case .open:
-            return PageAction(step.title, systemImage: "safari", identifier: "site.open") {
+            return PageAction(step.title, systemImage: step.systemImage, identifier: "site.open") {
                 model.openInBrowser(site)
             }
         case .start:
             return PageAction(
-                step.title, systemImage: "play.fill", isEnabled: model.canChange && site.isEnabled,
+                step.title, systemImage: step.systemImage, isEnabled: model.canChange && site.isEnabled,
                 help: site.isEnabled ? nil : "Enable this site before starting it.", identifier: "site.start"
             ) {
                 model.start(site)
