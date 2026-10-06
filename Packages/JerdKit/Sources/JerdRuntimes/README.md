@@ -29,7 +29,9 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
   is verified by Composer only, and the Runtimes page says so.
 - Managed updates and bundled payloads use the same preparers and version probes. PHP
   names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's.
-  Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G).
+  Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G). Its disk image is
+  always ejected with `diskutil eject`, the replacement that macOS 27 names for the deprecated
+  `hdiutil detach`. `hdiutil attach` stays until its replacement is known to work on macOS 14.
 - A build or payload has private modes only: folders and executables 0700, files 0600.
   No symbolic link, FIFO, or device is accepted.
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder
@@ -68,4 +70,6 @@ JERD_RUNTIME_NETWORK=1 swift test --package-path Packages/JerdKit --filter Live
 
 Default tests use saved publisher responses, a fake `URLProtocol`, fake commands, and
 temporary folders. Opt-in: `JERD_RUNTIME_INSTALL=mailpit,caddy` installs real releases,
-`JERD_MYSQL_ARCHIVE` and `JERD_RUSTFS_BINARY` check real files.
+`JERD_MYSQL_ARCHIVE` and `JERD_RUSTFS_BINARY` check real files. `JERD_DISK_IMAGE=1`
+attaches and ejects a small real disk image with the production commands: run it on each
+new macOS, because the Postgres.app step depends on `hdiutil attach` and `diskutil eject`.
