@@ -35,14 +35,14 @@ extension DatabaseServiceDefinition {
             readiness: DatabaseReadiness.check(
                 client: setup.client, reply: engine.healthCheck.reply, password: credentials.password,
                 commands: tools.commands),
-            secrets: [credentials.password], temporaryItems: [sockets] + setup.files.map(\.url))
+            secrets: [credentials.password], temporaryItems: [sockets], secretFiles: setup.files.map(\.url))
         do {
             for file in setup.files { try file.write() }
         } catch {
-            plan.removeTemporaryItems()
-            throw error
+            throw plan.discard(after: error)
         }
-        // The instance removes the setup files and the socket folder when the setup server stops.
+        // The instance removes the setup files when the readiness check ends, and the socket
+        // folder when the setup server stops.
         try await tools.runSetupPhase(plan)
     }
 

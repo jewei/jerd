@@ -19,8 +19,10 @@ private final class RecordingSetupRunner: SetupPhaseRunning {
 
     func runSetupPhase(_ plan: LaunchPlan) async throws {
         plans.withLock { $0.append(plan) }
-        filesExisted.withLock { $0 = plan.temporaryItems.allSatisfy { FileProbe.presence(at: $0) == .present } }
+        let files = plan.temporaryItems + plan.secretFiles
+        filesExisted.withLock { $0 = files.allSatisfy { FileProbe.presence(at: $0) == .present } }
         plan.removeTemporaryItems()
+        try plan.removeSecretFiles()
     }
 }
 
@@ -89,7 +91,8 @@ private final class RecordingSetupRunner: SetupPhaseRunning {
         #expect(phase.ports.isEmpty)
         #expect(phase.request.arguments.contains("--skip-networking"))
         #expect(setup.hadFiles)
-        #expect(Set(phase.temporaryItems.map(\.lastPathComponent)).isSuperset(of: ["bootstrap.sql", "bootstrap.cnf"]))
+        #expect(Set(phase.secretFiles.map(\.lastPathComponent)) == ["bootstrap.sql", "bootstrap.cnf"])
+        #expect(phase.temporaryItems.map { $0.lastPathComponent.hasPrefix("jerd-db-") } == [true])
         #expect(!exists(definition.engine.files.bootstrapSQL))
         #expect(exists(definition.engine.files.layout.initializedMarkerFile))
     }

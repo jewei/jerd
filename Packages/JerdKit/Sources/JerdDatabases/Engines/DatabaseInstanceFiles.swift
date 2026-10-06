@@ -15,9 +15,10 @@ public struct DatabaseInstanceFiles: Hashable, Sendable {
     public var pgpass: URL { layout.file(named: "pgpass") }
     /// The Redis configuration (contains the password).
     public var redisConfiguration: URL { layout.file(named: "redis.conf") }
-    /// The MySQL first-start SQL. Deleted after the setup phase.
+    /// The MySQL first-start SQL. Deleted when the setup readiness check ends.
     public var bootstrapSQL: URL { layout.file(named: "bootstrap.sql") }
-    /// The MySQL first-start client options for `root` over the socket. Deleted after the setup phase.
+    /// The MySQL first-start client options for `root` over the socket. Deleted when the setup
+    /// readiness check ends.
     public var bootstrapOptions: URL { layout.file(named: "bootstrap.cnf") }
     /// The PostgreSQL `initdb` password file. Deleted after `initdb`.
     public var initPassword: URL { layout.file(named: "init-password") }

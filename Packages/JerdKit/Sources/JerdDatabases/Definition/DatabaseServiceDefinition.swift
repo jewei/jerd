@@ -93,8 +93,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
         do {
             try engine.configuration(credentials, sockets: sockets).write()
         } catch {
-            plan.removeTemporaryItems()
-            throw error
+            throw plan.discard(after: error)
         }
         return plan
     }

@@ -37,8 +37,11 @@ extension ManagedInstance {
         try await definition.versionProbe.verify(using: effects.commands)
         let setup = SetupPhaseRunner(instance: self, clearance: clearance)
         let plan = try await definition.prepareStart(StartTools(commands: effects.commands, setup: setup))
-        let owned = try await launch(plan, clearance: clearance)
-        try await awaitReadiness(of: owned)
+        let owned = try await removingSecretFiles(of: plan) {
+            let owned = try await launch(plan, clearance: clearance)
+            try await awaitReadiness(of: owned)
+            return owned
+        }
         try await definition.completeStart()
         return owned.processID
     }
@@ -81,6 +84,26 @@ extension ManagedInstance {
         guard await owned.isAlive() else { throw JerdError.processFailed(messages.exitedDuringCheck) }
     }
 
+    /// Runs `step` (a launch and its readiness check), then removes the secret files of `plan`,
+    /// also when the step fails. A failed removal fails the step, or is added to its error.
+    func removingSecretFiles(
+        of plan: LaunchPlan, during step: () async throws -> OwnedServiceProcess
+    ) async throws -> OwnedServiceProcess {
+        let outcome: Result<OwnedServiceProcess, any Error>
+        do {
+            outcome = .success(try await step())
+        } catch {
+            outcome = .failure(error)
+        }
+        do {
+            try plan.removeSecretFiles()
+        } catch {
+            guard case .failure(let failure) = outcome else { throw error }
+            throw SecretFiles.combine(error, after: failure)
+        }
+        return try outcome.get()
+    }
+
     /// Stops what the start left behind and sets `failed` or `stuck`.
     private func failStart(_ error: any Error, keepLock: Bool) async -> JerdError {
         let kind = (error as? JerdError)?.kind ?? .processFailed
@@ -101,8 +124,11 @@ extension ManagedInstance {
     /// Runs one setup phase (see `SetupPhaseRunning`) inside the current start.
     func runSetupPhase(_ plan: LaunchPlan, clearance: StartClearance) async throws {
         guard state == .starting else { throw JerdError.unavailable(messages.busy) }
-        let owned = try await launch(plan, clearance: clearance)
-        try await awaitReadiness(of: owned)
+        let owned = try await removingSecretFiles(of: plan) {
+            let owned = try await launch(plan, clearance: clearance)
+            try await awaitReadiness(of: owned)
+            return owned
+        }
         let result = await stopOwned(owned, keepLock: true, intent: .startStep)
         if let message = result.failureMessage { throw RetainedProcessError(message: message) }
     }

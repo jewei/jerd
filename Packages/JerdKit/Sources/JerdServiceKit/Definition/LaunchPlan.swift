@@ -15,6 +15,10 @@ public struct LaunchPlan: Sendable {
     /// Files and folders of this launch only (for example a socket folder). They are removed when
     /// the process has stopped, or when the launch fails before a process is owned.
     public var temporaryItems: [URL]
+    /// Private files with a secret that the process reads only while it starts, for example the
+    /// bootstrap SQL of a first start. They are removed when the readiness check ends, passed or
+    /// not, so a later stop timeout cannot keep them. A failed removal fails the step.
+    public var secretFiles: [URL]
     /// Runs once when the launch ends: after its process stopped (by a Stop, after an exit, or
     /// after a reap outside Jerd), or when the launch fails before a process is owned. It runs
     /// after the temporary items are removed. Use it to release resources that are not files,
@@ -23,20 +27,21 @@ public struct LaunchPlan: Sendable {
 
     public init(
         request: ProcessRequest, ports: Set<UInt16>, readiness: ReadinessCheck, secrets: [String] = [],
-        temporaryItems: [URL] = [], didStop: (@Sendable () -> Void)? = nil
+        temporaryItems: [URL] = [], secretFiles: [URL] = [], didStop: (@Sendable () -> Void)? = nil
     ) {
         self.request = request
         self.ports = ports
         self.readiness = readiness
         self.secrets = secrets
         self.temporaryItems = temporaryItems
+        self.secretFiles = secretFiles
         self.didStop = didStop
     }
 
     /// Removes the temporary items. A missing item is not an error.
     ///
     /// A failed removal is not reported: the items are private to this launch and hold no user
-    /// data, and the next launch uses new names.
+    /// data or secret (secrets go in `secretFiles`), and the next launch uses new names.
     public func removeTemporaryItems() {
         for item in temporaryItems where FileProbe.presence(at: item).mayExist {
             try? FileManager.default.removeItem(at: item)

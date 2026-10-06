@@ -44,6 +44,9 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   that stop. An exit stop never makes Quit fail.
 - A child that something else reaped is checked through its record. A live group keeps the
   record and releases the lock, so that Process recovery can act.
+- The secret files of a launch (`LaunchPlan.secretFiles`, for example a bootstrap SQL file with
+  a password) are removed when its readiness check ends, passed or not. A later stop timeout
+  cannot keep them. A failed removal fails the step and names the file.
 - Each launch ends once: after its process stopped (Stop, exit, or a reap outside Jerd), or
   when the launch fails before a process is owned. Then its temporary items are removed and
   `LaunchPlan.didStop` runs, so a service can release resources that are not files, for example

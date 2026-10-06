@@ -55,6 +55,11 @@ public struct ServiceMessages: Sendable, Equatable {
         "The service process ended outside Jerd's control. Jerd released the data lock so that "
         + "Advanced → Process recovery can inspect the saved process."
 
+    /// A private file with a secret is still on disk after its step. `details` names each file.
+    public static func secretFilesKept(_ details: [String]) -> String {
+        "\(details.joined(separator: " ")) It holds a secret. Remove it by hand."
+    }
+
     /// A maintenance lease or a stop request names an operation that is not current.
     public static let staleLease = "The service operation is no longer current. Retry the operation."
 }
