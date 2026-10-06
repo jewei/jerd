@@ -6,6 +6,8 @@ package struct SnapshotEntry: Identifiable {
     package let sizes: [SnapshotSize]
     package let appearances: [SnapshotAppearance]
     package let chrome: SnapshotChrome
+    /// Where the scroll views stand in the capture.
+    package let scroll: SnapshotScrollPosition
     /// Whether asynchronous content has loaded. The renderer waits for it.
     package let isReady: @MainActor () -> Bool
     package let makeView: @MainActor () -> AnyView
@@ -14,13 +16,15 @@ package struct SnapshotEntry: Identifiable {
 
     package init(
         name: String, sizes: [SnapshotSize], appearances: [SnapshotAppearance] = SnapshotAppearance.standard,
-        chrome: SnapshotChrome, isReady: @escaping @MainActor () -> Bool = { true },
+        chrome: SnapshotChrome, scroll: SnapshotScrollPosition = .top,
+        isReady: @escaping @MainActor () -> Bool = { true },
         makeView: @escaping @MainActor () -> AnyView
     ) {
         self.name = name
         self.sizes = sizes
         self.appearances = appearances
         self.chrome = chrome
+        self.scroll = scroll
         self.isReady = isReady
         self.makeView = makeView
     }

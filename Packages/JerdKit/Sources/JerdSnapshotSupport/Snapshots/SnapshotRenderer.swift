@@ -24,10 +24,12 @@ package struct SnapshotRenderer {
 
     /// Renders `content` in a window of `size`, in the given appearance. The renderer runs
     /// layout passes until `isReady` is true and two passes in a row draw the same pixels.
-    /// - Parameter name: The file name of the rendering, for error messages.
+    /// - Parameters:
+    ///   - name: The file name of the rendering, for error messages.
+    ///   - scroll: Where the scroll views stand in the capture.
     package func render(
         _ content: some View, size: SnapshotSize, appearance: SnapshotAppearance, chrome: SnapshotChrome,
-        name: String = "snapshot", isReady: @MainActor () -> Bool = { true }
+        scroll: SnapshotScrollPosition = .top, name: String = "snapshot", isReady: @MainActor () -> Bool = { true }
     ) async throws -> NSBitmapImageRep {
         _ = NSApplication.shared
         let hostingView = NSHostingView(rootView: SnapshotRoot(content: content, appearance: appearance))
@@ -43,7 +45,7 @@ package struct SnapshotRenderer {
         let target = targetView(of: window, chrome: chrome, hostingView: hostingView)
 
         try await resize(window, hostingView: hostingView, to: size, name: name, isReady: isReady)
-        let image = try await settledImage(of: target, in: window, name: name, isReady: isReady)
+        let image = try await settledImage(of: target, in: window, scroll: scroll, name: name, isReady: isReady)
         let expected = CGSize(width: size.width, height: size.height ?? target.bounds.height)
         guard target.bounds.size == expected else {
             throw SnapshotError.sizeMismatch(name, expected: expected, actual: target.bounds.size)
@@ -54,10 +56,11 @@ package struct SnapshotRenderer {
     /// Renders `content` and encodes the result as PNG data.
     package func renderPNG(
         _ content: some View, size: SnapshotSize, appearance: SnapshotAppearance, chrome: SnapshotChrome,
-        name: String = "snapshot", isReady: @MainActor () -> Bool = { true }
+        scroll: SnapshotScrollPosition = .top, name: String = "snapshot", isReady: @MainActor () -> Bool = { true }
     ) async throws -> Data {
         let image = try await render(
-            content, size: size, appearance: appearance, chrome: chrome, name: name, isReady: isReady)
+            content, size: size, appearance: appearance, chrome: chrome, scroll: scroll, name: name,
+            isReady: isReady)
         guard let data = image.representation(using: .png, properties: [:]), !data.isEmpty else {
             throw SnapshotError.encodingFailed(name)
         }
@@ -89,7 +92,7 @@ package struct SnapshotRenderer {
         hostingView.sizingOptions = [.intrinsicContentSize]
         defer { hostingView.sizingOptions = [] }
         for _ in 0..<3 {
-            _ = try await settledImage(of: hostingView, in: window, name: name, isReady: isReady)
+            _ = try await settledImage(of: hostingView, in: window, scroll: .top, name: name, isReady: isReady)
             let height = hostingView.intrinsicContentSize.height.rounded(.up)
             guard height > 0, height != window.frame.height else { return }
             setContentSize(of: window, width: size.width, height: height)
@@ -110,11 +113,14 @@ package struct SnapshotRenderer {
 
     /// Runs passes until the view is ready and two passes in a row draw the same pixels.
     private func settledImage(
-        of view: NSView, in window: NSWindow, name: String, isReady: @MainActor () -> Bool
+        of view: NSView, in window: NSWindow, scroll: SnapshotScrollPosition, name: String,
+        isReady: @MainActor () -> Bool
     ) async throws -> NSBitmapImageRep {
         var previous: NSBitmapImageRep?
         for pass in 1...maximumPasses {
-            guard let image = drawPass(window: window, view: view) else { throw SnapshotError.emptyImage(name) }
+            guard let image = drawPass(window: window, view: view, scroll: scroll) else {
+                throw SnapshotError.emptyImage(name)
+            }
             if pass >= Self.minimumPasses, isReady(), let previous, Self.samePixels(previous, image) {
                 return image
             }
@@ -125,13 +131,17 @@ package struct SnapshotRenderer {
         throw SnapshotError.notSettled(name, passes: maximumPasses)
     }
 
-    /// Lays out and draws the window once, then captures `view`.
-    private func drawPass(window: NSWindow, view: NSView) -> NSBitmapImageRep? {
+    /// Lays out and draws the window once, then captures `view`. For an end capture it scrolls
+    /// after the layout, so the scroll target uses the current content height.
+    private func drawPass(window: NSWindow, view: NSView, scroll: SnapshotScrollPosition) -> NSBitmapImageRep? {
         var image: NSBitmapImageRep?
         window.effectiveAppearance.performAsCurrentDrawingAppearance {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             window.layoutIfNeeded()
+            if scroll == .end, let content = window.contentView {
+                SnapshotScroller.scrollToEnd(in: content)
+            }
             view.layoutSubtreeIfNeeded()
             view.displayIfNeeded()
             CATransaction.commit()
