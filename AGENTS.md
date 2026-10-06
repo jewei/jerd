@@ -158,5 +158,7 @@ Implement only the approved features:
 ## Workflow
 
 - Work on a branch. Make small commits with a clear subject line.
+- For each change that users see, add one `- ` line under `## [Unreleased]` in
+  `CHANGELOG.md`. Sparkle shows these notes as plain text.
 - Run `./dev check` before you push.
 - Report in ASD-STE100 Simplified Technical English.
