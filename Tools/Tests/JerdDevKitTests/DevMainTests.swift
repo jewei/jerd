@@ -158,5 +158,8 @@ struct DevMainTests {
         for command in ["check", "test", "build", "snapshots", "format", "lint", "generate", "doctor", "clean"] {
             #expect(help.contains("  \(command) "))
         }
+        #expect(help.contains("128 plus the signal number"))
+        #expect(help.contains("Add --json"))
+        #expect(DevCommand.helpMessage(for: CheckCommand.self).contains("dev check [<subcommand>]"))
     }
 }
