@@ -6,6 +6,9 @@ extension FixtureScenario {
     @MainActor
     public func prepare(_ fixture: AppFixture) async {
         let state = fixture.state
+        if self == .quitting {
+            await fixture.services.storage.configure { $0.stopBehavior = .suspend }
+        }
         await state.launch()
         switch self {
         case .runtimesChecked:
@@ -16,9 +19,6 @@ extension FixtureScenario {
         case .advanced:
             await state.advanced.inspect()?.value
         case .quitting:
-            if let storage = fixture.features.first(where: { $0.section == .storage }) {
-                storage.stopsSafely = nil
-            }
             _ = state.requestTermination { _ in }
         case .aboutUpdateError:
             fixture.updater.send(.checkStarted)
