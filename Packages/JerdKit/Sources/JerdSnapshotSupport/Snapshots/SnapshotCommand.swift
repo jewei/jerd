@@ -42,7 +42,23 @@ package struct SnapshotCommand {
             return .success
         }
         host.prepareProcess(contrast: options.contrast)
+        if options.checkOnly { return await check(entries) }
         return await render(entries, options: options)
+    }
+
+    /// Renders each entry once and writes nothing; the first failure names its entry.
+    private func check(_ entries: [SnapshotEntry]) async -> SnapshotExitStatus {
+        let renderer = SnapshotRenderer()
+        do {
+            for entry in entries {
+                try await renderer.check(entry)
+            }
+        } catch {
+            host.writeError("Snapshots failed: \(error)")
+            return .failure
+        }
+        host.write("Checked \(entries.count) snapshots")
+        return .success
     }
 
     private func catalogProblem(filters: [String]) -> (message: String, status: SnapshotExitStatus)? {

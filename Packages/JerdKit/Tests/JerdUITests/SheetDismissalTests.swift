@@ -5,12 +5,11 @@ import Testing
 
 @testable import JerdUI
 
-/// A sheet that AppKit ends without its buttons, for example when Quit ends every open sheet,
-/// ends exactly as its Cancel ends it. No sheet asks before it ends, so Quit does not ask
-/// either (see the JerdUI README, "Sheets and Quit").
-// The full run renders snapshots on the main actor for minutes, so the limit is wide; it only
-// stops a hang.
-@Suite("Sheet dismissal", .timeLimit(.minutes(5)))
+/// A sheet that ends without its buttons ends exactly as its Cancel ends it. When AppKit ends a
+/// sheet (Quit ends every open sheet with `ApplicationQuit.endSheets`), SwiftUI clears the
+/// sheet binding; these tests clear the binding, or call the dismissal that the binding runs.
+/// No sheet asks before it ends, so Quit does not ask either (JerdUI README, "Sheets and Quit").
+@Suite("Sheet dismissal", .timeLimit(.minutes(1)))
 @MainActor
 struct SheetDismissalTests {
     @Test("A dismissal by SwiftUI runs the sheet's own dismissal; a new item never does")
@@ -38,7 +37,7 @@ struct SheetDismissalTests {
         #expect(dismissals == 1)
     }
 
-    @Test("An HTTPS approval sheet that AppKit ends discards the waiting change, as Cancel does")
+    @Test("Clearing the HTTPS approval sheet binding discards the waiting change, as Cancel does")
     func approvalDismissalDiscards() async throws {
         let port = InMemorySitesPort(setup: HTTPSSetupStatus())
         let harness = await SitesHarness.launched(sites: port)
@@ -52,7 +51,7 @@ struct SheetDismissalTests {
         #expect(await port.calls.contains("discard"))
     }
 
-    @Test("A site editor that AppKit ends closes without a save")
+    @Test("The site editor dismissal closes the editor without a save")
     func siteEditorDismissal() async {
         let harness = await SitesHarness.launched()
         harness.model.beginAdd()
@@ -62,7 +61,7 @@ struct SheetDismissalTests {
         #expect(harness.model.operation == .idle)
     }
 
-    @Test("A tunnel editor that AppKit ends forgets the typed token")
+    @Test("Clearing the tunnel editor binding forgets the typed token")
     func tunnelEditorDismissalClearsToken() async throws {
         let harness = await SitesHarness.launched()
         let model = harness.model.tunnels
@@ -74,7 +73,7 @@ struct SheetDismissalTests {
         #expect(editor.token.isEmpty)
     }
 
-    @Test("A database sheet that AppKit ends drops its draft, as Cancel does")
+    @Test("The database sheet dismissal drops the editor and restore drafts, as Cancel does")
     func databaseDismissalDropsDraft() async {
         let fixture = AppFixture(services: InMemoryServicePorts(.populated))
         await fixture.state.launch()

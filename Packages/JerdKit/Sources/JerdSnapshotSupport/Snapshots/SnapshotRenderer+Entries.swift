@@ -16,4 +16,15 @@ extension SnapshotRenderer {
         }
         return result
     }
+
+    /// Renders an entry once, at its first size in its first appearance of this process, and
+    /// throws when it does not settle, is not ready, or has the wrong size.
+    package func check(_ entry: SnapshotEntry) async throws {
+        guard let size = entry.sizes.first,
+            let appearance = entry.appearances.first(where: { $0.contrast == .standard })
+        else { return }
+        _ = try await render(
+            entry.makeView(), size: size, appearance: appearance, chrome: entry.chrome, scroll: entry.scroll,
+            name: entry.fileName(appearance: appearance, size: size), isReady: entry.isReady)
+    }
 }

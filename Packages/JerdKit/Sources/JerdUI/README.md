@@ -89,7 +89,9 @@ The decision, checked against the macOS Human Interface Guidelines:
   sheet already started is not cut: the staged quit waits for it.
 - Every presenter builds its binding with `SheetBinding`. When SwiftUI or AppKit ends a sheet,
   the binding runs the sheet's own dismissal (`dismissSheet()`, `cancelEditor()`,
-  `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves it.
+  `cancelPorts()`, …) and never only clears the value. `SheetDismissalTests` proves the binding
+  and each dismissal. That AppKit's `endSheet` clears the binding is SwiftUI behavior; the live
+  run checks it.
 - If a sheet ever holds input that is expensive to type again, it asks once, with the same
   alert, from its Cancel and from Quit; never from only one of them.
 
@@ -204,7 +206,9 @@ case mailRunning = "mail-running"   // in the scenario enum, with its navigation
 ```
 
 The images are in `.build/snapshots`, named `<scenario>-<light|dark>-<standard|compact|full>.png`.
-Look at every image after a change. `PageSnapshotTests` renders every scenario. The compact
+Look at every image after a change. `PageSnapshotTests` renders every scenario once with
+`jerd-snapshots --check`, in its own process, so the rendering never holds the main actor of
+the test run. The compact
 images are the minimum window (820 × 540, toolbar included): nothing may be cut off there.
 
 ## Test

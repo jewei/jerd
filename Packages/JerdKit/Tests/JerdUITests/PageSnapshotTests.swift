@@ -1,3 +1,4 @@
+import Foundation
 import JerdDesign
 import JerdUIFixtures
 import SwiftUI
@@ -25,29 +26,15 @@ struct PageSnapshotTests {
         #expect(pages.allSatisfy { Set(SnapshotSize.windowSizes).isSubset(of: $0.sizes) })
     }
 
-    @Test("Every registered page renders at the compact window size", arguments: FixtureScenario.allCases)
-    func rendersPage(scenario: FixtureScenario) async throws {
-        var catalog = SnapshotCatalog()
-        catalog.addJerdPages()
-        let entry = try #require(catalog.entries.first { $0.name == scenario.rawValue })
-        let image = try await SnapshotRenderer().render(
-            entry.makeView(), size: .compact, appearance: .light, chrome: entry.chrome, name: entry.name,
-            isReady: entry.isReady)
-        #expect(image.pixelsWide == 1640)
-        #expect(entry.isReady())
-    }
-
-    @Test("Every Sites and tunnel sheet renders with its content", arguments: SitesSheetScenario.allCases)
-    func rendersSheet(scenario: SitesSheetScenario) async throws {
-        var catalog = SnapshotCatalog()
-        catalog.addJerdPages()
-        let entry = try #require(catalog.entries.first { $0.name == scenario.rawValue })
-        let size = try #require(entry.sizes.first)
-        let image = try await SnapshotRenderer().render(
-            entry.makeView(), size: size, appearance: .dark, chrome: entry.chrome, name: entry.name,
-            isReady: entry.isReady)
-        #expect(image.pixelsWide == 1280)
-        #expect(entry.isReady())
+    /// Renders every page and Sites sheet once in the built `jerd-snapshots`, in its own
+    /// process. In this process the renderings held the main actor for over a minute in slices
+    /// of about 0.25 s, so other main-actor suites ran up to 30 s and could pass their limits.
+    @Test("Every registered page and Sites sheet renders, in a separate process")
+    func everyPageAndSheetRenders() async throws {
+        let names = FixtureScenario.allCases.map(\.rawValue) + SitesSheetScenario.allCases.map(\.rawValue)
+        let result = try await SnapshotProcess.run(["--check"] + names)
+        #expect(result.status == 0, "jerd-snapshots --check failed: \(result.errors)")
+        #expect(result.output.contains("Checked "))
     }
 
     @Test("Hidden retained pages announce nothing; the visible page speaks")
