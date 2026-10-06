@@ -7,4 +7,10 @@ enum CancelledSave {
         guard let error, !(error is CancellationError) else { return nil }
         return .failed(message: ErrorText.message(for: error))
     }
+
+    /// The one line that the page shows while a cancelled save still runs, because the save
+    /// keeps `controls` off until it ends.
+    static func pendingMessage(_ controls: String) -> String {
+        "A cancelled change is still finishing. \(controls) wait for it."
+    }
 }

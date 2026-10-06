@@ -2,6 +2,14 @@ import Foundation
 import JerdDatabases
 
 extension DatabasesModel {
+    /// Why Add, Edit, and Remove are off after the user cancelled a sheet whose save still
+    /// runs, or nil. The page shows it, because the closed sheet cannot.
+    public var cancelledSaveMessage: String? {
+        let editorRuns = editorOperation.isWorking && sheet != .editor
+        let restoreRuns = restoreOperation.isWorking && sheet != .restore
+        return editorRuns || restoreRuns ? CancelledSave.pendingMessage("Add, Edit, and Remove") : nil
+    }
+
     /// Opens the Add sheet for `engine` and asks for a free port.
     public func beginAdd(_ engine: DatabaseEngine) {
         guard canAdd else { return }

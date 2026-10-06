@@ -43,7 +43,7 @@ struct SheetCancelTests {
 
     // MARK: Databases
 
-    @Test("Cancel during Add keeps the registry locked until the save ends")
+    @Test("Cancel during Add keeps the registry locked until the save ends, and the page says why")
     func databaseCancelKeepsLock() async throws {
         let (databases, gate) = await gatedDatabases()
         let fixture = await launched(databases: databases)
@@ -53,17 +53,21 @@ struct SheetCancelTests {
         model.editor?.setPort("3307")
         let task = try #require(model.saveEditor())
         await waitForHold(gate)
+        #expect(model.cancelledSaveMessage == nil)
         model.closeEditor()
         #expect(model.sheet == nil)
         #expect(model.editor == nil)
         #expect(!model.canChangeRegistry)
         #expect(model.isBusy)
+        #expect(
+            model.cancelledSaveMessage == "A cancelled change is still finishing. Add, Edit, and Remove wait for it.")
         model.beginAdd(.postgresql)
         #expect(model.sheet == nil)
         await gate.open()
         await task.value
         #expect(model.canChangeRegistry)
         #expect(model.editorOperation == .idle)
+        #expect(model.cancelledSaveMessage == nil)
     }
 
     @Test("An Add that ends after Cancel does not close a newer sheet, select, or start the service")
@@ -116,15 +120,18 @@ struct SheetCancelTests {
         model.beginRestore(SampleServices.retained[0])
         let task = try #require(model.saveRestore())
         await waitForHold(gate)
+        #expect(model.cancelledSaveMessage == nil)
         model.closeRestore()
         #expect(model.sheet == nil)
         #expect(!model.canChangeRegistry)
+        #expect(model.cancelledSaveMessage != nil)
         model.showRetained()
         await gate.open()
         await task.value
         #expect(model.sheet == .retained)
         #expect(fixture.state.navigation.selection(in: .databases) == nil)
         #expect(model.canChangeRegistry)
+        #expect(model.cancelledSaveMessage == nil)
     }
 
     // MARK: Storage
@@ -149,10 +156,12 @@ struct SheetCancelTests {
         model.bucketDraft?.name = "uploads"
         let task = try #require(model.saveBucket())
         await waitForHold(gate)
+        #expect(model.cancelledSaveMessage == nil)
         model.cancelAddBucket()
         #expect(model.bucketDraft == nil)
         #expect(!model.canAddBucket)
         #expect(!model.canChange)
+        #expect(model.cancelledSaveMessage == "A cancelled change is still finishing. Storage controls wait for it.")
         model.beginAddBucket()
         #expect(model.bucketDraft == nil)
         await gate.open()
@@ -161,6 +170,7 @@ struct SheetCancelTests {
         #expect(fixture.state.navigation.selection(in: .storage) == nil)
         #expect(model.bucket(named: "uploads")?.setupComplete == true)
         #expect(model.canAddBucket)
+        #expect(model.cancelledSaveMessage == nil)
     }
 
     @Test("An Add Bucket that fails after Cancel shows the failure as the page banner")
@@ -193,11 +203,13 @@ struct SheetCancelTests {
         model.cancelPorts()
         #expect(model.portsDraft == nil)
         #expect(!model.canEditPorts)
+        #expect(model.cancelledSaveMessage != nil)
         model.editPorts()
         #expect(model.portsDraft == nil)
         await gate.open()
         await task.value
         #expect(model.canEditPorts)
+        #expect(model.cancelledSaveMessage == nil)
         model.editPorts()
         #expect(model.portsDraft == PortsDraft(first: 9100, second: 9101))
     }
@@ -223,7 +235,7 @@ struct SheetCancelTests {
 
     // MARK: Mail
 
-    @Test("Cancel during a mail port change keeps the lock; a late failure shows in the page")
+    @Test("Cancel during a mail port change keeps the lock and says why; a late failure shows in the page")
     func mailPortsCancel() async throws {
         let gate = FixtureGate()
         let mail = InMemoryMail(settings: MailSettings(runtime: SampleServices.mailRuntime), hasData: true)
@@ -238,10 +250,12 @@ struct SheetCancelTests {
         model.portsDraft?.second = "8030"
         let task = try #require(model.savePorts())
         await waitForHold(gate)
+        #expect(model.cancelledSaveMessage == nil)
         model.cancelPorts()
         #expect(model.portsDraft == nil)
         #expect(!model.canEditPorts)
         #expect(!model.canStart)
+        #expect(model.cancelledSaveMessage == "A cancelled change is still finishing. Mail controls wait for it.")
         model.editPorts()
         #expect(model.portsDraft == nil)
         await gate.open()
@@ -249,5 +263,6 @@ struct SheetCancelTests {
         #expect(model.operation == .failed(message: "Port 8030 is in use."))
         #expect(model.portsOperation == .idle)
         #expect(model.canEditPorts)
+        #expect(model.cancelledSaveMessage == nil)
     }
 }

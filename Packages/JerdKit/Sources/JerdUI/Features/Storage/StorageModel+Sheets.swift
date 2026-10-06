@@ -1,6 +1,17 @@
 import JerdStorage
 
 extension StorageModel {
+    /// True while the Add Bucket or the ports sheet shows.
+    public var isShowingSheet: Bool { bucketDraft != nil || portsDraft != nil }
+
+    /// Why the storage controls are off after the user cancelled a sheet whose save still
+    /// runs, or nil. The page shows it, because the closed sheet cannot.
+    public var cancelledSaveMessage: String? {
+        let bucketRuns = bucketOperation.isWorking && bucketDraft == nil
+        let portsRun = portsOperation.isWorking && portsDraft == nil
+        return bucketRuns || portsRun ? CancelledSave.pendingMessage("Storage controls") : nil
+    }
+
     /// Opens the Add Bucket sheet with a private bucket.
     public func beginAddBucket() {
         guard canAddBucket else { return }

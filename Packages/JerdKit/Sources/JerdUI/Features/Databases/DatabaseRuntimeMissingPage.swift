@@ -8,19 +8,12 @@ import SwiftUI
 struct DatabaseRuntimeMissingPage: View {
     let model: DatabasesModel
     let service: DatabaseService
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: Spacing.small) {
-                ServiceStateBanner(
-                    state: model.state(of: service.id), subject: service.name, stopTitle: "Stop Service",
-                    identifier: "database")
-                if let message = model.operation.workingMessage {
-                    InlineMessage(message, kind: .info, style: .banner, identifier: "databases.working")
-                }
-                OperationFailureBanner(operation: model.operation, identifier: "databases.error") {
-                    model.dismissFailure()
-                }
+                DatabasesPageMessages(model: model, service: service)
             }
             .padding(.horizontal, Spacing.large)
             .padding(.top, Spacing.large)
@@ -35,7 +28,7 @@ struct DatabaseRuntimeMissingPage: View {
                     Button("Show Data Folder") { model.revealData(service.id) }
                 }
                 Button("Remove Registration…", role: .destructive) { model.requestRemove(service.id) }
-                    .disabled(!model.canRemove(service.id))
+                    .disabled(isQuitting || !model.canRemove(service.id))
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))

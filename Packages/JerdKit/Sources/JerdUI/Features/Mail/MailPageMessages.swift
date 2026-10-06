@@ -1,8 +1,8 @@
 import JerdDesign
 import SwiftUI
 
-/// The banners of the Mail page: a failed load, the service state, a missing runtime, and the
-/// last failed operation. Each problem shows once.
+/// The banners of the Mail page: a failed load, the service state, a missing runtime, a
+/// cancelled save that still runs, and the last failed operation. Each problem shows once.
 struct MailPageMessages: View {
     let model: MailModel
 
@@ -16,6 +16,9 @@ struct MailPageMessages: View {
                 identifier: "mail.no-runtime")
         }
         ServiceStateBanner(state: model.state, subject: "Mail", stopTitle: "Stop Mail", identifier: "mail")
+        if let message = model.cancelledSaveMessage {
+            InlineMessage(message, kind: .info, style: .banner, identifier: "mail.cancelled-save")
+        }
         OperationFailureBanner(operation: model.operation, identifier: "mail.error") {
             model.dismissFailure()
         }
