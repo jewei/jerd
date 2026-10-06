@@ -18,6 +18,32 @@ struct CopyConsistencyTests {
         #expect(items.contains { $0.title == AppUpdatesModel.checkTitle })
     }
 
+    @Test("The Runtimes check and the app update check have different visible titles")
+    func runtimeCheckTitleDiffers() {
+        #expect(RuntimeCopy.checkTitle == "Check for Runtime Updates")
+        #expect(RuntimeCopy.checkTitle != AppUpdatesModel.checkTitle)
+        #expect(!AppUpdatesModel.checkTitle.hasPrefix(RuntimeCopy.checkTitle))
+        #expect(RuntimeCopy.notCheckedMessage.contains("Select \(RuntimeCopy.checkTitle) "))
+    }
+
+    @Test("Every sidebar footer uses one caption rule: none when empty, running only when it runs")
+    func sidebarCaption() {
+        #expect(SidebarCaption.text(count: 0, singular: "site", plural: "sites", running: 0) == nil)
+        #expect(SidebarCaption.text(count: 0, singular: "bucket", plural: "buckets") == nil)
+        #expect(SidebarCaption.text(count: 1, singular: "service", plural: "services", running: 0) == "1 service")
+        #expect(SidebarCaption.text(count: 3, singular: "site", plural: "sites", running: 2) == "3 sites · 2 running")
+        #expect(SidebarCaption.text(count: 2, singular: "bucket", plural: "buckets") == "2 buckets")
+    }
+
+    @Test("A site that needs HTTPS setup shows one tone: the header status and the banner match")
+    func setupRequiredHasOneTone() {
+        let header = SiteStatusPolicy.environment(.setupRequired)
+        let banner = SystemSetupState.approvalRequired.kind
+        #expect(header.tone == .attention)
+        #expect(banner == .warning)
+        #expect(banner.systemImage == header.tone.systemImage)
+    }
+
     @Test("The release picker shows the version only; the Installed label marks an installed release")
     func releaseLabel() {
         let release = SampleData.release(.caddy, "2.10.2")

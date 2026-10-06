@@ -13,8 +13,10 @@ public enum SystemSetupState: Equatable, Sendable {
 
     public var kind: MessageKind {
         switch self {
-        case .approvalRequired, .inProgress: .info
-        case .recoveryPending: .warning
+        // A removed setup is the same cause as the header's "Setup required" (attention), so it
+        // uses the same orange triangle.
+        case .inProgress: .info
+        case .approvalRequired, .recoveryPending: .warning
         case .unreadable: .error
         }
     }

@@ -40,8 +40,8 @@ struct RuntimesPage: View {
 
     private var checkAction: PageAction {
         PageAction(
-            "Check for Updates", systemImage: "arrow.clockwise", isEnabled: model.canCheck,
-            accessibilityLabel: "Check for runtime updates", identifier: "runtimes.check"
+            RuntimeCopy.checkTitle, systemImage: "arrow.clockwise", isEnabled: model.canCheck,
+            identifier: "runtimes.check"
         ) {
             model.check()
         }
