@@ -1,6 +1,7 @@
 import AppKit
 import JerdDesign
 import JerdFoundation
+import JerdTestSupport
 import JerdUI
 import SwiftUI
 
