@@ -51,4 +51,16 @@ struct AccessibilityIdentifierTests {
             InlineMessage("Failed.", kind: .error, identifier: "site.error", dismiss: {}).dismissIdentifier
                 == "site.error.dismiss")
     }
+
+    @Test("Message details have a stable identifier, and empty details show no disclosure")
+    func messageDetails() {
+        let details = InlineMessageDetails(title: "Last log lines", lines: ["[ERROR] Aborting"])
+        #expect(
+            InlineMessage("Failed.", kind: .error, identifier: "mail.failed").detailsIdentifier == "mail.failed.details"
+        )
+        #expect(InlineMessage("Failed.", kind: .error).detailsIdentifier == "message.error.details")
+        #expect(InlineMessage("Failed.", kind: .error, details: details).details == details)
+        let empty = InlineMessageDetails(title: "Last log lines", lines: [])
+        #expect(InlineMessage("Failed.", kind: .error, details: empty).details == nil)
+    }
 }

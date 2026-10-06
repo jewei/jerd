@@ -72,7 +72,7 @@ The symbols differ from the old app on purpose:
 | `ActionRow` | A title, optional detail, and trailing buttons in a form. |
 | `PathRow` | Every file or folder path, with Show in Finder. |
 | `FormFooter` | The one style for text under a form section. |
-| `InlineMessage` | A message in a row, or a dismissible banner at the top of a page. |
+| `InlineMessage` | A message in a row, or a dismissible banner at the top of a page. Optional `InlineMessageDetails` show extra lines, for example the end of a log, behind a disclosure. |
 | `EmptyState` | A page with no content yet, with its first action. |
 | `SheetScaffold`, `SheetConfirmation`, `SheetSecondaryAction` | Every sheet. Escape cancels. Return confirms if not destructive. |
 | `SummaryCard` | A dashboard card: icon, title, status, summary, actions, Open. |
