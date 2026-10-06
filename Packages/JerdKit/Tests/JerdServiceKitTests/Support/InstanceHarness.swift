@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import os
 
 /// A managed instance with fake processes, fake `lsof`, a fake clock, and a temporary folder.
@@ -10,7 +11,7 @@ final class InstanceHarness: Sendable {
     static let secret = "s3cr3t-password-value"
 
     let directory: TemporaryDirectory
-    let processes = FakeProcessController()
+    let processes: FakeProcessController
     let lsof: FakeLsof
     let commands: ScriptedCommands
     let clock = FakeTimeKeeper()
@@ -21,12 +22,15 @@ final class InstanceHarness: Sendable {
     let id = UUID()
     private let version = OSAllocatedUnfairLock(initialState: "server 1.2.3")
 
-    init(ports: [UInt16] = [41_001]) throws {
+    /// - Parameter exitScript: decides which fake children exit at once, for example an initializer.
+    init(ports: [UInt16] = [41_001], exitScript: FakeProcessController.ExitScript? = nil) throws {
         directory = try TemporaryDirectory()
+        processes = FakeProcessController(exitScript: exitScript)
         self.ports = ports
         lsof = FakeLsof(processes: processes, servicePorts: Set(ports))
         let version = version
-        commands = ScriptedCommands(lsof: lsof) { request in
+        commands = ScriptedCommands { [lsof] request in
+            if request.executable.lastPathComponent == "lsof" { return await lsof.answer(request.arguments) }
             guard request.arguments == ["--version"] else { return CommandResult(status: 1, output: "") }
             return CommandResult(status: 0, output: version.withLock { $0 })
         }

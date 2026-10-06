@@ -2,6 +2,8 @@
 /// can use a fake.
 public protocol SystemSetupManaging: Sendable {
     func status() async throws -> HTTPSSetupStatus
+    /// This installation's CA, or nil when its ID or `root.crt` is absent.
+    func localAuthority() async throws -> InstallationAuthority?
     /// Creates the installation CA when needed and builds the approval for `hostnames`.
     func prepare(hostnames: [String], caddy: CaddyRuntime) async throws -> HTTPSSetup
     /// Stops the run, then sends the approved registration to the helper.

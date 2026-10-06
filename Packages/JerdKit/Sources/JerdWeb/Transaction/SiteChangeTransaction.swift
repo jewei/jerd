@@ -13,10 +13,10 @@ public actor SiteChangeTransaction {
     let coordinator: any EnvironmentCoordinating
     let gateway: any SystemSetupManaging
     private var busy = false
-    /// The current phase.
-    public private(set) var phase: SiteChangePhase = .idle
-    /// Every phase of the last change, in order.
-    public private(set) var trace: [SiteChangePhase] = []
+    /// The current phase. Tests read it; the app shows the result of a change instead.
+    package private(set) var phase: SiteChangePhase = .idle
+    /// Every phase of the last change, in order, for tests.
+    package private(set) var trace: [SiteChangePhase] = []
 
     public init(
         registry: SiteRegistry, reducer: SiteChangeReducer = SiteChangeReducer(),
@@ -30,35 +30,36 @@ public actor SiteChangeTransaction {
 
     /// Edits the configuration. Validation errors change nothing.
     public func apply(_ change: SiteChange, startIfStopped: Bool = false) async throws -> SiteChangeResult {
-        try await exclusive {
+        try await exclusive { ticket in
             let previous = try await registry.snapshot()
             let candidate = try reducer.reduce(previous, change)
             let request = SiteChangeRequest(
                 previous: previous, candidate: candidate, selection: .keepRunning(startIfStopped: startIfStopped))
-            return try await perform(request, approved: nil, prepared: nil)
+            return try await perform(request, ticket: ticket, approved: nil, prepared: nil)
         }
     }
 
     /// Runs exactly `siteIDs` (Start or Stop of sites). The saved `isEnabled` does not change.
     public func run(_ siteIDs: Set<UUID>) async throws -> SiteChangeResult {
-        try await exclusive {
+        try await exclusive { ticket in
             let current = try await registry.snapshot()
             let enabled = Set(current.sites.filter(\.isEnabled).map(\.id))
             guard siteIDs.isSubset(of: enabled) else {
                 throw JerdError.invalid("The selected sites changed or are disabled. Select the sites again.")
             }
             let request = SiteChangeRequest(previous: current, candidate: current, selection: .exactly(siteIDs))
-            return try await perform(request, approved: nil, prepared: nil)
+            return try await perform(request, ticket: ticket, approved: nil, prepared: nil)
         }
     }
 
     /// Continues a change after the user approved its HTTPS setup.
     public func approve(_ pending: PendingSiteChange) async throws -> AppConfiguration {
-        try await exclusive {
+        try await exclusive { ticket in
             guard try await registry.snapshot() == pending.request.previous else {
                 throw JerdError.unavailable("The site settings changed. Save and approve the edit again.")
             }
-            let result = try await perform(pending.request, approved: pending.setup, prepared: pending.prepared)
+            let result = try await perform(
+                pending.request, ticket: ticket, approved: pending.setup, prepared: pending.prepared)
             guard case .committed(let configuration) = result else {
                 throw JerdError.invalid("The approved site edit could not be applied.")
             }
@@ -66,9 +67,10 @@ public actor SiteChangeTransaction {
         }
     }
 
-    /// The user's Stop. It ends the current change and every run step that began before it.
+    /// The user's Stop: it ends the current change and every run step that began before it,
+    /// prevents the change's rollback from restarting a run, and then stops the run.
     public func requestStop() async {
-        await coordinator.requestStop()
+        await coordinator.stop()
     }
 
     /// Moves to `next` and records it. The only place that changes the phase.
@@ -77,7 +79,9 @@ public actor SiteChangeTransaction {
         trace.append(next)
     }
 
-    private func exclusive<Result: Sendable>(_ body: () async throws -> Result) async throws -> Result {
+    /// Runs one change. Its stop ticket is taken before its first suspension, so a Stop at any
+    /// later moment ends it (review web-r1 L2).
+    private func exclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
         guard !busy else { throw JerdError.unavailable("Wait for the current site edit.") }
         busy = true
         trace = []
@@ -85,6 +89,7 @@ public actor SiteChangeTransaction {
             busy = false
             phase = .idle
         }
-        return try await body()
+        let ticket = await coordinator.ticket()
+        return try await body(ticket)
     }
 }

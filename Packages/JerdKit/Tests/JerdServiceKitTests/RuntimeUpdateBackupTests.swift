@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @Suite struct RuntimeUpdateBackupTests {

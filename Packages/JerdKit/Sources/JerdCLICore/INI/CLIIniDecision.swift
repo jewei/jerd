@@ -9,9 +9,9 @@
 ///
 /// `PHP_INI_SCAN_DIR` points to Jerd's empty folder unless the user set it. `-d` options always
 /// apply after the INI, so they stay effective.
-public struct CLIIniDecision: Equatable, Sendable {
+struct CLIIniDecision: Equatable, Sendable {
     /// Where the INI and the TLS trust of the command come from.
-    public enum Choice: Equatable, Sendable {
+    enum Choice: Equatable, Sendable {
         /// The user's INI selection. Jerd adds no `-c`.
         case userINI
         /// Jerd's INI without the local CA, because the user set trust variables.
@@ -21,27 +21,24 @@ public struct CLIIniDecision: Equatable, Sendable {
     }
 
     /// The environment variables that choose TLS trust for cURL and OpenSSL.
-    public static let trustVariables = ["SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE"]
+    static let trustVariables = ["SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE"]
     /// The environment variable that selects the INI file.
-    public static let iniVariable = "PHPRC"
+    static let iniVariable = "PHPRC"
     /// The environment variable that selects the folder of additional INI files.
-    public static let scanDirectoryVariable = "PHP_INI_SCAN_DIR"
+    static let scanDirectoryVariable = "PHP_INI_SCAN_DIR"
 
-    public let choice: Choice
+    let choice: Choice
     /// True when the launcher sets `PHP_INI_SCAN_DIR` to Jerd's empty folder.
-    public let usesEmptyScanDirectory: Bool
+    let usesEmptyScanDirectory: Bool
 
-    public init(command: CLICommand, arguments: [String], environment: [String: String]) {
-        usesEmptyScanDirectory = environment[Self.scanDirectoryVariable] == nil
-        if environment[Self.iniVariable] != nil || (command == .php && PHPINIArguments.selectINI(arguments)) {
+    init(command: CLICommand, arguments: [String], environment: CLIEnvironment) {
+        usesEmptyScanDirectory = !environment.contains(Self.scanDirectoryVariable)
+        if environment.contains(Self.iniVariable) || (command == .php && PHPINIArguments.selectINI(arguments)) {
             choice = .userINI
-        } else if Self.trustVariables.contains(where: { environment[$0] != nil }) {
+        } else if Self.trustVariables.contains(where: environment.contains) {
             choice = .jerdINIWithUserTrust
         } else {
             choice = .jerdINIWithLocalCA
         }
     }
-
-    /// True when the launcher must prepare the local CA bundle.
-    public var wantsLocalCA: Bool { choice == .jerdINIWithLocalCA }
 }

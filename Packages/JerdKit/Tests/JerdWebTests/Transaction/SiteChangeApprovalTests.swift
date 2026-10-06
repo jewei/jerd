@@ -135,6 +135,7 @@ import Testing
         defer { harness.remove() }
         await harness.transaction.requestStop()
         _ = try await harness.transaction.apply(.caddy(Samples.caddy(path: "/changed")))
+        _ = try await harness.transaction.run([harness.site("demo.test").id])
         #expect(await harness.coordinator.running?.caddy.path == "/changed")
     }
 }

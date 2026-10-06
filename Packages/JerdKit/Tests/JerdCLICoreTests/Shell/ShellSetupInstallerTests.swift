@@ -136,4 +136,38 @@ import Testing
         _ = try await harness.installer().install()
         #expect(linkText(harness.bin.appendingPathComponent("php")) == "JerdCLI")
     }
+
+    /// Review cli-r1 M2: an imported PHP that a site pins is the user's choice and never blocks the setup.
+    @Test func importedPinnedRuntimeIsTrusted() async throws {
+        let harness = try ShellSetupHarness()
+        defer { harness.remove() }
+        let local = try harness.fixture.directory.file("opt/php-custom/bin/php", "custom build", mode: 0o755)
+        let imported = harness.fixture.runtime("8.4.custom", cliPath: local.path)
+        let site = try harness.fixture.site("other", project: "code/other", selection: .pinned(imported.id))
+        try harness.fixture.saveDefault(harness.php, sites: [site], others: [imported])
+        _ = try await harness.installer().install()
+        #expect(linkText(harness.bin.appendingPathComponent("php")) == "JerdCLI")
+    }
+
+    @Test func importedDefaultRuntimeIsTrusted() async throws {
+        let harness = try ShellSetupHarness()
+        defer { harness.remove() }
+        let local = try harness.fixture.directory.file("opt/php/bin/php", "custom build", mode: 0o755)
+        try harness.fixture.saveDefault(harness.fixture.runtime("8.4.custom", cliPath: local.path))
+        _ = try await harness.installer().install()
+        #expect(contents(harness.bin.appendingPathComponent("JerdCLI")) == ShellSetupHarness.launcherBytes)
+    }
+
+    /// Review cli-r1 L1: a BOM file with the exact block is not rewritten, and CRLF bytes stay.
+    @Test func byteOrderMarkAndCRLFFilesKeepTheirBytes() async throws {
+        let bom = Data([0xEF, 0xBB, 0xBF])
+        let current = bom + Data(("export A=1\n\n" + ShellPathBlockEditor.block).utf8)
+        let harness = try ShellSetupHarness(zshrc: current)
+        defer { harness.remove() }
+        try harness.fixture.directory.file("home/.zprofile", "export B=2\r\n")
+        let report = try await harness.installer().install()
+        #expect(contents(harness.zshrc) == current)
+        #expect(report.unchangedFiles == [harness.zshrc])
+        #expect(contents(harness.zprofile) == Data(("export B=2\r\n\r\n" + ShellPathBlockEditor.block).utf8))
+    }
 }

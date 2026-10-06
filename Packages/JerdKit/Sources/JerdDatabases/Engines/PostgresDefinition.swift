@@ -3,20 +3,20 @@ import JerdProcess
 
 /// PostgreSQL 18: `initdb` with SCRAM authentication and a password file, `pgpass` for clients,
 /// and `SIGINT` (fast shutdown) to stop.
-public struct PostgresDefinition: DatabaseEngineDefinition {
-    public let runtime: DatabaseRuntime
-    public let service: DatabaseService
-    public let files: DatabaseInstanceFiles
+package struct PostgresDefinition: DatabaseEngineDefinition {
+    package let runtime: DatabaseRuntime
+    package let service: DatabaseService
+    package let files: DatabaseInstanceFiles
 
-    public init(runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles) {
+    package init(runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles) {
         self.runtime = runtime
         self.service = service
         self.files = files
     }
 
-    public var healthCheck: (command: [String], reply: String) { (["SELECT 42"], "42") }
+    package var healthCheck: (command: [String], reply: String) { (["SELECT 42"], "42") }
 
-    public func serverRequest(sockets: URL) -> ProcessRequest {
+    package func serverRequest(sockets: URL) -> ProcessRequest {
         request(
             "postgres",
             [
@@ -25,7 +25,7 @@ public struct PostgresDefinition: DatabaseEngineDefinition {
             ])
     }
 
-    public func initializerRequest() -> ProcessRequest? {
+    package func initializerRequest() -> ProcessRequest? {
         request(
             "initdb",
             [
@@ -35,15 +35,15 @@ public struct PostgresDefinition: DatabaseEngineDefinition {
     }
 
     /// `init-password`: the password and a newline.
-    public func initializerFiles(_ credentials: DatabaseCredentials) -> [EngineFile] {
+    package func initializerFiles(_ credentials: DatabaseCredentials) -> [EngineFile] {
         [EngineFile(url: files.initPassword, contents: credentials.password + "\n")]
     }
 
-    public func configuration(_ credentials: DatabaseCredentials, sockets: URL) -> EngineFile {
+    package func configuration(_ credentials: DatabaseCredentials, sockets: URL) -> EngineFile {
         EngineFile(url: files.pgpass, contents: "127.0.0.1:\(service.port):*:jerd:\(credentials.password)\n")
     }
 
-    public func clientRequest(_ command: [String], credentials: DatabaseCredentials) -> ProcessRequest {
+    package func clientRequest(_ command: [String], credentials: DatabaseCredentials) -> ProcessRequest {
         request(
             "psql",
             [

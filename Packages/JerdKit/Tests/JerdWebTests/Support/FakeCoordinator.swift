@@ -9,6 +9,7 @@ actor FakeCoordinator: EnvironmentCoordinating {
     private(set) var preflights = 0
     private(set) var launches = 0
     private(set) var halts = 0
+    private(set) var stops = 0
     private(set) var setupRemoved = false
     private(set) var isWaitingInPreflight = false
     private var epoch: UInt64 = 0
@@ -83,6 +84,7 @@ actor FakeCoordinator: EnvironmentCoordinating {
     }
 
     func stop() {
+        stops += 1
         requestStop()
         running = nil
     }

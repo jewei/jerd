@@ -3,11 +3,13 @@ import Foundation
 import JerdFoundation
 
 extension RuntimeUpdateTransaction {
-    /// Copies every existing named item to `runtime-backups/<UUID>/`, then writes the journal.
+    /// Copies every existing named item to `runtime-backups/<UUID>/`, flushes the copies to the
+    /// drive, then writes the journal.
     ///
-    /// A crash before the journal write leaves only an unused backup folder. A symbolic link at a
-    /// name, also a dangling one, stops the update.
-    public func beginBackup(holding lease: MaintenanceLease) async throws -> RuntimeUpdateJournal {
+    /// A crash before the journal write leaves only an unused backup folder. A journal never
+    /// names a copy that a power loss can make incomplete. A symbolic link at a name, also a
+    /// dangling one, stops the update.
+    package func beginBackup(holding lease: MaintenanceLease) async throws -> RuntimeUpdateJournal {
         try requireLease(lease)
         guard !isPending else { throw JerdError.unavailable(Self.pendingMessage) }
         let id = UUID()
@@ -20,13 +22,14 @@ extension RuntimeUpdateTransaction {
             try await ServiceDataCopier.copy(source, to: folder.appendingPathComponent(name))
             present.append(name)
         }
+        try await flushData(present.map { folder.appendingPathComponent($0) }, [folder, backupsDirectory])
         let journal = RuntimeUpdateJournal(id: id, names: names, present: present)
         try MarkerFile.write(journal, to: journalFile)
         return journal
     }
 
     /// Deletes the journal. The backup folder stays.
-    public func commit(holding lease: MaintenanceLease) throws {
+    package func commit(holding lease: MaintenanceLease) throws {
         try requireLease(lease)
         try AtomicFile.remove(journalFile)
     }
@@ -35,8 +38,9 @@ extension RuntimeUpdateTransaction {
     ///
     /// Every backup tree is validated before anything moves. Current items are moved (never
     /// deleted) into `failed-attempt-<UUID>/` in the backup folder. A restore that a crash
-    /// interrupts can run again: the journal stays until the last step.
-    public func restore(holding lease: MaintenanceLease) async throws {
+    /// interrupts can run again: the journal stays until the restored items are flushed to the
+    /// drive.
+    package func restore(holding lease: MaintenanceLease) async throws {
         try requireLease(lease)
         guard isPending else { return }
         let journal = try readJournal()
@@ -58,6 +62,7 @@ extension RuntimeUpdateTransaction {
                 try await ServiceDataCopier.copy(folder.appendingPathComponent(name), to: target)
             }
         }
+        try await flushData(journal.present.map { root.appendingPathComponent($0) }, [failed, root])
         try AtomicFile.remove(journalFile)
     }
 

@@ -19,11 +19,11 @@ import JerdFoundation
 /// A symbolic link or hard link is never replaced: the setup stops and the user adds the block.
 public actor ShellSetupInstaller {
     /// The zsh startup files that can get the PATH block, in the order of the edits.
-    public static let shellFileNames = [".zprofile", ".zshrc"]
+    package static let shellFileNames = [".zprofile", ".zshrc"]
     /// The startup file that the setup creates when none exists.
-    public static let newShellFileName = ".zshrc"
+    package static let newShellFileName = ".zshrc"
     /// The launcher file name in the app bundle and in `bin/`.
-    public static let launcherName = "JerdCLI"
+    package static let launcherName = "JerdCLI"
     static let shellFileLimit = 1_048_576
     static let launcherLimit = 64 * 1_048_576
 
@@ -37,9 +37,9 @@ public actor ShellSetupInstaller {
     /// - Parameters:
     ///   - home: the user's home folder with the zsh startup files.
     ///   - launcher: the signed `JerdCLI` in the app bundle.
-    public init(
+    package init(
         layout: DataLayout, home: URL, launcher: URL,
-        signatures: any LauncherSignatureChecking = CodeSignatureCheck(),
+        signatures: any LauncherSignatureChecking = CodeSignatureCheck.forRunningApp(),
         now: @escaping @Sendable () -> Date = { Date() }, timeZone: TimeZone = .current
     ) {
         self.layout = layout
@@ -51,10 +51,14 @@ public actor ShellSetupInstaller {
     }
 
     /// The installer of the current user for the app at `appBundle`.
+    /// The home and data root follow `HOME` like the launcher and zsh do (`UserHome`). The launcher
+    /// must have the same signer as the running app.
     public static func live(appBundle: URL) -> ShellSetupInstaller {
-        ShellSetupInstaller(
-            layout: .currentUser(), home: FileManager.default.homeDirectoryForCurrentUser,
-            launcher: appBundle.appendingPathComponent("Contents/MacOS/\(launcherName)"))
+        let home = UserHome.current()
+        return ShellSetupInstaller(
+            layout: UserHome.dataLayout(home: home), home: home,
+            launcher: appBundle.appendingPathComponent("Contents/MacOS/\(launcherName)"),
+            signatures: CodeSignatureCheck.forRunningApp())
     }
 
     /// Runs the setup. Nothing changes when a preflight check fails.

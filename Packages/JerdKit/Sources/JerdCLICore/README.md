@@ -22,6 +22,19 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
 (`StandardErrorWriter`), `CLICABundlePreparing` (JerdWeb `PHPCABundleBuilder`), and
 `LauncherSignatureChecking` (`CodeSignatureCheck`).
 
+## App entry points
+
+The app uses only these calls (all on the actor `ShellSetupInstaller`):
+
+| Call | Purpose |
+| --- | --- |
+| `ShellSetupInstaller.live(appBundle:)` | The installer for the current user (`HOME`) and the running app's signer. |
+| `install() throws -> ShellSetupReport` | Runs the setup. `report.summary` gives the lines for the user, with the backup path. |
+| `state() -> CommandLineToolsState` | `.notInstalled`, `.installed`, or `.outdatedLauncher`, with a one-line `summary`. |
+| `refreshLauncherIfInstalled() throws -> Bool` | At app launch: replaces an outdated `bin/JerdCLI` through the same staged, signature-checked path. Shell files do not change. |
+
+The "Install Command-Line Tools" control in Dashboard > Advanced calls `install()`.
+
 ## Rules
 
 - The deepest registered project that contains the folder wins, after symbolic link
@@ -37,14 +50,25 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
   Jerd's `bin` folder once. A missing or empty `PATH` becomes `/usr/bin:/bin`.
 - Errors go to standard error as `Jerd: <message>`, with exit status 1. After `execv`,
   the exit status is PHP's.
-- The setup checks everything before it writes. Every runtime that a command can select
-  (the default and each site pin) must be a verified managed build.
+- Runtime trust, one rule (`CLIRuntimeOrigin`). A managed runtime (below `runtimes/` or
+  `runtime-updates/`, installed by Jerd with a receipt) is verified against its receipt when
+  the shell setup runs; a failure stops the setup. An imported runtime (anywhere else) is
+  trusted, because the user chose it explicitly, and never blocks the setup. The launcher does
+  not hash a runtime on each call (cost); it checks only that the selected executable is a
+  regular file that the user can run.
+- The setup checks everything before it writes.
 - The setup edits the existing `.zprofile` and `.zshrc`, or creates `.zshrc` (mode 0600)
   when neither exists. It never replaces a symbolic link, a hard link, a file of another
-  user, a non-UTF-8 file, or a malformed block. User bytes around the block stay.
+  user, a non-UTF-8 file, or a malformed block. The editor works on bytes: a UTF-8 byte order
+  mark, CRLF line ends, and the bytes around the block stay.
 - Originals go to `shell-backups/<YYYYmmdd-HHMMSS-ffffff>/` (0700, files 0600). Each file
-  is replaced atomically with its mode. A failure restores the files already replaced.
-- The launcher copy `bin/JerdCLI` (0700) must have a valid code signature. The links
+  is replaced atomically with its mode. A new `.zshrc` is created with `RENAME_EXCL`, so a
+  file that appears during the setup stays. A failure restores the files already replaced,
+  but only while they still have the setup's bytes; an edited file stays, and the error
+  names it and its backup.
+- The launcher copy `bin/JerdCLI` (0700) must have a valid code signature from the app's
+  signer (`CodeSignatureCheck.forRunningApp()`): for a signed app, `anchor apple generic` with
+  the app's Team ID; for an ad hoc or unsigned development app, only an ad hoc launcher. The links
   `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a
   crashed run (`.zshrc.jerd-tmp`, `.JerdCLI-next`, `.php-next`).
 

@@ -12,18 +12,12 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
     /// The limit of `initdb` and `mysqld --initialize-insecure`.
     public static let initializationTimeout: Duration = .seconds(120)
 
-    public let engine: any DatabaseEngineDefinition
+    package let engine: any DatabaseEngineDefinition
     public let profile: ServiceProfile
     let temporaryRoot: URL
-    let initializationCommands: any CommandRunning
 
-    /// - Parameters:
-    ///   - temporaryRoot: where socket folders are made (`$TMPDIR` in the app).
-    ///   - initializationCommands: runs the initializer. Its cleanup must be graceful.
-    public init(
-        service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL,
-        initializationCommands: any CommandRunning
-    ) {
+    /// - Parameter temporaryRoot: where socket folders are made (`$TMPDIR` in the app).
+    public init(service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL) {
         let instance = layout.instance(service.id)
         engine = Self.engine(runtime: runtime, service: service, files: DatabaseInstanceFiles(layout: instance))
         profile = ServiceProfile(
@@ -31,11 +25,10 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
             log: ServiceLog(file: instance.logFile, previousFile: instance.previousLogFile), ports: [service.port],
             stopSignal: runtime.engine.stopSignal, messages: DatabaseMessages.instance)
         self.temporaryRoot = temporaryRoot
-        self.initializationCommands = initializationCommands
     }
 
     /// The engine definition for the engine of `runtime`.
-    public static func engine(
+    package static func engine(
         runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles
     )
         -> any DatabaseEngineDefinition
@@ -83,7 +76,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
 
     /// The plan of the TCP server: a new socket folder and the engine configuration.
     func servicePlan(_ credentials: DatabaseCredentials, commands: any CommandRunning) throws -> LaunchPlan {
-        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot)
+        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot, owner: files.root)
         let plan = LaunchPlan(
             request: engine.serverRequest(sockets: sockets), ports: [engine.service.port],
             readiness: DatabaseReadiness.check(
@@ -93,8 +86,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
         do {
             try engine.configuration(credentials, sockets: sockets).write()
         } catch {
-            plan.removeTemporaryItems()
-            throw error
+            throw plan.discard(after: error)
         }
         return plan
     }

@@ -1,26 +1,32 @@
 import Darwin
-import Foundation
 
-/// What the shell gave the launcher: the argument vector, the environment, and the working folder.
+/// What the shell gave the launcher: the exact argument and environment bytes, and the working folder.
+///
+/// The bytes stay as the kernel gave them, so PHP gets the same bytes, also bytes that are not
+/// UTF-8. Decisions (the command name, the INI options) use decoded copies.
 public struct CLIInvocation: Equatable, Sendable {
-    /// The complete argument vector. `arguments[0]` is the link name, for example `php`.
-    public let arguments: [String]
-    public let environment: [String: String]
+    /// The argument vector bytes. `arguments[0]` is the link name, for example `php`.
+    package let arguments: [[UInt8]]
+    package let environment: CLIEnvironment
     /// The working folder, or nil when it cannot be read (for example, it was deleted).
-    public let workingDirectory: String?
+    package let workingDirectory: String?
 
-    public init(arguments: [String], environment: [String: String], workingDirectory: String?) {
+    package init(arguments: [[UInt8]], environment: CLIEnvironment, workingDirectory: String?) {
         self.arguments = arguments
         self.environment = environment
         self.workingDirectory = workingDirectory
     }
 
-    /// The invocation of the current process.
+    /// The invocation of the current process, from `argv` and `environ` without a text decoding.
     public static func current() -> CLIInvocation {
         CLIInvocation(
-            arguments: CommandLine.arguments, environment: ProcessInfo.processInfo.environment,
+            arguments: CStrings.list(UnsafePointer(CommandLine.unsafeArgv)),
+            environment: CLIEnvironment(entries: CStrings.list(UnsafePointer(environ))),
             workingDirectory: currentDirectory())
     }
+
+    /// The decoded argument vector, for the decisions only. Never passed to PHP.
+    package var decodedArguments: [String] { arguments.map { String(decoding: $0, as: UTF8.self) } }
 
     private static func currentDirectory() -> String? {
         guard let pointer = getcwd(nil, 0) else { return nil }

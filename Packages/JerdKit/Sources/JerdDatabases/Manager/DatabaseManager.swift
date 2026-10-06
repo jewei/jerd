@@ -6,7 +6,7 @@ import JerdServiceKit
 /// Owns the database registry and one independent `ManagedInstance` per registered service.
 ///
 /// Rules:
-/// - Every call except `load` requires a loaded registry.
+/// - Every call except `load`, `snapshot`, and `stopAll` requires a loaded registry.
 /// - Instances start and stop independently and in parallel. Each has its own lock and record.
 /// - Edit, Remove, and Restore of one service exclude each other and its start and stop.
 /// - Remove keeps every data file. Restore registers retained data again under its original ID.
@@ -15,7 +15,6 @@ public actor DatabaseManager {
     let layout: DatabasesLayout
     let effects: ServiceEffects
     let temporaryRoot: URL
-    let initializationCommands: any CommandRunning
     let registry: DatabaseRegistry
     var configuration = DatabaseConfiguration()
     var instances: [UUID: ManagedInstance] = [:]
@@ -26,25 +25,27 @@ public actor DatabaseManager {
     /// - Parameters:
     ///   - layout: `<root>/databases`.
     ///   - temporaryRoot: where socket folders are made.
-    ///   - initializationCommands: runs `initdb` and `mysqld --initialize-insecure`. The default
-    ///     stops a timed-out initializer gracefully, never with `SIGKILL`.
+    ///
+    /// `initdb` and `mysqld --initialize-insecure` run as owned processes of the instance through
+    /// `effects`, so a timeout never kills them and never releases the lock.
     public init(
-        layout: DatabasesLayout, effects: ServiceEffects,
-        temporaryRoot: URL = FileManager.default.temporaryDirectory,
-        initializationCommands: any CommandRunning = CommandRunner(cleanupPolicy: .graceful())
+        layout: DatabasesLayout, effects: ServiceEffects, temporaryRoot: URL = FileManager.default.temporaryDirectory
     ) {
         self.layout = layout
         self.effects = effects
         self.temporaryRoot = temporaryRoot
-        self.initializationCommands = initializationCommands
         registry = DatabaseRegistry(layout: layout)
     }
 
     /// Loads the registry once and creates `databases/` (mode 0700). Later calls return the
     /// loaded registry.
+    ///
+    /// Before the first load succeeds, no instance of this manager runs. So the load also removes
+    /// socket folders of earlier runs that ended without a stop (see `DatabaseSocketSweeper`).
     public func load() throws -> DatabaseConfiguration {
         guard !loaded else { return configuration }
         try OwnedDirectory.create(layout.root)
+        DatabaseSocketSweeper(temporaryRoot: temporaryRoot, layout: layout, startGate: effects.startGate).sweep()
         configuration = try registry.load()
         loaded = true
         return configuration
@@ -108,7 +109,7 @@ public actor DatabaseManager {
     func definition(for service: DatabaseService) throws -> DatabaseServiceDefinition {
         DatabaseServiceDefinition(
             service: service, runtime: try configuration.runtime(for: service), layout: layout,
-            temporaryRoot: temporaryRoot, initializationCommands: initializationCommands)
+            temporaryRoot: temporaryRoot)
     }
 
     /// The instance of `service`, created on first use.

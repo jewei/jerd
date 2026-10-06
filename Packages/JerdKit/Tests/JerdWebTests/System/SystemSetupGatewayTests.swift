@@ -71,7 +71,7 @@ import Testing
         let context = try Context(try FakeSystem.approved(["a.test", "b.test", "c.test"], policy: .hostnames))
         defer { context.folder.remove() }
         try await context.gateway.removeHostnames(["b.test", "x.test"])
-        let status = try await context.system.status()
+        let status = await context.system.status()
         #expect(status.hostnames == ["a.test", "c.test"] && status.trustPolicy == .hostnames)
         try await context.gateway.removeHostnames(["z.test"])
         #expect(await context.coordinator.halts == 1)
