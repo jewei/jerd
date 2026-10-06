@@ -9,6 +9,15 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
     public var shutdownParticipants: [any ShutdownParticipant] { [self] }
     public var bannerActivity: BannerActivity? { nil }
 
+    /// File › New Database… (⌘N): the Add sheet with the first installed engine. The sheet
+    /// can switch the engine. It is off while a sheet shows, so it never replaces a draft.
+    public var newItemAction: FeatureAction? {
+        FeatureAction(id: "databases.new", title: "New Database…", isEnabled: canAdd && sheet == nil) { [weak self] in
+            guard let self, let engine = availableEngines.first else { return }
+            beginAdd(engine)
+        }
+    }
+
     /// The card status: a problem first, then work, then the running count.
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }

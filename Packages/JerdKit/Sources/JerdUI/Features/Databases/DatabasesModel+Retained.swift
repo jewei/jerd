@@ -2,9 +2,12 @@ import Foundation
 import JerdDatabases
 
 extension DatabasesModel {
+    /// True when the Retained Databases sheet can open: the registry is loaded and no quit runs.
+    public var canShowRetained: Bool { loadState.isLoaded && !isShuttingDown }
+
     /// Opens the Retained Databases sheet and inspects the data folders.
     public func showRetained() {
-        guard loadState.isLoaded, !isShuttingDown else { return }
+        guard canShowRetained else { return }
         sheet = .retained
         inspectRetained()
     }

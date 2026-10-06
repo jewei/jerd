@@ -5,17 +5,18 @@ import SwiftUI
 /// The Databases page without a selected service: loading, no services, or a prompt to select.
 struct DatabasesEmptyPage: View {
     let model: DatabasesModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         VStack(spacing: 0) {
-            if let message = model.loadState.failureMessage {
-                InlineMessage(message, kind: .error, style: .banner, identifier: "databases.load-error")
-                    .padding(Spacing.large)
-            }
-            OperationFailureBanner(operation: model.operation, identifier: "databases.error") {
-                model.dismissFailure()
+            VStack(spacing: Spacing.small) {
+                if let message = model.loadState.failureMessage {
+                    InlineMessage(message, kind: .error, style: .banner, identifier: "databases.load-error")
+                }
+                DatabasesPageMessages(model: model, service: nil)
             }
             .padding(.horizontal, Spacing.large)
+            .padding(.top, Spacing.large)
             EmptyState(title, systemImage: "cylinder.split.1x2", message: message) {
                 if model.loadState.isLoaded, model.services.isEmpty {
                     actions
@@ -39,7 +40,7 @@ struct DatabasesEmptyPage: View {
                         Text("Add \(engine.title)…")
                             .frame(maxWidth: .infinity)
                     }
-                    .primaryActionStyle(isPrimary: index == 0, isEnabled: model.canAdd)
+                    .primaryActionStyle(isPrimary: index == 0, isEnabled: model.canAdd && !isQuitting)
                     .accessibilityIdentifier(AccessibilityIdentifier.make("databases", "add", engine.title))
                 }
             }

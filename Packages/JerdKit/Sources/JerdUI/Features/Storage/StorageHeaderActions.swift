@@ -1,16 +1,19 @@
 import JerdDesign
 
 /// The storage controls of both Storage pages. The next step is primary: Start when stopped,
-/// Open Console when running, Stop to retry a stop that did not finish.
+/// Open Console when running, Stop to retry a stop that did not finish. During a quit, Start
+/// and Stop are off; Open Console starts no work.
 @MainActor
 struct StorageHeaderActions {
     let model: StorageModel
+    let isQuitting: Bool
 
     var primary: PageAction? {
         if model.state.isRunning { return console }
         if model.state.offersStop { return stop }
         return PageAction(
-            "Start Storage", systemImage: "play.fill", isEnabled: model.canStart, identifier: "storage.start"
+            "Start Storage", systemImage: "play.fill", isEnabled: model.canStart && !isQuitting,
+            identifier: "storage.start"
         ) { model.start() }
     }
 
@@ -19,7 +22,10 @@ struct StorageHeaderActions {
     }
 
     private var stop: PageAction {
-        PageAction("Stop Storage", systemImage: "stop.fill", isEnabled: model.canStop, identifier: "storage.stop") {
+        PageAction(
+            "Stop Storage", systemImage: "stop.fill", isEnabled: model.canStop && !isQuitting,
+            identifier: "storage.stop"
+        ) {
             model.stop()
         }
     }

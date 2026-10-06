@@ -3,11 +3,11 @@ import SwiftUI
 
 /// The Storage sidebar: the registered buckets with their status, and the Add Bucket footer.
 struct StorageSidebar: View {
-    @Bindable var state: AppState
+    let state: AppState
     let model: StorageModel
 
     var body: some View {
-        List(selection: selection) {
+        List(selection: state.sidebarSelection(in: .storage)) {
             Section("Buckets") {
                 ForEach(model.buckets) { bucket in
                     SidebarRow(
@@ -20,16 +20,8 @@ struct StorageSidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .sidebarFooter {
             StorageSidebarFooter(model: model)
-        }
-    }
-
-    private var selection: Binding<SidebarSelection?> {
-        Binding {
-            state.navigation.selection(in: .storage)
-        } set: { selection in
-            state.navigation.select(selection)
         }
     }
 }

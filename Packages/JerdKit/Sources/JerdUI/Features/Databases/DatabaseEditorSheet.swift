@@ -5,6 +5,7 @@ import SwiftUI
 /// The Add and Edit Database sheet. Package access lets the snapshot catalog render it alone.
 package struct DatabaseEditorSheet: View {
     @Bindable var model: DatabasesModel
+    @Environment(\.isQuitting) private var isQuitting
 
     package init(model: DatabasesModel) {
         self.model = model
@@ -15,7 +16,7 @@ package struct DatabaseEditorSheet: View {
             draft.isAdding ? "Add Database" : "Edit Database", message: message,
             confirmation: SheetConfirmation(
                 draft.isAdding ? "Create and Start" : "Save",
-                isEnabled: draft.service(in: model.configuration) != nil && model.canChangeRegistry,
+                isEnabled: draft.service(in: model.configuration) != nil && model.canChangeRegistry && !isQuitting,
                 identifier: "database-editor"
             ) { model.saveEditor() },
             workingMessage: model.editorOperation.workingMessage, cancel: model.closeEditor

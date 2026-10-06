@@ -8,6 +8,15 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
     public var shutdownParticipants: [any ShutdownParticipant] { [self] }
     public var bannerActivity: BannerActivity? { nil }
 
+    /// File › New Bucket… (⌘N): the Add Bucket sheet. It is off while a sheet shows, so it
+    /// never replaces a draft.
+    public var newItemAction: FeatureAction? {
+        FeatureAction(id: "storage.new", title: "New Bucket…", isEnabled: canAddBucket && !isShowingSheet) {
+            [weak self] in
+            self?.beginAddBucket()
+        }
+    }
+
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
         let working = operation.isWorking || bucketOperation.isWorking

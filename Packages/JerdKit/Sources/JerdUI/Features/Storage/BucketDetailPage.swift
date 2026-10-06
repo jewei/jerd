@@ -7,9 +7,10 @@ import SwiftUI
 struct BucketDetailPage: View {
     let model: StorageModel
     let bucket: StorageBucket
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
-        let actions = StorageHeaderActions(model: model)
+        let actions = StorageHeaderActions(model: model, isQuitting: isQuitting)
         FormPage {
             PageHeader(
                 bucket.name, subtitle: subtitle, status: NamedStatus("Bucket status", status.displayStatus),
@@ -43,7 +44,8 @@ struct BucketDetailPage: View {
                 "The bucket setup did not finish. Retry to create it, apply its access, and check it.", kind: .warning,
                 style: .banner,
                 action: PageAction(
-                    "Retry Setup", isEnabled: model.canChange && model.hasRuntime, identifier: "bucket.retry"
+                    "Retry Setup", isEnabled: model.canChange && model.hasRuntime && !isQuitting,
+                    identifier: "bucket.retry"
                 ) {
                     model.retry(bucket)
                 }, identifier: "bucket.incomplete")

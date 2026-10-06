@@ -1,6 +1,12 @@
 import JerdMail
 
 extension MailModel {
+    /// Why the mail controls are off after the user cancelled the ports sheet while its save
+    /// still runs, or nil. The page shows it, because the closed sheet cannot.
+    public var cancelledSaveMessage: String? {
+        portsOperation.isWorking && portsDraft == nil ? CancelledSave.pendingMessage("Mail controls") : nil
+    }
+
     /// Opens the ports sheet with the saved ports.
     public func editPorts() {
         guard canEditPorts else { return }

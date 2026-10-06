@@ -1,9 +1,11 @@
 import JerdDesign
 import SwiftUI
 
-/// The footer of the Storage sidebar: Add Bucket (⌘N) and the bucket count.
+/// The footer of the Storage sidebar: Add Bucket and the bucket count. File › New Bucket… (⌘N)
+/// is the section's `newItemAction`.
 struct StorageSidebarFooter: View {
     let model: StorageModel
+    @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         SidebarFooter(
@@ -12,8 +14,7 @@ struct StorageSidebarFooter: View {
                 model.beginAddBucket()
             }
         )
-        .disabled(!model.canAddBucket)
-        .addShortcut("Add Bucket", isEnabled: model.canAddBucket) { model.beginAddBucket() }
+        .disabled(isQuitting || !model.canAddBucket)
     }
 
     private var caption: String {

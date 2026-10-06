@@ -18,6 +18,12 @@ extension ServiceScenario {
             state.databases.editor?.setPort("6379")
         case .databaseStarting:
             state.databases.start(SampleServices.reportingID)
+        case .databaseCancelledSave:
+            state.databases.beginEdit(SampleServices.reportingID)
+            state.databases.saveEditor()
+            state.databases.closeEditor()
+        case .databaseQuitting, .mailQuitting:
+            _ = state.requestTermination { _ in }
         case .databaseRuntimeMissing:
             state.databases.requestRemove(SampleServices.reportingID)
             await state.databases.confirmRemove()?.value
@@ -57,6 +63,8 @@ extension ServiceScenario {
         case .databaseEditor: return state.databases.editor?.portText.isEmpty == false
         case .databaseStarting: return !state.databases.busyServices.isEmpty
         case .databaseRuntimeMissing: return state.databases.operation.failureMessage != nil
+        case .databaseCancelledSave: return state.databases.cancelledSaveMessage != nil
+        case .databaseQuitting, .mailQuitting: return state.shutdown.message == ShutdownPhase.storage.message
         case .databasesLoadFailed: return state.databases.loadState.failureMessage != nil
         case .retainedDatabases: return !state.databases.retained.isEmpty
         case .mail: return state.mail.testResult != nil
@@ -74,6 +82,11 @@ extension ServiceScenario {
             await ports.databases.configure {
                 $0.failure = "Reporting could not be removed because its data folder is in use by another app."
             }
+        case .databaseCancelledSave:
+            let gate = FixtureGate()
+            await ports.databases.configure { $0.gate = gate }
+        case .databaseQuitting, .mailQuitting:
+            await ports.storage.configure { $0.stopBehavior = .suspend }
         case .databasesLoadFailed:
             await ports.databases.configure {
                 $0.loadFailure = "databases.json line 4: The data could not be read."

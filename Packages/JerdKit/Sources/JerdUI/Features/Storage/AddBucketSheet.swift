@@ -7,6 +7,7 @@ import SwiftUI
 package struct AddBucketSheet: View {
     @Bindable var model: StorageModel
     @FocusState private var isNameFocused: Bool
+    @Environment(\.isQuitting) private var isQuitting
 
     package init(model: StorageModel) {
         self.model = model
@@ -16,7 +17,7 @@ package struct AddBucketSheet: View {
         SheetScaffold(
             "Add Bucket", message: "Jerd starts storage if needed, then creates and checks your bucket.",
             confirmation: SheetConfirmation(
-                "Save", isEnabled: draft.canSave(in: model.settings), identifier: "add-bucket"
+                "Save", isEnabled: draft.canSave(in: model.settings) && !isQuitting, identifier: "add-bucket"
             ) { model.saveBucket() },
             workingMessage: model.bucketOperation.workingMessage, cancel: model.cancelAddBucket
         ) {

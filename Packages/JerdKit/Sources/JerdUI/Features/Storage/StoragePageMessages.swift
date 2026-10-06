@@ -2,7 +2,7 @@ import JerdDesign
 import SwiftUI
 
 /// The banners that both Storage pages share: a failed load, a missing runtime, the service
-/// state, and the last failed operation.
+/// state, a cancelled save that still runs, and the last failed operation.
 struct StoragePageMessages: View {
     let model: StorageModel
 
@@ -16,6 +16,9 @@ struct StoragePageMessages: View {
                 identifier: "storage.no-runtime")
         }
         ServiceStateBanner(state: model.state, subject: "Storage", stopTitle: "Stop Storage", identifier: "storage")
+        if let message = model.cancelledSaveMessage {
+            InlineMessage(message, kind: .info, style: .banner, identifier: "storage.cancelled-save")
+        }
         OperationFailureBanner(operation: model.operation, identifier: "storage.error") {
             model.dismissFailure()
         }
