@@ -89,16 +89,18 @@ extension TunnelsModel {
         }
     }
 
-    /// Stops one connector gracefully, outside the edit lock.
+    /// Stops one connector gracefully, outside the edit lock. Its failure belongs to the tunnel,
+    /// so a running edit never hides it.
     @discardableResult
     public func stop(_ tunnel: TunnelRegistration) -> Task<Void, Never>? {
         guard canStop(tunnel.id) else { return nil }
         stoppingIDs.insert(tunnel.id)
+        stopFailures[tunnel.id] = nil
         let task = Task {
             do {
                 try await port.stop(id: tunnel.id)
             } catch {
-                if !operation.isWorking { operation = .failed(message: ErrorText.message(for: error)) }
+                stopFailures[tunnel.id] = ErrorText.message(for: error)
             }
             stoppingIDs.remove(tunnel.id)
             stopWork[tunnel.id] = nil

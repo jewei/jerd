@@ -86,6 +86,18 @@ public final class TunnelEditorModel: Identifiable {
             && (!isNew || !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
+    /// Why Save is off, or nil. A broken rule and a failure have their own message.
+    public var saveRequirement: String? {
+        guard !canSave, failure == nil, validationMessage == nil else { return nil }
+        var fields = [(name, "a name"), (hostname, "a public hostname")]
+        if isNew { fields.append((token, "a tunnel token")) }
+        fields.append((metricsPort, "a metrics port"))
+        let missing = SaveRequirement.missing(fields)
+        if !missing.isEmpty { return SaveRequirement.enter(missing) }
+        if isSiteMissing { return "The linked site was removed. To save, choose a local destination." }
+        return "To save, select “I checked the existing route for this Mac.” at the end of this form."
+    }
+
     /// The token that Save sends: nil keeps the saved one.
     public var tokenToSave: String? {
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
