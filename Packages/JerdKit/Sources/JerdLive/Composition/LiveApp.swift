@@ -10,14 +10,16 @@ public final class LiveApp {
     public let windows: MainWindowPresenter
     public let iconImages: AppIconImages
     let preparation: LaunchPreparation
+    let activity: AppActivityMonitor
 
     /// Builds every port and the root state. Nothing runs and nothing changes on disk until
     /// `launch()`.
     /// - Parameters:
     ///   - defaults: The `dev.jerd.app` defaults domain.
+    ///   - notifications: The center where AppKit reports the app and window activity.
     public init(
         configuration: LiveConfiguration, updater: any AppUpdating, bundle: Bundle = .main,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard, notifications: NotificationCenter = .default
     ) {
         let domain = LiveDomain(configuration: configuration)
         let images = AppIconImages(bundle: bundle)
@@ -34,6 +36,8 @@ public final class LiveApp {
             sites: LiveSitesPort(domain: domain),
             tunnels: LiveTunnelsPort(supervisor: domain.tunnels))
         state = AppState(dependencies: dependencies)
+        activity = AppActivityMonitor(state: state, center: notifications)
+        activity.start(isAppActive: NSApplication.shared.isActive)
         self.windows = windows
         iconImages = images
         preparation = LaunchPreparation(
