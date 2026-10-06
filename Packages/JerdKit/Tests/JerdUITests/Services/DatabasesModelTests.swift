@@ -122,8 +122,10 @@ struct DatabasesModelTests {
         let fixture = await launched(sample())
         defer { fixture.removeDefaults() }
         let model = fixture.state.databases
+        fixture.state.navigation.show(.item(.database(SampleServices.studioID)))
         await model.copyPassword(SampleServices.studioID).value
         #expect(fixture.shell.pasteboard == ["sample-password-3306"])
+        fixture.state.navigation.show(.item(.database(SampleServices.reportingID)))
         await model.copyEnvironment(SampleServices.reportingID).value
         #expect(model.operation.failureMessage == "Start the service once to create its credentials.")
     }

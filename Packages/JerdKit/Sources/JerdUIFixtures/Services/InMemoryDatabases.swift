@@ -20,6 +20,8 @@ public actor InMemoryDatabases: DatabasesPort {
     public var suggestion: UInt16 = 3307
     /// When set, add, edit, and restore wait here before they change anything.
     public var gate: FixtureGate?
+    /// When set, the connection read waits here.
+    public var connectionGate: FixtureGate?
     public private(set) var calls: [String] = []
 
     public init(
@@ -112,6 +114,7 @@ public actor InMemoryDatabases: DatabasesPort {
     }
 
     public func connection(for id: UUID) async throws -> DatabaseConnection {
+        await connectionGate?.pass()
         guard let service = configuration.service(id), started.contains(id) else {
             throw JerdError.unavailable("Start the service once to create its credentials.")
         }

@@ -63,17 +63,27 @@ extension DatabasesModel {
         navigate?(.dashboard(.runtimes))
     }
 
-    /// Reads the connection and copies one value. It runs beside other work.
+    /// Reads the connection and copies one value. It runs beside other work. When the user
+    /// selected another service during the read, the value is dropped, so the pasteboard never
+    /// gets the password of a service that the page no longer shows.
     private func copyConnection(
         _ id: UUID, confirmation: String, _ value: @escaping @Sendable (DatabaseConnection) -> String
     ) -> Task<Void, Never> {
         Task {
             do {
                 let connection = try await port.connection(for: id)
+                guard isSelected(id) else { return }
                 clipboard.copy(value(connection), confirmation: confirmation)
             } catch {
-                if !operation.isWorking { operation = .failed(message: ErrorText.message(for: error)) }
+                guard isSelected(id), !operation.isWorking else { return }
+                operation = .failed(message: ErrorText.message(for: error))
             }
         }
+    }
+
+    /// True when the page shows `id`, or when no page reports a selection.
+    private func isSelected(_ id: UUID) -> Bool {
+        guard let selectedService else { return true }
+        return selectedService() == id
     }
 }

@@ -28,6 +28,9 @@ public final class DatabasesModel {
 
     /// Shows another place in the window, for example a new service. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
+    /// The service that the Databases page shows. `AppState` sets it; a copy uses it to drop a
+    /// value that arrives after the user selected another service (spec F 3.6).
+    @ObservationIgnored public var selectedService: (@MainActor () -> UUID?)?
     @ObservationIgnored let port: any DatabasesPort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening

@@ -10,10 +10,7 @@ struct DatabaseConnectionSection: View {
 
     var body: some View {
         Section {
-            value("Host", "127.0.0.1")
-            value("Port", String(service.port))
-            value("User", engine.username)
-            value("Database", engine.database)
+            ForEach(Self.values(model, service: service, engine: engine)) { ConnectionValueRow(value: $0) }
             ActionRow("Password", detail: hasStarted ? nil : "Created at the first start.") {
                 Button("Copy Password", systemImage: "key") { model.copyPassword(service.id) }
                     .disabled(!hasStarted)
@@ -27,9 +24,9 @@ struct DatabaseConnectionSection: View {
         }
         Section {
             ActionRow(".env settings", detail: hasStarted ? nil : "Available after the first start.") {
-                Button("Copy Laravel Settings", systemImage: "doc.on.doc") { model.copyEnvironment(service.id) }
-                    .disabled(!hasStarted)
-                    .accessibilityIdentifier("database.copy-laravel")
+                CopyLaravelSettingsButton(isEnabled: hasStarted, identifier: "database.copy-laravel") {
+                    model.copyEnvironment(service.id)
+                }
             }
         } header: {
             Text("Laravel")
@@ -41,7 +38,12 @@ struct DatabaseConnectionSection: View {
     /// The password exists after the first start created the data folder.
     private var hasStarted: Bool { model.files[service.id]?.hasDataFolder == true }
 
-    private func value(_ label: String, _ text: String) -> ValueRow {
-        ValueRow(label, value: text, isCode: true) { model.copyValue(text, label: label) }
+    /// The host, port, user, and database name, each to paste.
+    static func values(_ model: DatabasesModel, service: DatabaseService, engine: DatabaseEngine) -> [ConnectionValue] {
+        [
+            ("Host", "127.0.0.1"), ("Port", String(service.port)), ("User", engine.username),
+            ("Database", engine.database),
+        ]
+        .map { label, text in .pasteable(label, text) { model.copyValue(text, label: label) } }
     }
 }

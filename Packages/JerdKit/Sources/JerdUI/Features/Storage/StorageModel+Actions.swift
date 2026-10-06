@@ -34,7 +34,12 @@ extension StorageModel {
     }
 
     public func copyEndpoint() {
-        clipboard.copy(settings.endpoint, confirmation: "Copied endpoint")
+        copyValue(settings.endpoint, label: "Endpoint")
+    }
+
+    /// Copies one connection value, for example the region.
+    public func copyValue(_ value: String, label: String) {
+        clipboard.copy(value, confirmation: "Copied \(label.lowercased())")
     }
 
     @discardableResult

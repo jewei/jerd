@@ -34,6 +34,11 @@ extension MailModel {
         clipboard.copy(settings.laravelEnvironment, confirmation: "Copied Laravel settings")
     }
 
+    /// Copies one connection value, for example the host.
+    public func copyValue(_ value: String, label: String) {
+        clipboard.copy(value, confirmation: "Copied \(label.lowercased())")
+    }
+
     public func copyInboxURL() {
         clipboard.copy(settings.inboxURL.absoluteString, confirmation: "Copied inbox URL")
     }
