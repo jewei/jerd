@@ -55,6 +55,8 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   `LaunchPlan.didStop` runs, so a service can release resources that are not files, for example
   a URL session.
 - A maintenance lease keeps the lock from the first step to the last, also during a restore.
+- A runtime update that fails and restores a stopped service leaves it `stopped`; the error names
+  the cause. A failed restore keeps the journal and the `failed` state.
 - A runtime update copies each named item (an APFS clone when possible) off the actor, and
   flushes the copies to the drive (`fsync` on each item, then `F_FULLFSYNC`) before it writes the
   journal. A restore flushes the restored items before it removes the journal. Recovery uses the
