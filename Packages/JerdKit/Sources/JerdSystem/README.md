@@ -44,6 +44,8 @@ folder, and the keychain. It depends only on JerdFoundation.
   external-mapping check.
 - A failed step is undone in reverse order. A rollback writes back the exact earlier record bytes.
   When an undo fails, the journal stays and the error is `.partialChange`.
+- When only the journal deletion fails after every step, nothing is undone. The journal stays with
+  the phase "Applied; the recovery record could not be removed." and recovery finishes it.
 - The hosts lock waits at most 5 seconds. A staging file stays only with a `.partialChange` error.
 - A recovery keeps the first `recovery.previous.json` of a transaction.
 - Status reports a running transaction as `operationInProgress`, never as interrupted. A corrupt

@@ -62,6 +62,26 @@ import os
         #expect(transaction.journal.phase == "done b")
     }
 
+    /// Fixed review L5: when only the journal deletion fails, no applied step is undone. The journal
+    /// stays with an "Applied" phase, and the error is a partial change.
+    @Test func aFailedCommitKeepsEveryStepAndTheJournal() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let directory = RootRecordDirectory(url: folder.path("helper"), owner: getuid())
+        let log = Log()
+        var transaction = SetupTransaction(
+            directory: directory, journal: try journal(), steps: [step("a", log: log), step("b", log: log)],
+            failureTitle: "Setup failed", commit: { _ in throw JerdError.unavailable("unlink failed") })
+        await #expect(
+            throws: JerdError.partialChange(
+                "Setup failed after every change was applied, and needs recovery. unlink failed")
+        ) {
+            try await transaction.run()
+        }
+        #expect(log.all == ["apply a", "apply b"])
+        #expect(try phase(directory) == "Applied; the recovery record could not be removed.")
+    }
+
     @Test(arguments: [0, 1, 2])
     func aFailureUndoesOnlyCompletedStepsInReverseAndRethrows(failing: Int) async throws {
         let folder = try TemporaryDirectory()
