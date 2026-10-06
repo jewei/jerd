@@ -56,7 +56,7 @@ For quick loops inside the package, `swift test --package-path Packages/JerdKit
 | `Docs/` | Architecture, data reference, and test guide |
 | `.github/` | The CI workflow and the actionlint settings |
 | `dev` | The shell entry point of `./dev`; it builds and runs the tool in `Tools/` |
-| `appcast.xml` | The signed Sparkle update feed. only `./dev release publish` writes it |
+| `appcast.xml` | The signed Sparkle update feed. Only `./dev release publish` writes it |
 | `CHANGELOG.md` | Release notes for users |
 | `README.md` | The user guide of the public repository |
 
