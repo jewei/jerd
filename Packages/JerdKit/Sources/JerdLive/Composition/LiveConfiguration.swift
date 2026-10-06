@@ -19,13 +19,19 @@ public struct LiveConfiguration: Sendable {
         self.appVersion = appVersion
     }
 
-    /// The running app and the data root of the current user.
-    public init(bundle: Bundle, layout: DataLayout = .currentUser()) {
+    /// The running app and a data root.
+    /// - Parameter dataRoot: Nil for the current user's `~/Library/Application Support/Jerd`.
+    ///   Only Debug builds of the app pass another folder, to try the app without user data.
+    public init(bundle: Bundle, dataRoot: URL? = nil) {
         self.init(
-            layout: layout, appBundle: bundle.bundleURL,
+            layout: dataRoot.map { DataLayout(root: $0) } ?? .currentUser(), appBundle: bundle.bundleURL,
             resources: bundle.resourceURL ?? bundle.bundleURL.appendingPathComponent("Contents/Resources"),
             appVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
     }
+
+    /// True when the data root is the current user's own, so user-wide setup such as the
+    /// command-line launcher in `bin/` belongs to it.
+    public var usesCurrentUserData: Bool { layout == .currentUser() }
 
     /// `Contents/Resources/RuntimePayloads`: the bundled runtime payloads.
     public var payloads: URL { resources.appendingPathComponent("RuntimePayloads", isDirectory: true) }
