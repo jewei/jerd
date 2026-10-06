@@ -10,7 +10,7 @@ struct SitesEmptyState: View {
         if !model.isLoaded, let failure = model.operation.failureMessage {
             EmptyState("Sites Could Not Load", systemImage: "exclamationmark.triangle", message: failure) {
                 Button("Retry Load", systemImage: "arrow.clockwise") { model.retryLoad() }
-                    .buttonStyle(.borderedProminent)
+                    .primaryActionStyle(isEnabled: model.canRetryLoad && !isQuitting)
                     .accessibilityIdentifier("sites.retry-load")
             }
         } else {

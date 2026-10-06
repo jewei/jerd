@@ -2,9 +2,9 @@ import JerdDesign
 import SwiftUI
 
 /// The banners of the Sites pages: the failed operation, the environment failure when it
-/// says something else, and the system setup state. Each message shows once.
+/// says something else, and the system setup state. Each message shows once. A pending
+/// recovery has no banner button: the header's primary action opens Advanced.
 struct SitesMessages: View {
-    let state: AppState
     let model: SitesModel
 
     var body: some View {
@@ -18,15 +18,7 @@ struct SitesMessages: View {
         }
         if let setup = model.systemSetupState {
             InlineMessage(
-                setup.message, kind: setup.kind, title: setup.title, style: .banner, action: advancedAction(setup),
-                identifier: "sites.system-setup")
-        }
-    }
-
-    private func advancedAction(_ setup: SystemSetupState) -> PageAction? {
-        guard setup.opensAdvanced else { return nil }
-        return PageAction("Open Advanced", identifier: "sites.open-advanced") {
-            state.navigation.show(.dashboard(.advanced))
+                setup.message, kind: setup.kind, title: setup.title, style: .banner, identifier: "sites.system-setup")
         }
     }
 }
