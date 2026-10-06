@@ -60,7 +60,7 @@ public enum SampleFeatures {
         case .empty:
             summary = FeatureSummary(
                 status: DisplayStatus("No services", tone: .idle), summary: "Add MySQL, PostgreSQL, or Redis services.",
-                actions: [action("databases.add", "Add Database…", primary: true)])
+                actions: [action("databases.add", "Add Database…")])
         case .populated:
             summary = FeatureSummary(
                 status: DisplayStatus("2 of 3 running", tone: .ready),
@@ -87,7 +87,7 @@ public enum SampleFeatures {
         let summary = FeatureSummary(
             status: status, summary: variant == .empty ? "0 buckets · S3 port 9000" : "3 buckets · S3 port 9000",
             actions: [
-                running ? action("storage.stop", "Stop Storage") : action("storage.start", "Start Storage", primary: true),
+                running ? action("storage.stop", "Stop Storage") : action("storage.start", "Start Storage"),
                 action("storage.console", "Open Console", enabled: running),
             ])
         return InMemoryFeature(section: .storage, summary: summary, shutdownPhase: .storage)
@@ -99,7 +99,7 @@ public enum SampleFeatures {
             status: running ? DisplayStatus("Ready", tone: .ready) : DisplayStatus("Stopped", tone: .idle),
             summary: "SMTP port 1025 · Web port 8025",
             actions: [
-                running ? action("mail.stop", "Stop Mail") : action("mail.start", "Start Mail", primary: true),
+                running ? action("mail.stop", "Stop Mail") : action("mail.start", "Start Mail"),
                 action("mail.inbox", "Open Inbox", enabled: running),
             ])
         return InMemoryFeature(section: .mail, summary: summary, shutdownPhase: .mail)

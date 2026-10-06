@@ -5,7 +5,7 @@ import SwiftUI
 /// page that owns them; a card shows a failure only as its status.
 struct OverviewPage: View {
     let state: AppState
-    private let columns = [GridItem(.adaptive(minimum: 280), spacing: Spacing.large, alignment: .top)]
+    private let columns = [GridItem(.adaptive(minimum: 260), spacing: Spacing.large, alignment: .top)]
 
     var body: some View {
         PageScaffold {

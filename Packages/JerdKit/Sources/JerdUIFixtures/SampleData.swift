@@ -33,13 +33,14 @@ public enum SampleData {
         builds: [InstalledBuild(kind: .caddy, version: "2.10.2", releaseVersion: "2.10.2", archiveSHA256: digest)])
 
     /// A release with a stated digest.
-    public static func release(_ kind: RuntimeKind, _ version: String, digest: String? = SampleData.digest)
-        -> RuntimeRelease
-    {
+    public static func release(
+        _ kind: RuntimeKind, _ version: String, digest: String? = SampleData.digest, signed: Bool = false
+    ) -> RuntimeRelease {
         RuntimeRelease(
             kind: kind, version: version,
             artifact: .archive(url("https://example.com/\(kind.rawValue)-\(version).tar.gz"), size: .exact(48_000_000)),
-            archiveSHA256: digest, releasePage: url("https://example.com/\(kind.rawValue)/releases/\(version)"))
+            archiveSHA256: digest, signatureURL: signed ? url("https://example.com/\(kind.rawValue)-\(version).asc") : nil,
+            releasePage: url("https://example.com/\(kind.rawValue)/releases/\(version)"))
     }
 
     /// A check result, checked at `now`.
@@ -55,7 +56,7 @@ public enum SampleData {
         .caddy: check(.caddy, [release(.caddy, "2.10.2")]),
         .composer: check(.composer, [release(.composer, "2.8.12")]),
         .laravel: check(.laravel, [release(.laravel, "5.19.0", digest: nil)]),
-        .mysql: check(.mysql, [release(.mysql, "8.4.7", digest: nil)]),
+        .mysql: check(.mysql, [release(.mysql, "8.4.7", digest: nil, signed: true)]),
         .postgresql: check(.postgresql, [release(.postgresql, "2.9.1")]),
         .redis: check(.redis, [], error: "The Redis release list could not be read. Try again later."),
         .mailpit: check(.mailpit, [release(.mailpit, "1.28.0")]),
