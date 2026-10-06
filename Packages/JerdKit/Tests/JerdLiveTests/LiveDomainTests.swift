@@ -7,15 +7,19 @@ import Testing
 
 @Suite("Live domain wiring")
 struct LiveDomainTests {
-    static func configuration() throws -> LiveConfiguration {
-        let app = try Fixture.temporaryFolder().appendingPathComponent("Jerd.app", isDirectory: true)
+    static func configuration(in temporary: TemporaryDirectory) throws -> LiveConfiguration {
+        let root = temporary.path(UUID().uuidString)
+        let app = root.appendingPathComponent("Jerd.app", isDirectory: true)
         return LiveConfiguration(
-            layout: try Fixture.layout(), appBundle: app, resources: app.appendingPathComponent("Contents/Resources"),
+            layout: DataLayout(root: root.appendingPathComponent("Jerd", isDirectory: true)), appBundle: app,
+            resources: app.appendingPathComponent("Contents/Resources"),
             appVersion: "0.1.0")
     }
 
     @Test func servicesAndTunnelsShareOneGracefulSupervisor() async throws {
-        let domain = LiveDomain(configuration: try Self.configuration(), helper: RecordingHelper())
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let domain = LiveDomain(configuration: try Self.configuration(in: temporary), helper: RecordingHelper())
 
         #expect(await domain.processes.ceiling == .graceful)
         #expect((domain.effects.processes as? ProcessSupervisor) === domain.processes)
@@ -29,13 +33,17 @@ struct LiveDomainTests {
     }
 
     @Test func dataServicesStopGracefullyWithinThirtySeconds() throws {
-        let domain = LiveDomain(configuration: try Self.configuration(), helper: RecordingHelper())
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let domain = LiveDomain(configuration: try Self.configuration(in: temporary), helper: RecordingHelper())
 
         #expect(domain.effects.stopTimeout == .seconds(30))
     }
 
     @Test func buildingTheDomainChangesNothingOnDisk() throws {
-        let configuration = try Self.configuration()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let configuration = try Self.configuration(in: temporary)
 
         _ = LiveDomain(configuration: configuration, helper: RecordingHelper())
 
@@ -43,7 +51,9 @@ struct LiveDomainTests {
     }
 
     @Test func payloadsAreInTheResourcesFolder() throws {
-        let configuration = try Self.configuration()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let configuration = try Self.configuration(in: temporary)
 
         #expect(configuration.payloads.path == configuration.resources.appendingPathComponent("RuntimePayloads").path)
     }

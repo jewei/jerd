@@ -3,12 +3,22 @@ import JerdFoundation
 import JerdProcess
 
 /// Compiles each C fixture once per test run with `/usr/bin/cc`, through `CommandRunner`.
+///
+/// The executables are shared by every test of the process, so the process removes their folder
+/// when it exits (review final-domain-r1 L2).
 package actor Fixtures {
     package static let shared = Fixtures()
 
-    private var builds: [String: Task<URL, any Error>] = [:]
-    private let folder = FileManager.default.temporaryDirectory
+    /// One folder per test process.
+    private static let root = FileManager.default.temporaryDirectory
         .appendingPathComponent("jerd-fixtures-\(UUID().uuidString) ü", isDirectory: true)
+
+    private var builds: [String: Task<URL, any Error>] = [:]
+    private let folder = Fixtures.root
+
+    private init() {
+        atexit { try? FileManager.default.removeItem(at: Fixtures.root) }
+    }
 
     /// The compiled executable of `Fixtures/<name>.c`.
     package func executable(_ name: String) async throws -> URL {

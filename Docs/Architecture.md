@@ -89,7 +89,14 @@ It never starts a process.
 Data services stop with a graceful signal and a 30-second limit. A timeout
 never escalates to `SIGKILL`; the process, its record, and its data lock stay,
 and Quit is cancelled. Saved run records let Jerd find and safely stop
-processes that survive an app crash.
+processes that survive an app crash. After a crash, Start reads the record
+before it checks the port, so it names Process recovery, not "port occupied".
+
+Caddy and PHP-FPM hold no user data, so their stop is forceful (a bounded
+`SIGKILL` of the group). If a process still runs after that, the engine keeps
+the run, its records, and the environment lock, the state is Failed, and the
+next Stop retries. Quit does not wait for it (spec F 2.4); the kept record
+makes the next launch name Process recovery.
 
 ## Live wiring and app startup
 

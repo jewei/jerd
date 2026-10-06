@@ -38,6 +38,8 @@ public actor ManagedInstance {
     var pendingStop: PendingStop?
     var stopIntent: StopIntent = .startStep
     var lease: UUID?
+    /// The failure text that `refresh()` set for a saved process of an earlier run.
+    var previousProcessReason: String?
 
     public init(definition: any ServiceDefinition, effects: ServiceEffects) {
         self.definition = definition

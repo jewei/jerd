@@ -8,8 +8,9 @@ import Testing
 @Suite("Live recovery adapters")
 struct LiveRecoveryAdaptersTests {
     @Test func anEmptyDataFolderHasNoRecordsAndNoBackups() async throws {
-        let layout = try Fixture.layout()
-        defer { try? FileManager.default.removeItem(at: layout.root.deletingLastPathComponent()) }
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout
         let port = LiveRecoveryPort(layout: layout)
 
         #expect(await port.inspectProcesses().isEmpty)
@@ -17,8 +18,9 @@ struct LiveRecoveryAdaptersTests {
     }
 
     @Test func recoveryOfAnUnknownRecordIsRefused() async throws {
-        let layout = try Fixture.layout()
-        defer { try? FileManager.default.removeItem(at: layout.root.deletingLastPathComponent()) }
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout
 
         await #expect(throws: JerdError.self) { try await LiveRecoveryPort(layout: layout).recoverProcess("mail") }
         await #expect(throws: JerdError.self) { try await LiveRecoveryPort(layout: layout).removeBackup("mail/x") }

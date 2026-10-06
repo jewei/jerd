@@ -16,7 +16,8 @@ struct CoordinatorHarness {
     let binary: URL
 
     init(
-        approved hostnames: [String] = ["demo.test"], policy: HTTPSTrustPolicy = .serverTLS, probeFails: Bool = false
+        approved hostnames: [String] = ["demo.test"], policy: HTTPSTrustPolicy = .serverTLS, probeFails: Bool = false,
+        portsOccupied: Bool = false
     )
         throws
     {
@@ -27,10 +28,13 @@ struct CoordinatorHarness {
         try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: binary)
         system = FakeSystem(try FakeSystem.approved(hostnames, policy: policy))
         probe = FakeProbe(failing: probeFails)
-        let free = ScriptedCommandRunner { _ in CommandResult(status: 1, output: "") }
+        // `lsof` exits 1 when no process listens; with a listener it names one PID.
+        let lsof = ScriptedCommandRunner { _ in
+            portsOccupied ? CommandResult(status: 0, output: "p999\n") : CommandResult(status: 1, output: "")
+        }
         coordinator = EnvironmentCoordinator(
             layout: layout, system: system, engine: engine, probe: probe,
-            ports: LoopbackPortGuard(commands: free), temporaryRoot: URL(fileURLWithPath: "/tmp"))
+            ports: LoopbackPortGuard(commands: lsof), temporaryRoot: URL(fileURLWithPath: "/tmp"))
     }
 
     var runtime: DevelopmentRuntime { Samples.runtime(id: Samples.runtimeID, cli: binary.path, fpm: binary.path) }

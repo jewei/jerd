@@ -21,6 +21,8 @@ actor FakeProcesses: ProcessControlling {
     private(set) var stops: [(ProcessToken, Int32)] = []
     private var waiters: [ProcessToken: [UUID: CheckedContinuation<ProcessState, Never>]] = [:]
     private var nextPID: pid_t = 50_000
+    /// Markers (see `crash(where:)`) of processes whose stop times out and leaves them running.
+    private var surviving: Set<String> = []
     private let failLaunch: @Sendable (ProcessRequest) -> Bool
     private let bindSockets: Bool
 
@@ -62,8 +64,11 @@ actor FakeProcesses: ProcessControlling {
     }
 
     func stop(_ token: ProcessToken, policy: StopPolicy) async -> StopOutcome {
-        guard children[token] != nil else { return .notOwned }
+        guard let child = children[token] else { return .notOwned }
         stops.append((token, policy.signal))
+        if child.state == .running, Self.matches(child.request, any: surviving) {
+            return .timedOut(leaderRunning: true)
+        }
         end(token, .signalled(signal: policy.signal))
         return .stopped
     }
@@ -82,6 +87,15 @@ actor FakeProcesses: ProcessControlling {
         {
             end(token, .exited(status: 1))
         }
+    }
+
+    /// The stop of the process with `marker` times out and leaves it running, until `survive(nil)`.
+    func survive(where marker: String?) {
+        surviving = marker.map { [$0] } ?? []
+    }
+
+    private static func matches(_ request: ProcessRequest, any markers: Set<String>) -> Bool {
+        markers.contains { request.arguments.last == $0 || request.arguments.first == $0 }
     }
 
     /// The signals of every stop, in order.

@@ -25,8 +25,9 @@ extension EngineRunner {
             try await launch(startPlan, listeners: listeners, epoch: epoch)
             return try await confirm(startPlan, epoch: epoch)
         } catch {
-            await stopOwned()
-            state = error is CancellationError ? .stopped : .failed(FailureDetail.describe(error))
+            let survivor = await stopOwned()
+            let failure = error is CancellationError ? nil : FailureDetail.describe(error)
+            state = Self.stoppedState(failure: failure, survivor: survivor)
             throw error
         }
     }

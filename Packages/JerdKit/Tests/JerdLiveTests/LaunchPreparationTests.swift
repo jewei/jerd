@@ -51,8 +51,10 @@ struct LaunchPreparationTests {
     }
 
     @Test func aSeparateDataRootLeavesTheUsersLauncherAlone() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let configuration = LiveConfiguration(
-            layout: try Fixture.layout(), appBundle: URL(fileURLWithPath: "/Applications/Jerd.app"),
+            layout: temporary.layout, appBundle: URL(fileURLWithPath: "/Applications/Jerd.app"),
             resources: URL(fileURLWithPath: "/Applications/Jerd.app/Contents/Resources"), appVersion: "1.0")
 
         #expect(!configuration.refreshesCommandLineLauncher)

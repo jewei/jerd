@@ -70,6 +70,7 @@ extension EngineRunner {
         guard run?.id == runID, gate.tryEnter() else { return }
         defer { gate.leave() }
         state = .failed(Self.exitMessage)
-        await stopOwned(failure: Self.exitMessage)
+        let survivor = await stopOwned(failure: Self.exitMessage)
+        state = Self.stoppedState(failure: Self.exitMessage, survivor: survivor)
     }
 }

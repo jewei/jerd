@@ -18,10 +18,23 @@ struct WebProcessRecords: Sendable {
 
     /// Deletes stale records of earlier runs and refuses a start while a recorded process may live.
     func clearPrevious(holding lock: InstanceLock) throws {
+        for location in try savedLocations() { _ = try gate.requireStopped(location, holding: lock) }
+    }
+
+    /// Refuses while a recorded process of an earlier run may live. It needs no lock and changes
+    /// no file, so the coordinator runs it before its port checks: an orphaned Caddy still holds
+    /// 80 and 443 after a crash (review final-domain-r1 M1).
+    func requireNoLivePrevious() throws {
+        guard FileProbe.presence(at: environment.processesDirectory).mayExist else { return }
+        for location in try savedLocations() { try gate.requireNoLiveRecord(location) }
+    }
+
+    /// The record locations in `processes/`, in name order. Other files are ignored.
+    private func savedLocations() throws -> [RecordLocation] {
         let names = try FileManager.default.contentsOfDirectory(atPath: environment.processesDirectory.path)
-        for name in names.sorted() where name.hasSuffix(".json") {
-            guard let id = UUID(uuidString: String(name.dropLast(5))) else { continue }
-            _ = try gate.requireStopped(environment.processRecord(id), holding: lock)
+        return names.sorted().compactMap { name in
+            guard name.hasSuffix(".json"), let id = UUID(uuidString: String(name.dropLast(5))) else { return nil }
+            return environment.processRecord(id)
         }
     }
 

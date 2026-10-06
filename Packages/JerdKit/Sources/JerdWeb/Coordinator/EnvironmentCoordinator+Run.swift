@@ -9,6 +9,10 @@ extension EnvironmentCoordinator {
         guard let installationID = try InstallationIdentity(environment: environment).read() else {
             throw JerdError.unavailable("Select Enable HTTPS to approve setup for all enabled sites.")
         }
+        // A web process that survived a crash keeps 80 and 443, so the recovery message must come
+        // before the port check (review final-domain-r1 M1). The engine checks again under the lock.
+        try WebProcessRecords(environment: environment, gate: startGate, recorder: ActiveRunRecorder())
+            .requireNoLivePrevious()
         // The helper owns 80 and 443 while it leases them; this check names another app that
         // listens there before the lease (spec B 7.1.13: the only port check, right before use).
         try await ports.requireNoListener(80)
@@ -46,10 +50,15 @@ extension EnvironmentCoordinator {
     }
 
     /// Stops the engine and returns the listeners. The state is left to the caller.
-    func cleanup() async {
+    /// - Returns: the engine failure when a web process is still running after the stop (its run,
+    ///   records, and lock stay in the engine), or nil (review final-domain-r1 L1).
+    @discardableResult
+    func cleanup() async -> String? {
         monitor?.cancel()
         monitor = nil
         await engine.stop()
+        var survivor: String?
+        if case .failed(let message) = await engine.state { survivor = message }
         if let leased = listeners {
             try? leased.http.close()
             try? leased.https.close()
@@ -58,6 +67,7 @@ extension EnvironmentCoordinator {
         }
         active = nil
         pendingFailure = nil
+        return survivor
     }
 
     /// A runtime of the current run exited: the run ends as failed now, or, while an operation
@@ -69,8 +79,7 @@ extension EnvironmentCoordinator {
             return
         }
         defer { gate.leave() }
-        await cleanup()
-        state = .failed(failure)
+        state = EngineRunner.stoppedState(failure: failure, survivor: await cleanup())
     }
 
     /// Ends the run as failed when its failure arrived during the operation that ends now. A run
@@ -79,7 +88,6 @@ extension EnvironmentCoordinator {
         guard let failure = pendingFailure else { return }
         pendingFailure = nil
         guard active?.runID == failure.runID else { return }
-        await cleanup()
-        state = .failed(failure.message)
+        state = EngineRunner.stoppedState(failure: failure.message, survivor: await cleanup())
     }
 }

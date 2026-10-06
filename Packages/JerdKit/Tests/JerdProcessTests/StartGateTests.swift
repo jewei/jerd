@@ -102,4 +102,42 @@ import Testing
         _ = try StartGate().requireStopped(location, holding: lock)
         #expect(FileProbe.presence(at: location.recordFile) == .absent)
     }
+
+    /// Review final-domain-r1 M1: the check before the port checks needs no lock and changes no file.
+    @Test func theReadOnlyCheckRefusesALiveRecordWithoutTheLockAndChangesNoFile() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let location = DataLayout(root: folder.url).mail.record
+        try StartGate().requireNoLiveRecord(location)
+        #expect(FileProbe.presence(at: location.folder) == .absent)
+        try OwnedDirectory.create(location.folder)
+        let current = try ProcessIdentity.capture(getpid())
+        let live = ActiveRunRecord(
+            processID: getpid(), runtimeID: "x", identity: current, controller: current, gracefulSignal: 15)
+        try ActiveRunRecordFile.write(live, to: location.recordFile)
+        let bytes = contents(location.recordFile)
+        #expect(
+            throws: JerdError.unavailable(
+                "A previous service process needs inspection (PID \(getpid())). Open Advanced → Process recovery. "
+                    + "No process was signalled.")
+        ) {
+            try StartGate().requireNoLiveRecord(location)
+        }
+        #expect(contents(location.recordFile) == bytes)
+        #expect(FileProbe.presence(at: location.lockFile) == .absent)
+    }
+
+    @Test func theReadOnlyCheckKeepsAStaleRecordForTheLockedCheck() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let location = DataLayout(root: folder.url).mail.record
+        try OwnedDirectory.create(location.folder)
+        let current = try ProcessIdentity.capture(getpid())
+        let stale = ActiveRunRecord(
+            processID: getpid(), runtimeID: "old", identity: IdentityFactory.differentStart(current),
+            controller: IdentityFactory.differentStart(current), gracefulSignal: SIGTERM)
+        try ActiveRunRecordFile.write(stale, to: location.recordFile)
+        try StartGate().requireNoLiveRecord(location)
+        #expect(FileProbe.presence(at: location.recordFile) != .absent)
+    }
 }
