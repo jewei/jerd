@@ -15,7 +15,7 @@ Run every task through `./dev`. It works from any folder in the repository.
 | `./dev test --integration web,database,mail,storage` | Also run opt-in runtime tests with the prepared payloads; see [Tools](Tools/README.md) |
 | `./dev test --tools` | Run the tests of the `./dev` tool |
 | `./dev build [--release] [--sign ID --team T]` | Build the app (unsigned Debug by default), check the built app, and print its path |
-| `./dev snapshots [PAGE...]` | Render UI pages to PNG files in `.build/snapshots` |
+| `./dev snapshots [PAGE...] [--list]` | Render UI pages to PNG files in `.build/snapshots`, or list the page names |
 | `./dev format [--check]` | Format all Swift code with swift-format |
 | `./dev lint` | Check the format, `generate --check`, and the repository policies |
 | `./dev generate [--check]` | Generate `Jerd.xcodeproj` from `project.yml` |
