@@ -10,6 +10,9 @@ import os
 final class DatabaseHarness: Sendable {
     let directory: TemporaryDirectory
     let layout: DatabasesLayout
+    /// The socket folders of this harness: short (for `sun_path`) and private to it, so that a
+    /// load sweeps only folders of this test.
+    let socketRoot: URL
     let processes: FakeProcessController
     let lsof: EngineLsof
     let commands: ScriptedCommands
@@ -32,6 +35,9 @@ final class DatabaseHarness: Sendable {
         let directory = try TemporaryDirectory(" databases ü")
         self.directory = directory
         layout = DataLayout(root: directory.url.appendingPathComponent("Jerd")).databases
+        socketRoot = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "js-" + UUID().uuidString.prefix(6), isDirectory: true)
+        try OwnedDirectory.create(socketRoot)
         runtimes = DatabaseEngine.allCases.map { engine in
             DatabaseRuntime(
                 id: "\(engine.rawValue)-test", engine: engine, version: engine == .postgresql ? "18.6" : "8.4.11",
@@ -50,7 +56,10 @@ final class DatabaseHarness: Sendable {
         }
     }
 
-    deinit { directory.remove() }
+    deinit {
+        directory.remove()
+        try? FileManager.default.removeItem(at: socketRoot)
+    }
 
     func runtime(_ engine: DatabaseEngine) -> DatabaseRuntime { runtimes.first { $0.engine == engine }! }
 
@@ -66,7 +75,7 @@ final class DatabaseHarness: Sendable {
     }
 
     func manager() -> DatabaseManager {
-        DatabaseManager(layout: layout, effects: effects())
+        DatabaseManager(layout: layout, effects: effects(), temporaryRoot: socketRoot)
     }
 
     /// A loaded manager with the three test runtimes.

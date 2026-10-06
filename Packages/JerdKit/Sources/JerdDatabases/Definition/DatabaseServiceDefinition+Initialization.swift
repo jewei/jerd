@@ -29,7 +29,7 @@ extension DatabaseServiceDefinition {
         // its data folder and its marker.
         let sockets = DatabaseSocketFolder.newPath(in: temporaryRoot)
         guard let setup = engine.setupPhase(credentials, sockets: sockets) else { return }
-        try DatabaseSocketFolder.create(at: sockets)
+        try DatabaseSocketFolder.create(at: sockets, owner: files.root)
         let plan = LaunchPlan(
             request: setup.server, ports: [],
             readiness: DatabaseReadiness.check(

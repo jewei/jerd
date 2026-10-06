@@ -26,7 +26,10 @@ All paths come from `DatabasesLayout` in JerdFoundation. Folders have mode 0700 
 - `databases/instances/<UUID>/`: `runtime.json`, `initialized.json`, `credentials.json`,
   `removed-registration.json`, `service.lock`, `active-run.json`, `server.log`, `data/`, and the
   engine files `client.cnf`, `pgpass`, or `redis.conf`.
-- `$TMPDIR/jerd-db-XXXXXXXX-X/`: the socket folder of one run. It is removed after the stop.
+- `$TMPDIR/jerd-db-XXXXXXXX-X/`: the socket folder of one run, with `owner.json`
+  (`{"instance": "<instance folder>"}`). It is removed after the stop. When Jerd stopped without a
+  stop (a crash), the first `load()` removes it, but only when the marker names an instance of
+  this data root, the instance lock is free, and no saved process lives. Every other folder stays.
 
 ## Rules
 

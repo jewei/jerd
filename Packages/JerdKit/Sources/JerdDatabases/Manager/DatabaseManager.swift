@@ -39,9 +39,13 @@ public actor DatabaseManager {
 
     /// Loads the registry once and creates `databases/` (mode 0700). Later calls return the
     /// loaded registry.
+    ///
+    /// Before the first load succeeds, no instance of this manager runs. So the load also removes
+    /// socket folders of earlier runs that ended without a stop (see `DatabaseSocketSweeper`).
     public func load() throws -> DatabaseConfiguration {
         guard !loaded else { return configuration }
         try OwnedDirectory.create(layout.root)
+        DatabaseSocketSweeper(temporaryRoot: temporaryRoot, layout: layout, startGate: effects.startGate).sweep()
         configuration = try registry.load()
         loaded = true
         return configuration

@@ -76,7 +76,7 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
 
     /// The plan of the TCP server: a new socket folder and the engine configuration.
     func servicePlan(_ credentials: DatabaseCredentials, commands: any CommandRunning) throws -> LaunchPlan {
-        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot)
+        let sockets = try DatabaseSocketFolder.create(in: temporaryRoot, owner: files.root)
         let plan = LaunchPlan(
             request: engine.serverRequest(sockets: sockets), ports: [engine.service.port],
             readiness: DatabaseReadiness.check(

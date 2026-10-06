@@ -51,7 +51,7 @@ private final class RecordingStartSteps: SetupPhaseRunning, InitializerRunning {
         let runtime = harness.runtime(engine)
         return DatabaseServiceDefinition(
             service: DatabaseService(id: id, name: "Local", runtimeID: runtime.id, port: 23_000), runtime: runtime,
-            layout: harness.layout, temporaryRoot: FileManager.default.temporaryDirectory)
+            layout: harness.layout, temporaryRoot: harness.socketRoot)
     }
 
     private func prepare(
@@ -160,7 +160,7 @@ private final class RecordingStartSteps: SetupPhaseRunning, InitializerRunning {
             id: "redis-test", engine: .redis, version: "9.0.0", path: harness.runtime(.redis).path)
         let changed = DatabaseServiceDefinition(
             service: DatabaseService(id: id, name: "Local", runtimeID: other.id, port: 23_000), runtime: other,
-            layout: harness.layout, temporaryRoot: FileManager.default.temporaryDirectory)
+            layout: harness.layout, temporaryRoot: harness.socketRoot)
         await #expect(throws: DatabaseMessages.identityMismatch) { _ = try await prepare(changed, harness) }
     }
 
@@ -206,10 +206,14 @@ private final class RecordingStartSteps: SetupPhaseRunning, InitializerRunning {
 
     @Test func aSocketFolderMustFitTheSocketPathLimit() throws {
         let long = URL(fileURLWithPath: "/" + String(repeating: "d", count: 80), isDirectory: true)
-        #expect(throws: DatabaseMessages.socketFolder) { _ = try DatabaseSocketFolder.create(in: long) }
-        let folder = try DatabaseSocketFolder.create(in: FileManager.default.temporaryDirectory)
+        let owner = URL(fileURLWithPath: "/instances/0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0", isDirectory: true)
+        #expect(throws: DatabaseMessages.socketFolder) { _ = try DatabaseSocketFolder.create(in: long, owner: owner) }
+        let folder = try DatabaseSocketFolder.create(in: FileManager.default.temporaryDirectory, owner: owner)
         defer { try? FileManager.default.removeItem(at: folder) }
         #expect(mode(folder) == 0o700)
         #expect(folder.lastPathComponent.count == "jerd-db-".count + 10)
+        let marker = folder.appendingPathComponent("owner.json")
+        #expect(text(marker) == #"{"instance":"\/instances\/0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0"}"#)
+        #expect(mode(marker) == 0o600)
     }
 }
