@@ -10,7 +10,9 @@ name: CI
 #
 # Each event kind has its own concurrency group. Thus a merge does not cancel the weekly runtime job,
 # and a manual run does not cancel the check of the last merge. Only a new push to a pull request
-# cancels the older run of that pull request. Other runs wait in the queue.
+# cancels the older run of that pull request. Other runs do not cancel a running run, but a group
+# keeps at most one waiting run: a newer run replaces a run that waits. So when several merges come
+# within one check, the merges between the first and the last get no check result of their own.
 
 on:
   push:

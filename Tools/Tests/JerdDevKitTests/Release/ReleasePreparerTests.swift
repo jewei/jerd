@@ -35,6 +35,7 @@ struct ReleasePreparerTests {
     @Test("The source check reads the commit, the notes of the version, and the signed feed")
     func sourceFacts() async throws {
         let workspace = try Self.readyWorkspace()
+        defer { workspace.remove() }
         let source = try await Self.preparer(workspace, Self.inputs()).checkSource()
         #expect(source.commit == ReleaseFixtures.commit)
         #expect(source.notes == "- New thing.\n")
@@ -43,14 +44,17 @@ struct ReleasePreparerTests {
     @Test("Refuses a dirty worktree, another version, a minimum below the deployment target, and no notes")
     func sourceRefusals() async throws {
         let dirty = try Self.readyWorkspace()
+        defer { dirty.remove() }
         dirty.runner.on("git", ["status"], output: "?? new-file\n")
         await #expect(throws: DevFailure.self) { _ = try await Self.preparer(dirty, Self.inputs()).checkSource() }
         let cases = [try Self.inputs(version: "0.3.0"), try Self.inputs(build: "4"), try Self.inputs(minimum: "13.5")]
         for inputs in cases {
             let workspace = try Self.readyWorkspace()
+            defer { workspace.remove() }
             await #expect(throws: DevFailure.self) { _ = try await Self.preparer(workspace, inputs).checkSource() }
         }
         let noNotes = try Self.readyWorkspace()
+        defer { noNotes.remove() }
         try noNotes.write(ReleaseWorkspace.changelog, to: "CHANGELOG.md")
         await #expect(throws: DevFailure.self) { _ = try await Self.preparer(noNotes, Self.inputs()).checkSource() }
     }
@@ -58,6 +62,7 @@ struct ReleasePreparerTests {
     @Test("The preflight checks the Keychain key, the notary profile, the identity, and the payloads")
     func preflight() async throws {
         let workspace = try Self.readyWorkspace()
+        defer { workspace.remove() }
         try await ReleasePreflight(shell: workspace.shell(), inputs: Self.inputs()).run()
         let notary = try #require(workspace.runner.calls("xcrun", ["notarytool", "history"]).first)
         #expect(notary == ["notarytool", "history", "--keychain-profile", "notary", "--output-format", "json"])
@@ -67,16 +72,19 @@ struct ReleasePreparerTests {
     @Test("The preflight refuses another Sparkle key, a missing identity, and a missing payload")
     func preflightRefusals() async throws {
         let key = try Self.readyWorkspace()
+        defer { key.remove() }
         key.runner.on("generate_keys", output: "AAAA\n")
         await #expect(throws: DevFailure.self) {
             try await ReleasePreflight(shell: key.shell(), inputs: Self.inputs()).run()
         }
         let identity = try Self.readyWorkspace()
+        defer { identity.remove() }
         identity.runner.on("security", ["find-identity"], output: "     0 valid identities found\n")
         await #expect(throws: DevFailure.self) {
             try await ReleasePreflight(shell: identity.shell(), inputs: Self.inputs()).run()
         }
         let payload = try Self.readyWorkspace()
+        defer { payload.remove() }
         try FileManager.default.removeItem(at: payload.path(".build/runtimes/payloads/mail"))
         await #expect(throws: DevFailure.self) {
             try await ReleasePreflight(shell: payload.shell(), inputs: Self.inputs()).run()
@@ -86,6 +94,7 @@ struct ReleasePreparerTests {
     @Test("A failed archive ends in the terminal prepareFailed state and keeps the log")
     func failureIsRecorded() async throws {
         let workspace = try Self.readyWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on("xcodebuild", ["archive"], status: 65, error: "error: signing failed")
         await #expect(throws: DevFailure.self) { try await Self.preparer(workspace, Self.inputs()).run() }
         let candidates = try CandidateStore(releases: workspace.repository.releases).candidates()

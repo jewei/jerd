@@ -43,7 +43,18 @@ public enum DevMain {
 
     /// Help requests end with status 0. Every other parse or validation error, and a help request for
     /// an unknown command, is a usage error in the format of `UsageMessage`.
+    ///
+    /// The root command has no `--json` option, so for `./dev nope --json` the parser names `--json`.
+    /// The arguments are then parsed again without it, and the error of that parse wins when it is one.
     static func parse(_ arguments: [String]) -> Parsed {
+        let parsed = parseArguments(arguments)
+        guard case .usageError = parsed, requestsJSON(arguments) else { return parsed }
+        let withoutJSON = parseArguments(removingJSON(arguments))
+        if case .usageError = withoutJSON { return withoutJSON }
+        return parsed
+    }
+
+    private static func parseArguments(_ arguments: [String]) -> Parsed {
         if let topic = UsageMessage.unknownHelpTopic(in: arguments) {
             return usageError("Unknown command \"\(topic)\".", command: DevCommand.self)
         }
@@ -70,6 +81,12 @@ public enum DevMain {
     /// True when `--json` comes before any `--` terminator, the same place where the parser reads it.
     static func requestsJSON(_ arguments: [String]) -> Bool {
         arguments.prefix(while: { $0 != "--" }).contains("--json")
+    }
+
+    /// The arguments without each `--json` before the first `--` terminator.
+    static func removingJSON(_ arguments: [String]) -> [String] {
+        let options = arguments.prefix(while: { $0 != "--" })
+        return options.filter { $0 != "--json" } + arguments.dropFirst(options.count)
     }
 
     /// Runs the command. With `--json`, it also prints one JSON summary on standard output at the end.

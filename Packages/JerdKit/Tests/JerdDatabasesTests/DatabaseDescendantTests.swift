@@ -32,14 +32,16 @@ import os
         }
     }
 
-    /// A loaded manager whose Redis runtime is the orphan-service fixture, with one service.
+    /// A loaded manager whose Redis runtime is a C fixture (the orphan-service fixture by default),
+    /// with one service.
     private static func fixtureManager(
-        _ directory: TemporaryDirectory, layout: DatabasesLayout, supervisor: ProcessSupervisor
+        _ directory: TemporaryDirectory, layout: DatabasesLayout, supervisor: ProcessSupervisor,
+        fixture: String = "orphan-service"
     ) async throws -> (DatabaseManager, DatabaseService) {
         let runtimeFolder = directory.path("runtime")
         try OwnedDirectory.create(runtimeFolder.appendingPathComponent("bin"))
         try FileManager.default.copyItem(
-            at: try await Fixtures.shared.executable("orphan-service"),
+            at: try await Fixtures.shared.executable(fixture),
             to: runtimeFolder.appendingPathComponent("bin/redis-server"))
         let commands = Self.commands()
         let probe = LoopbackProbe(isAccepting: { _ in false }, requireBindable: { _ in })
@@ -88,5 +90,39 @@ import os
             _ = await supervisor.stopAll(policy: .forceful())
             throw error
         }
+    }
+
+    /// A paused server (`kill -STOP`, a debugger) is not an exit. When it ignores the stop signal
+    /// after Jerd continues it, Quit is cancelled and the process, its record, and its lock stay.
+    @Test func aPausedServiceThatCannotStopCancelsQuit() async throws {
+        let directory = try TemporaryDirectory(" paused service")
+        defer { directory.remove() }
+        let supervisor = ProcessSupervisor()
+        let layout = DataLayout(root: directory.path("Jerd")).databases
+        let (manager, service) = try await Self.fixtureManager(
+            directory, layout: layout, supervisor: supervisor, fixture: "graceful-process")
+        let instance = layout.instance(service.id)
+        try await manager.start(service.id)
+        let pid = try #require(await manager.snapshot().state(of: service.id).processID)
+        defer { kill(pid, SIGINT) }
+        let record = try #require(contents(instance.activeRunFile))
+        // The fixture ignores SIGTERM once it printed "ready".
+        #expect(await eventually { text(instance.logFile).contains("ready") })
+        #expect(await ProcessPause.pause(pid))
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(await manager.snapshot().state(of: service.id) == .running(pid: pid))
+        await #expect(throws: (any Error).self) { try await manager.stopAll() }
+        guard case .stuck(pid, _) = await manager.snapshot().state(of: service.id) else {
+            Issue.record("Expected a stuck service, got \(await manager.snapshot().state(of: service.id))")
+            return
+        }
+        #expect(kill(pid, 0) == 0)
+        #expect(contents(instance.activeRunFile) == record)
+        #expect(!isLockFree(instance.lockFile))
+        kill(pid, SIGINT)
+        try await manager.stop(service.id)
+        #expect(await manager.snapshot().state(of: service.id) == .stopped)
+        #expect(!exists(instance.activeRunFile))
+        #expect(isLockFree(instance.lockFile))
     }
 }

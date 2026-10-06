@@ -36,6 +36,7 @@ struct PayloadSignerTests {
     @Test("Signs every Mach-O file and records the new digests and the signing record")
     func signsAndRecords() async throws {
         let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
         let before = try PayloadSigner.verifiedPayloads(in: layout.appPayloads)
         let reports = try await Self.signer(workspace, layout).run()
         #expect(reports.count == before.count)
@@ -59,6 +60,7 @@ struct PayloadSignerTests {
     @Test("Only the PHP executables get the JIT entitlements")
     func phpGetsJIT() async throws {
         let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
         _ = try await Self.signer(workspace, layout).run()
         let withEntitlements = workspace.runner.calls("codesign", ["--force"]).filter { $0.contains("--entitlements") }
         #expect(withEntitlements.count == 2)
@@ -72,6 +74,7 @@ struct PayloadSignerTests {
     @Test("A universal file keeps only its arm64 slice")
     func thinsUniversalFiles() async throws {
         let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
         workspace.runner.on(
             "lipo",
             effect: { invocation in
@@ -87,9 +90,11 @@ struct PayloadSignerTests {
     @Test("Refuses a file without arm64 code and an unreviewed entitlement")
     func refuses() async throws {
         let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
         workspace.runner.on("lipo", ["-archs"], output: "x86_64\n")
         await #expect(throws: DevFailure.self) { _ = try await Self.signer(workspace, layout).run() }
         let (second, secondLayout) = try Self.setUp()
+        defer { second.remove() }
         let debug = try EntitlementPolicy.plist([EntitlementPolicy.getTaskAllow: true])
         second.runner.on("codesign", ["-d", "--entitlements"], output: String(decoding: debug, as: UTF8.self))
         await #expect(throws: DevFailure.self) { _ = try await Self.signer(second, secondLayout).run() }
@@ -99,6 +104,7 @@ struct PayloadSignerTests {
     @Test("Refuses a changed payload before any file is signed")
     func refusesChangedPayload() async throws {
         let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
         let mail = layout.appPayloads.appending(path: "mail/mailpit-1.31.3-arm64/LICENSE")
         try Data("changed".utf8).write(to: mail)
         await #expect(throws: DevFailure.self) { _ = try await Self.signer(workspace, layout).run() }

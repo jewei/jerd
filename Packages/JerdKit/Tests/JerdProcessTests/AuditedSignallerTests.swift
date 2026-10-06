@@ -71,6 +71,22 @@ import Testing
         }
     }
 
+    @Test func resumeContinuesOnlyAVerifiedRunningProcess() throws {
+        let sent = SentSignals()
+        try signaller(sent: sent).resume(IdentityFactory.make())
+        #expect(sent.values == [SIGCONT])
+        let unverified = [
+            IdentityFactory.make(pid: getpid()), IdentityFactory.make(user: geteuid() + 1),
+            IdentityFactory.make(audit: nil),
+        ]
+        for identity in unverified { try signaller(sent: sent).resume(identity) }
+        for match in [ProcessIdentity.Match.exited, .replaced, .unknown] {
+            try signaller(match: match, sent: sent).resume(IdentityFactory.make())
+        }
+        #expect(sent.values == [SIGCONT])
+        #expect(throws: refusal) { try signaller(sent: sent).signal(IdentityFactory.make(), with: SIGCONT) }
+    }
+
     @Test(.enabled(if: AuditedSignaller.system.isSupported))
     func theSystemSignallerStopsAVerifiedChild() async throws {
         let folder = try TemporaryDirectory()

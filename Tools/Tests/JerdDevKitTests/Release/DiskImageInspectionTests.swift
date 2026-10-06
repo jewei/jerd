@@ -23,6 +23,7 @@ struct DiskImageInspectionTests {
     @Test("Checks the image and the mounted app, then detaches")
     func inspects() async throws {
         let (workspace, app) = try Self.setUp()
+        defer { workspace.remove() }
         try await DiskImageInspection(shell: workspace.shell(), team: ReleaseFixtures.team)
             .verify(URL(filePath: "/c/Jerd-0.2.0.dmg"), exportedApp: app)
         #expect(workspace.runner.calls("hdiutil").map(\.first!) == ["verify", "attach", "detach"])
@@ -32,6 +33,7 @@ struct DiskImageInspectionTests {
     @Test("A failed detach is tried again with force")
     func forcesDetach() async throws {
         let (workspace, app) = try Self.setUp()
+        defer { workspace.remove() }
         workspace.runner.on("hdiutil", ["detach"], status: 16, error: "resource busy")
         workspace.runner.on("hdiutil", ["detach", "-force"])
         try await DiskImageInspection(shell: workspace.shell(), team: ReleaseFixtures.team)
@@ -42,6 +44,7 @@ struct DiskImageInspectionTests {
     @Test("A different mounted app is reported, also when the detach fails")
     func keepsTheCheckError() async throws {
         let (workspace, app) = try Self.setUp()
+        defer { workspace.remove() }
         workspace.runner.on(
             "hdiutil", ["attach"],
             effect: { invocation in

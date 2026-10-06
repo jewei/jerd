@@ -8,6 +8,7 @@ struct VersionBumpTests {
     @Test("Sets the version file and promotes the changelog without other changes")
     func bumps() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let changed = try VersionBump(environment: workspace.environment())
             .run(version: #require(.release("0.2.0")), build: 3)
         #expect(changed == ["Configuration/Version.xcconfig", "CHANGELOG.md"])
@@ -21,6 +22,7 @@ struct VersionBumpTests {
     @Test("Refuses a build that does not grow and leaves the files unchanged")
     func refusesLowerBuild() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let before = try Data(contentsOf: workspace.path("Configuration/Version.xcconfig"))
         #expect(throws: DevFailure.self) {
             try VersionBump(environment: workspace.environment()).run(version: #require(.release("0.2.0")), build: 2)
@@ -31,6 +33,7 @@ struct VersionBumpTests {
     @Test("Refuses a committed feed that is not signed with the key")
     func refusesUnsignedFeed() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         try workspace.write(ReleaseWorkspace.emptyFeed, to: "appcast.xml")
         #expect(throws: DevFailure.self) {
             try VersionBump(environment: workspace.environment()).run(version: #require(.release("0.2.0")), build: 3)
@@ -40,6 +43,7 @@ struct VersionBumpTests {
     @Test("Refuses a version file with a conditional version")
     func refusesConditionalVersion() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         try workspace.write(
             "MARKETING_VERSION = 0.1.0\nMARKETING_VERSION[config=Debug] = 9\nCURRENT_PROJECT_VERSION = 2\n",
             to: "Configuration/Version.xcconfig")

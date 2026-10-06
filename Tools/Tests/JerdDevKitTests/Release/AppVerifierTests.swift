@@ -41,6 +41,7 @@ struct AppVerifierTests {
     @Test("Every nested code has its identifier rule: own IDs, Sparkle bundle IDs, and Autoupdate's prefix")
     func codeList() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let code = try AppVerifier.bundleCode(Self.app(workspace))
         let rules = Dictionary(
             code.map { ($0.file.lastPathComponent, $0.identifier) }, uniquingKeysWith: { first, _ in first })
@@ -57,6 +58,7 @@ struct AppVerifierTests {
     @Test("Payload binaries must run on the minimum macOS and need only bundled libraries")
     func payloadChecks() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let app = try Self.app(workspace)
         let check = AppPayloadCheck(
             shell: try workspace.shell(), team: ReleaseFixtures.team, minimumMacOS: ReleaseVersion("14.0")!)

@@ -138,4 +138,50 @@ import Testing
         try await instance.stop()
         #expect(await instance.state == .stopped)
     }
+
+    /// A paused server (`kill -STOP`, a debugger) is alive: it keeps its state, and Stop continues it.
+    @Test func aPausedServiceStaysRunningAndStopsGracefully() async throws {
+        let setup = try Setup()
+        defer { setup.directory.remove() }
+        let instance = setup.instance(
+            executable: try await Fixtures.shared.executable("graceful-process"), signal: SIGINT)
+        try await instance.start()
+        let pid = try #require(await instance.processID)
+        #expect(await ProcessPause.pause(pid))
+        #expect(await instance.refresh() == .running(pid: pid))
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(await instance.refresh() == .running(pid: pid))
+        try await instance.stop()
+        #expect(await instance.state == .stopped)
+        #expect(kill(pid, 0) == -1)
+        #expect(!exists(setup.folder.appendingPathComponent("active-run.json")))
+        #expect(isLockFree(setup.folder.appendingPathComponent("service.lock")))
+    }
+
+    /// A paused server that ignores the stop signal after it continues is stuck: Jerd keeps the
+    /// process, its record, and its lock, and the stop fails (which cancels Quit).
+    @Test func aPausedServiceThatDoesNotStopStaysStuckWithItsRecordAndLock() async throws {
+        let setup = try Setup()
+        defer { setup.directory.remove() }
+        let instance = setup.instance(
+            executable: try await Fixtures.shared.executable("graceful-process"), signal: SIGTERM)
+        try await instance.start()
+        let pid = try #require(await instance.processID)
+        let record = setup.folder.appendingPathComponent("active-run.json")
+        let saved = try #require(contents(record))
+        #expect(await ProcessPause.pause(pid))
+        await #expect(throws: (any Error).self) { try await instance.stop() }
+        guard case .stuck(pid, _) = await instance.state else {
+            kill(pid, SIGINT)
+            Issue.record("Expected a stuck service, got \(await instance.state)")
+            return
+        }
+        #expect(kill(pid, 0) == 0)
+        #expect(!ProcessPause.isPaused(pid))
+        #expect(contents(record) == saved)
+        #expect(!isLockFree(setup.folder.appendingPathComponent("service.lock")))
+        kill(pid, SIGINT)
+        try await instance.stop()
+        #expect(await instance.state == .stopped)
+    }
 }

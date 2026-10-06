@@ -17,6 +17,7 @@ struct AppSigningTests {
     @Test("Signs Sparkle innermost first with its own identifiers, then the launcher, helper, and app")
     func signingOrder() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on("codesign", ["-d", "--verbose=2"]) { invocation in
             let name = URL(filePath: invocation.arguments.last!).lastPathComponent
             return .init(standardError: "Identifier=org.sparkle-project.\(name)\n")
@@ -39,6 +40,7 @@ struct AppSigningTests {
     @Test("A signature passes with the team, hardened runtime, timestamp, and identifier")
     func verifies() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on("codesign", ["-d", "--verbose=4"], error: Self.goodDisplay)
         let verifier = SignatureVerifier(shell: try workspace.shell(), team: ReleaseFixtures.team)
         try await verifier.verify(URL(filePath: "/c/JerdCLI"), identifier: .exact("dev.jerd.cli"))
@@ -61,6 +63,7 @@ struct AppSigningTests {
         ]
         for item in cases {
             let workspace = try ReleaseWorkspace()
+            defer { workspace.remove() }
             workspace.runner.on("codesign", ["-d", "--verbose=4"], error: item.display)
             workspace.runner.on("codesign", ["-d", "--entitlements"], output: item.entitlements)
             let verifier = SignatureVerifier(shell: try workspace.shell(), team: ReleaseFixtures.team)
@@ -82,6 +85,7 @@ struct AppSigningTests {
     @Test("The archive uses the pinned packages, manual signing, and no version overrides")
     func archiveArguments() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let inputs = try ReleaseInputs.parse(
             version: "0.2.0", build: "3", minimumMacOS: "14.0", identity: ReleaseFixtures.identity,
             team: ReleaseFixtures.team, notaryProfile: "p", keychain: nil)
@@ -97,6 +101,7 @@ struct AppSigningTests {
     @Test("The minimum macOS version is written into the exported Info.plist")
     func writesMinimumSystem() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let app = workspace.path("Jerd.app")
         try workspace.write(
             "<plist><dict><key>CFBundleIdentifier</key><string>dev.jerd.app</string></dict></plist>",
