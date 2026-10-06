@@ -91,6 +91,14 @@ extension ServiceScenario {
             await ports.databases.configure {
                 $0.loadFailure = "databases.json line 4: The data could not be read."
             }
+        case .databasesSetupFailed:
+            await ports.databases.configure {
+                $0.setupFailure = "The bundled PostgreSQL receipt does not match its pin."
+            }
+        case .storageSetupFailed:
+            await ports.storage.configure { $0.setupFailure = "The app has no bundled storage runtimes." }
+        case .mailSetupFailed:
+            await ports.mail.configure { $0.setupFailure = "The app has no bundled mail runtimes." }
         default:
             break
         }

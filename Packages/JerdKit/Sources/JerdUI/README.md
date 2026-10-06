@@ -17,7 +17,7 @@ implements them in memory.
 | `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
 | `Features/Mail/` | `MailPort`, `MailModel`, the Mail page, and the ports sheet. |
-| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet. |
+| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet, and the missing-runtime banner with the reason of a failed bundled setup (`MissingRuntimeBanner`). |
 | `Features/Sites/` | `SitesModel` (`SitesPort`): the sidebar, site page, site editor, HTTPS approval, system setup states. |
 | `Features/Tunnels/` | `TunnelsModel` (`TunnelsPort`): the tunnel page, tunnel editor, and connector log, inside Sites. |
 

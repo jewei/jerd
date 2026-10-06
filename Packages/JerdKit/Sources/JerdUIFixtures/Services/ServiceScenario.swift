@@ -7,6 +7,8 @@ import JerdUI
 public enum ServiceScenario: String, CaseIterable, Sendable {
     case databasesEmpty = "databases-empty"
     case databasesNoRuntimes = "databases-no-runtimes"
+    /// The bundled setup failed at launch: only MySQL has a runtime.
+    case databasesSetupFailed = "databases-setup-failed"
     case databases
     case databaseStopped = "database-stopped"
     case databaseFailed = "database-failed"
@@ -26,6 +28,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case storage
     case storageEmpty = "storage-empty"
     case storageNoRuntime = "storage-no-runtime"
+    case storageSetupFailed = "storage-setup-failed"
     case storageStuck = "storage-stuck"
     case storageFailed = "storage-failed"
     case bucket
@@ -37,6 +40,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case mailStopped = "mail-stopped"
     case mailStuck = "mail-stuck"
     case mailNoRuntime = "mail-no-runtime"
+    case mailSetupFailed = "mail-setup-failed"
     case mailPorts = "mail-ports"
     /// A quit waits for storage: the Mail controls are off before their own stage.
     case mailQuitting = "mail-quitting"
@@ -75,13 +79,14 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .databaseCancelledSave, .databaseQuitting:
             .item(.database(SampleServices.reportingID))
         case .databaseStuck: .item(.database(SampleServices.cacheID))
-        case .databasesEmpty, .databasesNoRuntimes, .databasesLoadFailed: .section(.databases)
-        case .storage, .storageEmpty, .storageNoRuntime, .storageStuck, .storageFailed, .addBucket,
-            .addBucketInvalid, .storagePorts:
+        case .databasesEmpty, .databasesNoRuntimes, .databasesSetupFailed, .databasesLoadFailed: .section(.databases)
+        case .storage, .storageEmpty, .storageNoRuntime, .storageSetupFailed, .storageStuck, .storageFailed,
+            .addBucket, .addBucketInvalid, .storagePorts:
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))
-        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailPorts, .mailQuitting: .section(.mail)
+        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailSetupFailed, .mailPorts, .mailQuitting:
+            .section(.mail)
         case .advancedCommandLineTools: .dashboard(.advanced)
         }
     }

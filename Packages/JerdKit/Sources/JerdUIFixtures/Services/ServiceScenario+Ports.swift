@@ -27,6 +27,8 @@ extension ServiceScenario {
         switch self {
         case .databasesNoRuntimes:
             return InMemoryDatabases()
+        case .databasesSetupFailed:
+            return InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.mysql]))
         case .databaseStopped, .databaseStarting:
             return InMemoryDatabases(
                 configuration: SampleServices.databases(.populated), states: SampleServices.databaseStates(.populated),
@@ -53,7 +55,7 @@ extension ServiceScenario {
 
     private func storage(_ base: InMemoryStorage) -> InMemoryStorage {
         switch self {
-        case .storageNoRuntime:
+        case .storageNoRuntime, .storageSetupFailed:
             return InMemoryStorage()
         case .storageEmpty, .addBucket, .addBucketInvalid:
             return InMemoryStorage(settings: StorageSettings(runtime: SampleServices.storageRuntime))
@@ -79,7 +81,7 @@ extension ServiceScenario {
             return InMemoryMail(
                 settings: MailSettings(runtime: SampleServices.mailRuntime),
                 state: .stuck(pid: 4301, reason: "Mailpit did not stop within 15 seconds."), hasData: true)
-        case .mailNoRuntime:
+        case .mailNoRuntime, .mailSetupFailed:
             return InMemoryMail()
         default:
             return base

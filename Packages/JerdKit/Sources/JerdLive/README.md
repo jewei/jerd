@@ -32,8 +32,10 @@ calls. Pure mappings are `package static` functions with their own tests.
   in the first site load (`DevelopmentRuntimeSetup`, shared with Advanced), the database
   engines without a runtime, Mailpit and RustFS when none is saved. A corrupt settings file
   fails the load before anything is installed. A failed bundled setup does not fail the load:
-  the site setup message shows it in Advanced, and the service setups write it to the unified
-  log (`subsystem == "dev.jerd.app"`).
+  the site setup message shows it in Advanced. The service setups write it to the unified log
+  (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`, which the
+  port reports through `runtimeSetupFailure()`; the service page shows it in its missing-runtime
+  banner. A later successful setup clears it.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated

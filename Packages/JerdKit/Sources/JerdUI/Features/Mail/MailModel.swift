@@ -12,6 +12,9 @@ public final class MailModel {
     public internal(set) var snapshot = MailSnapshot(settings: MailSettings(), state: .stopped)
     public internal(set) var files: ServiceFiles?
     public internal(set) var loadState: ServiceLoadState = .loading
+    /// Why the bundled runtime setup at launch failed, or nil. The page shows it while the
+    /// runtime is still missing.
+    public internal(set) var runtimeSetupFailure: String?
     public internal(set) var operation: OperationState = .idle
     /// The confirmation of the last test email, until the next operation.
     public internal(set) var testResult: String?
@@ -64,6 +67,7 @@ public final class MailModel {
     public func load() async {
         do {
             apply(try await port.load())
+            runtimeSetupFailure = await port.runtimeSetupFailure()
             loadState = .loaded
             await refreshFiles()
         } catch {

@@ -1,3 +1,4 @@
+import Foundation
 import JerdDatabases
 import JerdMail
 import JerdManifest
@@ -33,7 +34,14 @@ package struct BundledServiceRuntimes: ServiceRuntimeSource {
     /// Records a failed bundled setup. The service keeps the runtimes it has.
     static func report(_ error: any Error, service: String) {
         log.error(
-            "Bundled \(service, privacy: .public) runtime setup failed: \(error.localizedDescription, privacy: .public)"
-        )
+            "Bundled \(service, privacy: .public) runtime setup failed: \(message(for: error), privacy: .public)")
+    }
+
+    /// The user message of a failed setup, which the service page shows.
+    static func message(for error: any Error) -> String {
+        if let description = (error as? any LocalizedError)?.errorDescription, !description.isEmpty {
+            return description
+        }
+        return error.localizedDescription
     }
 }

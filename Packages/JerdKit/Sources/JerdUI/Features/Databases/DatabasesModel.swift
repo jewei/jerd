@@ -11,6 +11,9 @@ public final class DatabasesModel {
     public internal(set) var snapshot = DatabaseSnapshot(configuration: DatabaseConfiguration(), states: [:])
     public internal(set) var files: [UUID: ServiceFiles] = [:]
     public internal(set) var loadState: ServiceLoadState = .loading
+    /// Why the bundled runtime setup at launch failed, or nil. The page shows it while the
+    /// runtime is still missing.
+    public internal(set) var runtimeSetupFailure: String?
     /// Registry changes and page failures.
     public internal(set) var operation: OperationState = .idle
     /// Services with a start or stop in progress.
@@ -60,6 +63,12 @@ public final class DatabasesModel {
         DatabaseEngine.allCases.filter { engine in configuration.runtimes.contains { $0.engine == engine } }
     }
 
+    /// The failed bundled setup while an engine still has no runtime. An engine installed later
+    /// in Runtimes ends the problem, so the banner goes away with it.
+    public var visibleRuntimeSetupFailure: String? {
+        availableEngines.count < DatabaseEngine.allCases.count ? runtimeSetupFailure : nil
+    }
+
     /// True while any database work runs, so other pages and Quit can wait for it.
     public var isBusy: Bool {
         operation.isWorking || editorOperation.isWorking || restoreOperation.isWorking || !busyServices.isEmpty
@@ -96,6 +105,7 @@ public final class DatabasesModel {
     public func load() async {
         do {
             apply(try await port.load())
+            runtimeSetupFailure = await port.runtimeSetupFailure()
             loadState = .loaded
             await refreshFiles()
         } catch {

@@ -11,6 +11,8 @@ public actor InMemoryStorage: StoragePort {
     public var listed: Set<String>
     public var hasData: Bool
     public var loadFailure: String?
+    /// The reason of a failed bundled runtime setup that `runtimeSetupFailure()` reports.
+    public var setupFailure: String?
     public var startBehavior = ServiceBehavior.succeed
     public var stopBehavior = ServiceBehavior.succeed
     /// When set, Save and Retry throw this message and keep the bucket unfinished.
@@ -38,6 +40,10 @@ public actor InMemoryStorage: StoragePort {
         calls.append("load")
         if let loadFailure { throw JerdError.corrupt(loadFailure) }
         return await snapshot()
+    }
+
+    public func runtimeSetupFailure() async -> String? {
+        setupFailure
     }
 
     public func snapshot() async -> StorageSnapshot {

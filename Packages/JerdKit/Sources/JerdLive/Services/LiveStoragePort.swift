@@ -8,11 +8,16 @@ package struct LiveStoragePort: StoragePort {
     let manager: any StorageManaging
     let runtimes: any ServiceRuntimeSource
     let layout: StorageLayout
+    let setup: BundledSetupRecord
 
-    package init(manager: any StorageManaging, runtimes: any ServiceRuntimeSource, layout: StorageLayout) {
+    package init(
+        manager: any StorageManaging, runtimes: any ServiceRuntimeSource, layout: StorageLayout,
+        setup: BundledSetupRecord = BundledSetupRecord()
+    ) {
         self.manager = manager
         self.runtimes = runtimes
         self.layout = layout
+        self.setup = setup
     }
 
     package init(domain: LiveDomain) {
@@ -26,11 +31,17 @@ package struct LiveStoragePort: StoragePort {
         if try await manager.load().runtime == nil {
             do {
                 try await manager.registerRuntime(try await runtimes.storageRuntime())
+                await setup.record(nil)
             } catch {
                 BundledServiceRuntimes.report(error, service: "storage")
+                await setup.record(BundledServiceRuntimes.message(for: error))
             }
         }
         return await manager.snapshot()
+    }
+
+    package func runtimeSetupFailure() async -> String? {
+        await setup.failure
     }
 
     package func snapshot() async -> StorageSnapshot {
