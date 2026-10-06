@@ -51,7 +51,7 @@ holds only `Placeholder.swift` is not built yet.
 | `JerdTunnels` | Tunnel tokens, the Keychain secret store, the cloudflared connector, the reconnect policy, and the tunnel supervisor |
 | `JerdDesign` | Design tokens and reusable SwiftUI components |
 | `JerdUI` | Navigation, feature view models, screens, and the port protocols that the UI needs |
-| `JerdLive` | Live implementations of the UI ports, app bootstrap, and the staged shutdown |
+| `JerdLive` | Live implementations of the UI ports, the composition of the live domain, and the launch steps |
 | `JerdUIFixtures` | In-memory port implementations and sample data for previews, tests, and snapshots |
 | `JerdSnapshotSupport` | Offscreen snapshot rendering, the snapshot catalog, and the component gallery; never linked into the app |
 | `JerdSnapshots` | Renders every page with fixtures to PNG files |
@@ -90,6 +90,35 @@ Data services stop with a graceful signal and a 30-second limit. A timeout
 never escalates to `SIGKILL`; the process, its record, and its data lock stay,
 and Quit is cancelled. Saved run records let Jerd find and safely stop
 processes that survive an app crash.
+
+## Live wiring and app startup
+
+`Apps/Jerd` holds only the scenes (`JerdApp`), the app delegate, and the Sparkle adapter.
+`JerdLive.LiveApp` builds every port on the real domain and the root `AppState`; building it
+changes nothing on disk.
+
+Startup does not depend on a window (spec F 7.2.1):
+
+1. `applicationWillFinishLaunching` applies the Dock and icon choices, so a hidden Dock icon
+   never flashes.
+2. `applicationDidFinishLaunching` starts `LiveApp.launch()`:
+   1. Removes abandoned runtime staging folders and refreshes an outdated command-line
+      launcher, off the main actor.
+   2. `AppState.launch()` starts the updater, then launches each feature in section order.
+      Sites loads the site configuration and installs the bundled PHP and Caddy when they are
+      missing; Databases, Storage, and Mail each load their settings and install their bundled
+      runtimes when none is registered; Tunnels connect the tunnels marked "Start when Jerd
+      opens". Then Runtimes and Advanced load, and polling starts.
+3. Reopening Jerd (Dock or Applications) shows the main window, also when the menu bar item and
+   the Dock icon are both off.
+
+Quit runs the staged quit of `AppState` (`ShutdownCoordinator`): runtime work, tunnels,
+storage, mail, databases, then the web environment. `applicationShouldTerminate` answers
+`.terminateLater` once and replies once; a second request during a quit is cancelled at once.
+A service that does not stop cancels the quit and keeps Jerd open. Sparkle uses the same path.
+
+A Debug build reads `JERD_DEBUG_DATA_ROOT` to run with an empty data folder. Release builds
+always use `~/Library/Application Support/Jerd`.
 
 ## Data
 
