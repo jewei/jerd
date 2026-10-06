@@ -13,9 +13,13 @@ struct PageSnapshotTests {
     func everyScenarioRegistered() {
         var catalog = SnapshotCatalog()
         catalog.addJerdPages()
-        #expect(
-            catalog.entries.map(\.name)
-                == FixtureScenario.allCases.map(\.rawValue) + SitesSheetScenario.allCases.map(\.rawValue))
+        let pageNames = FixtureScenario.allCases.flatMap { scenario in
+            [scenario.rawValue] + (scenario.showsFullPage ? ["\(scenario.rawValue)-end"] : [])
+        }
+        let sheetNames = SitesSheetScenario.allCases.flatMap { scenario in
+            [scenario.rawValue] + (scenario.showsEnd ? ["\(scenario.rawValue)-end"] : [])
+        }
+        #expect(catalog.entries.map(\.name) == pageNames + sheetNames)
         #expect(catalog.duplicateNames.isEmpty)
         let pages = catalog.entries.filter { entry in FixtureScenario.allCases.contains { $0.rawValue == entry.name } }
         #expect(pages.allSatisfy { Set(SnapshotSize.windowSizes).isSubset(of: $0.sizes) })

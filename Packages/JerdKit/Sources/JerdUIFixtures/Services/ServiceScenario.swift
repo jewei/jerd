@@ -1,6 +1,7 @@
 import Foundation
 import JerdDatabases
 import JerdServiceKit
+import JerdSnapshotSupport
 import JerdUI
 
 /// The window and sheet states of the Databases, Storage, and Mail sections, for snapshots.
@@ -61,6 +62,24 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         }
     }
 
+    /// Long pages also render scrolled to their end at both window sizes.
+    public var showsEnd: Bool {
+        switch self {
+        case .databases, .bucket, .storage, .mail, .advancedCommandLineTools: true
+        default: false
+        }
+    }
+
+    /// Every sheet, and at least one scenario of each page, also renders with Increase Contrast.
+    package var snapshotAppearances: [SnapshotAppearance] {
+        switch self {
+        case .databases, .databasesEmpty, .databasesSetupFailed, .databaseRuntimeMissing, .databaseStuck, .storage,
+            .bucket, .storageStuck, .mail, .mailSetupFailed:
+            SnapshotAppearance.allCases
+        default: kind == .sheet ? SnapshotAppearance.allCases : SnapshotAppearance.standard
+        }
+    }
+
     /// The fixture with the scenario's service data and navigation. Run `prepare` before rendering.
     @MainActor
     public func makeFixture() -> AppFixture {
@@ -70,7 +89,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         return fixture
     }
 
-    private var destination: Destination {
+    package var destination: Destination {
         switch self {
         case .databases, .databasesLong, .databaseEditor, .databaseEditorInvalid, .retainedDatabases,
             .restoreDatabase:

@@ -13,7 +13,10 @@ struct ServiceSnapshotTests {
     func everyScenarioRegistered() {
         var catalog = SnapshotCatalog()
         catalog.addServicePages()
-        #expect(catalog.entries.map(\.name) == ServiceScenario.allCases.map(\.rawValue))
+        let names = ServiceScenario.allCases.flatMap { scenario in
+            [scenario.rawValue] + (scenario.showsEnd ? ["\(scenario.rawValue)-end"] : [])
+        }
+        #expect(catalog.entries.map(\.name) == names)
         #expect(catalog.duplicateNames.isEmpty)
     }
 

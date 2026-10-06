@@ -70,7 +70,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         }
     }
 
-    private var destination: Destination {
+    package var destination: Destination {
         switch self {
         case .dashboardEmpty, .dashboard, .dashboardBusy, .dashboardLong, .quitting: .dashboard(.overview)
         case .appearance, .appearanceHidden: .dashboard(.appearance)
