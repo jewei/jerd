@@ -24,13 +24,12 @@ func contents(_ url: URL) -> Data? { try? Data(contentsOf: url) }
 /// The text of a file, or "" when it cannot be read.
 func text(_ url: URL) -> String { contents(url).map { String(decoding: $0, as: UTF8.self) } ?? "" }
 
-/// Polls `condition` every 2 ms until it is true or two seconds pass. Returns the last result.
-/// It waits for work on other tasks to finish; it never decides a test by elapsed time.
-func eventually(_ condition: () async throws -> Bool) async rethrows -> Bool {
-    let deadline = ContinuousClock.now + .seconds(2)
-    while ContinuousClock.now < deadline {
-        if try await condition() { return true }
-        try? await Task.sleep(for: .milliseconds(2))
+/// Checks `condition` again after each pause of 1 ms until it is true. There is no deadline, so a
+/// slow machine cannot fail a test; the suite's `.timeLimit` only stops a test that hangs.
+/// It returns when the test is cancelled. Use it only for a real child process, which has no
+/// event to wait for.
+func waitUntil(_ condition: () async throws -> Bool) async rethrows {
+    while try await !condition() {
+        do { try await Task.sleep(for: .milliseconds(1)) } catch { return }
     }
-    return try await condition()
 }

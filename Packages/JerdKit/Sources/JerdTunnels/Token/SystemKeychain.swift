@@ -31,7 +31,7 @@ package struct SystemKeychain: KeychainAccessing {
     package static func query(_ item: TunnelKeychainItem) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: TunnelKeychainItem.service,
+            kSecAttrService as String: item.service,
             kSecAttrAccount as String: item.account,
         ]
     }

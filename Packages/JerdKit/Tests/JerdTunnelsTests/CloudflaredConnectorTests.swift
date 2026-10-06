@@ -128,7 +128,7 @@ import Testing
         let fixture = try ConnectorFixture()
         defer { fixture.folder.remove() }
         await fixture.processes.setGivesProcessID(false)
-        await #expect(throws: JerdError.processFailed(TunnelMessage.exitedEarly)) {
+        await #expect(throws: TunnelRetryableError(.processFailed(TunnelMessage.exitedEarly))) {
             try await fixture.connector.connect(try fixture.launch())
         }
         #expect(await fixture.processes.stopped.count == 1)

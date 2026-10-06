@@ -68,7 +68,12 @@ let package = Package(
             "JerdUI", "JerdFoundation", "JerdProcess", "JerdManifest", "JerdRuntimes", "JerdSystem",
             "JerdWeb", "JerdCLICore", "JerdServiceKit", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
         ]),
-        module("JerdUIFixtures", ["JerdUI", "JerdDesign"]),
+        module(
+            "JerdUIFixtures", [
+                "JerdUI", "JerdDesign", "JerdSnapshotSupport", "JerdFoundation", "JerdManifest", "JerdRuntimes",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem",
+            ],
+            resources: [.copy("Resources/AppIcons")]),
         // Snapshot rendering and the component gallery. Only JerdSnapshots and tests import it; it never ships.
         module("JerdSnapshotSupport", ["JerdDesign"]),
         .executableTarget(name: "JerdSnapshots",
@@ -83,18 +88,25 @@ let package = Package(
         tests(
             "JerdRuntimes", ["JerdFoundation", "JerdProcess", "JerdManifest", "JerdArchive"],
             resources: [.copy("Fixtures")]),
-        tests("JerdSystem", ["JerdFoundation"]),
-        tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"]),
+        tests("JerdSystem", ["JerdFoundation"], resources: [.copy("Fixtures")]),
+        tests("JerdHelperCore", ["JerdFoundation", "JerdSystem"], resources: [.copy("Fixtures")]),
+        // Opt-in signed XPC check; SignedXPCCheckTests runs it when JERD_XPC_IDENTITY is set.
+        .executableTarget(name: "JerdXPCCheck", dependencies: ["JerdFoundation", "JerdSystem"],
+                          path: "Tests/JerdXPCCheck", swiftSettings: strictSettings),
         tests("JerdWeb", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
         tests("JerdServiceKit", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
         tests("JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
-        tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
-        tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
+        tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
+        tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),
         tests("JerdDesign", ["JerdSnapshotSupport"]),
         tests("JerdSnapshotSupport", ["JerdDesign"]),
-        tests("JerdUI", ["JerdUIFixtures", "JerdDesign", "JerdFoundation"]),
+        tests(
+            "JerdUI", [
+                "JerdUIFixtures", "JerdDesign", "JerdFoundation", "JerdSnapshotSupport", "JerdManifest", "JerdRuntimes",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem",
+            ]),
         tests("JerdLive", ["JerdUI", "JerdFoundation"]),
     ]
 )

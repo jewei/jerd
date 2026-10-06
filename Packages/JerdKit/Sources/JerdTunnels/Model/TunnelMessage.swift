@@ -4,6 +4,8 @@ package enum TunnelMessage {
     package static let invalidName = "Enter a name of 1 to 100 characters and a metrics port above 1023."
     package static let invalidHostname =
         "Enter a public hostname in lower case, such as preview.example.com. Do not include a scheme or path."
+    package static let addressHostname =
+        "Enter the public hostname of the Cloudflare route, such as preview.example.com. An IP address is not a hostname."
     package static let invalidOrigin = "Use one registered site or a local HTTP or HTTPS address without credentials."
     package static let invalidConfiguration =
         "Tunnel settings have an unsupported format, duplicate records, or duplicate metrics ports."
@@ -36,6 +38,12 @@ package enum TunnelMessage {
     package static let processExited = "The tunnel process exited. Select Connect to try again."
     package static let unexpectedListener =
         "The tunnel opened an unexpected listener. Jerd requested a graceful stop. Check its log before retrying."
+    package static func failedStarts(_ count: Int, lastError: String?) -> String {
+        let text =
+            "The tunnel process failed to start \(count) times in a row, so Jerd stopped the retries. "
+            + "Read the tunnel log, then select Connect."
+        return lastError.map { text + " Last error: " + $0 } ?? text
+    }
 
     // Connector
     package static let executableName = "Select an executable named cloudflared."

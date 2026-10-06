@@ -1,0 +1,85 @@
+import Foundation
+import JerdFoundation
+import JerdProcess
+import JerdServiceKit
+
+/// The managed-service definition of the one RustFS storage service.
+///
+/// Start steps after the shared lock, record, and version checks: start marker hashes, data
+/// identity, and credentials (`StorageData`) → the launch plan. After the readiness and listener
+/// checks, `initialized.json` records the runtime and the hashes.
+///
+/// RustFS gets loopback S3 and console listeners, its keys through the key-file flags (never in
+/// an argument or the environment), and the fixed relative volume `data` from its private
+/// working folder, because RustFS splits volume arguments at spaces and the data root has one.
+/// Telemetry export and update checks are off.
+public struct RustFSDefinition: ServiceDefinition {
+    public let runtime: StorageRuntime
+    public let ports: StoragePorts
+    public let profile: ServiceProfile
+    let layout: StorageLayout
+    let sender: any S3Sending
+    let listed: ListedBuckets
+    let now: @Sendable () -> Date
+
+    init(
+        runtime: StorageRuntime, ports: StoragePorts, layout: StorageLayout, dataRoot: URL, sender: any S3Sending,
+        listed: ListedBuckets, now: @escaping @Sendable () -> Date
+    ) {
+        self.runtime = runtime
+        self.ports = ports
+        self.layout = layout
+        self.sender = sender
+        self.listed = listed
+        self.now = now
+        profile = ServiceProfile(
+            name: "RustFS", runtimeID: runtime.id, record: layout.record, containingDirectory: dataRoot,
+            log: ServiceLog(file: layout.logFile, previousFile: layout.previousLogFile), ports: ports.ordered,
+            messages: StorageMessages.instance)
+    }
+
+    /// The first line of `rustfs --version` must be `rustfs` and the saved version.
+    public var versionProbe: VersionProbe {
+        VersionProbe(
+            request: ProcessRequest(
+                executable: runtime.executable, arguments: ["--version"], workingDirectory: layout.root),
+            rule: .firstLine(label: "rustfs", version: runtime.version),
+            mismatchMessage: StorageMessages.versionMismatch)
+    }
+
+    var data: StorageData { StorageData(layout: layout) }
+
+    public func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
+        let credentials = try data.prepare(for: runtime)
+        let client = S3Client(port: ports.api, credentials: credentials, sender: sender, now: now)
+        let readiness = StorageReadinessProbe(client: client, consoleURL: consoleURL, listed: listed)
+        return LaunchPlan(
+            request: serverRequest, ports: Set(ports.ordered), readiness: readiness.check,
+            secrets: [credentials.secretKey])
+    }
+
+    public func completeStart() async throws {
+        try data.markInitialized(runtime)
+    }
+
+    var consoleURL: URL { StorageSettings(ports: ports).consoleURL }
+
+    /// The exact RustFS command line and environment.
+    var serverRequest: ProcessRequest {
+        let origin = "http://127.0.0.1:\(ports.console)"
+        return ProcessRequest(
+            executable: runtime.executable,
+            arguments: [
+                "server", "--address", "127.0.0.1:\(ports.api)",
+                "--console-enable", "--console-address", "127.0.0.1:\(ports.console)",
+                "--access-key-file", layout.accessKeyFile.path, "--secret-key-file", layout.secretKeyFile.path,
+                "--region", StorageSettings.region, ServiceFileName.data,
+            ], workingDirectory: layout.root,
+            environment: [
+                "RUSTFS_OBS_TRACES_EXPORT_ENABLED": "false", "RUSTFS_OBS_METRICS_EXPORT_ENABLED": "false",
+                "RUSTFS_OBS_LOGS_EXPORT_ENABLED": "false", "RUSTFS_OBS_LOGGER_LEVEL": "warn",
+                "RUSTFS_OBS_PROFILING_EXPORT_ENABLED": "false", "RUSTFS_CHECK_UPDATE": "false",
+                "RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS": origin, "RUSTFS_CORS_ALLOWED_ORIGINS": origin,
+            ])
+    }
+}
