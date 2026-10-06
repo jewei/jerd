@@ -213,6 +213,18 @@ struct DatabasesModelTests {
         #expect(await databases.calls.filter { $0 == "stop all" }.count == 2)
     }
 
+    @Test("A cancelled Quit shows a stuck stop once, as the service state, not also as a banner")
+    func cancelledQuitShowsTheStuckStopOnce() async {
+        let databases = sample()
+        await databases.configure { $0.stopBehavior = .stuck("MySQL did not stop safely.") }
+        let fixture = await launched(databases)
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.databases
+        #expect(await model.shutdown() == false)
+        #expect(model.services.contains { model.state(of: $0.id).failure == "MySQL did not stop safely." })
+        #expect(model.operation.failureMessage == nil)
+    }
+
     @Test("Quit waits for a running start before it stops the services")
     func shutdownWaitsForWork() async {
         let fixture = await launched(sample())

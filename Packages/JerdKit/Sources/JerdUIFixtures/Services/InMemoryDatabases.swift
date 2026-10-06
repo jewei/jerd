@@ -115,7 +115,12 @@ public actor InMemoryDatabases: DatabasesPort {
     public func stopAll() async throws {
         calls.append("stop all")
         for (id, state) in states where state.processID != nil {
-            states[id] = try await ServiceStop.apply(stopBehavior, to: state)
+            do {
+                states[id] = try await ServiceStop.apply(stopBehavior, to: state)
+            } catch let error as StuckError {
+                states[id] = error.state
+                throw error
+            }
         }
     }
 
