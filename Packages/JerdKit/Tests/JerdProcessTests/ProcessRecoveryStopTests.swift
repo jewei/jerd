@@ -97,6 +97,70 @@ struct ProcessRecoveryStopTests {
         #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
     }
 
+    /// A paused group whose leader waits for its worker, like a database server and its backend.
+    /// Recovery continues the worker too, so the leader can end it and stop.
+    @Test func recoveryContinuesEveryPausedMemberOfARunningLeader() async throws {
+        let folder = try TemporaryDirectory(" paused group")
+        defer { folder.remove() }
+        let mail = DataLayout(root: folder.url).mail
+        try OwnedDirectory.create(mail.root)
+        let supervisor = ProcessSupervisor(ceiling: .forceful)
+        let token = try await start("group-with-worker", in: folder, using: supervisor)
+        let log = folder.path("group-with-worker.log")
+        #expect(await eventually { pid_t(text(log).trimmingCharacters(in: .newlines)) != nil })
+        let worker = try #require(pid_t(text(log).trimmingCharacters(in: .newlines)))
+        let leader = try #require(await supervisor.processID(of: token))
+        do {
+            try ActiveRunRecordFile.write(
+                ActiveRunRecord(
+                    processID: leader, runtimeID: "group", identity: try ProcessIdentity.capture(leader),
+                    controller: IdentityFactory.differentStart(try ProcessIdentity.capture(getpid())),
+                    gracefulSignal: SIGINT),
+                to: mail.activeRunFile)
+            // The worker is a child of the leader, which stays unreaped while the test runs.
+            #expect(await ProcessPause.pause(worker))
+            #expect(await ProcessPause.pause(leader))
+            let service = ProcessRecoveryService(layout: DataLayout(root: folder.url), pollInterval: .milliseconds(20))
+            try await service.recover("Mail", timeout: .seconds(3))
+            #expect(await supervisor.waitForExit(of: token, timeout: .seconds(3)) == .exited(status: 0))
+            #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
+            #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
+        } catch {
+            _ = await supervisor.stop(token, policy: .forceful(leaderTimeout: .milliseconds(50)))
+            throw error
+        }
+    }
+
+    /// A saved descendant of an exited leader that is paused gets the signal and then `SIGCONT`.
+    @Test func recoveryContinuesAPausedSavedDescendantOfAnExitedLeader() async throws {
+        let folder = try TemporaryDirectory(" paused descendant")
+        defer { folder.remove() }
+        let mail = DataLayout(root: folder.url).mail
+        try OwnedDirectory.create(mail.root)
+        let supervisor = ProcessSupervisor(ceiling: .forceful)
+        let token = try await start("graceful-process", in: folder, using: supervisor)
+        #expect(await eventually { text(folder.path("graceful-process.log")) == "ready\n" })
+        let pid = try #require(await supervisor.processID(of: token))
+        do {
+            let current = try ProcessIdentity.capture(getpid())
+            try ActiveRunRecordFile.write(
+                ActiveRunRecord(
+                    processID: getpid(), runtimeID: "pg", identity: IdentityFactory.differentStart(current),
+                    controller: IdentityFactory.differentStart(current), gracefulSignal: SIGINT,
+                    descendants: [try ProcessIdentity.capture(pid)]),
+                to: mail.activeRunFile)
+            #expect(await ProcessPause.pause(pid))
+            let service = ProcessRecoveryService(layout: DataLayout(root: folder.url), pollInterval: .milliseconds(20))
+            try await service.recover("Mail", timeout: .seconds(3))
+            #expect(await supervisor.waitForExit(of: token, timeout: .seconds(3)) == .exited(status: 0))
+            #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
+            #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
+        } catch {
+            _ = await supervisor.stop(token, policy: .forceful(leaderTimeout: .milliseconds(50)))
+            throw error
+        }
+    }
+
     @Test func aProcessThatIgnoresTheSignalTimesOutKeepsItsRecordAndBlocksASecondRecovery() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
