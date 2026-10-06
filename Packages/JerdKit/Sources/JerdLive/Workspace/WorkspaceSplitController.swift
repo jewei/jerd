@@ -1,15 +1,20 @@
 import AppKit
 import JerdDesign
 
-/// The native split of the main window: the sidebar (the system sidebar material, full height
+/// The native split of the main window: the sidebar (the system sidebar background, full height
 /// under the toolbar, the collapse animation, an accessible splitter, a saved width) and the
 /// detail column.
 ///
-/// The sidebar is a plain split item with the sidebar material, not an item with the
-/// `.sidebar` behavior: from macOS 26, AppKit lays out the whole window toolbar after a
-/// `.sidebar` item, so the section picker and the sidebar button moved by the sidebar width
-/// each time the sidebar collapsed (measured: the button from x 208 to 96). Both must
-/// stay in place, and `WorkspaceSplitTests` checks it.
+/// The sidebar is a plain split item, not an item with the `.sidebar` behavior: from macOS 26,
+/// AppKit lays out the whole window toolbar after a `.sidebar` item that has a sibling, so the
+/// section picker and the sidebar button moved by the sidebar width each time the sidebar
+/// collapsed (measured: the button from x 208 to 96). Both must stay in place, and
+/// `WorkspaceSplitTests` checks it. The plain item holds `WorkspaceSidebarController`, a split
+/// with one `.sidebar` item and no sibling, which gets the system sidebar background without
+/// that toolbar layout. A window with a `.sidebar` item draws the title bar background (a hard
+/// scroll edge) over a fixed page header, and without the split's own title bar areas that
+/// background also covered the sidebar top; the split makes the title bar transparent, so the
+/// sidebar background reaches the top edge as in a system sidebar.
 ///
 /// The width of the sidebar is shared by every section and saved under `autosaveName`. The
 /// sidebar visibility comes from `NavigationState`: `show(sidebarVisible:animated:)` applies it,
@@ -26,8 +31,7 @@ package final class WorkspaceSplitController: NSSplitViewController {
 
     /// - Parameter autosaveName: The defaults name of the saved width; nil saves nothing.
     package init(sidebar: NSViewController, detail: NSViewController, autosaveName: String?) {
-        sidebarItem = NSSplitViewItem(
-            viewController: WorkspaceColumnController(content: sidebar, background: .sidebar))
+        sidebarItem = NSSplitViewItem(viewController: WorkspaceSidebarController(content: sidebar))
         super.init(nibName: nil, bundle: nil)
         sidebarItem.minimumThickness = WindowMetrics.sidebarMinimumWidth
         sidebarItem.maximumThickness = WindowMetrics.sidebarMaximumWidth
@@ -41,7 +45,7 @@ package final class WorkspaceSplitController: NSSplitViewController {
         splitView.autosaveName = autosaveName
         splitView.dividerStyle = .thin
         addSplitViewItem(sidebarItem)
-        addSplitViewItem(NSSplitViewItem(viewController: WorkspaceColumnController(content: detail, background: nil)))
+        addSplitViewItem(NSSplitViewItem(viewController: WorkspaceColumnController(content: detail)))
         collapseObservation = sidebarItem.observe(\.isCollapsed, options: [.new]) { [weak self] _, change in
             guard let isCollapsed = change.newValue else { return }
             // AppKit changes the split geometry on the main thread.
@@ -75,7 +79,14 @@ package final class WorkspaceSplitController: NSSplitViewController {
 
     override package func viewDidLayout() {
         super.viewDidLayout()
+        makeTitlebarTransparent()
         limitSidebarWidth()
+    }
+
+    /// The sidebar and the page headers continue under the toolbar, without a title bar band.
+    private func makeTitlebarTransparent() {
+        guard let window = view.window, !window.titlebarAppearsTransparent else { return }
+        window.titlebarAppearsTransparent = true
     }
 
     /// Keeps the sidebar edge away from the centered section picker in a narrow window.

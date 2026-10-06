@@ -44,7 +44,7 @@ public enum SampleServices {
         case .busy:
             [
                 studioID: .starting,
-                reportingID: .failed(reason: "PostgreSQL exited before it was ready. Open the log for details."),
+                reportingID: .failed(reason: reportingFailure),
             ]
         }
     }
@@ -82,6 +82,24 @@ public enum SampleServices {
 
     public static let credentials = StorageCredentials(
         accessKey: "JERD0123456789ABCDEF", secretKey: "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF")
+
+    /// A failure as the service layer reports it: the message, then the end of the server log
+    /// with absolute paths. The page shows the message, Open Log, and the last lines.
+    public static let reportingFailure = """
+        PostgreSQL exited before it was ready. 2026-10-06 22:13:01.402 UTC [4103] LOG:  starting PostgreSQL 17.6
+        2026-10-06 22:13:01.405 UTC [4103] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+        2026-10-06 22:13:01.406 UTC [4103] FATAL:  could not create lock file \
+        "\(root)/databases/instances/\(reportingID.uuidString)/data/postmaster.pid": Permission denied
+        2026-10-06 22:13:01.407 UTC [4103] LOG:  database system is shut down
+        """
+
+    /// A RustFS start that failed, with the end of its log.
+    public static let storageFailure = """
+        RustFS exited before it was ready. [2026-10-06T22:13:01Z INFO  rustfs] Starting RustFS 1.0.0
+        [2026-10-06T22:13:01Z INFO  rustfs::storage] Using data folder \(root)/storage/data
+        [2026-10-06T22:13:01Z ERROR rustfs::storage] \(root)/storage/data/.rustfs.sys: disk is read-only
+        [2026-10-06T22:13:01Z ERROR rustfs] Startup failed: storage is not writable
+        """
 
     /// The files of a service folder under the sample data root.
     static func files(_ folder: String, data: String = "data", hasData: Bool) -> ServiceFiles {

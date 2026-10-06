@@ -17,6 +17,11 @@ struct GalleryBannersPage: View {
         } content: {
             VStack(alignment: .leading, spacing: Spacing.large) {
                 InlineMessage(
+                    "The database process exited.", kind: .error, title: "MySQL failed", style: .banner,
+                    action: PageAction("Open Log", perform: GallerySamples.noAction),
+                    details: InlineMessageDetails(
+                        title: "Last log lines", lines: GallerySamples.failureLogLines, isExpanded: true))
+                InlineMessage(
                     "An update restarts this service. Jerd keeps a local data backup for recovery.", kind: .info,
                     style: .banner)
                 InlineMessage(

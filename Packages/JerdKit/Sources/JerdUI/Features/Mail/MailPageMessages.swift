@@ -17,7 +17,9 @@ struct MailPageMessages: View {
             MissingRuntimeBanner(
                 copy: Self.runtimeCopy, setupFailure: model.runtimeSetupFailure, showRuntimes: model.showRuntimes)
         }
-        ServiceStateBanner(state: model.state, subject: "Mail", stopTitle: "Stop Mail", identifier: "mail")
+        ServiceStateBanner(
+            state: model.state, subject: "Mail", stopTitle: "Stop Mail", identifier: "mail", files: model.files,
+            openLog: model.openLog)
         if let message = model.cancelledSaveMessage {
             InlineMessage(message, kind: .info, style: .banner, identifier: "mail.cancelled-save")
         }

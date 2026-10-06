@@ -33,6 +33,11 @@ extension ServiceScenario {
             return InMemoryDatabases(
                 configuration: SampleServices.databases(.populated), states: SampleServices.databaseStates(.populated),
                 started: [SampleServices.studioID, SampleServices.cacheID])
+        case .databaseFailed:
+            // The failed service has a log, so the banner offers Open Log.
+            return InMemoryDatabases(
+                configuration: SampleServices.databases(.busy), states: SampleServices.databaseStates(.busy),
+                started: [SampleServices.reportingID])
         case .databaseStuck:
             var states = SampleServices.databaseStates(.populated)
             states[SampleServices.cacheID] = .stuck(
@@ -66,7 +71,7 @@ extension ServiceScenario {
         case .storageFailed:
             return InMemoryStorage(
                 settings: StorageSettings(runtime: SampleServices.storageRuntime, buckets: SampleServices.buckets),
-                state: .failed(reason: "RustFS exited before it was ready. Open the log for details."),
+                state: .failed(reason: SampleServices.storageFailure),
                 hasData: true)
         default:
             return base

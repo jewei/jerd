@@ -26,14 +26,19 @@ public struct InlineMessage: View {
     private let action: PageAction?
     private let identifier: String?
     private let dismiss: (@MainActor () -> Void)?
+    let details: InlineMessageDetails?
+    @State private var showsDetails: Bool
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.messageAnnouncer) private var announcer
 
-    /// - Parameter identifier: The stable name of the message for UI tests. The Dismiss button
-    ///   gets `<identifier>.dismiss`; without it, `message.<kind>.dismiss`.
+    /// - Parameters:
+    ///   - identifier: The stable name of the message for UI tests. The Dismiss button
+    ///     gets `<identifier>.dismiss`; without it, `message.<kind>.dismiss`.
+    ///   - details: Lines below the text behind a disclosure, for example the end of a log. The
+    ///     disclosure gets `<identifier>.details`.
     public init(
         _ text: String, kind: MessageKind, title: String? = nil, style: Style = .row, action: PageAction? = nil,
-        identifier: String? = nil, dismiss: (@MainActor () -> Void)? = nil
+        identifier: String? = nil, details: InlineMessageDetails? = nil, dismiss: (@MainActor () -> Void)? = nil
     ) {
         self.text = text
         self.kind = kind
@@ -42,6 +47,8 @@ public struct InlineMessage: View {
         self.action = action
         self.identifier = identifier
         self.dismiss = dismiss
+        self.details = details?.lines.isEmpty == false ? details : nil
+        _showsDetails = State(initialValue: details?.isExpanded ?? false)
     }
 
     public var body: some View {
@@ -67,6 +74,30 @@ public struct InlineMessage: View {
     }
 
     private var content: some View {
+        VStack(alignment: .leading, spacing: Spacing.small) {
+            mainLine
+            if let details {
+                detailsDisclosure(details)
+            }
+        }
+        .font(TextRole.detail.font)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func detailsDisclosure(_ details: InlineMessageDetails) -> some View {
+        DisclosureGroup(details.title, isExpanded: $showsDetails) {
+            Text(details.lines.joined(separator: "\n"))
+                .font(TextRole.detail.font.monospaced())
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.leading, Self.symbolWidth + Spacing.small)
+        .accessibilityIdentifier(detailsIdentifier)
+    }
+
+    private var mainLine: some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.small) {
             message
             if let action {
@@ -87,8 +118,6 @@ public struct InlineMessage: View {
                 .accessibilityIdentifier(dismissIdentifier)
             }
         }
-        .font(TextRole.detail.font)
-        .accessibilityElement(children: .contain)
     }
 
     private var message: some View {
@@ -120,6 +149,11 @@ public struct InlineMessage: View {
     /// The identifier of the Dismiss button.
     var dismissIdentifier: String {
         identifier.map { "\($0).dismiss" } ?? AccessibilityIdentifier.make("message", kind.rawValue, "dismiss")
+    }
+
+    /// The identifier of the details disclosure.
+    var detailsIdentifier: String {
+        identifier.map { "\($0).details" } ?? AccessibilityIdentifier.make("message", kind.rawValue, "details")
     }
 
     private var bannerShape: RoundedRectangle {

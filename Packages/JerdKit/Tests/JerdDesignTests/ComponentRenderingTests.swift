@@ -74,6 +74,21 @@ struct ComponentRenderingTests {
         }
     }
 
+    @Test("Closed details add one disclosure row to a banner, however many lines they hold")
+    func closedDetailsStayOneRow() async throws {
+        func banner(_ lines: [String]) -> InlineMessage {
+            InlineMessage(
+                "The database process exited.", kind: .error, title: "MySQL failed", style: .banner,
+                action: PageAction("Open Log") {}, details: InlineMessageDetails(title: "Last log lines", lines: lines))
+        }
+        let plain = try await render(banner([]), width: 500).height
+        let one = try await render(banner(["[ERROR] Aborting"]), width: 500).height
+        let three = try await render(banner(["[ERROR] One", "[ERROR] Two", "[ERROR] Aborting"]), width: 500).height
+        #expect(one == three, "One line \(one) px, three lines \(three) px")
+        // One disclosure row and the spacing above it, at 2x: at most 36 pt.
+        #expect(one > plain && one - plain <= 2 * 36, "Without details \(plain) px, with \(one) px")
+    }
+
     @Test("A one-line banner has one height with and without its buttons")
     func bannerHeightIsFixed() async throws {
         let banners: [InlineMessage] = [
