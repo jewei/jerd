@@ -13,9 +13,12 @@ struct PageSnapshotTests {
     func everyScenarioRegistered() {
         var catalog = SnapshotCatalog()
         catalog.addJerdPages()
-        #expect(catalog.entries.map(\.name) == FixtureScenario.allCases.map(\.rawValue))
+        #expect(
+            catalog.entries.map(\.name)
+                == FixtureScenario.allCases.map(\.rawValue) + SitesSheetScenario.allCases.map(\.rawValue))
         #expect(catalog.duplicateNames.isEmpty)
-        #expect(catalog.entries.allSatisfy { Set(SnapshotSize.windowSizes).isSubset(of: $0.sizes) })
+        let pages = catalog.entries.filter { entry in FixtureScenario.allCases.contains { $0.rawValue == entry.name } }
+        #expect(pages.allSatisfy { Set(SnapshotSize.windowSizes).isSubset(of: $0.sizes) })
     }
 
     @Test("Every registered page renders at the compact window size", arguments: FixtureScenario.allCases)
@@ -27,6 +30,19 @@ struct PageSnapshotTests {
             entry.makeView(), size: .compact, appearance: .light, chrome: entry.chrome, name: entry.name,
             isReady: entry.isReady)
         #expect(image.pixelsWide == 1640)
+        #expect(entry.isReady())
+    }
+
+    @Test("Every Sites and tunnel sheet renders with its content", arguments: SitesSheetScenario.allCases)
+    func rendersSheet(scenario: SitesSheetScenario) async throws {
+        var catalog = SnapshotCatalog()
+        catalog.addJerdPages()
+        let entry = try #require(catalog.entries.first { $0.name == scenario.rawValue })
+        let size = try #require(entry.sizes.first)
+        let image = try await SnapshotRenderer().render(
+            entry.makeView(), size: size, appearance: .dark, chrome: entry.chrome, name: entry.name,
+            isReady: entry.isReady)
+        #expect(image.pixelsWide == 1280)
         #expect(entry.isReady())
     }
 

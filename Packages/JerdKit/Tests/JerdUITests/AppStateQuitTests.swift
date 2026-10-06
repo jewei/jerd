@@ -6,10 +6,6 @@ import Testing
 @Suite("App state quit during launch and repeated quit requests")
 @MainActor
 struct AppStateQuitTests {
-    private func sites(_ fixture: AppFixture) -> InMemoryFeature? {
-        fixture.features.first { $0.section == .sites }
-    }
-
     @Test("Two quit requests in one main-actor turn start one quit; the second is cancelled at once")
     func twoRequestsInOneTurn() async {
         let fixture = AppFixture()
@@ -30,24 +26,22 @@ struct AppStateQuitTests {
 
     @Test("A quit during launch waits for the launching feature; later features never launch")
     func quitWaitsForLaunch() async {
-        let journal = CallJournal()
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
-        sites(fixture)?.journal = journal
-        sites(fixture)?.holdsLaunch = true
+        await fixture.sites.configure { $0.holdsLoad = true }
         let launch = Task { await fixture.state.launch() }
-        await waitUntil { journal.entries == ["sites.launch"] }
+        for _ in 0..<1_000 where await !fixture.sites.calls.contains("load") { await Task.yield() }
         var replies: [Bool] = []
         #expect(fixture.state.requestTermination { replies.append($0) } == .later)
         #expect(fixture.state.bannerActivity?.message == ShutdownCoordinator.launchMessage)
         for _ in 0..<50 { await Task.yield() }
-        #expect(journal.entries == ["sites.launch"])
+        #expect(await fixture.sites.calls == ["load"])
         #expect(replies.isEmpty)
-        sites(fixture)?.holdsLaunch = false
+        await fixture.sites.releaseLoad()
         await waitUntil { !replies.isEmpty }
         await launch.value
         #expect(replies == [true])
-        #expect(journal.entries == ["sites.launch", "sites.launched", "sites.shutdown"])
+        #expect(await fixture.sites.calls == ["load", "stop environment"])
         #expect(await fixture.services.databases.calls.isEmpty)
         #expect(await fixture.services.mail.calls.isEmpty)
         #expect(!fixture.state.isLaunched)
@@ -58,19 +52,19 @@ struct AppStateQuitTests {
     func cancelledQuitResumesLaunch() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
-        sites(fixture)?.holdsLaunch = true
-        sites(fixture)?.stopsSafely = false
+        await fixture.sites.configure { $0.holdsLoad = true }
         let launch = Task { await fixture.state.launch() }
-        await waitUntil { sites(fixture)?.launchCount == 1 }
+        for _ in 0..<1_000 where await !fixture.sites.calls.contains("load") { await Task.yield() }
         var replies: [Bool] = []
         _ = fixture.state.requestTermination { replies.append($0) }
-        sites(fixture)?.holdsLaunch = false
+        await fixture.sites.configure { $0.failure = "Caddy did not stop." }
+        await fixture.sites.releaseLoad()
         await waitUntil { !replies.isEmpty }
         await launch.value
         await fixture.state.launch()
         #expect(replies == [false])
         #expect(fixture.state.isLaunched)
-        #expect(sites(fixture)?.launchCount == 1)
+        #expect(await fixture.sites.calls.filter { $0 == "load" }.count == 1)
         #expect(await fixture.services.mail.calls == ["load"])
         #expect(!fixture.state.isQuitting)
         fixture.state.pollers.forEach { $0.stop() }
@@ -84,10 +78,10 @@ struct AppStateQuitTests {
         _ = fixture.state.requestTermination { replies.append($0) }
         await waitUntil { !replies.isEmpty }
         #expect(replies == [true])
-        #expect(sites(fixture)?.shutdownCount == 0)
+        #expect(await fixture.sites.calls.isEmpty)
         #expect(await fixture.services.storage.calls.isEmpty)
         await fixture.state.launch()
-        #expect(sites(fixture)?.launchCount == 0)
+        #expect(await fixture.sites.calls.isEmpty)
         #expect(await fixture.services.mail.calls.isEmpty)
     }
 }

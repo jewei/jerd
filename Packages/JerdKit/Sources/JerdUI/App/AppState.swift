@@ -15,6 +15,7 @@ public final class AppState {
     public let advanced: AdvancedModel
     public let appUpdates: AppUpdatesModel
     public let clipboard: Clipboard
+    public let sites: SitesModel
     public let databases: DatabasesModel
     public let storage: StorageModel
     public let mail: MailModel
@@ -63,12 +64,17 @@ public final class AppState {
         storage = StorageModel(port: services.storage, clipboard: clipboard, workspace: workspace)
         mail = MailModel(port: services.mail, clipboard: clipboard, workspace: workspace)
         commandLineTools = CommandLineToolsModel(port: services.commandLineTools, lock: operationLock)
-        let builtFeatures: [any WorkspaceFeature] = [databases, storage, mail]
-        self.features = (features + builtFeatures).sorted { $0.section.rawValue < $1.section.rawValue }
+        sites = Self.makeSites(dependencies, clipboard: clipboard, lock: operationLock)
+        let builtFeatures: [any WorkspaceFeature] = [sites, databases, storage, mail]
+        let built = Set(builtFeatures.map(\.section))
+        self.features = (features.filter { !built.contains($0.section) } + builtFeatures).sorted {
+            $0.section.rawValue < $1.section.rawValue
+        }
         connectServiceNavigation()
         pollers = self.features.flatMap(\.pollingTasks).map { task in
             ServicePoller(policy: task.policy, sleeper: dependencies.sleeper, refresh: task.refresh)
         }
+        connectSitesShell()
     }
 
     /// The feature that a section shows, if it is built.

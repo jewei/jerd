@@ -14,7 +14,8 @@ struct AppStateLifecycleTests {
         await fixture.state.launch()
         #expect(fixture.state.isLaunched)
         #expect(fixture.shell.windowRequests == 0)
-        #expect(fixture.features.allSatisfy { $0.launchCount == 1 })
+        #expect(fixture.state.sites.isLoaded)
+        #expect(await fixture.tunnels.calls.filter { $0 == "connect startup" }.count == 1)
         #expect(fixture.state.databases.loadState == .loaded)
         #expect(fixture.state.storage.loadState == .loaded)
         #expect(fixture.state.mail.loadState == .loaded)
@@ -56,7 +57,8 @@ struct AppStateLifecycleTests {
         #expect(fixture.state.appUpdates.isTerminating)
         await waitUntil { !replies.isEmpty }
         #expect(replies == [true])
-        #expect(fixture.features.allSatisfy { $0.shutdownCount == 1 })
+        #expect(await fixture.sites.calls.last == "stop environment")
+        #expect(await fixture.tunnels.calls.contains("stop all"))
         #expect(fixture.state.requestTermination { replies.append($0) } == .now)
     }
 
@@ -87,10 +89,10 @@ struct AppStateLifecycleTests {
         #expect(fixture.state.alert == .quitCancelled(ShutdownPhase.databases.failureMessage))
         #expect(!fixture.state.appUpdates.isTerminating)
         #expect(fixture.shell.windowRequests == 1)
-        let web = fixture.features.first { $0.section == .sites }
-        #expect(web?.shutdownCount == 0)
+        #expect(await !fixture.sites.calls.contains("stop environment"))
         #expect(!fixture.state.storage.isShuttingDown)
         #expect(!fixture.state.mail.isShuttingDown)
+        #expect(!fixture.state.sites.isShuttingDown)
         #expect(fixture.state.requestTermination { _ in } == .later)
     }
 
@@ -99,10 +101,10 @@ struct AppStateLifecycleTests {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
         #expect(fixture.state.bannerActivity == nil)
-        fixture.features[0].bannerActivity = BannerActivity(message: "Stopping sites…")
-        #expect(fixture.state.bannerActivity?.message == "Stopping sites…")
         await fixture.services.storage.configure { $0.stopBehavior = .suspend }
         await fixture.state.launch()
+        fixture.state.sites.startAll()
+        #expect(fixture.state.bannerActivity?.message == "Checking PHP-FPM and HTTPS…")
         _ = fixture.state.requestTermination { _ in }
         await waitUntil { fixture.state.shutdown.message == ShutdownPhase.storage.message }
         #expect(fixture.state.bannerActivity?.message == "Stopping storage…")

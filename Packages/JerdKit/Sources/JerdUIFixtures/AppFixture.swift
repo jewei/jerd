@@ -14,6 +14,8 @@ public final class AppFixture {
     public let runtimes: InMemoryRuntimeInventory
     public let advanced: InMemoryAdvancedPorts
     public let panels: InMemoryFilePanels
+    public let sites: InMemorySitesPort
+    public let tunnels: InMemoryTunnelsPort
     public let features: [InMemoryFeature]
     public let services: InMemoryServicePorts
     /// The appearance defaults, in memory only: a fixture writes nothing to disk.
@@ -31,7 +33,8 @@ public final class AppFixture {
         advanced: InMemoryAdvancedPorts = InMemoryAdvancedPorts(registrations: SampleData.registrations),
         features: [InMemoryFeature] = SampleFeatures.all(.populated),
         services: InMemoryServicePorts = InMemoryServicePorts(.populated), updater: InMemoryUpdater = InMemoryUpdater(),
-        panels: InMemoryFilePanels = InMemoryFilePanels(), sleeper: any Sleeping = IdleSleeper(),
+        panels: InMemoryFilePanels = InMemoryFilePanels(), sites: InMemorySitesPort = InMemorySitesPort(),
+        tunnels: InMemoryTunnelsPort = InMemoryTunnelsPort(), sleeper: any Sleeping = IdleSleeper(),
         prepareDefaults: (UserDefaults) -> Void = { _ in }
     ) {
         self.suiteName = suiteName
@@ -45,11 +48,13 @@ public final class AppFixture {
         self.services = services
         self.updater = updater
         self.panels = panels
+        self.sites = sites
+        self.tunnels = tunnels
         let dependencies = AppDependencies(
             info: Self.info, defaults: defaults, presence: shell, iconImages: iconImages, updater: updater,
             runtimes: runtimes, recovery: advanced, executables: advanced, httpsRecovery: advanced, windows: shell,
             pasteboard: shell, workspace: shell, filePanels: panels, sleeper: sleeper,
-            services: services.ports)
+            services: services.ports, sites: sites, tunnels: tunnels)
         state = AppState(dependencies: dependencies, features: features)
     }
 

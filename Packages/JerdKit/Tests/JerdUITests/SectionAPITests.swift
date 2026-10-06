@@ -9,16 +9,11 @@ import Testing
 @Suite("Section API for feature packages")
 @MainActor
 struct SectionAPITests {
-    private func sites(_ fixture: AppFixture) -> InMemoryFeature? {
-        fixture.features.first { $0.section == .sites }
-    }
-
     @Test("File › New (⌘N) runs the New command of the current section, also with the sidebar hidden")
     func newItemCommand() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
-        var added = 0
-        sites(fixture)?.newItemAction = FeatureAction(id: "sites.new", title: "New Site…") { added += 1 }
+        await fixture.state.launch()
         let state = fixture.state
         #expect(AppCommand.newItem.shortcut == CommandShortcut("n", modifiers: .command))
         state.navigation.show(.section(.sites))
@@ -27,47 +22,43 @@ struct SectionAPITests {
         #expect(AppCommand.newItem.title(in: state) == "New Site…")
         #expect(AppCommand.newItem.isEnabled(in: state))
         AppCommand.newItem.perform(in: state)
-        #expect(added == 1)
+        #expect(state.sites.sheet?.editor?.isNew == true)
+        state.sites.cancelEditor()
 
         state.navigation.show(.dashboard(.overview))
         #expect(AppCommand.newItem.title(in: state) == "New…")
         #expect(!AppCommand.newItem.isEnabled(in: state))
         AppCommand.newItem.perform(in: state)
-        #expect(added == 1)
+        #expect(state.sites.sheet == nil)
     }
 
     @Test("File › New is off when the section turns its command off, and during a quit")
     func newItemDisabled() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
-        var added = 0
-        let feature = sites(fixture)
-        feature?.newItemAction = FeatureAction(id: "sites.new", title: "New Site…", isEnabled: false) { added += 1 }
         fixture.state.navigation.show(.section(.sites))
         #expect(!AppCommand.newItem.isEnabled(in: fixture.state))
-        feature?.newItemAction = FeatureAction(id: "sites.new", title: "New Site…") { added += 1 }
         await fixture.services.storage.configure { $0.stopBehavior = .suspend }
         await fixture.state.launch()
+        #expect(AppCommand.newItem.isEnabled(in: fixture.state))
         _ = fixture.state.requestTermination { _ in }
         #expect(!AppCommand.newItem.isEnabled(in: fixture.state))
         AppCommand.newItem.perform(in: fixture.state)
-        #expect(added == 0)
+        #expect(fixture.state.sites.sheet == nil)
     }
 
     @Test("A feature can poll two kinds of state at their own pace")
     func twoPollingLoops() async {
         let sleeper = RecordingSleeper(allowedSleeps: 0)
-        let feature = SampleFeatures.all(.populated)[0]
-        feature.pollingPolicy = .environment
-        feature.extraPollingPolicies = [.tunnels]
-        let fixture = AppFixture(features: [feature], sleeper: sleeper)
+        let fixture = AppFixture(sleeper: sleeper)
         defer { fixture.removeDefaults() }
         await fixture.state.launch()
+        let reads = await fixture.sites.environmentReads
         fixture.state.setAppActive(true)
         fixture.state.setWindowVisible(true)
-        await waitUntil { feature.refreshCount == 1 && feature.extraRefreshCount == 1 }
-        #expect(feature.refreshCount == 1)
-        #expect(feature.extraRefreshCount == 1)
+        for _ in 0..<1_000 where await fixture.sites.environmentReads == reads { await Task.yield() }
+        await waitUntil { sleeper.durations.contains(.seconds(1)) }
+        #expect(await fixture.sites.environmentReads > reads)
         #expect(sleeper.durations.contains(.milliseconds(500)))
         #expect(sleeper.durations.contains(.seconds(1)))
         fixture.state.pollers.forEach { $0.stop() }

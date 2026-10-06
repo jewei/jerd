@@ -42,12 +42,16 @@ struct MenuBarQuitTests {
     }
 
     @Test("Global feature work shows at the top of the menu")
-    func featureWorkInMenu() {
+    func featureWorkInMenu() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
-        fixture.features[0].bannerActivity = BannerActivity(message: "Starting sites…")
+        await fixture.sites.configure { $0.suspendsChanges = true }
+        await fixture.state.launch()
+        fixture.state.sites.startAll()
         let items = MenuBarMenu.items(for: fixture.state) {}
-        #expect(items.first?.title == "Starting sites…")
+        #expect(items.first?.title == "Checking PHP-FPM and HTTPS…")
+        await fixture.sites.configure { $0.suspendsChanges = false }
+        await fixture.state.sites.stopAll()?.value
         #expect(actions(items).allSatisfy({ $0.id != "menu.activity" }))
     }
 

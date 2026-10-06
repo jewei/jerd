@@ -19,5 +19,6 @@ extension SnapshotCatalog {
                         .task { await host.prepare() }
                 })
         }
+        addSitesSheets()
     }
 }

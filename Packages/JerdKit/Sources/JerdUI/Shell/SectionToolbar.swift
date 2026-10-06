@@ -12,7 +12,7 @@ struct SectionToolbar: View {
         case .dashboard:
             EmptyView()
         case .sites:
-            EmptyView()
+            SitesToolbar(model: state.sites)
         case .databases:
             DatabasesToolbar(model: state.databases)
         case .storage:

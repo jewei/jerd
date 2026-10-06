@@ -71,7 +71,7 @@ let package = Package(
         module(
             "JerdUIFixtures", [
                 "JerdUI", "JerdDesign", "JerdSnapshotSupport", "JerdFoundation", "JerdManifest", "JerdRuntimes",
-                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
             ],
             resources: [.copy("Resources/AppIcons")]),
         // Snapshot rendering and the component gallery. Only JerdSnapshots and tests import it; it never ships.
@@ -115,7 +115,7 @@ let package = Package(
         tests(
             "JerdUI", [
                 "JerdUIFixtures", "JerdDesign", "JerdFoundation", "JerdSnapshotSupport", "JerdManifest", "JerdRuntimes",
-                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage",
+                "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
             ]),
         tests("JerdLive", ["JerdUI", "JerdFoundation"]),
     ]
