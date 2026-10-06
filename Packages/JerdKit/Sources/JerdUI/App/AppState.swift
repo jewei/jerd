@@ -26,7 +26,10 @@ public final class AppState {
     @ObservationIgnored let windows: any WindowPresenting
     @ObservationIgnored let workspace: any WorkspaceOpening
     @ObservationIgnored var pollers: [ServicePoller] = []
-    @ObservationIgnored var hasStartedLaunch = false
+    /// The launch, kept so a quit can wait for it.
+    @ObservationIgnored var launchTask: Task<Void, Never>?
+    /// The sections whose feature finished `launch()`.
+    @ObservationIgnored var launchedSections: Set<AppSection> = []
 
     /// - Parameter features: The service features. Each feature work package builds its model
     ///   from its own port in `AppDependencies` and adds it here; until then the fixtures pass
@@ -72,6 +75,9 @@ public final class AppState {
     public func openURL(_ url: URL) {
         workspace.open(url)
     }
+
+    /// True from the first quit request until the quit is cancelled. Feature actions are off then.
+    public var isQuitting: Bool { shutdown.isQuitting }
 
     /// The global work for the operation banner: the staged quit first, then feature work.
     public var bannerActivity: BannerActivity? {

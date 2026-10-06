@@ -15,6 +15,8 @@ public final class InMemoryFeature: WorkspaceFeature, ShutdownParticipant {
     public let shutdownPhase: ShutdownPhase
     /// What `shutdown()` returns. Nil makes it wait until its task is cancelled.
     public var stopsSafely: Bool?
+    /// While true, `launch()` waits after it starts, like a first launch that installs runtimes.
+    public var holdsLaunch = false
     public private(set) var launchCount = 0
     public private(set) var refreshCount = 0
     public private(set) var shutdownCount = 0
@@ -39,6 +41,10 @@ public final class InMemoryFeature: WorkspaceFeature, ShutdownParticipant {
     public func launch() async {
         launchCount += 1
         journal?.record("\(section.title.lowercased()).launch")
+        while holdsLaunch, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        journal?.record("\(section.title.lowercased()).launched")
     }
 
     public func refresh() async {

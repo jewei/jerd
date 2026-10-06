@@ -46,6 +46,7 @@ struct AppStateLifecycleTests {
     func quitSucceeds() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         var replies: [Bool] = []
         #expect(fixture.state.requestTermination { replies.append($0) } == .later)
         #expect(fixture.state.appUpdates.isTerminating)
@@ -59,6 +60,7 @@ struct AppStateLifecycleTests {
     func duplicateRequest() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         fixture.features.first { $0.section == .storage }?.stopsSafely = nil
         var replies: [Bool] = []
         #expect(fixture.state.requestTermination { replies.append($0) } == .later)
@@ -71,6 +73,7 @@ struct AppStateLifecycleTests {
     func quitCancelled() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         let databases = fixture.features.first { $0.section == .databases }
         databases?.stopsSafely = false
         var replies: [Bool] = []
@@ -91,6 +94,7 @@ struct AppStateLifecycleTests {
     func bannerActivity() async {
         let fixture = AppFixture()
         defer { fixture.removeDefaults() }
+        await fixture.state.launch()
         #expect(fixture.state.bannerActivity == nil)
         fixture.features[0].bannerActivity = BannerActivity(message: "Stopping sites…")
         #expect(fixture.state.bannerActivity?.message == "Stopping sites…")
