@@ -102,4 +102,21 @@ struct LiveAppTests {
                 for: NSWindow.didResizeNotification, windowIdentifier: "main", isWindowVisible: true)
                 == nil)
     }
+
+    /// The Dock Quit and logout send the quit Apple Event. The live app must route it to the
+    /// quit that ends the sheets, because AppKit's own handler is dropped while a sheet shows.
+    @Test func theLiveAppRoutesTheQuitAppleEventToTheQuitThatEndsTheSheets() throws {
+        var quits = 0
+        let live = LiveApp(
+            configuration: try Self.configuration(), updater: SilentUpdater(), bundle: .main,
+            defaults: try Self.defaults(), notifications: NotificationCenter()
+        ) { quits += 1 }
+
+        live.installQuitEventHandler()
+        defer { live.quitEvents.remove() }
+        let result = QuitAppleEventTests.dispatchQuitEvent()
+
+        #expect(result == noErr)
+        #expect(quits == 1)
+    }
 }

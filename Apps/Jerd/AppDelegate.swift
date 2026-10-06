@@ -19,8 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Applies the Dock choice before any window shows, so a hidden Dock icon never flashes.
+    /// Replaces AppKit's quit event handler, which AppKit installs before this call.
     func applicationWillFinishLaunching(_ notification: Notification) {
         live.state.appearance.apply()
+        live.installQuitEventHandler()
     }
 
     /// Loads every service, starts the updater, and starts polling, also when no window opens.

@@ -82,6 +82,12 @@ extension SparkleUpdater: SPUUpdaterDelegate {
         }
     }
 
+    /// Sparkle terminates the app right after this call; AppKit would drop that request while a
+    /// sheet shows, so "Install and Relaunch" ends the sheets first.
+    nonisolated func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+        MainActor.assumeIsolated { ApplicationQuit.endOpenSheets() }
+    }
+
     nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         let version = item.displayVersionString
         MainActor.assumeIsolated { send(.updateFound(version)) }

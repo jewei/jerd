@@ -46,8 +46,14 @@ implements them in memory.
 
 ## Sheets and Quit
 
-AppKit does not start a quit while a window shows a sheet, so Quit (⌘Q, the menu bar item,
-or a Sparkle update) first ends every open sheet (`ApplicationQuit.request()` in JerdLive).
+AppKit does not start a quit while a window shows a sheet, so every quit path first ends every
+open sheet (in JerdLive):
+
+| Path | Hook |
+| --- | --- |
+| ⌘Q and the app menu, the menu bar item | `ApplicationQuit.request()` |
+| The Dock menu Quit, logout, restart, shutdown (the quit Apple Event) | `LiveApp.installQuitEventHandler()` in `applicationWillFinishLaunching` (`QuitAppleEventHandler`); it calls `ApplicationQuit.request()` |
+| Sparkle "Install and Relaunch" | `updaterWillRelaunchApplication` calls `ApplicationQuit.endOpenSheets()`; Sparkle then terminates |
 The decision, checked against the macOS Human Interface Guidelines:
 
 - Jerd's sheets are short dialogs: a name, a port, a folder, a token. They are not documents.

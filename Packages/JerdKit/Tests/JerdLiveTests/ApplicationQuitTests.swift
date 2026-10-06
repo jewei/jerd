@@ -61,3 +61,48 @@ struct ApplicationQuitTests {
         #expect(window.attachedSheet == nil)
     }
 }
+
+@Suite("Quit Apple Event", .serialized)
+@MainActor
+struct QuitAppleEventTests {
+    /// Sends the quit Apple Event to this process through the event manager, as the Dock and
+    /// logout do, and returns the result code of the dispatch.
+    static func dispatchQuitEvent() -> OSErr {
+        let event = NSAppleEventDescriptor(
+            eventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEQuitApplication),
+            targetDescriptor: .currentProcess(), returnID: AEReturnID(kAutoGenerateReturnID),
+            transactionID: AETransactionID(kAnyTransactionID))
+        let reply = NSAppleEventDescriptor.null()
+        guard let eventDescription = event.aeDesc, let replyDescription = reply.aeDesc else { return OSErr(paramErr) }
+        let mutableReply = UnsafeMutablePointer(mutating: replyDescription)
+        let unusedReference = UnsafeMutableRawPointer.allocate(byteCount: 1, alignment: 1)
+        defer { unusedReference.deallocate() }
+        return NSAppleEventManager.shared().dispatchRawAppleEvent(
+            eventDescription, withRawReply: mutableReply, handlerRefCon: unusedReference)
+    }
+
+    /// AppKit's own quit handler calls `terminate(_:)`, which a sheet blocks, so the Dock Quit
+    /// and logout must reach the quit that ends the sheets first.
+    @Test func theDockAndLogoutQuitEventRunsTheQuitThatEndsTheSheets() {
+        var requests = 0
+        let handler = QuitAppleEventHandler(manager: .shared()) { requests += 1 }
+        handler.install()
+        defer { handler.remove() }
+
+        let result = Self.dispatchQuitEvent()
+
+        #expect(result == noErr)
+        #expect(requests == 1)
+    }
+
+    @Test func aRemovedHandlerNoLongerRunsTheQuit() {
+        var requests = 0
+        let handler = QuitAppleEventHandler(manager: .shared()) { requests += 1 }
+        handler.install()
+        handler.remove()
+
+        _ = Self.dispatchQuitEvent()
+
+        #expect(requests == 0)
+    }
+}

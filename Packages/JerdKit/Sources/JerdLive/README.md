@@ -13,7 +13,7 @@ calls. Pure mappings are `package static` functions with their own tests.
 | `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. |
 | `Services/` | `LiveDatabasesPort`, `LiveMailPort`, `LiveStoragePort`, and the bundled service runtimes. |
 | `Settings/` | Runtimes (`LiveRuntimeInventory`, `RuntimeActivator`), Advanced (`LiveRecoveryPort`, `LiveExecutableRegistrations`, `LiveHTTPSRecovery`), and `LiveCommandLineTools`. |
-| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`), the app and window activity for the polling rates (`AppActivityMonitor`), the main window, pasteboard, Finder, open panels, the termination reply, and the pure Sparkle rules (`UpdateCycleMapping`). |
+| `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`), the app and window activity for the polling rates (`AppActivityMonitor`), the main window, pasteboard, Finder, open panels, the quit paths that end open sheets first (`ApplicationQuit`, `QuitAppleEventHandler`), the termination reply, and the pure Sparkle rules (`UpdateCycleMapping`). |
 
 ## Wiring rules
 
