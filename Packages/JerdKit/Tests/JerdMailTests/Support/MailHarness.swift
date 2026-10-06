@@ -4,6 +4,7 @@ import JerdFoundation
 import JerdMail
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import os
 
 /// A mail manager with fake processes, commands, `lsof`, and Mailpit answers, in a temporary

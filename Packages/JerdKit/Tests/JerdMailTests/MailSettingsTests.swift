@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail
@@ -29,7 +30,9 @@ import Testing
         let object = try jsonObject(try golden("mail-settings.json")).mutableCopy() as! NSMutableDictionary
         object.removeObject(forKey: key)
         let data = try JSONSerialization.data(withJSONObject: object)
-        #expect(throws: (any Error).self) { try JSONDecoder().decode(MailSettings.self, from: data) }
+        #expect { try JSONDecoder().decode(MailSettings.self, from: data) } throws: {
+            ExpectedErrors.isMissingKey($0, key)
+        }
     }
 
     @Test func theRuntimeMarkerOfOlderBuildsDecodes() throws {

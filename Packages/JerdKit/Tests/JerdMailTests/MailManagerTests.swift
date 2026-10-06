@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdMail
@@ -90,7 +91,7 @@ import Testing
         let record = Data("{\"processID\":\(getpid()),\"runtimeID\":\"mailpit\"}".utf8)
         try AtomicFile.write(record, to: harness.mail.activeRunFile)
         harness.system.setSavedProcessesAlive(true)
-        await #expect(throws: (any Error).self) { try await manager.start() }
+        await #expect(throws: ExpectedErrors.liveRecordOfThisProcess) { try await manager.start() }
         #expect(contents(harness.mail.activeRunFile) == record)
         #expect(await harness.processes.requests.isEmpty)
         #expect(await harness.processes.stopPolicies.isEmpty)

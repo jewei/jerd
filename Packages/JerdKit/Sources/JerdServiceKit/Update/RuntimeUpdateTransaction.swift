@@ -7,7 +7,8 @@ import JerdFoundation
 /// write the journal → apply the new runtime → start and verify → stop again if the service was
 /// stopped → delete the journal. Any failure stops the server, moves the changed items to
 /// `failed-attempt-<UUID>/`, restores the backup, and restarts the old runtime when it ran.
-/// The lock is held from the first step to the last, also during the restore. Backups stay until
+/// After a restore of a stopped service the state is `stopped`; the thrown error names the cause.
+/// A failed restore keeps the journal and shows `failed`. The lock is held from the first step to the last, also during the restore. Backups stay until
 /// the user deletes them in Advanced.
 public struct RuntimeUpdateTransaction: Sendable {
     /// The service words in update messages.

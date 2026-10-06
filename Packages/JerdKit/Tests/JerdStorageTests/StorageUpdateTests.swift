@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdStorage
@@ -70,7 +71,11 @@ import Testing
         let manager = try await harness.loadedManager()
         try await manager.start()
         try await manager.stop()
-        await #expect(throws: (any Error).self) {
+        await #expect(
+            throws: JerdError.processFailed(
+                "Storage update failed. The previous runtime and data were restored. "
+                    + "The RustFS executable does not match the saved version.")
+        ) {
             try await manager.updateRuntime(harness.updatedRuntime(version: "9.9.9"))
         }
         #expect(await manager.snapshot().state == .stopped)
@@ -85,7 +90,12 @@ import Testing
         try await manager.start()
         try await manager.stop()
         try write("{\"version\":\"changed\"}", to: harness.storage.formatFile)
-        await #expect(throws: (any Error).self) { try await manager.updateRuntime(harness.updatedRuntime()) }
+        await #expect(
+            throws: JerdError.processFailed(
+                "Storage update failed. Nothing was changed. \(StorageMessages.dataChanged.message)")
+        ) {
+            try await manager.updateRuntime(harness.updatedRuntime())
+        }
         #expect(try backups(harness).isEmpty)
         #expect(await manager.snapshot().settings.runtime == harness.runtime)
     }
@@ -98,7 +108,8 @@ import Testing
         let folder = harness.storage.runtimeBackupsDirectory.appendingPathComponent(id.uuidString)
         try OwnedDirectory.create(folder)
         try AtomicFile.write(saved, to: folder.appendingPathComponent("settings.json"))
-        let journal = RuntimeUpdateJournal(id: id, names: StorageManager.updateItems, present: ["settings.json"])
+        let journal = RuntimeUpdateJournal(
+            id: id, names: StorageService.updateItems(harness.storage), present: ["settings.json"])
         try MarkerFile.write(journal, to: harness.storage.runtimeUpdateJournal)
         await #expect(throws: StorageMessages.updatePending) {
             try await manager.addBucket(name: "app", publicRead: false)
@@ -110,5 +121,21 @@ import Testing
         try await manager.start()
         #expect(!exists(harness.storage.runtimeUpdateJournal))
         try await manager.stop()
+    }
+
+    /// Older builds wrote journals with these names in this order, and each name is a path of the layout.
+    @Test func theUpdateCoversTheLayoutItemsInTheOrderOfOlderBuilds() {
+        let layout = DataLayout(root: URL(fileURLWithPath: "/tmp/Jerd")).storage
+        let items = StorageService.updateItems(layout)
+        #expect(
+            items == [
+                "settings.json", "settings.previous.json", "data", "runtime.json", "initialized.json",
+                "credentials.json", "access-key", "secret-key",
+            ])
+        let paths = [
+            layout.settingsFile, layout.previousSettingsFile, layout.dataDirectory, layout.runtimeIdentityFile,
+            layout.initializedMarkerFile, layout.credentialsFile, layout.accessKeyFile, layout.secretKeyFile,
+        ]
+        #expect(items.map { layout.root.appendingPathComponent($0).path } == paths.map(\.path))
     }
 }
