@@ -29,6 +29,52 @@ import os
         #expect(fetcher.requests.count == 1)
     }
 
+    /// RT-2: a cancelled waiter stops waiting, but the fetch goes on for the waiters that remain.
+    @Test func cancelledWaiterDoesNotCancelTheSharedFetchOfTheOthers() async throws {
+        let url = testURL()
+        let fetcher = FakeFetcher([url: Data("shared".utf8)], delay: .milliseconds(400))
+        let cache = MetadataCache(fetcher: fetcher)
+        let first = Task { try await cache.data(url) }
+        let second = Task { try await cache.data(url) }
+        try await Task.sleep(for: .milliseconds(50))
+        first.cancel()
+        await #expect(throws: CancellationError.self) { try await first.value }
+        #expect(try await second.value == Data("shared".utf8))
+        #expect(fetcher.requests.count == 1)
+    }
+
+    @Test func cancelledWaiterStopsWaitingBeforeTheSharedFetchEnds() async throws {
+        let url = testURL()
+        let fetcher = FakeFetcher([url: Data("shared".utf8)], delay: .seconds(5))
+        let cache = MetadataCache(fetcher: fetcher)
+        let first = Task { try await cache.data(url) }
+        let second = Task { try await cache.data(url) }
+        try await Task.sleep(for: .milliseconds(50))
+        let start = ContinuousClock.now
+        first.cancel()
+        await #expect(throws: CancellationError.self) { try await first.value }
+        #expect(ContinuousClock.now - start < .seconds(2))
+        second.cancel()
+        await #expect(throws: CancellationError.self) { try await second.value }
+    }
+
+    @Test func fetchWithoutWaitersIsCancelledAndTheNextRequestFetchesAgain() async throws {
+        let url = testURL()
+        let fetcher = FakeFetcher([url: Data("fresh".utf8)], delay: .seconds(5))
+        let cache = MetadataCache(fetcher: fetcher)
+        let start = ContinuousClock.now
+        let waiter = Task { try await cache.data(url) }
+        try await Task.sleep(for: .milliseconds(50))
+        waiter.cancel()
+        await #expect(throws: CancellationError.self) { try await waiter.value }
+        #expect(ContinuousClock.now - start < .seconds(2))
+        let again = Task { try await cache.data(url) }
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(fetcher.requests.count == 2)
+        again.cancel()
+        _ = await again.result
+    }
+
     @Test func errorsAreNotCached() async throws {
         let url = testURL()
         let fetcher = FakeFetcher()

@@ -20,7 +20,7 @@ public actor MetadataCache {
     private let capacity: Int
     private let now: @Sendable () -> Date
     private var entries: [URL: Entry] = [:]
-    private var inFlight: [URL: Task<Data, any Error>] = [:]
+    private var inFlight: [URL: SharedFetch] = [:]
 
     public init(
         fetcher: any HTTPFetching, lifetime: TimeInterval = 300, capacity: Int = 32,
@@ -33,25 +33,43 @@ public actor MetadataCache {
     }
 
     /// The bytes at `url`, from the cache when they are fresh.
+    ///
+    /// A cancelled caller stops waiting at once. The shared fetch stops only when no caller waits
+    /// for it any more, so Quit never waits for the network and other callers keep their result.
     public func data(_ url: URL) async throws -> Data {
         if let entry = entries[url], now().timeIntervalSince(entry.date) < lifetime { return entry.data }
-        if let running = inFlight[url] { return try await Self.value(of: running) }
-        let fetcher = fetcher
-        let task = Task { try await fetcher.data(from: url, limit: Self.responseLimit) }
-        inFlight[url] = task
-        defer { inFlight[url] = nil }
-        let data = try await Self.value(of: task)
-        store(data, for: url)
-        return data
+        let fetch: SharedFetch
+        if let running = inFlight[url], !running.isAbandoned {
+            fetch = running
+        } else {
+            fetch = start(url)
+        }
+        let waiter = fetch.join()
+        return try await fetch.value(for: waiter)
     }
 
-    /// Waits for a shared fetch. A cancelled waiter cancels the fetch, so Quit never waits for the network.
-    private static func value(of task: Task<Data, any Error>) async throws -> Data {
-        try await withTaskCancellationHandler {
-            try await task.value
-        } onCancel: {
-            task.cancel()
-        }
+    private func start(_ url: URL) -> SharedFetch {
+        let fetch = SharedFetch()
+        inFlight[url] = fetch
+        let fetcher = fetcher
+        fetch.attach(
+            Task {
+                let result: Result<Data, any Error>
+                do {
+                    result = .success(try await fetcher.data(from: url, limit: Self.responseLimit))
+                } catch {
+                    result = .failure(error)
+                }
+                complete(fetch, for: url, with: result)
+            })
+        return fetch
+    }
+
+    /// Stores a successful result before the waiters resume, so a later caller finds it in the cache.
+    private func complete(_ fetch: SharedFetch, for url: URL, with result: Result<Data, any Error>) {
+        if inFlight[url] === fetch { inFlight[url] = nil }
+        if case .success(let data) = result { store(data, for: url) }
+        fetch.finish(result)
     }
 
     /// The UTF-8 text at `url`.
