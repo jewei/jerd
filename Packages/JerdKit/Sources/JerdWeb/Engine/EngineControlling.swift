@@ -17,7 +17,9 @@ public protocol EngineControlling: Sendable {
     ) async throws -> EngineRunID
     /// Makes a running start stop at its next checkpoint. It does not wait.
     func requestStop() async
-    /// Stops the run and waits until every owned process stopped.
+    /// Stops the run and waits until every owned process stopped. Afterwards `state` is
+    /// `.stopped`, or `.failed` when a process is still running: then the run, its records, and
+    /// its lock stay, a new start is refused, and the next stop retries.
     func stop() async
     /// True when the run is up and every pool answers its ping.
     func isHealthy() async -> Bool

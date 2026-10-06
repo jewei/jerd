@@ -47,29 +47,36 @@ struct AppShellMappingTests {
     }
 
     @Test func theFeedMustBeTheOfficialSignedFeed() throws {
-        let bundle = try Self.bundle(info: [
-            "SUFeedURL": "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml",
-            "SUPublicEDKey": "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=",
-        ])
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let bundle = try Self.bundle(
+            info: [
+                "SUFeedURL": "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml",
+                "SUPublicEDKey": "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=",
+            ], in: temporary)
         #expect(
             try UpdateCycleMapping.feedURL(in: bundle)
                 == "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml")
 
-        let unexpanded = try Self.bundle(info: [
-            "SUFeedURL": "$(JERD_UPDATE_FEED_URL)", "SUPublicEDKey": "$(JERD_UPDATE_PUBLIC_KEY)",
-        ])
+        let unexpanded = try Self.bundle(
+            info: [
+                "SUFeedURL": "$(JERD_UPDATE_FEED_URL)", "SUPublicEDKey": "$(JERD_UPDATE_PUBLIC_KEY)",
+            ], in: temporary)
         #expect(throws: JerdError.self) { try UpdateCycleMapping.feedURL(in: unexpanded) }
 
-        let other = try Self.bundle(info: [
-            "SUFeedURL": "https://example.com/appcast.xml",
-            "SUPublicEDKey": "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=",
-        ])
+        let other = try Self.bundle(
+            info: [
+                "SUFeedURL": "https://example.com/appcast.xml",
+                "SUPublicEDKey": "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=",
+            ], in: temporary)
         #expect(throws: JerdError.self) { try UpdateCycleMapping.feedURL(in: other) }
     }
 
     @MainActor
     @Test func iconImagesComeFromTheAppIconsFolderAndAreCached() throws {
-        let bundle = try Self.bundle(info: [:])
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let bundle = try Self.bundle(info: [:], in: temporary)
         let folder = bundle.bundleURL.appendingPathComponent("Contents/Resources/AppIcons", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try Self.png().write(to: folder.appendingPathComponent("Icon-dots.png"))
@@ -96,8 +103,8 @@ struct AppShellMappingTests {
     }
 
     /// A minimal app bundle in a temporary folder with the given Info.plist keys.
-    static func bundle(info: [String: String]) throws -> Bundle {
-        let root = try Fixture.temporaryFolder().appendingPathComponent("Test.app", isDirectory: true)
+    static func bundle(info: [String: String], in temporary: TemporaryDirectory) throws -> Bundle {
+        let root = temporary.path(UUID().uuidString).appendingPathComponent("Test.app", isDirectory: true)
         let contents = root.appendingPathComponent("Contents", isDirectory: true)
         try FileManager.default.createDirectory(
             at: contents.appendingPathComponent("Resources"), withIntermediateDirectories: true)

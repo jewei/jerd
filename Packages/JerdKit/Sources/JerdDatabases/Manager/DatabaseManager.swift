@@ -70,11 +70,14 @@ public actor DatabaseManager {
             startingAt: engine.defaultPort, excluding: Set(configuration.services.map(\.port)))
     }
 
-    /// The registry and the state of every service. It also detects unexpected exits.
+    /// The registry and the state of every service. It also detects unexpected exits, and a
+    /// process of an earlier run that still lives, so every service gets its instance here.
     public func snapshot() async -> DatabaseSnapshot {
         var states: [UUID: ServiceState] = [:]
         for service in configuration.services {
-            states[service.id] = await instances[service.id]?.refresh() ?? .stopped
+            // A service without a known runtime cannot run, so it has no saved process to show.
+            let instance = instances[service.id] ?? (try? instance(for: service))
+            states[service.id] = await instance?.refresh() ?? .stopped
         }
         return DatabaseSnapshot(configuration: configuration, states: states)
     }

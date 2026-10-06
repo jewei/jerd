@@ -12,6 +12,7 @@ actor FakeEngine: EngineControlling {
     private(set) var stops = 0
     private(set) var startedSiteIDs: Set<UUID> = []
     private var failNextStart = false
+    private var survivor: String?
     private var run: EngineRunID?
     private var ended: (run: EngineRunID, failure: String?)?
     private var waiters: [CheckedContinuation<String?, Never>] = []
@@ -66,9 +67,16 @@ actor FakeEngine: EngineControlling {
 
     func stop() {
         stops += 1
+        if let survivor {
+            state = .failed(survivor)
+            return
+        }
         state = .stopped
         finish(nil)
     }
+
+    /// Makes every stop leave a process running with `message`, until `survive(nil)`.
+    func survive(_ message: String?) { survivor = message }
 
     func isHealthy() async -> Bool {
         let healthy = state == .running

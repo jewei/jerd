@@ -20,8 +20,7 @@ extension EnvironmentCoordinator {
         try await operation {
             try checkpoint(ticket)
             guard !plan.isEmpty else {
-                await cleanup()
-                state = .stopped
+                state = EngineRunner.stoppedState(failure: nil, survivor: await cleanup())
                 return
             }
             let stamps = try ExecutableStamp.capture(plan.executablePaths)
@@ -31,12 +30,15 @@ extension EnvironmentCoordinator {
             try await requireApproval(of: plan)
             if !accept(prepared, for: plan, stamps: stamps) { try await preflightOwned(plan) }
             try checkpoint(ticket)
-            await cleanup()
+            if let survivor = await cleanup() {
+                state = .failed(survivor)
+                throw JerdError.processFailed(survivor)
+            }
             do {
                 try await startOwned(plan, stamps: stamps, ticket: ticket)
             } catch {
-                await cleanup()
-                state = error is CancellationError ? .stopped : .failed(FailureDetail.describe(error))
+                let failure = error is CancellationError ? nil : FailureDetail.describe(error)
+                state = EngineRunner.stoppedState(failure: failure, survivor: await cleanup())
                 throw error
             }
         }

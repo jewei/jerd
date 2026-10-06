@@ -34,8 +34,7 @@ public actor EngineRunner: EngineControlling {
         stopEpoch &+= 1
         await gate.enter()
         defer { gate.leave() }
-        await stopOwned()
-        state = .stopped
+        state = Self.stoppedState(failure: nil, survivor: await stopOwned())
     }
 
     public func isHealthy() async -> Bool {
