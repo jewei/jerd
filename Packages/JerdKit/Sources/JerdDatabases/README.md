@@ -57,12 +57,27 @@ All paths come from `DatabasesLayout` in JerdFoundation. Folders have mode 0700 
 swift test --package-path Packages/JerdKit --filter JerdDatabasesTests
 ```
 
-The default tests use fake commands and processes, golden files from older builds, and one C
-fixture. The opt-in test starts real runtimes on free loopback ports in a temporary folder:
+The default tests use fake commands and processes, golden files from older builds, and two C
+fixtures from `JerdServiceKitTestSupport` that `DatabaseDescendantTests` starts as a fake
+`redis-server`: `orphan-service` (a master that exits and leaves a child that ignores SIGTERM)
+and `graceful-process` (a server that ignores SIGTERM, ends on SIGINT, and is paused).
+
+The two opt-in tests start real runtimes on free loopback ports in a temporary folder.
+`DatabaseIntegrationTests` checks authentication, data, stops, and restore for each engine.
+`DatabasePauseIntegrationTests` pauses each server and checks that Quit still stops it
+gracefully. Prepare the runtimes once, then run both through `./dev`, which writes the runtime
+index:
+
+```sh
+./dev runtimes prepare database
+./dev test JerdDatabases --integration database
+```
+
+Or run them directly:
 
 ```sh
 JERD_DATABASE_INTEGRATION=1 JERD_DATABASE_RUNTIMES=<folder with pins.json> \
-  swift test --package-path Packages/JerdKit --filter DatabaseIntegrationTests
+  swift test --package-path Packages/JerdKit --filter 'Database.*IntegrationTests'
 ```
 
 `JERD_OCCUPIED_DATABASE_PORT=<port>` also checks that an existing wildcard listener blocks Add.

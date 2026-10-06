@@ -28,13 +28,16 @@ extension ManagedInstance {
         await beginStop(owned, keepLock: keepLock, intent: intent).value
     }
 
-    func beginStop(_ owned: OwnedServiceProcess, keepLock: Bool, intent: StopIntent) -> Task<StopResult, Never> {
+    /// Without `policy`, the stop uses the graceful policy of the service.
+    func beginStop(
+        _ owned: OwnedServiceProcess, keepLock: Bool, intent: StopIntent, policy: StopPolicy? = nil
+    ) -> Task<StopResult, Never> {
         if let pendingStop, pendingStop.token == owned.token {
             if case .user = intent { stopIntent = .user }
             return pendingStop.task
         }
         stopIntent = intent
-        let policy = effects.stopPolicy(signal: definition.profile.stopSignal)
+        let policy = policy ?? effects.stopPolicy(signal: definition.profile.stopSignal)
         let task = Task {
             let outcome = await owned.stop(policy: policy)
             return self.completeStop(owned, outcome: outcome, keepLock: keepLock)
@@ -99,7 +102,7 @@ extension ManagedInstance {
         switch (intent, result) {
         case (.startStep, _):
             return
-        case (.user, .stopped):
+        case (.user, .stopped), (.completeExit, .stopped):
             apply(.stopSucceeded)
         case (.exit(let reason), .stopped):
             apply(.exitReaped(reason: reason))
@@ -107,7 +110,9 @@ extension ManagedInstance {
             apply(.stopTimedOut(pid: pid, reason: message))
         case (.exit(let reason), .timedOut):
             apply(.stopTimedOut(pid: pid, reason: "\(reason) \(ServiceMessages.childStillRunning)"))
-        case (.user, .refused(let message)):
+        case (.completeExit(let reason), .timedOut):
+            apply(.stopTimedOut(pid: pid, reason: reason))
+        case (.user, .refused(let message)), (.completeExit, .refused(let message)):
             apply(.stopRefused(reason: message))
         case (.exit(let reason), .refused(let message)):
             apply(.stopRefused(reason: "\(reason) \(message)"))

@@ -14,6 +14,6 @@ public enum StopCeiling: Equatable, Sendable {
         guard self == .graceful, case .kill = policy.escalation else { return policy }
         return StopPolicy(
             signal: policy.signal, leaderTimeout: policy.leaderTimeout, groupTimeout: policy.groupTimeout,
-            escalation: .never)
+            escalation: .never, sendsSignals: policy.sendsSignals)
     }
 }

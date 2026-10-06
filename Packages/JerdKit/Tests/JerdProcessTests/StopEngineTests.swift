@@ -19,6 +19,28 @@ import Testing
         #expect(target.signals.isEmpty)
     }
 
+    @Test func completingAnExitSendsNoSignalAndStopsOnlyAnExitedLeaderWithAnEmptyGroup() async {
+        let ended = FakeStopTarget(state: .exited(status: 0))
+        #expect(await StopEngine.run(.completeExited, on: ended) == .stopped)
+        let memberRemains = FakeStopTarget(state: .exited(status: 0), membersRemain: true)
+        #expect(await StopEngine.run(.completeExited, on: memberRemains) == .timedOut(leaderRunning: false))
+        let running = FakeStopTarget(state: .running)
+        #expect(await StopEngine.run(.completeExited, on: running) == .timedOut(leaderRunning: true))
+        let reaped = FakeStopTarget(state: .notOwned)
+        #expect(await StopEngine.run(.completeExited, on: reaped) == .notOwned)
+        #expect([ended, memberRemains, running, reaped].allSatisfy { $0.signals.isEmpty })
+    }
+
+    @Test func aGracefulCeilingKeepsAPolicyWithoutSignals() {
+        #expect(StopCeiling.graceful.limit(.completeExited) == .completeExited)
+        #expect(
+            !StopCeiling.graceful.limit(
+                StopPolicy(
+                    signal: SIGTERM, leaderTimeout: .zero, groupTimeout: .zero, escalation: .kill(wait: .zero),
+                    sendsSignals: false)
+            ).sendsSignals)
+    }
+
     @Test func aLeaderThatObeysTheFirstSignalGetsNoGroupSignal() async {
         let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGQUIT])
         #expect(await StopEngine.run(.forceful(signal: SIGQUIT), on: target) == .stopped)

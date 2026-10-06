@@ -121,7 +121,9 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
             return true
         } catch {
             await refresh()
-            operation = .failed(message: ErrorText.message(for: error))
+            // A stuck or failed service already shows the failure. A page banner would repeat it.
+            let shown = services.contains { state(of: $0.id).needsAttention }
+            operation = shown ? .idle : .failed(message: ErrorText.message(for: error))
             return false
         }
     }

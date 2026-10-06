@@ -78,6 +78,9 @@ import Testing
             #expect(contents(setup.folder.appendingPathComponent("active-run.json")) == record)
             #expect(!isLockFree(setup.folder.appendingPathComponent("service.lock")))
             await #expect(throws: (any Error).self) { try await instance.start() }
+            // Exit detection completes no stop while a group member still runs.
+            #expect(await instance.refresh() == .stuck(pid: stuckPID, reason: reason))
+            #expect(contents(setup.folder.appendingPathComponent("active-run.json")) == record)
             FileManager.default.createFile(
                 atPath: setup.folder.appendingPathComponent("finish-child").path, contents: nil)
             try await Task.sleep(for: .milliseconds(100))
@@ -139,7 +142,7 @@ import Testing
         #expect(await instance.state == .stopped)
     }
 
-    /// A paused server (`kill -STOP`, a debugger) is alive: it keeps its state, and Stop continues it.
+    /// A paused server (`kill -STOP`) is alive: it keeps its state, and Stop continues it.
     @Test func aPausedServiceStaysRunningAndStopsGracefully() async throws {
         let setup = try Setup()
         defer { setup.directory.remove() }
@@ -183,5 +186,38 @@ import Testing
         kill(pid, SIGINT)
         try await instance.stop()
         #expect(await instance.state == .stopped)
+    }
+
+    /// A server that stays paused through the whole stop is kept (stuck). When it continues later
+    /// and exits, exit detection completes the stop without a signal: Stopped, no record, a free lock.
+    @Test func aStuckServiceThatExitsLaterBecomesStoppedAndReleasesItsRecordAndLock() async throws {
+        let setup = try Setup()
+        defer { setup.directory.remove() }
+        let instance = setup.instance(
+            executable: try await Fixtures.shared.executable("graceful-process"), signal: SIGTERM)
+        try await instance.start()
+        let pid = try #require(await instance.processID)
+        let record = setup.folder.appendingPathComponent("active-run.json")
+        let lock = setup.folder.appendingPathComponent("service.lock")
+        #expect(await ProcessPause.pause(pid))
+        await #expect(throws: (any Error).self) { try await instance.stop() }
+        // The stop continued the fixture, and it ignored SIGTERM. Pause it again, with its end
+        // (SIGINT) pending until it continues. The PID is an unreaped own child.
+        #expect(await ProcessPause.pause(pid))
+        kill(pid, SIGINT)
+        guard case .stuck(pid, let reason) = await instance.refresh() else {
+            kill(pid, SIGCONT)
+            Issue.record("Expected a stuck service, got \(await instance.state)")
+            return
+        }
+        #expect(contents(record) != nil)
+        #expect(!isLockFree(lock))
+        kill(pid, SIGCONT)
+        #expect(await eventually { await instance.refresh() == .stopped })
+        #expect(await instance.processID == nil)
+        #expect(kill(pid, 0) == -1)
+        #expect(!exists(record))
+        #expect(isLockFree(lock))
+        #expect(!reason.isEmpty)
     }
 }
