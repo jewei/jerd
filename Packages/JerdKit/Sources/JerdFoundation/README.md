@@ -28,7 +28,9 @@ and small values.
   in place. Load and save then throw `.corrupt`.
 - Before a save replaces a valid file, the store copies the old bytes to the previous file.
 - Writes go to a temporary file in the same folder. The data is flushed with
-  `F_FULLFSYNC` (`.full`) or `fsync` (`.standard`). Then `rename` replaces the target.
+  `F_FULLFSYNC` (`.full`) or `fsync` (`.standard`). Then `rename` replaces the target, and
+  the folder is flushed with the same durability. `AtomicFile.create` uses
+  `renamex_np(RENAME_EXCL)` and never replaces an existing file.
 - Reads refuse symbolic links, hard links, other owners, FIFOs, and files above the limit.
 - `OwnedDirectory` never changes a folder of another user and never follows a final link.
 - Lock file names and every path in `DataLayout` are a compatibility contract. Do not
