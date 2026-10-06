@@ -58,4 +58,17 @@ struct LaunchPreparationTests {
         #expect(!configuration.refreshesCommandLineLauncher)
         #expect(LiveConfiguration(bundle: .main).refreshesCommandLineLauncher)
     }
+
+    @Test("Another data root keeps its preferences apart from the user's dev.jerd.app domain")
+    func anotherDataRootHasItsOwnDefaults() throws {
+        let root = try Fixture.temporaryFolder()
+        let configuration = LiveConfiguration(bundle: .main, dataRoot: root)
+        let name = try #require(configuration.defaultsSuiteName)
+        #expect(name.hasPrefix("dev.jerd.app.debug."))
+        #expect(name == LiveConfiguration.defaultsSuiteName(forDataRoot: root.appendingPathComponent(".")))
+        #expect(name != LiveConfiguration.defaultsSuiteName(forDataRoot: root.appendingPathComponent("other")))
+        #expect(configuration.makeDefaults() !== UserDefaults.standard)
+        #expect(LiveConfiguration(bundle: .main).defaultsSuiteName == nil)
+        #expect(LiveConfiguration(bundle: .main).makeDefaults() === UserDefaults.standard)
+    }
 }
