@@ -12,14 +12,17 @@ public struct MenuBarItem: Identifiable {
 
     public let id: String
     public let kind: Kind
+    /// The key equivalent of an action, for example ⌘, for Settings….
+    public let shortcut: CommandShortcut?
 
-    public init(id: String, kind: Kind) {
+    public init(id: String, kind: Kind, shortcut: CommandShortcut? = nil) {
         self.id = id
         self.kind = kind
+        self.shortcut = shortcut
     }
 
-    public static func action(_ action: FeatureAction) -> MenuBarItem {
-        MenuBarItem(id: action.id, kind: .action(action))
+    public static func action(_ action: FeatureAction, shortcut: CommandShortcut? = nil) -> MenuBarItem {
+        MenuBarItem(id: action.id, kind: .action(action), shortcut: shortcut)
     }
 
     public static func text(_ text: String, id: String) -> MenuBarItem {
