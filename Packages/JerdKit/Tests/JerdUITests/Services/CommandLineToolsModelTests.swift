@@ -8,7 +8,7 @@ import Testing
 struct CommandLineToolsModelTests {
     @Test("Install asks first, then shows the report and the new state")
     func installAfterConfirmation() async {
-        let port = InMemoryCommandLineTools(state: .outdated)
+        let port = InMemoryCommandLineTools(state: .outdatedLauncher)
         let model = CommandLineToolsModel(port: port)
         await model.load()
         #expect(model.actionTitle == "Update Command-Line Tools…")
@@ -18,7 +18,7 @@ struct CommandLineToolsModelTests {
         await model.install()?.value
         #expect(!model.isConfirming)
         #expect(model.report == InMemoryCommandLineTools.report)
-        #expect(model.state == .installed)
+        #expect(model.status == .installed)
     }
 
     @Test("A failed install shows its reason and no report")
@@ -30,7 +30,7 @@ struct CommandLineToolsModelTests {
         await model.install()?.value
         #expect(model.operation.failureMessage == "~/.zshrc is a symbolic link. Add the PATH block yourself.")
         #expect(model.report.isEmpty)
-        #expect(model.state == .notInstalled)
+        #expect(model.status == .notInstalled)
     }
 
     @Test("Nothing installs before the state is known")
@@ -38,5 +38,15 @@ struct CommandLineToolsModelTests {
         let model = CommandLineToolsModel(port: InMemoryCommandLineTools())
         #expect(!model.canInstall)
         #expect(model.install() == nil)
+    }
+
+    @Test("The status text names no command, because the footer and the report already do")
+    func statusTextIsShort() async {
+        for status in [CommandLineToolsStatus.notInstalled, .installed, .outdatedLauncher] {
+            let model = CommandLineToolsModel(port: InMemoryCommandLineTools(state: status))
+            await model.load()
+            #expect(model.status == status)
+            #expect(!model.statusDescription.contains("composer"))
+        }
     }
 }

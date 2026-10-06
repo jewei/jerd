@@ -37,36 +37,53 @@ extension DatabasesModel {
         }
     }
 
-    /// Registers the retained data again and selects it. A failure stays in the sheet.
+    /// Registers the retained data again and selects it. A failure stays in the sheet. After
+    /// Cancel, the result only refreshes the page.
     @discardableResult
     public func saveRestore() -> Task<Void, Never>? {
         guard let draft = restoreDraft, let values = draft.values(in: configuration), canChangeRegistry else {
             return nil
         }
         restoreOperation = .working("Restoring the registration…")
-        return track(
-            Task {
-                do {
-                    let service = try await port.restoreRegistration(
-                        draft.database.id, name: values.name, port: values.port)
-                    await refresh()
-                    closeRestore()
-                    retained.removeAll { $0.id == service.id }
-                    navigate?(.item(.database(service.id)))
-                } catch {
-                    restoreOperation = .failed(message: ErrorText.message(for: error))
-                }
-            })
+        let task = track { [self] in
+            do {
+                let service = try await port.restoreRegistration(
+                    draft.database.id, name: values.name, port: values.port)
+                await refresh()
+                retained.removeAll { $0.id == service.id }
+                guard !Task.isCancelled else { return endCancelledRestore(failure: nil) }
+                restoreOperation = .idle
+                closeRestore()
+                navigate?(.item(.database(service.id)))
+            } catch {
+                guard !Task.isCancelled else { return endCancelledRestore(failure: error) }
+                restoreOperation = .failed(message: ErrorText.message(for: error))
+            }
+        }
+        restoreTask = task
+        return task
     }
 
+    private func endCancelledRestore(failure: (any Error)?) {
+        restoreOperation = .idle
+        restoreTask = nil
+        if let page = CancelledSave.pageOperation(failure: failure) { operation = page }
+    }
+
+    /// Closes the restore sheet, with the same rule as `closeEditor()`.
     public func closeRestore() {
         restoreDraft = nil
-        restoreOperation = .idle
         if sheet == .restore { sheet = nil }
+        if restoreOperation.isWorking {
+            restoreTask?.cancel()
+        } else {
+            restoreOperation = .idle
+        }
     }
 
+    /// Closes the retained list. An inspection in progress finishes and fills the list.
     public func closeRetained() {
-        retainedOperation = .idle
+        if retainedOperation.failureMessage != nil { retainedOperation = .idle }
         if sheet == .retained { sheet = nil }
     }
 

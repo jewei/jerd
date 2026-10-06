@@ -9,16 +9,23 @@ struct StorageConnectionSection: View {
 
     var body: some View {
         Section {
-            ValueRow("Endpoint", value: model.settings.endpoint, isCode: true, copy: model.copyEndpoint)
-            if let bucket {
-                ValueRow("Bucket", value: bucket.name, isCode: true)
-            }
-            ValueRow("Region", value: StorageSettings.region, isCode: true)
-            ValueRow("Addressing", value: "Path style")
+            ForEach(Self.values(model, bucket: bucket)) { ConnectionValueRow(value: $0) }
         } header: {
             Text("Connection")
         } footer: {
             FormFooter("Available only on this Mac. All buckets use the same storage service.")
         }
+    }
+
+    /// The endpoint, bucket, and region to paste; the addressing style to read.
+    static func values(_ model: StorageModel, bucket: StorageBucket?) -> [ConnectionValue] {
+        var values: [ConnectionValue] = [.pasteable("Endpoint", model.settings.endpoint, copy: model.copyEndpoint)]
+        if let bucket {
+            values.append(.pasteable("Bucket", bucket.name) { model.copyValue(bucket.name, label: "Bucket") })
+        }
+        values.append(
+            .pasteable("Region", StorageSettings.region) { model.copyValue(StorageSettings.region, label: "Region") })
+        values.append(.description("Addressing", "Path style"))
+        return values
     }
 }

@@ -64,8 +64,7 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
     /// Waits for running work, then stops every service in parallel. False keeps Jerd open.
     public func shutdown() async -> Bool {
         isShuttingDown = true
-        for task in tasks { await task.value }
-        tasks.removeAll()
+        await running.waitForAll()
         guard loadState.isLoaded, !services.isEmpty else { return true }
         do {
             try await port.stopAll()

@@ -28,10 +28,17 @@ public final class DatabasesModel {
 
     /// Shows another place in the window, for example a new service. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
+    /// The service that the Databases page shows. `AppState` sets it; a copy uses it to drop a
+    /// value that arrives after the user selected another service (spec F 3.6).
+    @ObservationIgnored public var selectedService: (@MainActor () -> UUID?)?
     @ObservationIgnored let port: any DatabasesPort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening
-    @ObservationIgnored var tasks: [Task<Void, Never>] = []
+    @ObservationIgnored let running = RunningTasks()
+    /// The save of the editor sheet. Cancel asks it to stop; it keeps the registry locked until it ends.
+    @ObservationIgnored var editorTask: Task<Void, Never>?
+    /// The save of the restore sheet, with the same rule as `editorTask`.
+    @ObservationIgnored var restoreTask: Task<Void, Never>?
 
     public init(port: any DatabasesPort, clipboard: Clipboard, workspace: any WorkspaceOpening) {
         self.port = port
@@ -118,10 +125,8 @@ public final class DatabasesModel {
         if next != files { files = next }
     }
 
-    /// Keeps a task, so Quit can wait for it.
-    func track(_ task: Task<Void, Never>) -> Task<Void, Never> {
-        tasks.removeAll { $0.isCancelled }
-        tasks.append(task)
-        return task
+    /// Runs work whose task Quit waits for.
+    func track(_ work: @escaping @MainActor () async -> Void) -> Task<Void, Never> {
+        running.run(work)
     }
 }

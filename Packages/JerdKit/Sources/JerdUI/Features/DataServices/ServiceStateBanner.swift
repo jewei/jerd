@@ -26,9 +26,10 @@ struct ServiceStateBanner: View {
         }
     }
 
-    /// What `stuck` means and what the user can do. Jerd never force-kills a data service.
+    /// What `stuck` means and what the user can do. Jerd never force-kills a data service, and
+    /// `ShutdownCoordinator` cancels Quit when the stop times out again.
     nonisolated static func stuckMessage(reason: String, pid: Int32, stopTitle: String) -> String {
         "\(reason) Jerd keeps process \(pid), its run record, and its data lock, so nothing else can change the data. "
-            + "Select \(stopTitle) to try again. Quit waits until the service stops."
+            + "Select \(stopTitle) to try again. Quit also tries to stop it; if it still does not stop, Jerd stays open."
     }
 }

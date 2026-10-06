@@ -45,12 +45,15 @@ struct ServiceRulesTests {
         #expect(!ServiceState.stopped.offersStop)
     }
 
-    @Test("The stuck message names the process, the kept lock, and the retry")
+    @Test("The stuck message names the process, the kept lock, the retry, and that Quit can be cancelled")
     func stuckMessage() {
         let text = ServiceStateBanner.stuckMessage(reason: "Timed out.", pid: 42, stopTitle: "Stop Mail")
-        #expect(text.contains("process 42"))
-        #expect(text.contains("data lock"))
-        #expect(text.contains("Select Stop Mail to try again."))
+        #expect(
+            text
+                == "Timed out. Jerd keeps process 42, its run record, and its data lock, so nothing else can change "
+                + "the data. Select Stop Mail to try again. Quit also tries to stop it; if it still does not stop, "
+                + "Jerd stays open.")
+        #expect(!text.contains("Quit waits"))
     }
 
     @Test("A bucket status follows the storage state while storage is not running")

@@ -30,11 +30,20 @@ struct DatabasesEmptyPage: View {
             Button("View Runtimes", systemImage: "shippingbox") { model.showRuntimes() }
                 .primaryActionStyle(isEnabled: true)
         } else {
-            ForEach(Array(model.availableEngines.enumerated()), id: \.element) { index, engine in
-                Button("Add \(engine.title)…") { model.beginAdd(engine) }
+            // One column of equal widths: the widest title sets the width of every button.
+            VStack(spacing: Spacing.small) {
+                ForEach(Array(model.availableEngines.enumerated()), id: \.element) { index, engine in
+                    Button {
+                        model.beginAdd(engine)
+                    } label: {
+                        Text("Add \(engine.title)…")
+                            .frame(maxWidth: .infinity)
+                    }
                     .primaryActionStyle(isPrimary: index == 0, isEnabled: model.canAdd)
                     .accessibilityIdentifier(AccessibilityIdentifier.make("databases", "add", engine.title))
+                }
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 

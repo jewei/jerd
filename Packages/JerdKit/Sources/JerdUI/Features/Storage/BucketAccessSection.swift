@@ -23,9 +23,9 @@ struct BucketAccessSection: View {
         }
         Section {
             ActionRow(".env settings", detail: laravelDetail) {
-                Button("Copy Laravel Settings") { model.copyEnvironment(for: bucket) }
-                    .disabled(!canCopyEnvironment)
-                    .accessibilityIdentifier("bucket.copy-laravel")
+                CopyLaravelSettingsButton(isEnabled: canCopyEnvironment, identifier: "bucket.copy-laravel") {
+                    model.copyEnvironment(for: bucket)
+                }
             }
         } header: {
             Text("Laravel")

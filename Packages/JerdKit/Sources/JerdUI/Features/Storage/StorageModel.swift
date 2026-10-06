@@ -4,7 +4,8 @@ import JerdStorage
 import Observation
 
 /// The Storage section: the one RustFS service, its buckets, credentials, ports, and Laravel
-/// settings. One operation runs at a time; copies never wait for it (spec E 7.8.4).
+/// settings. One change runs at a time: a page operation, a bucket save, or a port change.
+/// Copies never wait for it (spec E 7.8.4).
 @MainActor
 @Observable
 public final class StorageModel {
@@ -26,7 +27,11 @@ public final class StorageModel {
     @ObservationIgnored let port: any StoragePort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening
-    @ObservationIgnored var currentTask: Task<Void, Never>?
+    @ObservationIgnored let running = RunningTasks()
+    /// The save of the Add Bucket sheet. Cancel asks it to stop; it keeps storage locked until it ends.
+    @ObservationIgnored var bucketTask: Task<Void, Never>?
+    /// The suggestion or save of the ports sheet, with the same rule as `bucketTask`.
+    @ObservationIgnored var portsTask: Task<Void, Never>?
 
     public init(port: any StoragePort, clipboard: Clipboard, workspace: any WorkspaceOpening) {
         self.port = port
@@ -44,15 +49,16 @@ public final class StorageModel {
     /// True while any work of this feature runs, so other pages and Quit can wait for it.
     public var isBusy: Bool { operation.isWorking || bucketOperation.isWorking || portsOperation.isWorking }
 
+    /// True when a change can start now: nothing else of this feature runs.
     public var canChange: Bool {
-        loadState.isLoaded && !operation.isWorking && !isShuttingDown && !state.isBusy
+        loadState.isLoaded && !isBusy && !isShuttingDown && !state.isBusy
     }
 
     public var canStart: Bool { canChange && hasRuntime && !state.offersStop }
     public var canStop: Bool { canChange && state.offersStop }
     public var canOpenConsole: Bool { state.isRunning && !isShuttingDown }
     /// Save starts storage when needed, so Add needs only a runtime and no other work.
-    public var canAddBucket: Bool { canChange && hasRuntime && !bucketOperation.isWorking }
+    public var canAddBucket: Bool { canChange && hasRuntime }
     public var canEditPorts: Bool { canChange && !state.offersStop }
     /// Credentials exist after the first start created the data folder.
     public var hasCredentials: Bool { files?.hasDataFolder == true }
@@ -97,7 +103,7 @@ public final class StorageModel {
     {
         guard canChange else { return nil }
         operation = .working(message)
-        let task = Task {
+        return running.run { [self] in
             var failure: String?
             do {
                 try await work(self)
@@ -107,7 +113,5 @@ public final class StorageModel {
             await refresh()
             operation = failure.flatMap { state.needsAttention ? nil : OperationState.failed(message: $0) } ?? .idle
         }
-        currentTask = task
-        return task
     }
 }
