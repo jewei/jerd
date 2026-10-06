@@ -21,9 +21,23 @@ extension MailManager {
                 validatePrevious: { try inbox.validate(for: previous) },
                 apply: { try await self.adopt(next, replacing: previous) },
                 reloadAfterRestore: { try await self.reloadDefinition() })
-            try await transaction.run(
-                on: instance, to: definition(runtime: runtime, ports: next.ports), steps: steps)
+            let wasRunning = await instance.processID != nil
+            do {
+                try await transaction.run(
+                    on: instance, to: definition(runtime: runtime, ports: next.ports), steps: steps)
+            } catch {
+                if !wasRunning { try await clearRestoredFailure(of: instance) }
+                throw error
+            }
         }
+    }
+
+    /// After a restore of a service that was stopped, the previous runtime is back and nothing
+    /// runs, so the state is `stopped`. The error still names the cause. A failed restore keeps its
+    /// journal and its `failed` state.
+    private func clearRestoredFailure(of instance: ManagedInstance) async throws {
+        guard !transaction.isPending, await instance.processID == nil else { return }
+        try await instance.stop()
     }
 
     /// Saves `next` with its new runtime and moves the saved inbox markers to it.

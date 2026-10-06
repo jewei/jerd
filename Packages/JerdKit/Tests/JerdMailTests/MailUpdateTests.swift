@@ -66,6 +66,17 @@ import Testing
         try await manager.stop()
     }
 
+    @Test func aFailedUpdateOfAStoppedInboxLeavesItStopped() async throws {
+        let harness = try MailHarness()
+        let manager = try await harness.loadedManager()
+        await #expect(throws: (any Error).self) {
+            try await manager.updateRuntime(harness.updatedRuntime(version: "9.9.9"))
+        }
+        #expect(await manager.snapshot().state == .stopped)
+        #expect(await manager.snapshot().settings.runtime == harness.runtime)
+        #expect(isLockFree(harness.mail.lockFile))
+    }
+
     @Test func anInboxOfAnotherRuntimeIsNeverBackedUpOrChanged() async throws {
         let harness = try MailHarness()
         let manager = try await harness.loadedManager()
