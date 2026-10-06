@@ -36,7 +36,9 @@ extension SitesModel: WorkspaceFeature {
 
     public var menuItems: [MenuBarItem] {
         var items: [MenuBarItem] = [
-            .text(SiteStatusPolicy.overall(environment, isWorking: operation.isWorking).label, id: "sites.state")
+            // The line names its subject, like the Storage and Mail submenus, and says what
+            // the card says.
+            .text("Sites: \(cardStatus.label)", id: "sites.state")
         ]
         for site in configuration.sites where site.isEnabled {
             items.append(
@@ -52,6 +54,10 @@ extension SitesModel: WorkspaceFeature {
     }
 
     private var cardStatus: DisplayStatus {
+        if !isLoaded {
+            return operation.failureMessage == nil
+                ? ServiceCardNotice.preparingStatus : DisplayStatus("Not loaded", tone: .failed)
+        }
         if operation.isWorking { return DisplayStatus("Working…", tone: .busy) }
         if !environment.siteIDs.isEmpty { return DisplayStatus("\(environment.siteIDs.count) running", tone: .ready) }
         if configuration.sites.isEmpty { return DisplayStatus("No sites", tone: .idle) }
@@ -59,6 +65,9 @@ extension SitesModel: WorkspaceFeature {
     }
 
     private var cardSummary: String {
+        if !isLoaded {
+            return operation.failureMessage == nil ? "Preparing your sites…" : "Site settings could not be loaded."
+        }
         guard !configuration.sites.isEmpty else { return "Register an existing PHP project to serve it over HTTPS." }
         var text = "\(configuration.sites.count) registered · \(enabledSiteIDs.count) enabled"
         if !tunnels.registrations.isEmpty {
@@ -70,8 +79,11 @@ extension SitesModel: WorkspaceFeature {
     /// Add Site… without sites; else Start All, or Stop All and Open Site while sites run
     /// (`CardActionRule`).
     private var cardActions: [FeatureAction] {
-        guard !configuration.sites.isEmpty || operation.isWorking else {
-            let add = FeatureAction(id: "sites.add", title: "Add Site…", isEnabled: canChange) { [weak self] in
+        // Without sites there is nothing to stop, also while other site work runs.
+        guard !configuration.sites.isEmpty else {
+            let add = FeatureAction(
+                id: "sites.add", title: "Add Site…", isEnabled: canChange, unavailableReason: addSiteUnavailableReason
+            ) { [weak self] in
                 self?.shell.show(.section(.sites))
                 self?.beginAdd()
             }
@@ -83,6 +95,16 @@ extension SitesModel: WorkspaceFeature {
             return CardActionRule.actions(.start(run.titled(run.title.hasSuffix("…") ? "Start All…" : "Start All")))
         }
         return CardActionRule.actions(.stop(run.titled("Stop All")), open: openSiteAction)
+    }
+
+    /// Why Add Site… is off.
+    private var addSiteUnavailableReason: String {
+        if !isLoaded {
+            return operation.failureMessage == nil
+                ? "Jerd is preparing your sites." : "Site settings could not be loaded."
+        }
+        if needsRecovery { return "Recover the interrupted HTTPS setup in Advanced first." }
+        return "Wait for the current work to end."
     }
 
     /// Opens the first served site in sidebar order in the browser. The help and the spoken

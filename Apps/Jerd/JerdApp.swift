@@ -11,8 +11,10 @@ struct JerdApp: App {
     var body: some Scene {
         let live = delegate.live
         Window("Jerd", id: MainWindowPresenter.windowID) {
-            JerdWorkspace(state: live.state)
-                .connectsMainWindow(to: live.windows)
+            JerdWorkspace(state: live.state) { columns in
+                WorkspaceSplit(columns: columns)
+            }
+            .connectsMainWindow(to: live.windows)
         }
         .defaultSize(width: 980, height: 660)
         .windowResizability(.contentMinSize)

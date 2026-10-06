@@ -10,36 +10,42 @@ public struct FeatureAction: Identifiable {
     public let isEnabled: Bool
     /// True for the one next step of a card. A card shows it as the prominent button.
     public let isPrimary: Bool
+    /// Why the action is off, for its tooltip and VoiceOver hint, for example "Jerd is
+    /// preparing Mailpit." Nil when the action is on, or when the card already says why.
+    public let unavailableReason: String?
     public let perform: @MainActor () -> Void
 
     public init(
         id: String, title: String, spokenTitle: String? = nil, isEnabled: Bool = true, isPrimary: Bool = false,
-        perform: @escaping @MainActor () -> Void
+        unavailableReason: String? = nil, perform: @escaping @MainActor () -> Void
     ) {
         self.id = id
         self.title = title
         self.spokenTitle = spokenTitle ?? title
         self.isEnabled = isEnabled
         self.isPrimary = isPrimary
+        self.unavailableReason = isEnabled ? nil : unavailableReason
         self.perform = perform
     }
 
     /// The same action, off. The shell uses it for every feature action during a quit.
     public func disabled() -> FeatureAction {
         FeatureAction(
-            id: id, title: title, spokenTitle: spokenTitle, isEnabled: false, isPrimary: isPrimary, perform: perform)
+            id: id, title: title, spokenTitle: spokenTitle, isEnabled: false, isPrimary: isPrimary,
+            unavailableReason: unavailableReason, perform: perform)
     }
 
     /// The same action with a short visible title; VoiceOver keeps the full title.
     func titled(_ shortTitle: String) -> FeatureAction {
         FeatureAction(
             id: id, title: shortTitle, spokenTitle: spokenTitle, isEnabled: isEnabled, isPrimary: isPrimary,
-            perform: perform)
+            unavailableReason: unavailableReason, perform: perform)
     }
 
     /// The same action as the next step of a card, or not.
     func marked(primary: Bool) -> FeatureAction {
         FeatureAction(
-            id: id, title: title, spokenTitle: spokenTitle, isEnabled: isEnabled, isPrimary: primary, perform: perform)
+            id: id, title: title, spokenTitle: spokenTitle, isEnabled: isEnabled, isPrimary: primary,
+            unavailableReason: unavailableReason, perform: perform)
     }
 }

@@ -13,6 +13,7 @@ calls. Pure mappings are `package static` functions with their own tests.
 | `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. |
 | `Services/` | `LiveDatabasesPort`, `LiveMailPort`, `LiveStoragePort`, and the bundled service runtimes. |
 | `Settings/` | Runtimes (`LiveRuntimeInventory`, `RuntimeActivator`), Advanced (`LiveRecoveryPort`, `LiveExecutableRegistrations`, `LiveHTTPSRecovery`), and `LiveCommandLineTools`. |
+| `Workspace/` | The main window split (`WorkspaceSplit`, `WorkspaceSplitController`): a sidebar item with the sidebar material, not the `.sidebar` behavior, because AppKit lays out the whole toolbar after a `.sidebar` item and the picker then moved. `SidebarWidthLimit` keeps the sidebar edge left of the centered picker in a narrow window. |
 | `AppKit/` | Dock and icon (`AppPresence`, `AppIconImages`). The app and window activity for the polling rates (`AppActivityMonitor`). The main window, pasteboard, Finder, and open panels. The quit paths that end open sheets first (`ApplicationQuit`, `QuitAppleEventHandler`), and the termination reply. The pure Sparkle rules (`UpdateCycleMapping`). |
 
 ## Wiring rules
@@ -42,8 +43,9 @@ calls. Pure mappings are `package static` functions with their own tests.
   command-line launcher is refreshed once, off the main actor
   (`LiveConfiguration.refreshesCommandLineLauncher`). A run with another data root never
   touches the user's launcher. It keeps Jerd's preferences in its own defaults domain
-  (`LiveConfiguration.defaultsSuiteName`), never in the user's `dev.jerd.app`. AppKit still
-  saves the window frame in the standard domain.
+  (`LiveConfiguration.defaultsSuiteName`), never in the user's `dev.jerd.app`. AppKit and SwiftUI still
+  write the window frame, the sidebar width, and the menu bar item state to `dev.jerd.app`, so
+  such a run copies that domain at launch and writes it back at quit (`PreferenceGuard`).
 
 ## Test
 

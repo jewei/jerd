@@ -8,7 +8,9 @@ import Testing
 @testable import JerdUI
 
 /// The section picker and the sidebar button keep their place during navigation,
-/// also on Mail, which has no sidebar, and when the user hides a sidebar.
+/// also on Mail, which has no sidebar, and when the user hides a sidebar. This suite checks the
+/// SwiftUI split of the snapshots (`WorkspaceStackSplit`); `WorkspaceSplitTests` in JerdLive
+/// checks the native split of the app.
 @Suite("Toolbar positions", .serialized)
 @MainActor
 struct ToolbarPositionTests {
@@ -84,10 +86,4 @@ struct ToolbarPositionTests {
         }
     }
 
-    @Test("A dragged sidebar stays between its minimum and maximum width")
-    func sidebarWidthIsClamped() {
-        #expect(SidebarDivider.clampedWidth(120) == WindowMetrics.sidebarMinimumWidth)
-        #expect(SidebarDivider.clampedWidth(240) == 240)
-        #expect(SidebarDivider.clampedWidth(400) == WindowMetrics.sidebarMaximumWidth)
-    }
 }

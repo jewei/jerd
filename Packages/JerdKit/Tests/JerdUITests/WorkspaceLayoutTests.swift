@@ -40,6 +40,6 @@ struct WorkspaceLayoutTests {
         #expect(minimum.width <= WindowMetrics.minimumSize.width)
         #expect(minimum.height <= WindowMetrics.minimumSize.height)
         #expect(
-            JerdWorkspace.minimumContentSize.height + JerdWorkspace.toolbarHeight == WindowMetrics.minimumSize.height)
+            WindowMetrics.minimumContentSize.height + WindowMetrics.toolbarHeight == WindowMetrics.minimumSize.height)
     }
 }
