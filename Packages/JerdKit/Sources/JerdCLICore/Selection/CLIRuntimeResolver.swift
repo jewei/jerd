@@ -15,23 +15,23 @@ import JerdWeb
 ///
 /// The rule is pure over the injected path resolver. The live resolver uses Foundation's
 /// `resolvingSymlinksInPath`, the same form as the saved project paths.
-public struct CLIRuntimeResolver: Sendable {
+package struct CLIRuntimeResolver: Sendable {
     /// Turns a path into its resolved absolute form.
-    public typealias PathResolver = @Sendable (String) -> String
+    package typealias PathResolver = @Sendable (String) -> String
 
     /// The live resolver, consistent with `PathCanonicalizer` in JerdWeb.
-    public static let resolveSymbolicLinks: PathResolver = { path in
+    package static let resolveSymbolicLinks: PathResolver = { path in
         URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
     }
 
     private let resolvePath: PathResolver
 
-    public init(resolvePath: @escaping PathResolver = CLIRuntimeResolver.resolveSymbolicLinks) {
+    package init(resolvePath: @escaping PathResolver = CLIRuntimeResolver.resolveSymbolicLinks) {
         self.resolvePath = resolvePath
     }
 
     /// - Throws: `.invalid` for two equally deep matches; `.unavailable` for a missing selection.
-    public func resolve(_ configuration: AppConfiguration, workingDirectory: String) throws -> CLIRuntimeSelection {
+    package func resolve(_ configuration: AppConfiguration, workingDirectory: String) throws -> CLIRuntimeSelection {
         let current = components(workingDirectory)
         let matches = configuration.sites.compactMap { site -> (site: Site, depth: Int)? in
             let root = components(site.projectPath)

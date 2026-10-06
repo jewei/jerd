@@ -2,16 +2,16 @@
 ///
 /// Only options before the script name or `--` count. An option that takes a value consumes the
 /// next argument, so `-d -n` sets an INI entry named `-n` and selects nothing.
-public enum PHPINIArguments {
+enum PHPINIArguments {
     /// The PHP CLI options that take the next argument as their value.
-    public static let valueOptions: Set<String> = [
+    static let valueOptions: Set<String> = [
         "-r", "-R", "-B", "-E", "-f", "-F", "-d", "-z", "-S", "-t",
         "--run", "--process-code", "--process-begin", "--process-end", "--file", "--process-file",
         "--define", "--zend-extension", "--server", "--docroot",
     ]
 
     /// True when `arguments` (without `argv[0]`) choose or disable the INI file.
-    public static func selectINI(_ arguments: [String]) -> Bool {
+    static func selectINI(_ arguments: [String]) -> Bool {
         var index = arguments.startIndex
         while index < arguments.endIndex {
             let argument = arguments[index]
