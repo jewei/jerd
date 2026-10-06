@@ -93,7 +93,10 @@ struct TransactionHarness {
     let before: AppConfiguration
 
     /// `running` lists the hostnames of `sites` that run; `approved` the approved hostnames.
-    init(sites hostnames: [String] = ["demo.test"], running: [String]? = nil, approved: [String]? = nil) async throws {
+    init(
+        sites hostnames: [String] = ["demo.test"], running: [String]? = nil, approved: [String]? = nil,
+        hosts: any HostsFileReading = FakeHostsFile()
+    ) async throws {
         folder = try TemporaryDirectory(" transaction")
         let validator = SiteValidator()
         var sites: [Site] = []
@@ -111,7 +114,7 @@ struct TransactionHarness {
         coordinator = FakeCoordinator(runningIDs.isEmpty ? nil : try ServingPlan(before, siteIDs: runningIDs))
         gateway = FakeGateway(try FakeSystem.approved(approved ?? hostnames), coordinator: coordinator)
         transaction = SiteChangeTransaction(
-            registry: registry, reducer: SiteChangeReducer(hosts: FakeHostsFile()), coordinator: coordinator,
+            registry: registry, reducer: SiteChangeReducer(hosts: hosts), coordinator: coordinator,
             gateway: gateway)
     }
 

@@ -15,9 +15,8 @@ extension SiteChangeTransaction {
 
     /// S0 to S4. Any failure here changes nothing and is reported as it is.
     func perform(
-        _ request: SiteChangeRequest, approved: HTTPSSetup?, prepared: PreparedPlan?
+        _ request: SiteChangeRequest, ticket: StopTicket, approved: HTTPSSetup?, prepared: PreparedPlan?
     ) async throws -> SiteChangeResult {
-        let ticket = await coordinator.ticket()
         if case .keepRunning = request.selection, request.candidate == request.previous {
             advance(to: .noChange)
             return .committed(request.previous)

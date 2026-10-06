@@ -49,6 +49,12 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
   removes only a folder that it created, and deletes a run record only for a proven stop.
 - Readiness uses CA-verified HTTPS with the run's CA. Never `curl -k`.
 - A Stop raises a stop epoch. Every step of an older operation ends with `CancellationError`.
+  A change takes its ticket before its first suspension. `SiteChangeTransaction.requestStop()`
+  is the app's Stop: it ends the change, prevents its restart, and stops the run.
+- An engine failure while an operation holds the coordinator gate is kept and applied when
+  that operation ends, so the state never stays `running` after a runtime exit.
+- A change asks for approval unless `ApprovalPredicate.approves` holds: every hostname, server
+  TLS, and this installation's ID and CA fingerprint. A missing CA also needs an approval.
 - Only `SiteChangeTransaction` rolls back. A failure restores the settings, the HTTPS setup,
   and the previous run once, and reports once.
 - An approval covers every registered hostname. Removed or renamed hostnames leave the set.
