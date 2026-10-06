@@ -212,6 +212,41 @@ struct LiveSitesPortTests {
         #expect(await harness.port.environment() == EnvironmentSnapshot(state: .stopped, siteIDs: []))
     }
 
+    @Test func theLocalAuthorityIsReadFromTheEnvironmentFolderOnceItsCAExists() async throws {
+        let harness = try Harness()
+        defer { try? FileManager.default.removeItem(at: harness.layout.root.deletingLastPathComponent()) }
+        let environment = harness.layout.environment
+        #expect(try await harness.port.localAuthority() == nil)
+
+        try OwnedDirectory.create(environment.root)
+        try AtomicFile.write(Data(Fixture.installationID.uuidString.utf8), to: environment.installationIDFile)
+        #expect(try await harness.port.localAuthority() == nil)
+
+        let der = try Fixture.certificate()
+        let pem =
+            "-----BEGIN CERTIFICATE-----\n\(der.base64EncodedString(options: .lineLength64Characters))\n"
+            + "-----END CERTIFICATE-----\n"
+        try OwnedDirectory.create(environment.rootCertificateFile.deletingLastPathComponent())
+        try AtomicFile.write(Data(pem.utf8), to: environment.rootCertificateFile)
+        #expect(
+            try await harness.port.localAuthority()
+                == InstallationAuthority(
+                    installationID: Fixture.installationID, fingerprint: FileDigest.hexSHA256(of: der)))
+    }
+
+    @Test func aCorruptCACertificateIsReportedAndPreserved() async throws {
+        let harness = try Harness()
+        defer { try? FileManager.default.removeItem(at: harness.layout.root.deletingLastPathComponent()) }
+        let environment = harness.layout.environment
+        try OwnedDirectory.create(environment.root)
+        try AtomicFile.write(Data(Fixture.installationID.uuidString.utf8), to: environment.installationIDFile)
+        try OwnedDirectory.create(environment.rootCertificateFile.deletingLastPathComponent())
+        try AtomicFile.write(Data("not a certificate".utf8), to: environment.rootCertificateFile)
+
+        await #expect(throws: JerdError.self) { try await harness.port.localAuthority() }
+        #expect(try Data(contentsOf: environment.rootCertificateFile) == Data("not a certificate".utf8))
+    }
+
     @Test func loginItemsOpenThroughTheOpener() async throws {
         let harness = try Harness()
 
