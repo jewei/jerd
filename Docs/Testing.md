@@ -42,6 +42,9 @@ PHP group and with two separate PHP groups. To use a second PHP version, set `JE
 `JERD_SECOND_PHP_FPM` to its trusted executables.
 The public storage case verifies linked asset bytes and rejects private storage,
 hidden files, PHP source, and PHP execution under the storage URL.
+The script selection case sends path-info, case, and PHP-like requests. It
+checks that FPM runs only the script that the routes select, never an upload or
+a `vendor` file named by path info, and that `/index.php/route` gets `PATH_INFO`.
 PHP client tests check cURL and OpenSSL stream requests between two isolated
 HTTPS sites from both CLI and FPM. The trust decision is injected for the test CA;
 no trust store is changed. Both clients reject an unapproved CA. Static-file
