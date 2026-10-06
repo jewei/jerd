@@ -11,7 +11,7 @@ public enum PayloadScanner {
     /// The most files that a payload may have.
     public static let fileLimit = 50_000
     /// Finder writes this file when a user opens a folder. Verification of an installed folder ignores it.
-    public static let finderMetadataName = ".DS_Store"
+    public static let finderMetadataName = FinderMetadata.name
 
     /// Hashes the files below `folder`.
     /// - Parameters:
@@ -38,7 +38,7 @@ public enum PayloadScanner {
                 throw JerdError.invalid("The runtime files cannot be read.")
             }
             for name in names where !(path.isEmpty && ignoring.contains(name)) {
-                if ignoresFinderMetadata, name == PayloadScanner.finderMetadataName { continue }
+                if ignoresFinderMetadata, name == FinderMetadata.name { continue }
                 try Task.checkCancellation()
                 try visitEntry(directory.appendingPathComponent(name), path: path + [name])
             }

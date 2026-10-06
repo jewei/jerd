@@ -40,6 +40,11 @@ import Testing
         #expect(LegacyPayloadReceipt.Format.database.fileName == "jerd-receipt.json")
     }
 
+    @Test func eachGroupMapsToTheFormThatOlderBuildsWroteForIt() {
+        let forms = PayloadGroup.allCases.map { LegacyPayloadReceipt.Format(group: $0) }
+        #expect(forms == [.development, .database, .service, .service])
+    }
+
     @Test func aReceiptOfAnotherFormIsRefused() throws {
         #expect(throws: JerdError.self) {
             try LegacyPayloadReceipt.decode(Fixture.data("mail-receipt.json"), format: .development)
