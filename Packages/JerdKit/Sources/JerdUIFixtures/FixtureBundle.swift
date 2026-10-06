@@ -1,1 +1,0 @@
-// Temporary: the fixtures follow.
