@@ -14,9 +14,11 @@ struct LiveServicePortsTests {
     // MARK: Databases
 
     @Test func databaseLoadInstallsOnlyTheEnginesWithoutARuntime() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingDatabaseManager(DatabaseConfiguration(runtimes: [FakeServiceRuntimes.mysql]))
         let runtimes = FakeServiceRuntimes()
-        let port = LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: try Fixture.layout().databases)
+        let port = LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: temporary.layout.databases)
 
         let snapshot = try await port.load()
 
@@ -26,31 +28,37 @@ struct LiveServicePortsTests {
     }
 
     @Test func databaseLoadInstallsNothingWhenEveryEngineHasARuntime() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let postgres = DatabaseRuntime(id: "pg", engine: .postgresql, version: "18.6", path: "/runtimes/pg")
         let manager = RecordingDatabaseManager(
             DatabaseConfiguration(runtimes: [FakeServiceRuntimes.mysql, postgres, FakeServiceRuntimes.redis]))
         let runtimes = FakeServiceRuntimes()
 
-        _ = try await LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: try Fixture.layout().databases)
+        _ = try await LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: temporary.layout.databases)
             .load()
 
         #expect(await runtimes.databaseRequests.isEmpty)
     }
 
     @Test func corruptDatabaseSettingsFailTheLoadBeforeAnyInstall() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingDatabaseManager(loadFailure: Self.corrupt)
         let runtimes = FakeServiceRuntimes()
-        let port = LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: try Fixture.layout().databases)
+        let port = LiveDatabasesPort(manager: manager, runtimes: runtimes, layout: temporary.layout.databases)
 
         await #expect(throws: Self.corrupt) { try await port.load() }
         #expect(await runtimes.databaseRequests.isEmpty)
     }
 
     @Test func aFailedBundledDatabaseSetupKeepsTheLoadUsable() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingDatabaseManager()
         let port = LiveDatabasesPort(
             manager: manager, runtimes: FakeServiceRuntimes(failure: .unavailable("No payloads.")),
-            layout: try Fixture.layout().databases)
+            layout: temporary.layout.databases)
 
         let snapshot = try await port.load()
 
@@ -59,16 +67,20 @@ struct LiveServicePortsTests {
     }
 
     @Test func databaseStopAllFailureReachesTheQuit() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingDatabaseManager()
         await manager.failStopAll(.timedOut("MySQL did not stop."))
         let port = LiveDatabasesPort(
-            manager: manager, runtimes: FakeServiceRuntimes(), layout: try Fixture.layout().databases)
+            manager: manager, runtimes: FakeServiceRuntimes(), layout: temporary.layout.databases)
 
         await #expect(throws: JerdError.timedOut("MySQL did not stop.")) { try await port.stopAll() }
     }
 
     @Test func databaseFilesFollowTheInstanceLayout() async throws {
-        let layout = try Fixture.layout().databases
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout.databases
         let id = UUID()
         let port = LiveDatabasesPort(
             manager: RecordingDatabaseManager(), runtimes: FakeServiceRuntimes(), layout: layout)
@@ -87,9 +99,11 @@ struct LiveServicePortsTests {
     // MARK: Mail
 
     @Test func mailLoadInstallsMailpitOnlyWhenNoRuntimeIsSaved() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingMailManager()
         let runtimes = FakeServiceRuntimes()
-        let port = LiveMailPort(manager: manager, runtimes: runtimes, layout: try Fixture.layout().mail)
+        let port = LiveMailPort(manager: manager, runtimes: runtimes, layout: temporary.layout.mail)
 
         let snapshot = try await port.load()
         _ = try await port.load()
@@ -99,25 +113,31 @@ struct LiveServicePortsTests {
     }
 
     @Test func corruptMailSettingsFailTheLoadBeforeAnyInstall() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let runtimes = FakeServiceRuntimes()
         let port = LiveMailPort(
             manager: RecordingMailManager(loadFailure: Self.corrupt), runtimes: runtimes,
-            layout: try Fixture.layout().mail)
+            layout: temporary.layout.mail)
 
         await #expect(throws: Self.corrupt) { try await port.load() }
         #expect(await runtimes.mailRequests == 0)
     }
 
     @Test func aFailedMailpitSetupKeepsTheLoadUsable() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let port = LiveMailPort(
             manager: RecordingMailManager(), runtimes: FakeServiceRuntimes(failure: .unavailable("No payloads.")),
-            layout: try Fixture.layout().mail)
+            layout: temporary.layout.mail)
 
         #expect(try await port.load().settings.runtime == nil)
     }
 
     @Test func mailFilesAreTheInboxAndTheServerLog() async throws {
-        let layout = try Fixture.layout().mail
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout.mail
         let files = await LiveMailPort(manager: RecordingMailManager(), runtimes: FakeServiceRuntimes(), layout: layout)
             .files()
 
@@ -128,9 +148,11 @@ struct LiveServicePortsTests {
     // MARK: Storage
 
     @Test func storageLoadInstallsRustFSOnlyWhenNoRuntimeIsSaved() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingStorageManager()
         let runtimes = FakeServiceRuntimes()
-        let port = LiveStoragePort(manager: manager, runtimes: runtimes, layout: try Fixture.layout().storage)
+        let port = LiveStoragePort(manager: manager, runtimes: runtimes, layout: temporary.layout.storage)
 
         let snapshot = try await port.load()
         _ = try await port.load()
@@ -140,19 +162,23 @@ struct LiveServicePortsTests {
     }
 
     @Test func corruptStorageSettingsFailTheLoadBeforeAnyInstall() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let runtimes = FakeServiceRuntimes()
         let port = LiveStoragePort(
             manager: RecordingStorageManager(loadFailure: Self.corrupt), runtimes: runtimes,
-            layout: try Fixture.layout().storage)
+            layout: temporary.layout.storage)
 
         await #expect(throws: Self.corrupt) { try await port.load() }
         #expect(await runtimes.storageRequests == 0)
     }
 
     @Test func storageForwardsBucketWorkUnchanged() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let manager = RecordingStorageManager()
         let port = LiveStoragePort(
-            manager: manager, runtimes: FakeServiceRuntimes(), layout: try Fixture.layout().storage)
+            manager: manager, runtimes: FakeServiceRuntimes(), layout: temporary.layout.storage)
 
         try await port.addBucket(name: "uploads", publicRead: false)
         try await port.retryBucket("uploads")
@@ -162,7 +188,9 @@ struct LiveServicePortsTests {
     }
 
     @Test func storageFilesAreTheDataFolderAndTheServerLog() async throws {
-        let layout = try Fixture.layout().storage
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout.storage
         let files = await LiveStoragePort(
             manager: RecordingStorageManager(), runtimes: FakeServiceRuntimes(), layout: layout
         ).files()
@@ -175,7 +203,9 @@ struct LiveServicePortsTests {
 
     /// Spec F 2.10: a launch loads services and installs runtimes, but never starts one.
     @Test func loadsInstallRuntimesButNeverStartAService() async throws {
-        let layout = try Fixture.layout()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let layout = temporary.layout
         let databases = RecordingDatabaseManager()
         let mail = RecordingMailManager()
         let storage = RecordingStorageManager()

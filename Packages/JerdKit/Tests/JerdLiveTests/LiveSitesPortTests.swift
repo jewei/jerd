@@ -16,6 +16,7 @@ struct LiveSitesPortTests {
         let gateway: FakeHTTPSSetup
         let helper: RecordingHelper
         let loginItems = RecordingLoginItems()
+        let temporary: TemporaryDirectory
         let layout: DataLayout
         let port: LiveSitesPort
 
@@ -25,13 +26,17 @@ struct LiveSitesPortTests {
             environment = FakeEnvironment(journal: journal)
             gateway = FakeHTTPSSetup(status, journal: journal)
             helper = RecordingHelper(journal: journal)
-            layout = try Fixture.layout()
+            temporary = try TemporaryDirectory()
+            layout = temporary.layout
             let setup = DevelopmentRuntimeSetup(
                 registry: registry, sites: sites, source: FakeDevelopmentSource(needed: false))
             port = LiveSitesPort(
                 setup: setup, sites: sites, coordinator: environment, gateway: gateway, helper: helper,
                 environmentLayout: layout.environment, loginItems: loginItems)
         }
+
+        /// Removes the temporary folder of the harness. Each test calls it in a `defer`.
+        func remove() { temporary.remove() }
 
         /// Queues a change that waits for approval; its continuation is journaled.
         func queueApproval(hostnames: [String]) async throws -> AppConfiguration {
@@ -48,6 +53,7 @@ struct LiveSitesPortTests {
 
     @Test func aChangeThatNeedsApprovalWaitsUnderItsApprovalID() async throws {
         let harness = try Harness(status: HTTPSSetupStatus(hostnames: ["old.test", "shop.test"]))
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
 
         let outcome = try await harness.port.run([SampleWeb.siteID])
@@ -65,6 +71,7 @@ struct LiveSitesPortTests {
     /// Every setup of one installation has the same ID, so the port keys changes by its own ID.
     @Test func twoWaitingChangesOfOneInstallationKeepSeparateApprovals() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
         _ = try await harness.queueApproval(hostnames: ["shop.test", "blog.test"])
         guard case .needsApproval(let first) = try await harness.port.run([SampleWeb.siteID]),
@@ -80,6 +87,7 @@ struct LiveSitesPortTests {
 
     @Test func removedHostnamesComeFromTheStatusThatTheHelperReportsNow() async throws {
         let harness = try Harness(status: HTTPSSetupStatus(hostnames: ["shop.test"]))
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
         await harness.gateway.setStatus(HTTPSSetupStatus(hostnames: ["gone.test", "shop.test"]))
 
@@ -92,6 +100,7 @@ struct LiveSitesPortTests {
 
     @Test func anUnreadableStatusShowsNoRemovals() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
         await harness.gateway.fail(.unavailable("The helper did not answer."))
 
@@ -104,6 +113,7 @@ struct LiveSitesPortTests {
 
     @Test func approveRegistersTheHelperBeforeTheTransactionContinues() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         let saved = try await harness.queueApproval(hostnames: ["shop.test"])
         guard
             case .needsApproval(let approval) = try await harness.port.apply(
@@ -119,6 +129,7 @@ struct LiveSitesPortTests {
 
     @Test func aFailedHelperRegistrationKeepsTheChangeForARetry() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
         guard case .needsApproval(let approval) = try await harness.port.run([SampleWeb.siteID]) else {
             throw JerdError.invalid("No approval.")
@@ -135,6 +146,7 @@ struct LiveSitesPortTests {
 
     @Test func discardDropsTheWaitingChange() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         _ = try await harness.queueApproval(hostnames: ["shop.test"])
         guard case .needsApproval(let approval) = try await harness.port.run([SampleWeb.siteID]) else {
             throw JerdError.invalid("No approval.")
@@ -148,6 +160,7 @@ struct LiveSitesPortTests {
 
     @Test func aCommittedChangeReturnsTheSavedConfiguration() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         let outcome = try await harness.port.apply(.enabled(SampleWeb.siteID, false), startIfStopped: false)
 
@@ -157,6 +170,7 @@ struct LiveSitesPortTests {
 
     @Test func stopEnvironmentStopsTheRunThenClosesTheHelperConnection() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         try await harness.port.stopEnvironment()
 
@@ -165,6 +179,7 @@ struct LiveSitesPortTests {
 
     @Test func reconnectStopsTheSitesBeforeTheHelperRegistersAgain() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         try await harness.port.reconnectHelper()
 
@@ -173,6 +188,7 @@ struct LiveSitesPortTests {
 
     @Test func removeSystemSetupStopsRemovesThenUnregisters() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         try await harness.port.removeSystemSetup()
 
@@ -182,6 +198,7 @@ struct LiveSitesPortTests {
 
     @Test func aFailedRemovalKeepsTheHelperRegistered() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         await harness.gateway.failRemoval(.approvalInterrupted("The approval was cancelled."))
 
         await #expect(throws: JerdError.self) { try await harness.port.removeSystemSetup() }
@@ -190,6 +207,7 @@ struct LiveSitesPortTests {
 
     @Test func logsExistOnlyAfterTheFirstRun() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
         #expect(await harness.port.environmentLogs() == nil)
 
         try FileManager.default.createDirectory(
@@ -200,6 +218,7 @@ struct LiveSitesPortTests {
 
     @Test func theLoadGoesThroughTheBundledSetup() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         #expect(try await harness.port.loadConfiguration().sites == [SampleWeb.site()])
         #expect(await harness.registry.loadCount == 1)
@@ -207,6 +226,7 @@ struct LiveSitesPortTests {
 
     @Test func setupStatusAndEnvironmentPassThrough() async throws {
         let harness = try Harness(status: HTTPSSetupStatus(hostnames: ["shop.test"], hostsConfigured: true))
+        defer { harness.remove() }
 
         #expect(try await harness.port.setupStatus().hostnames == ["shop.test"])
         #expect(await harness.port.environment() == EnvironmentSnapshot(state: .stopped, siteIDs: []))
@@ -214,7 +234,7 @@ struct LiveSitesPortTests {
 
     @Test func theLocalAuthorityIsReadFromTheEnvironmentFolderOnceItsCAExists() async throws {
         let harness = try Harness()
-        defer { try? FileManager.default.removeItem(at: harness.layout.root.deletingLastPathComponent()) }
+        defer { harness.remove() }
         let environment = harness.layout.environment
         #expect(try await harness.port.localAuthority() == nil)
 
@@ -236,7 +256,7 @@ struct LiveSitesPortTests {
 
     @Test func aCorruptCACertificateIsReportedAndPreserved() async throws {
         let harness = try Harness()
-        defer { try? FileManager.default.removeItem(at: harness.layout.root.deletingLastPathComponent()) }
+        defer { harness.remove() }
         let environment = harness.layout.environment
         try OwnedDirectory.create(environment.root)
         try AtomicFile.write(Data(Fixture.installationID.uuidString.utf8), to: environment.installationIDFile)
@@ -249,6 +269,7 @@ struct LiveSitesPortTests {
 
     @Test func loginItemsOpenThroughTheOpener() async throws {
         let harness = try Harness()
+        defer { harness.remove() }
 
         await harness.port.openLoginItems()
 
@@ -257,7 +278,8 @@ struct LiveSitesPortTests {
 
     @Test func theDocumentRootSuggestionReadsOnlyTheProjectFolder() async throws {
         let harness = try Harness()
-        let project = try Fixture.temporaryFolder()
+        defer { harness.remove() }
+        let project = harness.temporary.path("project")
         try FileManager.default.createDirectory(
             at: project.appendingPathComponent("public"), withIntermediateDirectories: true)
         for file in ["artisan", "composer.json", "public/index.php"] {

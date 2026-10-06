@@ -16,10 +16,12 @@ struct LiveAppTests {
         func setAutomaticChecks(_ isEnabled: Bool) -> Bool { false }
     }
 
-    static func configuration() throws -> LiveConfiguration {
-        let app = try Fixture.temporaryFolder().appendingPathComponent("Jerd.app", isDirectory: true)
+    static func configuration(in temporary: TemporaryDirectory) throws -> LiveConfiguration {
+        let root = temporary.path(UUID().uuidString)
+        let app = root.appendingPathComponent("Jerd.app", isDirectory: true)
         return LiveConfiguration(
-            layout: try Fixture.layout(), appBundle: app, resources: app.appendingPathComponent("Contents/Resources"),
+            layout: DataLayout(root: root.appendingPathComponent("Jerd", isDirectory: true)), appBundle: app,
+            resources: app.appendingPathComponent("Contents/Resources"),
             appVersion: "0.1.0")
     }
 
@@ -29,7 +31,9 @@ struct LiveAppTests {
     }
 
     @Test func buildingTheAppWiresEveryFeatureAndChangesNothingOnDisk() throws {
-        let configuration = try Self.configuration()
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let configuration = try Self.configuration(in: temporary)
 
         let live = LiveApp(
             configuration: configuration, updater: SilentUpdater(), bundle: .main, defaults: try Self.defaults())
@@ -40,8 +44,10 @@ struct LiveAppTests {
     }
 
     @Test func aSeparateDataRootNeverRefreshesTheUsersLauncher() throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
         let live = LiveApp(
-            configuration: try Self.configuration(), updater: SilentUpdater(), bundle: .main,
+            configuration: try Self.configuration(in: temporary), updater: SilentUpdater(), bundle: .main,
             defaults: try Self.defaults())
 
         #expect(live.preparation.launcher == nil)
