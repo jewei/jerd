@@ -1,17 +1,19 @@
 /// Holds waiting tasks until `open()`. Later waits pass at once.
-actor Gate {
+package actor Gate {
     private var isOpen = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    /// The number of tasks that wait now.
-    var waiters: Int { waiting.count }
+    package init() {}
 
-    func wait() async {
+    /// The number of tasks that wait now.
+    package var waiters: Int { waiting.count }
+
+    package func wait() async {
         guard !isOpen else { return }
         await withCheckedContinuation { waiting.append($0) }
     }
 
-    func open() {
+    package func open() {
         isOpen = true
         let resumed = waiting
         waiting = []

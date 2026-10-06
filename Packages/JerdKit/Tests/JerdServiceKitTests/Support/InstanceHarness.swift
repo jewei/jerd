@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import os
 
 /// A managed instance with fake processes, fake `lsof`, a fake clock, and a temporary folder.
@@ -26,7 +27,8 @@ final class InstanceHarness: Sendable {
         self.ports = ports
         lsof = FakeLsof(processes: processes, servicePorts: Set(ports))
         let version = version
-        commands = ScriptedCommands(lsof: lsof) { request in
+        commands = ScriptedCommands { [lsof] request in
+            if request.executable.lastPathComponent == "lsof" { return await lsof.answer(request.arguments) }
             guard request.arguments == ["--version"] else { return CommandResult(status: 1, output: "") }
             return CommandResult(status: 0, output: version.withLock { $0 })
         }

@@ -55,5 +55,9 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 swift test --package-path Packages/JerdKit --filter JerdServiceKitTests
 ```
 
-The tests use fake processes, a fake `lsof`, a fake clock, and temporary folders. Two tests
+The tests use fake processes, a fake `lsof`, a fake clock, and temporary folders. Some tests
 compile C fixtures with `/usr/bin/cc` and start them. No test needs root or a network.
+
+`Tests/JerdServiceKitTestSupport` holds the fakes and C fixtures that the service test targets
+share (`FakeProcessController`, `FakeSystem`, `FakeTimeKeeper`, `ScriptedCommands`, `Gate`,
+`TemporaryDirectory`, and `Fixtures`). Only test targets depend on it; the app never links it.

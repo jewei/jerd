@@ -90,8 +90,14 @@ let package = Package(
                           path: "Tests/JerdXPCCheck", swiftSettings: strictSettings),
         tests("JerdWeb", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
         tests("JerdCLICore", ["JerdFoundation", "JerdRuntimes", "JerdWeb"]),
-        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess"], resources: [.copy("Fixtures")]),
-        tests("JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit"], resources: [.copy("Fixtures")]),
+        // Fakes and C fixtures that the service test targets share. Only test targets depend on it.
+        .target(
+            name: "JerdServiceKitTestSupport", dependencies: ["JerdFoundation", "JerdProcess", "JerdServiceKit"],
+            path: "Tests/JerdServiceKitTestSupport", resources: [.copy("Fixtures")], swiftSettings: strictSettings),
+        tests("JerdServiceKit", ["JerdFoundation", "JerdProcess", "JerdServiceKitTestSupport"]),
+        tests(
+            "JerdDatabases", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport"],
+            resources: [.copy("Fixtures")]),
         tests("JerdMail", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
         tests("JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit"]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess"]),

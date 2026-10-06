@@ -4,6 +4,7 @@ import JerdDatabases
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 /// Opt-in tests with real MySQL, PostgreSQL, and Redis runtimes. They use temporary instances and

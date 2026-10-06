@@ -3,6 +3,7 @@ import JerdDatabases
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import os
 
 /// A database manager with fake processes, commands, and `lsof`, in a temporary data folder.
