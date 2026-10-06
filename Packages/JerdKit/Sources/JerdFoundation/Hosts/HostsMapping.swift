@@ -1,8 +1,9 @@
-/// Finds hosts-file lines that map a hostname, outside Jerd's tracked section.
+/// Finds hosts-file lines that map a hostname.
 public enum HostsMapping {
     /// True when a line of `contents` maps `hostname` (as an alias, any address, any letter case).
     ///
-    /// The text after `#` is a comment. A line needs an address and at least one alias.
+    /// The text after `#` is a comment. A line needs an address and at least one alias. Lines end
+    /// at any newline character, so a CR is never part of a name.
     public static func hasMapping(of hostname: String, in contents: String) -> Bool {
         let wanted = hostname.lowercased()
         for line in contents.split(whereSeparator: \.isNewline) {

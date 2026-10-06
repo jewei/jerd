@@ -53,7 +53,22 @@ import Testing
         let request = ProcessRequest(
             executable: URL(fileURLWithPath: "/usr/bin/true"), workingDirectory: folder.url,
             listeners: InheritedListeners(http: http.handle, https: FileHandle.nullDevice))
-        await #expect(throws: JerdError.invalid("Expected a bound IPv4 loopback TCP socket.")) {
+        await #expect(throws: JerdError.invalid("Expected a listening IPv4 loopback TCP socket.")) {
+            try await CommandRunner().run(request, timeout: .seconds(5))
+        }
+    }
+
+    /// The listening state is read with `proc_pidfdinfo`: a bound socket without `listen()` is refused.
+    @Test func aBoundSocketThatDoesNotListenIsRefused() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let http = try LoopbackListener()
+        let bound = try LoopbackListener(listening: false)
+        #expect(bound.port != 0)
+        let request = ProcessRequest(
+            executable: URL(fileURLWithPath: "/usr/bin/true"), workingDirectory: folder.url,
+            listeners: InheritedListeners(http: http.handle, https: bound.handle))
+        await #expect(throws: JerdError.invalid("Expected a listening IPv4 loopback TCP socket.")) {
             try await CommandRunner().run(request, timeout: .seconds(5))
         }
     }

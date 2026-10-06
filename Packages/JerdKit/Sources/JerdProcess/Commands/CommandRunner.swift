@@ -35,12 +35,18 @@ public struct CommandRunner: CommandRunning {
         let folder = try makePrivateFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
         let log = ProcessLogFile(url: folder.appendingPathComponent("output.log"), retainedHeadBytes: Self.outputLimit)
-        let supervisor = ProcessSupervisor()
+        let supervisor = ProcessSupervisor(ceiling: .forceful)
         let token = try await supervisor.start(request, log: log)
         let state = await supervisor.waitForExit(of: token, timeout: timeout)
         let cancelled = Task.isCancelled
         // Also after an exit: this reaps the leader and stops members left in its group.
         let cleanup = await supervisor.stop(token, policy: cleanupPolicy)
+        if case .timedOut = cleanup, let pid = await supervisor.relinquish(token) {
+            if cancelled { throw CancellationError() }
+            throw JerdError.processFailed(
+                "The command \(request.executable.path) did not stop (PID \(pid)). Stop it in Activity Monitor; "
+                    + "Jerd reaps it when it exits.")
+        }
         if cancelled { throw CancellationError() }
         let output = try log.readHead(limit: Self.outputLimit)
         let diagnostics = try log.readTail(limit: Self.diagnosticLimit)

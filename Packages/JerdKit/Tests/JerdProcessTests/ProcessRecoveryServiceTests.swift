@@ -85,7 +85,9 @@ import Testing
             #expect(await service.inspect().first?.state == .recoverable)
             try await service.recover("Mail", timeout: .seconds(3))
             #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
-            #expect(await supervisor.state(of: token) == .signalled(signal: SIGTERM))
+            // The kernel stops answering `proc_pidinfo` (ESRCH, which recovery reads as "exited") a
+            // moment before `waitid` reports the exit, so wait for the exit before reading the state.
+            #expect(await supervisor.waitForExit(of: token, timeout: .seconds(10)) == .signalled(signal: SIGTERM))
         } else {
             #expect(await service.inspect().first?.state == .manual)
         }
@@ -125,5 +127,35 @@ import Testing
         #expect(await healthy.inspect().first?.state == .stale)
         try await healthy.recover("Mail")
         #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
+    }
+
+    /// Fixed review L9: after a clock change moved the boot time, a saved descendant is matched by
+    /// its start time and is not saved a second time.
+    @Test func aSavedDescendantIsNotDuplicatedAfterAClockChange() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let mail = try mail(folder)
+        let leader = IdentityFactory.make(pid: 4_242)
+        let saved = IdentityFactory.make(pid: 4_300, boot: 50)
+        let moved = IdentityFactory.make(pid: 4_300, boot: 51)
+        let record = ActiveRunRecord(
+            processID: 4_242, runtimeID: "pg", identity: leader, controller: IdentityFactory.make(pid: 4_200),
+            gracefulSignal: SIGINT, descendants: [saved])
+        try ActiveRunRecordFile.write(record, to: mail.activeRunFile)
+        let groups = ProcessGroupInspector(
+            list: { _, pids in
+                pids[0] = 4_242
+                pids[1] = 4_300
+                return (2, 0)
+            }, liveness: { _ in true })
+        let observer = ProcessObserver(
+            match: { $0.processID == 4_200 ? .exited : .running }, isGone: { _ in false }, groups: groups,
+            tree: ProcessTree(children: { _ in [] }, inspect: { _ in .gone }), auditedSignalsSupported: true)
+        let service = ProcessRecoveryService(
+            layout: DataLayout(root: folder.url), observer: observer,
+            signaller: AuditedSignaller(send: { _, _ in 0 }, match: { _ in .running }),
+            capture: { _ in moved }, pollInterval: .milliseconds(5))
+        await #expect(throws: JerdError.self) { try await service.recover("Mail", timeout: .milliseconds(20)) }
+        #expect(try ActiveRunRecordFile.read(mail.activeRunFile).descendants == [saved])
     }
 }

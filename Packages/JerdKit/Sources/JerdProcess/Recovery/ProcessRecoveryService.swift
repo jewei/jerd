@@ -69,7 +69,7 @@ public actor ProcessRecoveryService {
         let verdict = RecoveryClassifier.classify(record, observation)
         guard verdict.state.canRecover else { throw JerdError.unavailable(verdict.detail) }
         if verdict.state == .recoverable {
-            try requestStop(&record, observation, at: location.recordFile)
+            try requestStop(&record, observation, at: location, holding: lock)
             try await waitUntilStale(record, deadline: ContinuousClock.now + timeout)
         }
         try ActiveRunRecordFile.remove(location, holding: lock)

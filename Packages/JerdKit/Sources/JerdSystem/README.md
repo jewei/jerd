@@ -11,7 +11,7 @@ folder, and the keychain. It depends only on JerdFoundation.
 | `JerdHelperProtocol`, `JerdTrustConsentProtocol` | The XPC selectors. Do not change a name or a type. |
 | `HelperWireProtocol`, `HelperWireError` | Payload limits, JSON coding, and stable error codes in error texts. |
 | `SystemSetupStatus`, `SystemRegistrationRequest`, … | The XPC DTOs. Add new fields only as optional fields. Never make an existing field optional on the wire: `SystemRecoveryStatus` sends placeholders for an unreadable record. |
-| `HostsSection`, `HostsMapping`, `ValidatedHostnames` | The tracked `# BEGIN JERD` section of the hosts file. |
+| `HostsSection`, `ValidatedHostnames` | The tracked `# BEGIN JERD` section of the hosts file. It parses with `HostsSectionLayout` and `HostsMapping` from JerdFoundation, the same rule that the app uses. |
 | `GuardedFileSwap`, `FileMetadataSnapshot` | The race-checked replacement of the hosts file. |
 | `RegistrationRecord`, `HelperRecordCodec`, `RootRecordDirectory` | The helper records and their exact formats. |
 | `SetupStore`, `SetupTransaction`, `SetupPlan` | Configure and remove as journaled steps with rollback. |

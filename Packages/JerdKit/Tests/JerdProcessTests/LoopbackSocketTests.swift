@@ -13,10 +13,7 @@ import Testing
     }
 
     @Test func aClosedPortPassesTheBindCheckAndRefusesConnections() throws {
-        let port = try {
-            let listener = try LoopbackListener()
-            return listener.port
-        }()
+        let port = try UnusedLoopbackPort.find()
         try LoopbackProbe.system.requireBindable(port)
         #expect(!LoopbackProbe.system.isAccepting(port))
     }

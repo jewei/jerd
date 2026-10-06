@@ -76,7 +76,7 @@ enum IntegrationRun {
 
 /// A supervisor wrapper that can stop the PHP masters of a run, to prove that one exit stops all.
 actor ObservedProcesses: ProcessControlling {
-    let real = ProcessSupervisor()
+    let real = ProcessSupervisor(ceiling: .forceful)
     private(set) var tokens: [(ProcessToken, isPHP: Bool)] = []
 
     func start(_ request: ProcessRequest, log: ProcessLogFile) async throws -> ProcessToken {

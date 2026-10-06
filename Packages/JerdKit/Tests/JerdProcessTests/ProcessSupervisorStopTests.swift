@@ -31,10 +31,24 @@ import Testing
         #expect(await supervisor.stop(token, policy: .graceful(signal: SIGINT, timeout: .seconds(3))) == .stopped)
     }
 
-    @Test func aForcefulStopKillsALeaderThatIgnoresTerminationWithinItsBudget() async throws {
+    /// Fixed review L13: the default supervisor never kills, whatever policy a caller passes.
+    @Test func aGracefulSupervisorDoesNotKillForAForcefulPolicy() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
         let supervisor = ProcessSupervisor()
+        #expect(await supervisor.ceiling == .graceful)
+        let token = try await start("graceful-process", in: folder, using: supervisor)
+        #expect(await eventually { text(folder.path("graceful-process.log")) == "ready\n" })
+        let policy = StopPolicy.forceful(leaderTimeout: .milliseconds(100), groupTimeout: .milliseconds(100))
+        #expect(await supervisor.stop(token, policy: policy) == .timedOut(leaderRunning: true))
+        #expect(await supervisor.state(of: token) == .running)
+        #expect(await supervisor.stop(token, policy: .graceful(signal: SIGINT, timeout: .seconds(3))) == .stopped)
+    }
+
+    @Test func aForcefulStopKillsALeaderThatIgnoresTerminationWithinItsBudget() async throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let supervisor = ProcessSupervisor(ceiling: .forceful)
         let token = try await start("graceful-process", in: folder, using: supervisor)
         #expect(await eventually { text(folder.path("graceful-process.log")) == "ready\n" })
         let pid = try #require(await supervisor.processID(of: token))
