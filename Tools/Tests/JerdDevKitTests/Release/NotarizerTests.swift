@@ -17,6 +17,7 @@ struct NotarizerTests {
     @Test("An accepted submission returns its ID, keeps the result, and staples the ticket")
     func accepted() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on(
             "xcrun", ["notarytool", "submit"], output: #"{"id":"\#(Self.id)","status":"Accepted"}"#,
             error: "Conducting pre-submission checks…\nprogress: 50%")
@@ -38,6 +39,7 @@ struct NotarizerTests {
     @Test("An invalid result with a failing exit status still fetches the issues log and stops")
     func invalidFetchesTheLog() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on(
             "xcrun", ["notarytool", "submit"], status: 69, output: #"{"id":"\#(Self.id)","status":"Invalid"}"#)
         let (notarizer, layout) = try Self.notarizer(workspace)
@@ -56,6 +58,7 @@ struct NotarizerTests {
     @Test("A run without a JSON result stops and staples nothing")
     func noResult() async throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         workspace.runner.on(
             "xcrun", ["notarytool", "submit"], status: 1, error: "Error: No Keychain password item found")
         let (notarizer, _) = try Self.notarizer(workspace)

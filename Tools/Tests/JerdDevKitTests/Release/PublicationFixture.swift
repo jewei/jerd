@@ -152,4 +152,7 @@ final class PublicationFixture: Sendable {
     }
 
     func merge() { remote.withLock { $0.pullRequest = (7, "MERGED") } }
+
+    /// Removes the temporary repository and the candidate in it.
+    func remove() { workspace.remove() }
 }

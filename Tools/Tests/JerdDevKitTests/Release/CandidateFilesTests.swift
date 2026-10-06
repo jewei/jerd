@@ -8,6 +8,7 @@ struct CandidateFilesTests {
     @Test("Clean removes old finished candidates and keeps started publications")
     func cleans() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let store = CandidateStore(releases: workspace.repository.releases)
         var layouts: [CandidateLayout] = []
         for (index, stage) in [ReleaseStage.published, .prepareFailed, .draftCreated, .prepared].enumerated() {
@@ -33,12 +34,14 @@ struct CandidateFilesTests {
     @Test("A candidate folder must hold a state file")
     func existingNeedsState() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         #expect(throws: DevFailure.self) { try CandidateStore.existing("nope", workingDirectory: workspace.root) }
     }
 
     @Test("Validation compares every listed file with its digest and refuses unsafe names")
     func checksFiles() throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         let manifest = try ReleaseManifest.decode(Data(contentsOf: fixture.layout.manifest))
         try ReleaseValidator.checkFiles(manifest, in: fixture.layout.root)
         try Data("other".utf8).write(to: fixture.layout.file("Jerd-0.2.0-3.dSYMs.zip"))
@@ -51,6 +54,7 @@ struct CandidateFilesTests {
     @Test("The candidate feed passes with the public key and fails for a changed disk image or feed")
     func feedCheck() throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         let check = CandidateFeedCheck(
             verifier: try fixture.workspace.key.verifier, version: ReleaseVersion.release("0.2.0")!, build: 3,
             minimumMacOS: ReleaseVersion("14.0")!)
@@ -70,15 +74,17 @@ struct CandidateFilesTests {
     @Test("The feed signer signs the disk image and the feed with the Keychain account and checks both")
     func feedSigner() async throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         let image = fixture.layout.file("Jerd-0.2.0.dmg")
         let key = fixture.workspace.key
         let signature = try key.signature(of: Data(contentsOf: image))
         fixture.runner.on("sign_update", ["--account", "dev.jerd.sparkle", "-p"], output: signature + "\n")
+        let feed = fixture.layout.feed
         fixture.runner.on(
-            "sign_update", ["--account", "dev.jerd.sparkle", fixture.layout.feed.path],
+            "sign_update", ["--account", "dev.jerd.sparkle", feed.path],
             effect: { _ in
-                let content = try Data(contentsOf: fixture.layout.feed)
-                try key.signedFeed(content).write(to: fixture.layout.feed)
+                let content = try Data(contentsOf: feed)
+                try key.signedFeed(content).write(to: feed)
             })
         let item = AppcastWriter.Item(
             version: ReleaseVersion.release("0.2.0")!, build: 3, minimumMacOS: ReleaseVersion("14.0")!,
@@ -93,6 +99,7 @@ struct CandidateFilesTests {
     @Test("Runtime tests get receipt paths, the switches of all groups, and no inherited JERD values")
     func runtimeTestEnvironment() throws {
         let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
         let layout = CandidateLayout(root: workspace.path("candidate"))
         try PayloadFixture.write(to: layout.appPayloads)
         let environment = try ReleaseRuntimeTests(shell: workspace.shell(), layout: layout).environment()

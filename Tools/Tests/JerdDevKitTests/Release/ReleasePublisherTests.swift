@@ -8,6 +8,7 @@ struct ReleasePublisherTests {
     @Test("Publish stops at the feed pull request, and resume after the merge finishes")
     func publishThenResume() async throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         let first = try await fixture.publisher().run(resuming: false)
         #expect(first == .waitingForMerge(7))
         #expect(fixture.stage == .feedProposed)
@@ -26,6 +27,7 @@ struct ReleasePublisherTests {
     @Test("The draft names the source commit, and the feed goes to a branch, never to main")
     func draftAndFeedBranch() async throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         _ = try await fixture.publisher().run(resuming: false)
         let create = try #require(fixture.runner.calls("gh", ["release", "create"]).first)
         #expect(create.contains("--draft"))
@@ -39,6 +41,7 @@ struct ReleasePublisherTests {
     @Test("The feed commit uses a temporary index on top of main and removes it")
     func feedCommitPlumbing() async throws {
         let fixture = try PublicationFixture()
+        defer { fixture.remove() }
         _ = try await fixture.publisher().run(resuming: false)
         let indexed = fixture.runner.recorded.filter { $0.environment?["GIT_INDEX_FILE"] != nil }
         #expect(indexed.map { $0.arguments.first! } == ["read-tree", "update-index", "write-tree"])
@@ -52,6 +55,7 @@ struct ReleasePublisherTests {
     @Test("Publication ends only when the public feed URL serves the signed feed")
     func waitsForThePublicFeed() async throws {
         let fixture = try PublicationFixture(stage: .feedMerged)
+        defer { fixture.remove() }
         fixture.remoteAfter(.feedMerged)
         let stale = try Data(contentsOf: fixture.layout.sourceFeed)
         let publisher = try fixture.publisher(feed: [nil, stale, fixture.candidateFeed])
@@ -67,6 +71,7 @@ struct ReleasePublisherTests {
     @Test("A feed that the public URL does not serve yet keeps the merged stage for a later resume")
     func feedNotPublicYet() async throws {
         let fixture = try PublicationFixture(stage: .feedMerged)
+        defer { fixture.remove() }
         fixture.remoteAfter(.feedMerged)
         let stale = try Data(contentsOf: fixture.layout.sourceFeed)
         #expect(try await fixture.publisher(feed: [stale]).run(resuming: true) == .feedNotYetPublic)
@@ -78,6 +83,7 @@ struct ReleasePublisherTests {
         arguments: [ReleaseStage.checked, .draftCreated, .assetsVerified, .releasePublic, .feedProposed, .feedMerged])
     func resumesFromEveryStage(_ stage: ReleaseStage) async throws {
         let fixture = try PublicationFixture(stage: stage)
+        defer { fixture.remove() }
         fixture.remoteAfter(stage)
         fixture.merge()
         #expect(try await fixture.publisher().run(resuming: true) == .published)
@@ -93,6 +99,7 @@ struct ReleasePublisherTests {
     @Test("A draft that an interrupted run created is used again")
     func adoptsInterruptedDraft() async throws {
         let fixture = try PublicationFixture(stage: .checked)
+        defer { fixture.remove() }
         fixture.remoteAfter(.draftCreated)
         fixture.merge()
         #expect(try await fixture.publisher().run(resuming: true) == .published)
@@ -102,6 +109,7 @@ struct ReleasePublisherTests {
     @Test("A finished publication reports success and changes nothing")
     func publishedIsTerminal() async throws {
         let fixture = try PublicationFixture(stage: .published)
+        defer { fixture.remove() }
         #expect(try await fixture.publisher().run(resuming: true) == .published)
         #expect(fixture.runner.recorded.isEmpty)
         await #expect(throws: DevFailure.self) { _ = try await fixture.publisher().run(resuming: false) }
