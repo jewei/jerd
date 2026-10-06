@@ -13,7 +13,20 @@ enum ChildStatus {
         } while result < 0 && errno == EINTR
         guard result == 0 else { return .notOwned }
         guard info.si_pid != 0 else { return .running }
-        return info.si_code == CLD_EXITED ? .exited(status: info.si_status) : .signalled(signal: info.si_status)
+        return state(code: info.si_code, status: info.si_status)
+    }
+
+    /// Maps a `waitid` report to a state.
+    ///
+    /// Darwin also reports a paused child (`CLD_STOPPED`, for example after `SIGSTOP` or a
+    /// debugger attach) to `WEXITED`. Such a child is alive: it keeps its record and its lock, and
+    /// a stop must still signal it. Only `CLD_EXITED`, `CLD_KILLED`, and `CLD_DUMPED` are ends.
+    static func state(code: Int32, status: Int32) -> ProcessState {
+        switch code {
+        case CLD_EXITED: .exited(status: status)
+        case CLD_KILLED, CLD_DUMPED: .signalled(signal: status)
+        default: .running
+        }
     }
 
     /// Reaps an exited child. Call only after `peek` reported an exit, so it never blocks.

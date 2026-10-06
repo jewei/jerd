@@ -71,6 +71,32 @@ struct ProcessRecoveryStopTests {
         #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
     }
 
+    /// A paused orphan keeps the caught signal pending, so recovery continues it after the signal.
+    @Test func aPausedOrphanIsContinuedSoThatItStops() async throws {
+        let folder = try TemporaryDirectory(" paused orphan")
+        defer { folder.remove() }
+        let mail = DataLayout(root: folder.url).mail
+        try OwnedDirectory.create(mail.root)
+        let supervisor = ProcessSupervisor()
+        let token = try await start("graceful-process", in: folder, using: supervisor)
+        #expect(await eventually { text(folder.path("graceful-process.log")) == "ready\n" })
+        let pid = try #require(await supervisor.processID(of: token))
+        let identity = try ProcessIdentity.capture(pid)
+        let controller = IdentityFactory.differentStart(try ProcessIdentity.capture(getpid()))
+        try ActiveRunRecordFile.write(
+            ActiveRunRecord(
+                processID: pid, runtimeID: "paused", identity: identity, controller: controller,
+                gracefulSignal: SIGINT),
+            to: mail.activeRunFile)
+        #expect(await ProcessPause.pause(pid))
+        let service = ProcessRecoveryService(layout: DataLayout(root: folder.url), pollInterval: .milliseconds(20))
+        #expect(await service.inspect().first?.state == .recoverable)
+        try await service.recover("Mail", timeout: .seconds(3))
+        #expect(await supervisor.waitForExit(of: token, timeout: .seconds(3)) == .exited(status: 0))
+        #expect(FileProbe.presence(at: mail.activeRunFile) == .absent)
+        #expect(await supervisor.stop(token, policy: .graceful()) == .stopped)
+    }
+
     @Test func aProcessThatIgnoresTheSignalTimesOutKeepsItsRecordAndBlocksASecondRecovery() async throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }

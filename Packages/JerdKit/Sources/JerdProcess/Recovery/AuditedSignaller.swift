@@ -35,6 +35,25 @@ public struct AuditedSignaller: Sendable {
         guard Self.allowedSignals.contains(signal), identity.userID == geteuid(), identity.processID != getpid(),
             let words = identity.auditWords, words.count == 8, match(identity) == .running
         else { throw JerdError.unavailable("Process ownership cannot be verified. No process was signalled.") }
+        try deliver(signal, to: words)
+    }
+
+    /// Continues a paused saved process (`SIGSTOP`, a debugger), so that it can act on the graceful
+    /// signal: a paused process keeps a caught signal pending until it continues.
+    ///
+    /// A process that is not verified again as the same running process of this user gets nothing.
+    /// That is safe: a paused process that stays paused does not stop, so the recovery wait times
+    /// out and keeps the record.
+    /// - Throws: `.unavailable` when the system cannot send audited signals; `.processFailed` when
+    ///   the kernel refuses the signal.
+    public func resume(_ identity: ProcessIdentity) throws {
+        guard identity.userID == geteuid(), identity.processID != getpid(), let words = identity.auditWords,
+            words.count == 8, match(identity) == .running
+        else { return }
+        try deliver(SIGCONT, to: words)
+    }
+
+    private func deliver(_ signal: Int32, to words: [UInt32]) throws {
         guard let send else {
             throw JerdError.unavailable(
                 "This macOS version cannot safely signal a saved process. Stop the verified service manually.")

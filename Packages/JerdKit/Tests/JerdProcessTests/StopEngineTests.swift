@@ -22,13 +22,13 @@ import Testing
     @Test func aLeaderThatObeysTheFirstSignalGetsNoGroupSignal() async {
         let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGQUIT])
         #expect(await StopEngine.run(.forceful(signal: SIGQUIT), on: target) == .stopped)
-        #expect(target.signals == [.leader(SIGQUIT)])
+        #expect(target.signals == [.leader(SIGQUIT), .group(SIGCONT)])
     }
 
     @Test func aGracefulTimeoutKeepsTheLeaderAndNeverKills() async {
         let target = FakeStopTarget(state: .running)
         #expect(await StopEngine.run(graceful, on: target) == .timedOut(leaderRunning: true))
-        #expect(target.signals == [.leader(SIGTERM)])
+        #expect(target.signals == [.leader(SIGTERM), .group(SIGCONT)])
     }
 
     @Test func gracefulStopSignalsRemainingMembersOnceAndNeverKills() async {
@@ -36,23 +36,25 @@ import Testing
         #expect(
             await StopEngine.run(.graceful(signal: SIGINT, timeout: .zero), on: stubborn)
                 == .timedOut(leaderRunning: false))
-        #expect(stubborn.signals == [.leader(SIGINT), .group(SIGTERM)])
+        #expect(stubborn.signals == [.leader(SIGINT), .group(SIGCONT), .group(SIGTERM), .group(SIGCONT)])
         let obedient = FakeStopTarget(
             state: .running, leaderExitsOn: [SIGTERM], membersRemain: true, membersExitOn: [SIGTERM])
         #expect(await StopEngine.run(graceful, on: obedient) == .stopped)
-        #expect(obedient.signals == [.leader(SIGTERM), .group(SIGTERM)])
+        #expect(obedient.signals == [.leader(SIGTERM), .group(SIGCONT), .group(SIGTERM), .group(SIGCONT)])
     }
 
     @Test func forcefulStopEscalatesToAGroupKill() async {
         let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGKILL])
         #expect(await StopEngine.run(forceful, on: target) == .stopped)
-        #expect(target.signals == [.leader(SIGTERM), .group(SIGTERM), .group(SIGKILL)])
+        #expect(
+            target.signals == [.leader(SIGTERM), .group(SIGCONT), .group(SIGTERM), .group(SIGCONT), .group(SIGKILL)])
     }
 
     @Test func aLeaderThatSurvivesTheKillTimesOutInsteadOfWaitingForever() async {
         let target = FakeStopTarget(state: .running)
         #expect(await StopEngine.run(forceful, on: target) == .timedOut(leaderRunning: true))
-        #expect(target.signals == [.leader(SIGTERM), .group(SIGTERM), .group(SIGKILL)])
+        #expect(
+            target.signals == [.leader(SIGTERM), .group(SIGCONT), .group(SIGTERM), .group(SIGCONT), .group(SIGKILL)])
     }
 
     @Test func policiesHaveTheDocumentedTimings() {
@@ -81,14 +83,15 @@ import Testing
     @Test func membersThatSurviveTheKillTimeOutInsteadOfReportingStopped() async {
         let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGTERM], membersRemain: true)
         #expect(await StopEngine.run(forceful, on: target) == .timedOut(leaderRunning: false))
-        #expect(target.signals == [.leader(SIGTERM), .group(SIGTERM), .group(SIGKILL)])
+        #expect(
+            target.signals == [.leader(SIGTERM), .group(SIGCONT), .group(SIGTERM), .group(SIGCONT), .group(SIGKILL)])
     }
 
     /// Regression test: descendants are recorded while the leader still runs, before any signal.
     @Test func descendantsAreRecordedBeforeTheFirstSignal() async {
         let target = FakeStopTarget(state: .running, leaderExitsOn: [SIGTERM])
         #expect(await StopEngine.run(graceful, on: target) == .stopped)
-        #expect(target.events == [.walk, .signal(.leader(SIGTERM))])
+        #expect(target.events == [.walk, .signal(.leader(SIGTERM)), .signal(.group(SIGCONT))])
     }
 
     /// Regression test: a graceful ceiling removes the kill step of any policy and keeps the rest.
