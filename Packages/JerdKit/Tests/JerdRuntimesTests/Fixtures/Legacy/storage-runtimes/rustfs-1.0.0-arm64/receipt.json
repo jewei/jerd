@@ -1,0 +1,16 @@
+{
+  "additionalSources": {
+    "xz": {
+      "sha256": "a3c1a4bd8e4d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2d3c4b5a6f7e8d9c0b",
+      "size": 2591480,
+      "url": "https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz",
+      "version": "5.8.4"
+    }
+  },
+  "archiveSHA256": "06e32a681c16930fb5414df64c96151fe3370321fab0403a83a83a015874c39a",
+  "files": {
+    "LICENSE": "4037bd3dec2b7a4ad2e609290f0be9ee3d64738190db987950c73ee38aa6b5d3",
+    "rustfs": "60b94d230541c19321d53b4f6ab2ec5c4853d8462b8ad13fea1afe81c7e083e8"
+  },
+  "schemaVersion": 1
+}

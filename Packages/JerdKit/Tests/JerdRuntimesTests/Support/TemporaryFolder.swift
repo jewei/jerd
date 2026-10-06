@@ -43,3 +43,23 @@ func permissions(_ url: URL) -> mode_t {
 
 /// A SHA-256 text made of one repeated hexadecimal digit.
 func digest(_ character: Character) -> String { String(repeating: character, count: 64) }
+
+/// The size of a long file in tests. Its hash takes about one second, so a cancellation arrives while the hash runs.
+let longFileSize: off_t = 2 << 30
+
+/// Makes `url` a sparse file of `size` zero bytes: reading it costs CPU time but no disk space.
+func makeSparseFile(_ url: URL, size: off_t = longFileSize) throws {
+    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+    if !FileManager.default.fileExists(atPath: url.path) { try Data().write(to: url) }
+    guard truncate(url.path, size) == 0 else { throw JerdError.unavailable("Cannot resize \(url.path).") }
+}
+
+/// Starts `operation`, waits until it runs, cancels it, and returns its result.
+func cancelWhileRunning<T: Sendable>(
+    after delay: Duration = .milliseconds(100), _ operation: @escaping @Sendable () async throws -> T
+) async -> Result<T, any Error> {
+    let task = Task { try await operation() }
+    try? await Task.sleep(for: delay)
+    task.cancel()
+    return await task.result
+}
