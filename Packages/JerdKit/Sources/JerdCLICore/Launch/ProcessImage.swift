@@ -1,23 +1,30 @@
 import Darwin
 
-/// The live `execv`: PHP gets the launcher's process ID, standard streams, and exit status.
+/// The live `execve`: PHP gets the launcher's process ID, standard streams, and exit status.
 ///
-/// The launcher changes only the planned entries with `setenv`. All other variables pass
-/// through as raw bytes, also variables that are not valid UTF-8.
-public struct ProcessImage: ProcessImageReplacing {
-    public init() {}
+/// The argument vector and the environment are the plan's raw bytes. The launcher never calls
+/// `setenv` and never decodes a user argument or an environment entry.
+package struct ProcessImage: ProcessImageReplacing {
+    package init() {}
 
-    public func replace(with plan: CLILaunchPlan) -> Int32 {
-        for (name, value) in plan.environmentChanges.sorted(by: { $0.key < $1.key }) {
-            guard setenv(name, value, 1) == 0 else { return errno }
-        }
-        let vector: [UnsafeMutablePointer<CChar>?] = plan.arguments.map { strdup($0) } + [nil]
-        defer { vector.forEach { free($0) } }
-        guard !vector.dropLast().contains(where: { $0 == nil }) else { return ENOMEM }
-        return vector.withUnsafeBufferPointer { buffer -> Int32 in
-            guard let base = buffer.baseAddress else { return EINVAL }
-            execv(plan.executable, base)
+    package func replace(with plan: CLILaunchPlan) -> Int32 {
+        Self.withVectors(of: plan) { path, arguments, environment in
+            execve(path, arguments, environment)
             return errno
+        }
+    }
+
+    /// Calls `body` with the C vectors that `execve` gets for `plan`. Tests give the same vectors
+    /// to `posix_spawn`, so they run exactly what the launcher runs.
+    package static func withVectors<Result>(
+        of plan: CLILaunchPlan,
+        _ body: (String, UnsafePointer<UnsafeMutablePointer<CChar>?>, UnsafePointer<UnsafeMutablePointer<CChar>?>)
+            -> Result
+    ) -> Result {
+        CStrings.withVector(plan.arguments) { arguments in
+            CStrings.withVector(plan.environment.entries) { environment in
+                body(plan.executable, arguments, environment)
+            }
         }
     }
 }

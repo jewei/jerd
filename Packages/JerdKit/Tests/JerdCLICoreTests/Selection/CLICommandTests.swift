@@ -18,7 +18,8 @@ import Testing
     func otherNamesAreRefused(name: String) {
         #expect(
             throws: JerdError.invalid(
-                "Run Jerd's launcher as php, composer, or laravel. Set up these commands in Jerd first.")
+                "Run Jerd's launcher as php, composer, or laravel. To install these commands, open Jerd, go to Advanced, and choose Install Command-Line Tools."
+            )
         ) { try CLICommand(invocationName: name) }
     }
 

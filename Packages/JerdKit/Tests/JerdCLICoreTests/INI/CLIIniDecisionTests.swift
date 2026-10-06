@@ -26,9 +26,8 @@ import Testing
     func oneRuleChoosesTheINIAndTheTrust(
         command: CLICommand, arguments: [String], environment: [String: String], expected: Choice
     ) {
-        let decision = CLIIniDecision(command: command, arguments: arguments, environment: environment)
+        let decision = CLIIniDecision(command: command, arguments: arguments, environment: CLIEnvironment(environment))
         #expect(decision.choice == expected)
-        #expect(decision.wantsLocalCA == (expected == .jerdINIWithLocalCA))
     }
 
     @Test(arguments: [
@@ -38,7 +37,7 @@ import Testing
         (["PHPRC": "/etc/php"], true),
     ])
     func emptyScanFolderAppliesUnlessTheUserSetOne(environment: [String: String], expected: Bool) {
-        let decision = CLIIniDecision(command: .php, arguments: [], environment: environment)
+        let decision = CLIIniDecision(command: .php, arguments: [], environment: CLIEnvironment(environment))
         #expect(decision.usesEmptyScanDirectory == expected)
     }
 }

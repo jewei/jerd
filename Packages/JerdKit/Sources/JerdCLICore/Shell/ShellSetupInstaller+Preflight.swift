@@ -5,7 +5,8 @@ import JerdRuntimes
 import JerdWeb
 
 extension ShellSetupInstaller {
-    /// Verifies the default runtime and every runtime that a site pins: the commands can run each one.
+    /// Verifies each managed runtime that a command can select (the default and every site pin)
+    /// against its receipt. Imported runtimes are trusted; see `CLIRuntimeOrigin`.
     func verifySelectableRuntimes() throws {
         let configuration = try ConfigurationCodec.store(in: layout).load() ?? AppConfiguration()
         guard let defaultID = configuration.defaultRuntimeID,
@@ -18,8 +19,10 @@ extension ShellSetupInstaller {
             })
         let verifier = ManagedExecutableVerifier(layout: layout)
         for runtime in configuration.runtimes where runtime.id == defaultID || pinned.contains(runtime.id) {
+            let executable = URL(fileURLWithPath: runtime.cliPath)
+            guard CLIRuntimeOrigin(executable: executable, layout: layout) == .managed else { continue }
             do {
-                _ = try verifier.verifyPHP(URL(fileURLWithPath: runtime.cliPath))
+                _ = try verifier.verifyPHP(executable)
             } catch let error as JerdError {
                 throw JerdError(error.kind, "PHP \(runtime.version): \(error.message)")
             }
