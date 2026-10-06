@@ -16,27 +16,27 @@ extension DatabaseManager {
     }
 
     /// Renames a stopped service or moves it to another free port. Its runtime never changes.
+    ///
+    /// Other registry changes can complete while this call waits for the port check and the
+    /// instance. So the saved registry is built from the current registry, with the rules checked
+    /// again, and no wait between that step and the save.
     public func edit(_ service: DatabaseService) async throws {
         let old = try lookup(service.id)
         try begin(service.id)
         defer { operations.remove(service.id) }
-        _ = try DatabaseRegistry.replacing(service, in: configuration)
+        let proposed = try DatabaseRegistry.replacing(service, in: configuration)
         if old.port != service.port { try await effects.ports.requireFree(service.port) }
-        let next = try DatabaseRegistry.replacing(service, in: configuration)
-        guard let edited = next.service(service.id) else { throw DatabaseMessages.notRegistered }
+        guard let edited = proposed.service(service.id) else { throw DatabaseMessages.notRegistered }
+        let next = try definition(for: edited)
         let instance = try instance(for: old)
         let previous = await instance.definition
         do {
-            try await instance.replaceDefinition(
-                DatabaseServiceDefinition(
-                    service: edited, runtime: try next.runtime(for: edited), layout: layout,
-                    temporaryRoot: temporaryRoot,
-                    initializationCommands: initializationCommands))
+            try await instance.replaceDefinition(next)
         } catch {
             throw DatabaseMessages.stopBeforeEditing
         }
         do {
-            try save(next)
+            try save(DatabaseRegistry.replacing(service, in: configuration))
         } catch {
             // The instance is stopped and unchanged on disk, so the old definition always fits.
             // The save error is the one to report.
