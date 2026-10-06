@@ -32,7 +32,8 @@ public enum MailMessages {
     static let identityMismatch = JerdError.invalid(
         "The inbox belongs to a different Mailpit version. It was preserved.")
     static let untracked = JerdError.invalid("An untracked mail inbox already exists. It was preserved.")
-    static let databaseNotRegular = JerdError.invalid("The mail database must be a regular file.")
+    static let databaseNotRegular = JerdError.invalid(
+        "The mail database must be a regular file of this user without other links. It was preserved.")
     static let readinessTimedOut = "Mailpit did not pass its SMTP and web checks."
     static let noResponse = "Mailpit did not answer yet."
 
