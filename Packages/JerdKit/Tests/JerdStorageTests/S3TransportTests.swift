@@ -85,4 +85,29 @@ import Testing
         #expect(configuration.httpShouldSetCookies == false)
         #expect(configuration.timeoutIntervalForRequest == 5 && configuration.timeoutIntervalForResource == 8)
     }
+
+    @Test func anInvalidatedTransportRefusesNewRequestsWithAMessage() async throws {
+        let server = try LoopbackHTTPServer { _ in LoopbackHTTPServer.response(status: 200) }
+        defer { server.stop() }
+        let transport = S3Transport()
+        #expect(try await transport.send(try Self.request(server)).status == 200)
+        transport.invalidate()
+        transport.invalidate()
+        await #expect(throws: StorageMessages.sessionEnded) { try await transport.send(try Self.request(server)) }
+        #expect(server.requests.count == 1)
+    }
+
+    @Test func anInvalidationEndsARequestInFlightWithAMessage() async throws {
+        let server = try LoopbackHTTPServer { _ in
+            Thread.sleep(forTimeInterval: 2)
+            return LoopbackHTTPServer.response(status: 200)
+        }
+        defer { server.stop() }
+        let transport = S3Transport()
+        let request = try Self.request(server)
+        let pending = Task { try await transport.send(request) }
+        #expect(await eventually { server.requests.count == 1 })
+        transport.invalidate()
+        await #expect(throws: StorageMessages.sessionEnded) { try await pending.value }
+    }
 }

@@ -99,7 +99,8 @@ import Testing
         let folder = harness.storage.runtimeBackupsDirectory.appendingPathComponent(id.uuidString)
         try OwnedDirectory.create(folder)
         try AtomicFile.write(saved, to: folder.appendingPathComponent("settings.json"))
-        let journal = RuntimeUpdateJournal(id: id, names: StorageManager.updateItems, present: ["settings.json"])
+        let journal = RuntimeUpdateJournal(
+            id: id, names: StorageService.updateItems(harness.storage), present: ["settings.json"])
         try MarkerFile.write(journal, to: harness.storage.runtimeUpdateJournal)
         await #expect(throws: StorageMessages.updatePending) {
             try await manager.addBucket(name: "app", publicRead: false)
@@ -111,5 +112,21 @@ import Testing
         try await manager.start()
         #expect(!exists(harness.storage.runtimeUpdateJournal))
         try await manager.stop()
+    }
+
+    /// Older builds wrote journals with these names in this order, and each name is a path of the layout.
+    @Test func theUpdateCoversTheLayoutItemsInTheOrderOfOlderBuilds() {
+        let layout = DataLayout(root: URL(fileURLWithPath: "/tmp/Jerd")).storage
+        let items = StorageService.updateItems(layout)
+        #expect(
+            items == [
+                "settings.json", "settings.previous.json", "data", "runtime.json", "initialized.json",
+                "credentials.json", "access-key", "secret-key",
+            ])
+        let paths = [
+            layout.settingsFile, layout.previousSettingsFile, layout.dataDirectory, layout.runtimeIdentityFile,
+            layout.initializedMarkerFile, layout.credentialsFile, layout.accessKeyFile, layout.secretKeyFile,
+        ]
+        #expect(items.map { layout.root.appendingPathComponent($0).path } == paths.map(\.path))
     }
 }

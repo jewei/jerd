@@ -1,3 +1,4 @@
+import Foundation
 import JerdFoundation
 import JerdServiceKit
 
@@ -8,54 +9,60 @@ extension StorageManager {
     /// exists. An unfinished intent continues, also with another `publicRead`, which is saved
     /// first. The record is complete only after `BucketProvisioner` verified the bucket.
     public func addBucket(name: String, publicRead: Bool) async throws {
-        try await exclusive {
-            let intent = try BucketIntent.of(name: name, publicRead: publicRead, in: settings)
-            _ = try await runningService(startingIfNeeded: true)
-            let provisioner = BucketProvisioner(client: try client())
+        try await coordinator.exclusive { coordinator in
+            let intent = try BucketIntent.of(name: name, publicRead: publicRead, in: coordinator.settings)
+            _ = try await self.runningService(startingIfNeeded: true, in: coordinator)
+            let (client, launch) = try self.client(in: coordinator)
+            let provisioner = BucketProvisioner(client: client)
             switch intent {
             case .new(let bucket):
                 try await provisioner.requireAbsent(bucket.name)
-                var next = settings
+                var next = coordinator.settings
                 next.buckets.append(bucket)
-                try save(next)
+                try coordinator.save(next)
             case .change(let bucket):
-                try save(replacing(bucket, in: settings))
+                try coordinator.save(Self.replacing(bucket, in: coordinator.settings))
             case .resume:
                 break
             }
-            try await complete(intent.bucket, with: provisioner)
+            try await self.complete(intent.bucket, with: provisioner, launch: launch, in: coordinator)
         }
     }
 
     /// Continues the setup of an unfinished bucket. It starts storage when no process runs.
     public func retryBucket(_ name: String) async throws {
-        try await exclusive {
-            guard let bucket = settings.bucket(name), !bucket.setupComplete else {
+        try await coordinator.exclusive { coordinator in
+            guard let bucket = coordinator.settings.bucket(name), !bucket.setupComplete else {
                 throw StorageMessages.onlyUnfinishedRetry
             }
-            _ = try await runningService(startingIfNeeded: true)
-            try await complete(bucket, with: BucketProvisioner(client: try client()))
+            _ = try await self.runningService(startingIfNeeded: true, in: coordinator)
+            let (client, launch) = try self.client(in: coordinator)
+            try await self.complete(bucket, with: BucketProvisioner(client: client), launch: launch, in: coordinator)
         }
     }
 
     /// Lists the buckets of the running service again.
     public func refreshBuckets() async throws {
-        try await exclusive {
-            _ = try await runningService(startingIfNeeded: false)
-            listed.replace(with: try await client().listBuckets())
+        try await coordinator.exclusive { coordinator in
+            _ = try await self.runningService(startingIfNeeded: false, in: coordinator)
+            let (client, launch) = try self.client(in: coordinator)
+            self.launch.replaceNames(try await client.listBuckets(), of: launch)
         }
     }
 
     /// Verifies `bucket`, then saves it as complete. A failure keeps the unfinished record.
-    private func complete(_ bucket: StorageBucket, with provisioner: BucketProvisioner) async throws {
+    private func complete(
+        _ bucket: StorageBucket, with provisioner: BucketProvisioner, launch id: UUID,
+        in coordinator: isolated Coordinator
+    ) async throws {
         try await provisioner.provision(bucket)
         var done = bucket
         done.setupComplete = true
-        try save(replacing(done, in: settings))
-        listed.insert(bucket.name)
+        try coordinator.save(Self.replacing(done, in: coordinator.settings))
+        launch.insert(bucket.name, of: id)
     }
 
-    private func replacing(_ bucket: StorageBucket, in settings: StorageSettings) -> StorageSettings {
+    private static func replacing(_ bucket: StorageBucket, in settings: StorageSettings) -> StorageSettings {
         var next = settings
         next.buckets = next.buckets.map { $0.name == bucket.name ? bucket : $0 }
         return next

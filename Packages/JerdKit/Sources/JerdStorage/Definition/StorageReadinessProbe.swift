@@ -6,14 +6,19 @@ import JerdServiceKit
 /// no process.
 ///
 /// The instance then requires that RustFS owns exactly its two loopback listeners and no UDP
-/// socket. The listed names are kept for the Storage page.
+/// socket. The listed names are kept for the Storage page, in the launch that the probe checks.
 struct StorageReadinessProbe: Sendable {
     static let deadline: Duration = .seconds(45)
     static let interval: Duration = .milliseconds(150)
+    /// The limit of one console request, so that a hung console cannot hold a round.
+    static let consoleTimeout: TimeInterval = 3
 
     let client: S3Client
+    /// The transport of the console request. It does not depend on the inner parts of `client`.
+    let console: any S3Sending
     let consoleURL: URL
-    let listed: ListedBuckets
+    let launch: StorageLaunch
+    let launchID: UUID
 
     /// The readiness check of one launch. A timeout shows the end of the server log.
     var check: ReadinessCheck {
@@ -27,9 +32,14 @@ struct StorageReadinessProbe: Sendable {
     /// One round: the bucket list first, the console only after it passes.
     func run() async throws -> ReadinessCheck.ProbeResult {
         let names = try await client.listBuckets()
-        let console = try await client.sender.send(URLRequest(url: consoleURL))
-        guard console.succeeded else { return .notReady("The RustFS console answered HTTP \(console.status).") }
-        listed.replace(with: names)
+        let answer = try await console.send(consoleRequest)
+        guard answer.succeeded else { return .notReady("The RustFS console answered HTTP \(answer.status).") }
+        launch.replaceNames(names, of: launchID)
         return .ready
+    }
+
+    /// `GET` of the console page, without a cache, within `consoleTimeout`.
+    var consoleRequest: URLRequest {
+        URLRequest(url: consoleURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: Self.consoleTimeout)
     }
 }

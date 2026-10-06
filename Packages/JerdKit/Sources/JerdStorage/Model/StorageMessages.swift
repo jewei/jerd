@@ -62,6 +62,7 @@ public enum StorageMessages {
     // MARK: S3
 
     static let invalidPath = JerdError.invalid("Invalid local S3 path.")
+    static let sessionEnded = JerdError.unavailable("Storage stopped during the request. Start storage and retry.")
     static let invalidResponse = JerdError.processFailed("RustFS returned an invalid response.")
     static let responseTooLarge = JerdError.processFailed("The RustFS response exceeds the size limit.")
     static let invalidBucketList = JerdError.processFailed("RustFS returned an invalid bucket list.")
@@ -76,6 +77,12 @@ public enum StorageMessages {
     static func customPolicy(_ name: String) -> JerdError {
         .invalid("Bucket \(name) has a custom access policy. Use the RustFS console to inspect it.")
     }
+
+    /// The messages of the shared manager core.
+    static let manager = SingleServiceMessages(
+        busy: busy, notLoaded: notLoaded, updatePending: updatePending, runtimeMissing: runtimeMissing,
+        runtimeChanged: runtimeChanged, runtimeRecordInvalid: runtimeRecordInvalid,
+        recoveryWithoutRuntime: recoveryWithoutRuntime, stopBeforeEditing: stopBeforeEditing)
 
     // MARK: Runtime update
 

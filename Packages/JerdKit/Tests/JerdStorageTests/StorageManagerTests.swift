@@ -126,4 +126,20 @@ import Testing
         #expect(try #require(await harness.processes.requests.last).arguments.contains("127.0.0.1:19000"))
         try await manager.stop()
     }
+
+    /// The lease of a port edit ends on every path. The shared manager core holds this rule for
+    /// Mail and Storage (see `SingleServiceCoordinator.edit(ports:)`).
+    @Test func aFailedSaveOfNewPortsReleasesTheStorageLockAndKeepsThePorts() async throws {
+        let harness = try await StorageHarness()
+        let manager = try await harness.loadedManager()
+        let ports = StoragePorts(api: 19_000, console: 19_001)
+        let previous = harness.storage.previousSettingsFile
+        try FileManager.default.createDirectory(at: previous, withIntermediateDirectories: false)
+        await #expect(throws: JerdError.self) { try await manager.edit(ports: ports) }
+        #expect(isLockFree(harness.storage.lockFile))
+        #expect(await manager.snapshot().settings.ports == StorageSettings.defaultPorts)
+        try FileManager.default.removeItem(at: previous)
+        try await manager.edit(ports: ports)
+        #expect(await manager.snapshot().settings.ports == ports)
+    }
 }

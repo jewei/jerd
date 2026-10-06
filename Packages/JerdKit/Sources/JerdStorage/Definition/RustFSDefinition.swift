@@ -18,19 +18,22 @@ public struct RustFSDefinition: ServiceDefinition {
     public let ports: StoragePorts
     public let profile: ServiceProfile
     let layout: StorageLayout
-    let sender: any S3Sending
-    let listed: ListedBuckets
+    let launch: StorageLaunch
+    let makeSession: @Sendable () -> S3Session
     let now: @Sendable () -> Date
 
+    /// - Parameters:
+    ///   - launch: the per-launch state that each start begins and each stop ends.
+    ///   - makeSession: a new S3 transport for each launch.
     init(
-        runtime: StorageRuntime, ports: StoragePorts, layout: StorageLayout, dataRoot: URL, sender: any S3Sending,
-        listed: ListedBuckets, now: @escaping @Sendable () -> Date
+        runtime: StorageRuntime, ports: StoragePorts, layout: StorageLayout, dataRoot: URL, launch: StorageLaunch,
+        makeSession: @escaping @Sendable () -> S3Session, now: @escaping @Sendable () -> Date
     ) {
         self.runtime = runtime
         self.ports = ports
         self.layout = layout
-        self.sender = sender
-        self.listed = listed
+        self.launch = launch
+        self.makeSession = makeSession
         self.now = now
         profile = ServiceProfile(
             name: "RustFS", runtimeID: runtime.id, record: layout.record, containingDirectory: dataRoot,
@@ -49,13 +52,19 @@ public struct RustFSDefinition: ServiceDefinition {
 
     var data: StorageData { StorageData(layout: layout) }
 
+    /// Prepares the data, then begins a launch with a new S3 session. The launch ends (the
+    /// session is invalidated and the names are cleared) in `didStop`, after every kind of stop.
     public func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
         let credentials = try data.prepare(for: runtime)
-        let client = S3Client(port: ports.api, credentials: credentials, sender: sender, now: now)
-        let readiness = StorageReadinessProbe(client: client, consoleURL: consoleURL, listed: listed)
+        let session = makeSession()
+        let launch = launch
+        let id = launch.begin(session)
+        let client = S3Client(port: ports.api, credentials: credentials, sender: session.sender, now: now)
+        let readiness = StorageReadinessProbe(
+            client: client, console: session.sender, consoleURL: consoleURL, launch: launch, launchID: id)
         return LaunchPlan(
             request: serverRequest, ports: Set(ports.ordered), readiness: readiness.check,
-            secrets: [credentials.secretKey])
+            secrets: [credentials.secretKey], didStop: { launch.end(id) })
     }
 
     public func completeStart() async throws {
