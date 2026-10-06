@@ -20,10 +20,11 @@ struct ReleaseValidateCommand: DevSubcommand {
     @OptionGroup var options: GlobalOptions
 
     func run() async throws {
-        let environment = ReleaseEnvironment.live(try options.context())
+        let environment = try ReleaseEnvironment.live(try options.context())
         let layout = try CandidateStore.existing(directory, workingDirectory: Self.workingDirectory)
         try await StepSequence.runSingle("Release validation", console: environment.console) {
-            try await ReleaseValidator(shell: environment.shell, layout: layout).run(publicKeyOnly: publicKeyOnly)
+            try await ReleaseValidator(shell: environment.shell, layout: layout, verifier: environment.verifier).run(
+                publicKeyOnly: publicKeyOnly)
         }
     }
 

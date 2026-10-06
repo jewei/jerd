@@ -11,7 +11,7 @@ struct VersionBump: Sendable {
     /// - Returns: the changed files, relative to the repository.
     @discardableResult
     func run(version: ReleaseVersion, build: Int) throws -> [String] {
-        let files = ReleaseSourceFiles(repository: environment.repository)
+        let files = ReleaseSourceFiles(repository: environment.repository, verifier: environment.verifier)
         var versionFile = try files.versionFile()
         let current = try files.version()
         let feed = try files.verifiedFeed()

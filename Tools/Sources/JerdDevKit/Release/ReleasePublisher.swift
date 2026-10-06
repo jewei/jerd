@@ -21,6 +21,12 @@ struct ReleasePublisher: Sendable {
     /// How often and how long publication waits for the public feed URL (the raw CDN can lag).
     var feedAttempts = 20
     var feedInterval: Duration = .seconds(30)
+    /// The full candidate check before anything changes on GitHub. Tests replace it.
+    var validateCandidate: @Sendable (ReleaseEnvironment, CandidateLayout) async throws -> Void = {
+        environment, layout in
+        try await ReleaseValidator(shell: environment.shell, layout: layout, verifier: environment.verifier)
+            .run(publicKeyOnly: true)
+    }
 
     var shell: ReleaseShell { environment.shell }
 

@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdManifest
 
 /// `./dev release validate`: checks a whole candidate, as preparation and publication do.
 ///
@@ -9,6 +10,7 @@ import JerdFoundation
 struct ReleaseValidator: Sendable {
     let shell: ReleaseShell
     let layout: CandidateLayout
+    let verifier: AppcastVerifier
 
     @discardableResult
     func run(publicKeyOnly: Bool) async throws -> ReleaseManifest {
@@ -23,7 +25,7 @@ struct ReleaseValidator: Sendable {
         try await symbols.verify(app: layout.app, symbols: layout.symbols)
         try await symbols.verifyZip(layout.file(manifest.symbols), app: layout.app)
         let image = layout.file(manifest.dmg)
-        try CandidateFeedCheck(version: version, build: build, minimumMacOS: minimum)
+        try CandidateFeedCheck(verifier: verifier, version: version, build: build, minimumMacOS: minimum)
             .verify(feed: Data(contentsOf: layout.feed), diskImage: image)
         if !publicKeyOnly {
             try await ReleasePreflight.checkSparkleKey(shell)

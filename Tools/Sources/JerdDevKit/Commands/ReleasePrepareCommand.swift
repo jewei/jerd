@@ -50,7 +50,7 @@ struct ReleasePrepareCommand: DevSubcommand {
     }
 
     func run() async throws {
-        let environment = ReleaseEnvironment.live(try options.context())
+        let environment = try ReleaseEnvironment.live(try options.context())
         let inputs = try inputs()
         try await StepSequence.runSingle("Release candidate", console: environment.console) {
             try await ReleasePreparer(environment: environment, inputs: inputs).run()

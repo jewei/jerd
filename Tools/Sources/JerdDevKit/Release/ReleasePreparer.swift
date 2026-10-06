@@ -30,7 +30,8 @@ struct ReleasePreparer: Sendable {
         do {
             try await buildApp(layout, source: source)
             try await package(layout, source: source)
-            try await ReleaseValidator(shell: shell, layout: layout).run(publicKeyOnly: false)
+            try await ReleaseValidator(shell: shell, layout: layout, verifier: environment.verifier).run(
+                publicKeyOnly: false)
             try state.advance(to: .prepared, at: environment.clock.now())
             try CandidateStore.save(state, to: layout)
         } catch {
@@ -46,7 +47,7 @@ struct ReleasePreparer: Sendable {
     /// The clean source commit sets this version, has its notes, and follows every published release.
     func checkSource() async throws -> Source {
         let commit = try await SourceCheck(shell: shell).requireClean()
-        let files = ReleaseSourceFiles(repository: environment.repository)
+        let files = ReleaseSourceFiles(repository: environment.repository, verifier: environment.verifier)
         try VersionRules.checkSource(version: inputs.version, build: inputs.build, file: try files.version())
         let target = try files.deploymentTarget()
         guard inputs.minimumMacOS >= target else {
@@ -87,7 +88,9 @@ struct ReleasePreparer: Sendable {
         let item = AppcastWriter.Item(
             version: inputs.version, build: inputs.build, minimumMacOS: inputs.minimumMacOS, notes: source.notes,
             publishedAt: environment.clock.now(), archiveLength: size?.int64Value ?? 0, archiveSignature: "")
-        let check = CandidateFeedCheck(version: inputs.version, build: inputs.build, minimumMacOS: inputs.minimumMacOS)
+        let check = CandidateFeedCheck(
+            verifier: environment.verifier, version: inputs.version, build: inputs.build,
+            minimumMacOS: inputs.minimumMacOS)
         try await FeedSigner(shell: shell, layout: layout).run(item: item, diskImage: image, check: check)
         try await SourceCheck(shell: shell).requireClean(at: source.commit)
         let manifest = try await manifest(

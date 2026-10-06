@@ -21,7 +21,7 @@ struct ReleasePublishCommand: DevSubcommand {
     }
 
     static func publish(_ directory: String, options: GlobalOptions, resuming: Bool) async throws {
-        let environment = ReleaseEnvironment.live(try options.context())
+        let environment = try ReleaseEnvironment.live(try options.context())
         let layout = try CandidateStore.existing(directory, workingDirectory: ReleaseValidateCommand.workingDirectory)
         try await StepSequence.runSingle("Release publication", console: environment.console) {
             let outcome = try await ReleasePublisher(environment: environment, layout: layout).run(resuming: resuming)

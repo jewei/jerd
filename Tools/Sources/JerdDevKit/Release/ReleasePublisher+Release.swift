@@ -6,7 +6,7 @@ extension ReleasePublisher {
     /// The candidate is valid, the origin is the public repository, the source commit is on `main`,
     /// the feed on `main` is the one the candidate extends, and no tag or release has this version.
     func checkPublication(_ facts: PublicationFacts) async throws {
-        try await ReleaseValidator(shell: shell, layout: layout).run(publicKeyOnly: true)
+        try await validateCandidate(environment, layout)
         let origin = try await shell.git(["remote", "get-url", "origin"])
         guard ReleaseNames.originURLs.contains(origin) else {
             throw DevFailure.checkFailed("The origin remote is not \(facts.repository).")

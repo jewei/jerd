@@ -23,7 +23,7 @@ struct ReleaseBumpCommand: DevSubcommand {
         guard let releaseVersion = ReleaseVersion.release(version), let number = ReleaseVersion.build(build) else {
             throw DevFailure.usage("Use a numeric --version with two to four parts and a positive integer --build.")
         }
-        let environment = ReleaseEnvironment.live(try options.context())
+        let environment = try ReleaseEnvironment.live(try options.context())
         try await StepSequence.runSingle("Release version bump", console: environment.console) {
             try VersionBump(environment: environment).run(version: releaseVersion, build: number)
         }

@@ -20,7 +20,7 @@ struct ReleaseCleanCommand: DevSubcommand {
     }
 
     func run() async throws {
-        let environment = ReleaseEnvironment.live(try options.context())
+        let environment = try ReleaseEnvironment.live(try options.context())
         try await StepSequence.runSingle("Release clean", console: environment.console) {
             try CandidateCleaner(environment: environment).run(keep: keep)
         }

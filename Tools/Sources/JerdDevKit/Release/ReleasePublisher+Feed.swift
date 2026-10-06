@@ -64,6 +64,7 @@ extension ReleasePublisher {
         let expected = try Data(contentsOf: layout.feed)
         let manifest = try ReleaseManifest.decode(try Data(contentsOf: layout.manifest))
         let check = CandidateFeedCheck(
+            verifier: environment.verifier,
             version: try manifest.releaseVersion, build: try manifest.buildNumber, minimumMacOS: try manifest.minimum)
         for attempt in 1...max(feedAttempts, 1) {
             if let served = try? await environment.feedFetcher.feed(at: ReleaseNames.feedURL), served == expected {

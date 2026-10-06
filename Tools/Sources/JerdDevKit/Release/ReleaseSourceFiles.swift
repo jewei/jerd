@@ -9,6 +9,7 @@ struct ReleaseSourceFiles: Sendable {
     static let deploymentTarget = "MACOSX_DEPLOYMENT_TARGET"
 
     let repository: Repository
+    let verifier: AppcastVerifier
 
     func versionFile() throws -> XcconfigFile {
         XcconfigFile(path: "Configuration/Version.xcconfig", text: try text(repository.versionFile))
@@ -37,7 +38,7 @@ struct ReleaseSourceFiles: Sendable {
     func verifiedFeed() throws -> (data: Data, appcast: Appcast) {
         let data = try read(repository.appcast)
         do {
-            return (data, try AppcastVerifier.official().verifiedAppcast(data))
+            return (data, try verifier.verifiedAppcast(data))
         } catch {
             throw DevFailure.checkFailed("The committed appcast.xml is not validly signed: \(Self.message(error))")
         }

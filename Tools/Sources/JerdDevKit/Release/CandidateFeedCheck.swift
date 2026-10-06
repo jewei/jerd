@@ -5,12 +5,13 @@ import JerdManifest
 /// 8.1 #25): the feed signature, exactly one item of this build with the release values, and the
 /// signature and length of the disk image.
 struct CandidateFeedCheck: Sendable {
+    /// The official verifier in a release; tests use a verifier of a test key.
+    let verifier: AppcastVerifier
     let version: ReleaseVersion
     let build: Int
     let minimumMacOS: ReleaseVersion
 
     func verify(feed: Data, diskImage: URL) throws {
-        let verifier = try AppcastVerifier.official()
         let appcast: Appcast
         do {
             appcast = try verifier.verifiedAppcast(feed)
