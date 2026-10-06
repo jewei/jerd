@@ -1,3 +1,58 @@
 # JerdCLICore
 
-The work package for this target writes this file.
+JerdCLICore supplies the `php`, `composer`, and `laravel` commands. It selects the PHP
+runtime of the registered project that contains the working folder, prepares the CLI INI,
+and runs PHP. It also installs the commands for zsh. It depends on JerdFoundation,
+JerdRuntimes, and JerdWeb. `Apps/JerdCLI/main.swift` only calls `CLILauncher`.
+
+## Main types
+
+| Type | Purpose |
+| --- | --- |
+| `CLICommand` | The command that the link name selects. |
+| `CLIRuntimeResolver`, `CLIRuntimeSelection` | The PHP runtime for a working folder. Pure. |
+| `PHPINIArguments`, `CLIIniDecision` | The one rule for the INI file and the TLS trust. Pure. |
+| `CLIIniWriter` | Writes `cli.ini`, `cli-local-tls.ini`, and the empty scan folder. |
+| `CLILaunchPlanner`, `CLILaunchPlan` | The exact argument vector, environment, and PATH. Pure. |
+| `CLILauncher` | Loads the configuration for each call, plans, and calls `execv`. |
+| `ShellPathBlockEditor` | Inserts or replaces the managed PATH block. Pure. |
+| `ShellSetupInstaller` | Installs the launcher, the three links, and the PATH block. |
+
+Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
+(`StandardErrorWriter`), `CLICABundlePreparing` (JerdWeb `PHPCABundleBuilder`), and
+`LauncherSignatureChecking` (`CodeSignatureCheck`).
+
+## Rules
+
+- The deepest registered project that contains the folder wins, after symbolic link
+  resolution and by path components. Two equal matches are an error. A disabled site
+  keeps its pin. A missing selection fails. There is no fallback.
+- `PHPRC`, or `-n`, `-c`, or `--php-ini` before the `php` script: Jerd adds no INI.
+  `composer` and `laravel` give INI options to their script.
+- `SSL_CERT_FILE`, `SSL_CERT_DIR`, or `CURL_CA_BUNDLE`: Jerd's INI without the local CA.
+- Else Jerd's INI with the local CA when macOS trusts it. A CA failure gives one warning,
+  and PHP runs without the local CA.
+- `PHP_INI_SCAN_DIR` is Jerd's empty folder unless the user set it.
+- The command line is `<php> [-c <ini>] [<script>] <user arguments>`. `PATH` starts with
+  Jerd's `bin` folder once. A missing or empty `PATH` becomes `/usr/bin:/bin`.
+- Errors go to standard error as `Jerd: <message>`, with exit status 1. After `execv`,
+  the exit status is PHP's.
+- The setup checks everything before it writes. Every runtime that a command can select
+  (the default and each site pin) must be a verified managed build.
+- The setup edits the existing `.zprofile` and `.zshrc`, or creates `.zshrc` (mode 0600)
+  when neither exists. It never replaces a symbolic link, a hard link, a file of another
+  user, a non-UTF-8 file, or a malformed block. User bytes around the block stay.
+- Originals go to `shell-backups/<YYYYmmdd-HHMMSS-ffffff>/` (0700, files 0600). Each file
+  is replaced atomically with its mode. A failure restores the files already replaced.
+- The launcher copy `bin/JerdCLI` (0700) must have a valid code signature. The links
+  `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a
+  crashed run (`.zshrc.jerd-tmp`, `.JerdCLI-next`, `.php-next`).
+
+## Test
+
+```sh
+swift test --package-path Packages/JerdKit --filter JerdCLICoreTests
+```
+
+The tests use temporary folders as the data root and the home folder. They never touch
+the real shell files. The smoke test runs the launch plan with a fake PHP script.
