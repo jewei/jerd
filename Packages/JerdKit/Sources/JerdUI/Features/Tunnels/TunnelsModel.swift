@@ -19,8 +19,8 @@ public final class TunnelsModel {
     public internal(set) var isShuttingDown = false
     public var sheet: TunnelsSheet?
     public var confirmation: TunnelConfirmation?
-    /// The window services, shared with the Sites model.
-    @ObservationIgnored public var shell = SitesShell.detached
+    /// Navigation and the window, shared with the Sites model.
+    @ObservationIgnored let shell: SitesShell
 
     @ObservationIgnored let port: any TunnelsPort
     @ObservationIgnored let panels: any FilePanelPresenting
@@ -30,8 +30,10 @@ public final class TunnelsModel {
     @ObservationIgnored var stopWork: [UUID: Task<Void, Never>] = [:]
 
     public init(
-        port: any TunnelsPort, panels: any FilePanelPresenting, workspace: any WorkspaceOpening, clipboard: Clipboard
+        port: any TunnelsPort, panels: any FilePanelPresenting, workspace: any WorkspaceOpening, clipboard: Clipboard,
+        shell: SitesShell
     ) {
+        self.shell = shell
         self.port = port
         self.panels = panels
         self.workspace = workspace

@@ -27,8 +27,8 @@ public final class SitesModel {
     public var confirmation: SitesConfirmation?
     public internal(set) var isShuttingDown = false
     public let tunnels: TunnelsModel
-    /// The window services. `AppState` connects them after it builds the model.
-    @ObservationIgnored public var shell = SitesShell.detached
+    /// Navigation, the window, and the window alert.
+    @ObservationIgnored let shell: SitesShell
 
     @ObservationIgnored let port: any SitesPort
     @ObservationIgnored let panels: any FilePanelPresenting
@@ -40,8 +40,9 @@ public final class SitesModel {
 
     public init(
         port: any SitesPort, tunnels: TunnelsModel, panels: any FilePanelPresenting,
-        workspace: any WorkspaceOpening, clipboard: Clipboard, lock: OperationLock = OperationLock()
+        workspace: any WorkspaceOpening, clipboard: Clipboard, lock: OperationLock, shell: SitesShell
     ) {
+        self.shell = shell
         self.lock = lock
         self.port = port
         self.tunnels = tunnels

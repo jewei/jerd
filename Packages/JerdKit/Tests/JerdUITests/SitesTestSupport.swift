@@ -24,15 +24,15 @@ struct SitesHarness {
         self.tunnels = tunnels
         self.panels = panels
         clipboard = Clipboard(pasteboard: shell)
-        let tunnelsModel = TunnelsModel(port: tunnels, panels: panels, workspace: shell, clipboard: clipboard)
-        model = SitesModel(
-            port: sites, tunnels: tunnelsModel, panels: panels, workspace: shell, clipboard: clipboard, lock: lock)
         let recorder = recorder
-        let shellValue = SitesShell(
+        let sitesShell = SitesShell(
             show: { recorder.shown.append($0) }, open: { recorder.opened.append($0) },
             alert: { recorder.alerts.append($0) })
-        model.shell = shellValue
-        model.tunnels.shell = shellValue
+        let tunnelsModel = TunnelsModel(
+            port: tunnels, panels: panels, workspace: shell, clipboard: clipboard, shell: sitesShell)
+        model = SitesModel(
+            port: sites, tunnels: tunnelsModel, panels: panels, workspace: shell, clipboard: clipboard, lock: lock,
+            shell: sitesShell)
     }
 
     /// A harness whose model has launched.

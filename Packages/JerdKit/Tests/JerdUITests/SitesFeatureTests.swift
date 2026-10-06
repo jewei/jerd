@@ -123,4 +123,19 @@ struct SitesFeatureTests {
         #expect(fixture.state.navigation.selection(in: .sites) == .tunnel(SampleData.previewTunnelID))
         #expect(fixture.shell.windowRequests == 1)
     }
+
+    @Test("The app state gives the Sites models its shell at init, so a failed system setup reaches the window alert")
+    func appStateShellAlert() async {
+        let fixture = AppFixture()
+        defer { fixture.removeDefaults() }
+        await fixture.state.launch()
+        await fixture.sites.configure { $0.failure = "The helper could not be registered." }
+        fixture.state.sites.confirmation = .reconnectHelper
+        await fixture.state.sites.confirm()?.value
+        #expect(
+            fixture.state.alert
+                == AppAlert(title: "System Setup Did Not Finish", message: "The helper could not be registered."))
+        fixture.state.sites.shell.show(.item(.site(SampleData.northwindID)))
+        #expect(fixture.state.navigation.selection(in: .sites) == .site(SampleData.northwindID))
+    }
 }
