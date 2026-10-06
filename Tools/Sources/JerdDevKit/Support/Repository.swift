@@ -27,6 +27,28 @@ struct Repository: Equatable, Sendable {
     var runtimes: URL { path(".build/runtimes") }
     var logs: URL { path(".build/logs") }
 
+    /// The folder with the pin catalog `runtimes.json` and the Laravel installer project.
+    var runtimeSources: URL { path("Runtimes") }
+    var runtimeCatalog: URL { path("Runtimes/runtimes.json") }
+    /// Prepared payloads in the bundle layout: `<group>/<payload ID>/payload-receipt.json`.
+    var payloads: URL { path(".build/runtimes/payloads") }
+    /// Verified downloads, one file for each SHA-256.
+    var runtimeDownloads: URL { path(".build/runtimes/downloads") }
+    /// Support libraries that payloads need, for example the XZ library of RustFS.
+    var runtimeSupport: URL { path(".build/runtimes/support") }
+    /// Folders that the integration tests read, made from the payload receipts.
+    var integrationRuntimes: URL { path(".build/runtimes/integration") }
+    var releases: URL { path(".build/releases") }
+    var evidence: URL { path(".build/evidence") }
+    var versionFile: URL { path("Configuration/Version.xcconfig") }
+    var baseConfiguration: URL { path("Configuration/Base.xcconfig") }
+    var changelog: URL { path("CHANGELOG.md") }
+    var appcast: URL { path("appcast.xml") }
+    /// The resolved Sparkle package: the framework and the `bin` tools (`sign_update`, `generate_keys`).
+    var sparkleArtifacts: URL { path(".build/SourcePackages/artifacts/sparkle/Sparkle") }
+    var sparkleTools: URL { path(".build/SourcePackages/artifacts/sparkle/Sparkle/bin") }
+    var embedScript: URL { path("Tools/Scripts/embed-app-contents.sh") }
+
     /// The path relative to the root, for messages. Paths outside the root stay absolute.
     func relativePath(of url: URL) -> String {
         let rootPath = root.path + "/"
