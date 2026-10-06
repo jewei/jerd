@@ -43,13 +43,20 @@ public struct RuntimePipeline: Sendable {
         }
         progress(RuntimeInstallProgress("Checking the installed version…"))
         let outcome = try await VersionProber(context: context).probe()
-        let files = try await BlockingWork.run {
-            try PayloadPermissions.apply(payload)
-            return try PayloadScanner.scan(payload)
-        }
+        let files = try await Self.recordFiles(of: payload)
         return PreparedPayload(
             directory: payload, release: release, version: outcome.version, archiveSHA256: digest,
             executable: outcome.executable, secondaryExecutable: outcome.secondaryExecutable, files: files)
+    }
+
+    /// The last step of every preparation: no Finder metadata (RT-3), private modes (I13), then the
+    /// hash of every file (I16).
+    package static func recordFiles(of payload: URL) async throws -> [RelativePath: PayloadFileRecord] {
+        try await BlockingWork.run {
+            try FinderMetadata.remove(in: payload)
+            try PayloadPermissions.apply(payload)
+            return try PayloadScanner.scan(payload)
+        }
     }
 
     static func preparationMessage(_ kind: RuntimeKind) -> String {

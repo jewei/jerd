@@ -65,6 +65,30 @@ import Testing
         }
     }
 
+    /// RT-7: an interrupted `./dev runtimes prepare` leaves staging folders in the group folders of the output.
+    @Test func abandonedStagingFoldersOfTheOutputAreRemoved() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        for group in PayloadGroup.allCases {
+            try folder.write("partial", to: "payloads/\(group.rawValue)/.install-CRASH/download")
+        }
+        try folder.write("keep", to: "payloads/mail/mailpit-1.31.3-arm64/mailpit")
+        let inUse = try StagingFolder(in: folder.path("payloads/database"))
+        let preparer = PinnedPayloadPreparer(
+            catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: FakeFetcher(),
+            commands: ScriptedCommandRunner(), platform: platform)
+        #expect(preparer.removeAbandonedStaging() == PayloadGroup.allCases.map { "\($0.rawValue)/.install-CRASH" })
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: folder.path("payloads/mail").path) == [
+                "mailpit-1.31.3-arm64"
+            ])
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: folder.path("payloads/database").path) == [
+                inUse.url.lastPathComponent
+            ])
+        inUse.remove()
+    }
+
     @Test func lockedLaravelProjectInstallsExactlyItsPinnedLock() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
@@ -105,7 +129,9 @@ import Testing
             let release = try preparer.release(for: pin, architecture: catalog.architecture)
             #expect(policy.check(release) == nil, "\(pin.id)")
         }
-        let mysql = try preparer.release(for: try #require(catalog.pin(for: .mysql)), architecture: .arm64)
+        let pin = try #require(catalog.pin(for: .mysql))
+        let mysql = try preparer.release(for: pin, architecture: .arm64)
         #expect(mysql.archiveSHA256 != nil && mysql.signatureURL != nil)
+        #expect(mysql.pinnedSignature == pin.signature && mysql.signatureURL == pin.signature?.url)
     }
 }

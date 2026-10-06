@@ -21,7 +21,8 @@ It depends only on JerdFoundation. It does no network work.
 ## Rules
 
 - A pin names one archive by URL, exact size, and SHA-256. The MySQL pin also names its
-  signature. The Laravel installer pin names the committed `composer.lock` instead.
+  signature file by URL, size limit, and SHA-256; JerdRuntimes enforces all three before the
+  OpenPGP check. The Laravel installer pin names the committed `composer.lock` instead.
 - A payload receipt lists every file with its SHA-256 and its executable flag, but not
   itself. A native executable must be recorded as executable.
 - The folder ID is `<payload ID>-<16 hexadecimal characters>`. The characters start the
@@ -32,6 +33,8 @@ It depends only on JerdFoundation. It does no network work.
   legacy folders without it are still read.
 - Legacy receipts are read only: `jerd-receipt.json` with `fileSHA256` (development),
   `jerd-receipt.json` with file objects (databases), and `receipt.json` (Mailpit, RustFS).
+  `Format(group:)` names the form of each group. `LegacyPayloadVerifier` in JerdRuntimes
+  uses all three forms to verify old installed folders before use.
 - The feed signature covers the bytes before the last `<!-- sparkle-signatures:` block,
   as in Sparkle 2. The block `length` must equal that byte count.
 - A build must carry exactly the official feed URL and key. Unexpanded build settings fail.

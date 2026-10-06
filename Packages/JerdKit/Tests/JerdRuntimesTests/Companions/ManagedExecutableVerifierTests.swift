@@ -5,6 +5,7 @@ import JerdRuntimes
 import Testing
 
 @Suite struct ManagedExecutableVerifierTests {
+    private static let mismatch = JerdError.invalid("The installed PHP receipt does not match the selected executable.")
     /// Writes a legacy development PHP folder whose receipt names the real file hash.
     private func legacyBundle(_ layout: DataLayout) throws -> URL {
         let build = layout.runtimes.developmentRuntimesDirectory.appendingPathComponent("php-php-8.5.11-arm64")
@@ -64,6 +65,67 @@ import Testing
         #expect(try verifier.verifyPHP(cli).relativePath == "php-native-8.4")
         #expect(throws: JerdError.invalid("The installed PHP receipt does not match the selected executable.")) {
             try verifier.verifyPHP(notes)
+        }
+    }
+
+    /// RT-5: only the file that the receipt names as the CLI executable passes, for every receipt form.
+    @Test func bundledPayloadAcceptsOnlyItsCLIExecutable() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        var builder = BundleBuilder(root: folder.path("bundle"))
+        try builder.addDevelopment(phpVersion: "8.6.1", phpExtras: [.init(path: "BUILD-INFO.txt", text: "notes")])
+        try builder.writeCatalog()
+        let layout = DataLayout(root: folder.path("data"))
+        let bootstrap = BundledRuntimeBootstrap(resources: folder.path("bundle"), layout: layout, architecture: .arm64)
+        let php = try await bootstrap.installDevelopment().php
+        let verifier = ManagedExecutableVerifier(layout: layout)
+        #expect(try verifier.verifyPHP(php.executable).relativePath == "php-native-8.6")
+        for other in [try #require(php.secondaryExecutable), php.directory.appendingPathComponent("BUILD-INFO.txt")] {
+            #expect(throws: Self.mismatch) { try verifier.verifyPHP(other) }
+        }
+    }
+
+    @Test func managedBuildRefusesItsFPMExecutable() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let layout = DataLayout(root: folder.url)
+        let build = layout.runtimes.managedRuntimesDirectory.appendingPathComponent("php-8.4.26-arm64")
+        let cli = try folder.write("cli", to: "runtime-updates/php-8.4.26-arm64/php-native-8.4")
+        let fpm = try folder.write("fpm", to: "runtime-updates/php-8.4.26-arm64/php-native-fpm-8.4")
+        #expect(build.appendingPathComponent("php-native-8.4") == cli)
+        let receipt = BuildReceipt(
+            kind: .php, version: "8.4.26", releaseVersion: "8.4.26", archiveSHA256: digest("a"),
+            executable: try #require(RelativePath("php-native-8.4")),
+            secondaryExecutable: RelativePath("php-native-fpm-8.4"),
+            files: [
+                try #require(RelativePath("php-native-8.4")): try FileDigest.hexSHA256(of: cli),
+                try #require(RelativePath("php-native-fpm-8.4")): try FileDigest.hexSHA256(of: fpm),
+            ])
+        try AtomicFile.write(try receipt.encoded(), to: build.appendingPathComponent("update-receipt.json"))
+        let verifier = ManagedExecutableVerifier(layout: layout)
+        #expect(try verifier.verifyPHP(cli).relativePath == "php-native-8.4")
+        #expect(throws: Self.mismatch) { try verifier.verifyPHP(fpm) }
+    }
+
+    @Test func legacyBundledPHPAcceptsOnlyTheCLIName() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let layout = DataLayout(root: folder.url)
+        let build = layout.runtimes.developmentRuntimesDirectory.appendingPathComponent("php-php-8.5.11-arm64")
+        var hashes: [String: String] = [:]
+        for name in ["php-native-8.5", "php-native-fpm-8.5", "BUILD-INFO.txt"] {
+            let file = try folder.write(name, to: "runtimes/php-php-8.5.11-arm64/\(name)")
+            hashes[name] = try FileDigest.hexSHA256(of: file)
+        }
+        let receipt: [String: Any] = ["schemaVersion": 1, "archiveSHA256": digest("a"), "fileSHA256": hashes]
+        try AtomicFile.write(
+            try JSONSerialization.data(withJSONObject: receipt), to: build.appendingPathComponent("jerd-receipt.json"))
+        let verifier = ManagedExecutableVerifier(layout: layout)
+        #expect(try verifier.verifyPHP(build.appendingPathComponent("php-native-8.5")).relativePath == "php-native-8.5")
+        for name in ["php-native-fpm-8.5", "BUILD-INFO.txt"] {
+            #expect(throws: Self.mismatch) {
+                try verifier.verifyPHP(build.appendingPathComponent(name))
+            }
         }
     }
 
