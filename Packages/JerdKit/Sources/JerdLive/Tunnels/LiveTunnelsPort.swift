@@ -42,10 +42,12 @@ package struct LiveTunnelsPort: TunnelsPort {
     }
 
     package func stop(id: UUID) async throws {
+        ServiceActivityLog.request("Stop", "tunnel \(id)")
         try await supervisor.stop(id: id)
     }
 
     package func stopAll() async throws {
+        ServiceActivityLog.request("Stop", "every tunnel")
         try await supervisor.stopAll()
     }
 
