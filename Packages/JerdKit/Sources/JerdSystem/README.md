@@ -23,6 +23,27 @@ folder, and the keychain. It depends only on JerdFoundation.
 | `LoopbackListenerPair`, `PortLeaseCoordinator` | The listeners on ports 80 and 443 and their lease. |
 | `ReplyGate`, `HelperConnection`, `HelperRegistration`, `HelperClient` | The app-side client. |
 
+## App-only and root-only code
+
+One target holds three kinds of code (review L6). Keep the boundary when you add a file:
+
+| Kind | Folders | Linked by |
+| --- | --- | --- |
+| Shared wire and policy | `Wire`, `Hosts`, `Certificates`, `Trust`, `Signing`, `Listeners` | App and helper |
+| App only | `Client`, `Consent` (`ConsentResponder`, `ConsentGate`, `AdminTrustSettings`) | App; the helper never calls it |
+| Root only | `Files`, `Records`, `Setup`, `Recovery`, `Ports` | Helper; the app never calls it |
+
+Root-only code does not import `ServiceManagement` or call `SecTrustSettingsSetTrustSettings`; only
+app-only code does. The helper binary links that code, but no helper path reaches it, because
+`JerdHelperCore` calls only `SetupStore`, `GuardedFileSwap`, `RootRecordDirectory`,
+`PortLeaseCoordinator`, `LoopbackListenerPair`, and the shared types.
+
+The target is not split now, for these reasons. A split moves about 25 source files, about 10 test files,
+and their fixtures, and makes `internal` parsers such as `HostsSection` `package` API. An app-client
+target also changes the dependency lines of the app targets that import JerdSystem, which this
+module does not own. Split it in its own change: move the root-only folders into `JerdHelperCore`
+(with their tests), then move `Client` and `Consent` into an app-client target.
+
 ## Client API for JerdLive
 
 `HelperClient` is an actor: `status()`, `approve()`, `configure(hostnames:caCertificate:policy:)`,
