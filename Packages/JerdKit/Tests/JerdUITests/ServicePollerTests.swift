@@ -55,6 +55,32 @@ struct ServicePollerTests {
         poller.stop()
     }
 
+    @Test("A faster pace during a refresh waits for that refresh; two refreshes never overlap")
+    func refreshesNeverOverlap() async {
+        let sleeper = RecordingSleeper(allowedSleeps: 1)
+        var isHeld = true
+        var running = 0
+        var mostAtOnce = 0
+        var refreshes = 0
+        let poller = ServicePoller(policy: policy, sleeper: sleeper) {
+            running += 1
+            mostAtOnce = max(mostAtOnce, running)
+            refreshes += 1
+            while isHeld { await Task.yield() }
+            running -= 1
+        }
+        poller.start(activity: AppActivity())
+        await waitUntil { refreshes == 1 }
+        poller.update(activity: visible)
+        for _ in 0..<50 { await Task.yield() }
+        #expect(refreshes == 1)
+        isHeld = false
+        await waitUntil { refreshes == 2 }
+        #expect(refreshes == 2)
+        #expect(mostAtOnce == 1)
+        poller.stop()
+    }
+
     @Test("A longer interval does not restart the loop or refresh")
     func slowerActivityWaits() async {
         let sleeper = RecordingSleeper(allowedSleeps: 0)
