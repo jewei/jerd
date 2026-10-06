@@ -36,7 +36,11 @@ the Composer and Laravel tool record. All network access goes through `HTTPFetch
 - A listing reports each build folder on its own. A bad folder does not hide the others.
 - A release without a digest (MySQL, Laravel) matches its build by kind and version, so it
   shows as installed and is not downloaded again.
-- Verification of an installed folder ignores only Finder's `.DS_Store`.
+- Finder's `.DS_Store` is the only file that verification ignores, on both sides: preparation
+  deletes it before it records the files, and a receipt that records one still matches.
+- A staging folder is locked (`flock`) while its installation runs. `removeAbandonedStaging()`
+  of `RuntimeInstaller`, `BundledRuntimeBootstrap` (all four group folders), and
+  `PinnedPayloadPreparer` removes only staging folders that nobody holds. Call them at start.
 - A corrupt `cli-tools.json` is never reset. Later tool selections survive the bootstrap.
 - Long file work runs on a GCD thread (`BlockingWork`), not on the cooperative pool. It runs
   inside the calling task (an actor on its own serial queue), so a cancellation stops a

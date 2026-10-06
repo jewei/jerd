@@ -76,6 +76,29 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: mailRuntimes.path).isEmpty)
     }
 
+    /// RT-7: a crash during a first-launch copy leaves a staging folder; the next start removes it
+    /// from each of the four group folders, but never a folder in use or an installed payload.
+    @Test func abandonedStagingFoldersOfEveryGroupAreRemoved() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let layout = DataLayout(root: folder.path("data"))
+        let groups = [
+            layout.runtimes.developmentRuntimesDirectory, layout.runtimes.databaseRuntimesDirectory,
+            layout.runtimes.mailRuntimesDirectory, layout.runtimes.storageRuntimesDirectory,
+        ]
+        for group in groups {
+            try folder.write("partial", to: "data/\(group.lastPathComponent)/.install-CRASH/payload")
+        }
+        let installed = try await bootstrap(try mailBundle(folder), folder).installMail()
+        let inUse = try StagingFolder(in: layout.runtimes.storageRuntimesDirectory)
+        let removed = await bootstrap(folder.path("bundle"), folder).removeAbandonedStaging()
+        #expect(removed == groups.map { "\($0.lastPathComponent)/.install-CRASH" })
+        #expect(try FileManager.default.contentsOfDirectory(atPath: groups[2].path) == [installed.id])
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: groups[3].path) == [inUse.url.lastPathComponent])
+        inUse.remove()
+    }
+
     @Test func bundleWithChangedOrExtraFilesIsRefusedBeforeAnyCopy() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

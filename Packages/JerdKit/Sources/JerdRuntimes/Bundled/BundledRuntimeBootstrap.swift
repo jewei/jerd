@@ -60,6 +60,23 @@ public actor BundledRuntimeBootstrap {
         try await single(.storage, into: layout.runtimes.storageRuntimesDirectory)
     }
 
+    /// Removes the staging folders that a crash or a kill left in the four group folders (P-I6, RT-7).
+    ///
+    /// A staging folder whose installation still runs, in this or another process, holds its lock
+    /// and is kept. Call it at launch. Installed payload folders are never touched.
+    /// - Returns: `<group folder>/<name>` of each removed folder.
+    @discardableResult
+    public func removeAbandonedStaging() -> [String] {
+        let runtimes = layout.runtimes
+        let groups = [
+            runtimes.developmentRuntimesDirectory, runtimes.databaseRuntimesDirectory,
+            runtimes.mailRuntimesDirectory, runtimes.storageRuntimesDirectory,
+        ]
+        return groups.flatMap { directory in
+            StagingFolder.removeAbandoned(in: directory).map { "\(directory.lastPathComponent)/\($0)" }
+        }
+    }
+
     /// The reviewed XZ library of the bundled RustFS payload, for managed RustFS updates (P-I1).
     /// Nil when the bundled payload has none (development builds).
     public func bundledLZMA() throws -> SupportLibrary? {

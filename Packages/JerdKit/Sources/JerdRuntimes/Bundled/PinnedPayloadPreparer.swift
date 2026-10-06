@@ -74,6 +74,18 @@ public struct PinnedPayloadPreparer: Sendable {
         return receipt
     }
 
+    /// Removes the staging folders that an interrupted preparation left in the group folders of
+    /// `output` (P-I6, RT-7). A folder whose preparation still runs holds its lock and is kept.
+    /// - Returns: `<group>/<name>` of each removed folder.
+    @discardableResult
+    public func removeAbandonedStaging() -> [String] {
+        PayloadGroup.allCases.flatMap { group in
+            StagingFolder.removeAbandoned(in: output.appendingPathComponent(group.rawValue)).map {
+                "\(group.rawValue)/\($0)"
+            }
+        }
+    }
+
     /// The prepared PHP CLI and `composer.phar`, which the Laravel installer needs.
     public func developmentTools(catalog: RuntimePinCatalog, lzma: SupportLibrary? = nil) throws -> PreparationTools {
         func executable(_ kind: RuntimeKind) throws -> URL? {
