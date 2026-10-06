@@ -22,6 +22,19 @@ Ports: `ProcessImageReplacing` (`ProcessImage`, `execv`), `DiagnosticWriting`
 (`StandardErrorWriter`), `CLICABundlePreparing` (JerdWeb `PHPCABundleBuilder`), and
 `LauncherSignatureChecking` (`CodeSignatureCheck`).
 
+## App entry points
+
+The app uses only these calls (all on the actor `ShellSetupInstaller`):
+
+| Call | Purpose |
+| --- | --- |
+| `ShellSetupInstaller.live(appBundle:)` | The installer for the current user (`HOME`) and the running app's signer. |
+| `install() throws -> ShellSetupReport` | Runs the setup. `report.summary` gives the lines for the user, with the backup path. |
+| `state() -> CommandLineToolsState` | `.notInstalled`, `.installed`, or `.outdatedLauncher`, with a one-line `summary`. |
+| `refreshLauncherIfInstalled() throws -> Bool` | At app launch: replaces an outdated `bin/JerdCLI` through the same staged, signature-checked path. Shell files do not change. |
+
+The "Install Command-Line Tools" control in Dashboard > Advanced calls `install()`.
+
 ## Rules
 
 - The deepest registered project that contains the folder wins, after symbolic link
