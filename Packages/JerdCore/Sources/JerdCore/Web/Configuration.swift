@@ -107,6 +107,9 @@ public enum ConfigurationGenerator {
         return try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     }
 
+    static let pathInfoVariable = "jerd_path_info"
+    static let exactScriptPattern = "{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"
+
     private static func response(_ code: Int) -> [String: Any] { ["handler": "static_response", "status_code": code] }
 
     private static func applicationRoutes(site: Site, socket: URL) throws -> [[String: Any]] {
@@ -116,7 +119,7 @@ public enum ConfigurationGenerator {
         // A separate public root can expose Laravel's public/storage link.
         // Keep project-root storage private and never execute uploaded PHP.
         let privateDirectories = site.documentRoot == site.projectPath ? "(vendor|storage)" : "vendor"
-        let deniedPaths = "(?i)(^|/)\\.|^/\(privateDirectories)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(phtml|phar|inc)(\\.|/|$)"
+        let deniedPaths = "(?i)(^|/)\\.|^/\(privateDirectories)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
         return [
             ["match": [["path": [healthPath]]],
              "handle": [["handler": "static_response", "status_code": 200, "body": healthResponse]]],
@@ -126,18 +129,27 @@ public enum ConfigurationGenerator {
              "handle": [response(404)]],
             ["match": [["file": ["try_files": ["{http.request.uri.path}", "{http.request.uri.path}/index.php", "index.php"],
                                   "try_policy": "first_exist_fallback", "split_path": [".php"]]]],
-             "handle": [["handler": "rewrite", "uri": "{http.matchers.file.relative}"]]],
+             // Keep the path info: the next file matcher replaces the remainder.
+             "handle": [["handler": "vars", pathInfoVariable: "{http.matchers.file.remainder}"],
+                        ["handler": "rewrite", "uri": "{http.matchers.file.relative}"]]],
             // Recheck storage after rewriting a directory URL to its index.php.
+            // FPM must run only this script (SCRIPT_FILENAME). Path info goes only to PATH_INFO,
+            // so Caddy sends no PATH_TRANSLATED that could name an upload or a vendor file.
+            // The glob class `ph[p]` makes Caddy compare the name on disk case-sensitively,
+            // so name.PHP or Name.php never runs on a case-insensitive volume.
             ["match": [["path_regexp": ["pattern": "\\.php$"],
-                         "not": [["path_regexp": ["pattern": "(?i)^/storage/"]]]]],
+                         "not": [["path_regexp": ["pattern": "(?i)^/storage/"]]],
+                         "file": ["try_files": [exactScriptPattern], "try_policy": "first_exist"]]],
              "handle": [["handler": "reverse_proxy", "upstreams": [["dial": "unix/" + socket.path]],
                           "transport": ["protocol": "fastcgi", "root": site.documentRoot,
-                                        "split_path": [".php"], "dial_timeout": 3_000_000_000,
+                                        "split_path": [".php"], "env": ["PATH_INFO": "{http.vars.\(pathInfoVariable)}"],
+                                        "dial_timeout": 3_000_000_000,
                                         "read_timeout": 15_000_000_000]]]],
             // A PHP-like file can never fall through to the static file server.
-            ["match": [["path_regexp": ["pattern": "(?i)\\.(php[0-9]*|phtml|phar|inc)(\\.|/|$)"]]],
+            ["match": [["path_regexp": ["pattern": "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"]]],
              "handle": [response(404)]],
-            ["handle": [["handler": "file_server", "hide": [".git", ".env", "*.php", "*.PHP", "*.phtml", "*.phar"]]]]
+            ["handle": [["handler": "file_server", "hide": [".git", ".env", "*.php", "*.PHP", "*.php[0-9]", "*.pht",
+                                                 "*.phtml", "*.phar", "*.phps", "*.phpt", "*.inc"]]]]
         ]
     }
 }
