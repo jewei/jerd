@@ -12,7 +12,9 @@ enum TestStep {
         filter: String?,
         groups: [IntegrationGroup]
     ) async throws {
-        let environment = try TestEnvironment.make(inherited: context.environment, groups: groups)
+        let environment = try TestEnvironment.make(inherited: context.environment, groups: groups) { group in
+            try preparedPaths(context).variables(for: group)
+        }
         let invocation = TestPlan.kitTests(
             repository: context.repository, toolchain: context.toolchain,
             testTargets: testTargets, filter: filter, environment: environment)
@@ -37,6 +39,14 @@ enum TestStep {
             throw DevFailure.checkFailed("Tools tests \(result.failureSummary).")
         }
         context.console.success("Tools tests passed.")
+    }
+
+    /// The runtime paths from the payloads that `./dev runtimes prepare` wrote.
+    static func preparedPaths(_ context: DevContext) throws -> IntegrationRuntimePaths {
+        let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
+        return IntegrationRuntimePaths(
+            inventory: PayloadInventory(root: context.repository.payloads, catalog: catalog),
+            indexRoot: context.repository.integrationRuntimes)
     }
 
     /// Every line in verbose mode; otherwise failures with their details, diagnostics, and the final count.
