@@ -4,7 +4,7 @@ import JerdUI
 /// The command-line tools installer in memory. A successful install changes the state to
 /// installed and returns the report.
 public actor InMemoryCommandLineTools: CommandLineToolsPort {
-    public var current: CommandLineToolsState
+    public var current: CommandLineToolsStatus
     public var failure: String?
     public private(set) var installCount = 0
 
@@ -14,7 +14,7 @@ public actor InMemoryCommandLineTools: CommandLineToolsPort {
         "Run exec zsh -l in an existing terminal to load the PATH change.",
     ]
 
-    public init(state: CommandLineToolsState = .notInstalled) {
+    public init(state: CommandLineToolsStatus = .notInstalled) {
         current = state
     }
 
@@ -22,7 +22,7 @@ public actor InMemoryCommandLineTools: CommandLineToolsPort {
         change(self)
     }
 
-    public func state() async -> CommandLineToolsState { current }
+    public func status() async -> CommandLineToolsStatus { current }
 
     public func install() async throws -> [String] {
         installCount += 1

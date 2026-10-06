@@ -11,7 +11,7 @@ extension ServiceScenario {
         let base = InMemoryServicePorts(variant)
         return InMemoryServicePorts(
             databases: databases(base.databases), storage: storage(base.storage), mail: mail(base.mail),
-            commandLineTools: InMemoryCommandLineTools(state: .outdated))
+            commandLineTools: InMemoryCommandLineTools(state: .outdatedLauncher))
     }
 
     private var variant: SampleFeatures.Variant {
