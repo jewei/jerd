@@ -97,6 +97,47 @@ import Testing
         }
     }
 
+    /// RT-3: a receipt that records a `.DS_Store` (an old build, or a scan before this fix) still verifies,
+    /// with or without that file, because both sides of the comparison skip Finder metadata.
+    @Test func receiptThatRecordsFinderMetadataStillVerifies() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("php", to: "build/php", mode: 0o700)
+        try folder.write("finder", to: "build/share/.DS_Store")
+        let files = try PayloadScanner.scan(folder.path("build"))
+        let receipt = BuildReceipt(
+            kind: .php, version: "8.5.11", releaseVersion: "8.5.11", archiveSHA256: digest("a"),
+            executable: try #require(RelativePath("php")), secondaryExecutable: nil, files: files.mapValues(\.sha256))
+        let store = ManagedRuntimeStore(directory: folder.url, architecture: .arm64)
+        try store.verify(receipt, at: folder.path("build"))
+        try FileManager.default.removeItem(at: folder.path("build/share/.DS_Store"))
+        try store.verify(receipt, at: folder.path("build"))
+    }
+
+    @Test func payloadRecordsThatNameFinderMetadataStillMatch() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("php", to: "build/php", mode: 0o700)
+        try folder.write("finder", to: "build/.DS_Store")
+        let expected = try PayloadScanner.scan(folder.path("build"))
+        let actual = try PayloadScanner.scan(folder.path("build"), ignoresFinderMetadata: true)
+        try PayloadComparison.requireRecords(expected, actual: actual)
+        try PayloadComparison.requireHashes(expected.mapValues(\.sha256), actual: actual)
+    }
+
+    /// RT-3: preparation deletes `.DS_Store` files, so a new receipt never records one.
+    @Test func preparationRemovesFinderMetadataBeforeTheFilesAreRecorded() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("mysqld", to: "payload/bin/mysqld", mode: 0o755)
+        try folder.write("finder", to: "payload/share/.DS_Store")
+        try folder.write("finder", to: "payload/.DS_Store")
+        let files = try await RuntimePipeline.recordFiles(of: folder.path("payload"))
+        #expect(files.keys.map(\.string) == ["bin/mysqld"])
+        #expect(FileProbe.presence(at: folder.path("payload/share/.DS_Store")) == .absent)
+        #expect(FileProbe.presence(at: folder.path("payload/.DS_Store")) == .absent)
+    }
+
     @Test func symbolicLinkInABuildIsRefused() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

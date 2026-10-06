@@ -84,7 +84,7 @@ import os
                 withUnsafeCurrentTask { $0?.cancel() }
                 throw CancellationError()
             }
-            if request.arguments.first == "detach" {
+            if request.arguments.first == "eject" {
                 let count = detaches.withLock {
                     $0.count += 1
                     $0.cancelled = Task.isCancelled
@@ -120,7 +120,28 @@ import os
                 requirement: .postgresApp
             ) { _ in }
         }
-        #expect(commands.commandLines.map(\.[1]) == ["attach", "--verify", "detach"])
+        #expect(commands.commandLines.map(\.[1]) == ["attach", "--verify", "eject"])
+    }
+
+    /// RT-8: the image is ejected with `diskutil eject <mount point>`, not the deprecated `hdiutil detach`.
+    @Test func verifiedImageIsEjectedWithDiskutilAfterTheCopy() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let commands = ScriptedCommandRunner()
+        let context = try context(folder, kind: .postgresql, commands: commands)
+        let image = folder.path("x.dmg")
+        let mount = folder.path("volume")
+        let copied = try await DiskImageMount(context: context).withVerifiedApp(
+            image: image, mountPoint: mount, app: "Postgres.app", requirement: .postgresApp
+        ) { app in app.lastPathComponent }
+        #expect(copied == "Postgres.app")
+        let paths = commands.requests.map(\.executable.path)
+        #expect(paths == ["/usr/bin/hdiutil", "/usr/bin/codesign", "/usr/sbin/diskutil"])
+        #expect(
+            commands.requests.first?.arguments == [
+                "attach", "-readonly", "-nobrowse", "-mountpoint", mount.path, image.path,
+            ])
+        #expect(commands.requests.last?.arguments == ["eject", mount.path])
     }
 
     @Test func rustfsWithHomebrewLZMAGetsTheBundledLibrary() async throws {

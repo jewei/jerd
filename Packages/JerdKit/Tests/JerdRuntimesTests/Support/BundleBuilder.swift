@@ -68,14 +68,14 @@ struct BundleBuilder {
     }
 
     /// The four development payloads with small files.
-    mutating func addDevelopment(phpVersion: String = "8.6.1") throws {
+    mutating func addDevelopment(phpVersion: String = "8.6.1", phpExtras: [File] = []) throws {
         let branch = RuntimeVersion(phpVersion)?.prefix(2) ?? "8.6"
         try add(
             .php, id: "php-\(phpVersion)-arm64", version: phpVersion,
             files: [
                 File(path: "php-native-\(branch)", text: "cli", executable: true),
                 File(path: "php-native-fpm-\(branch)", text: "fpm", executable: true),
-            ], secondary: "php-native-fpm-\(branch)")
+            ] + phpExtras, secondary: "php-native-fpm-\(branch)")
         try add(
             .caddy, id: "caddy-2.11.4-arm64", version: "2.11.4",
             files: [File(path: "caddy", text: "c", executable: true)])

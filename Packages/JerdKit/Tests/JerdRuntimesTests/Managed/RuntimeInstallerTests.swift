@@ -106,6 +106,26 @@ import os
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
     }
 
+    /// RT-1: the reuse check hashes the installed build on a GCD thread; a cancellation must stop that hash.
+    @Test func cancellationStopsTheVerificationOfAnInstalledBuildWhileItRuns() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let fixture = try CloudflaredFixture()
+        let sha = try #require(fixture.release.archiveSHA256)
+        let build = folder.path("cloudflared-2026.9.3-arm64-\(sha)")
+        try makeSparseFile(build.appendingPathComponent("cloudflared"))
+        let receipt = BuildReceipt(
+            kind: .cloudflared, version: "2026.9.3", releaseVersion: "2026.9.3", archiveSHA256: sha,
+            executable: try #require(RelativePath("cloudflared")), secondaryExecutable: nil,
+            files: [try #require(RelativePath("cloudflared")): digest("0")])
+        try AtomicFile.write(try receipt.encoded(), to: build.appendingPathComponent(BuildReceipt.fileName))
+        let installer = fixture.installer(directory: folder.url)
+        let result = await cancelWhileRunning { try await installer.install(fixture.release) }
+        #expect(throws: CancellationError.self) { try result.get() }
+        #expect(fixture.fetcher.requests.isEmpty)
+        #expect(FileProbe.presence(at: build.appendingPathComponent("cloudflared")) == .present)
+    }
+
     @Test func incompatibleReleaseIsRefusedBeforeAnyDownload() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
@@ -138,6 +158,61 @@ import os
             try await installer.install(release)
         }
         #expect(fetcher.requests == [url, signature])
+    }
+
+    /// A pinned MySQL release whose signature pin names `signatureSHA256` and `sizeLimit`.
+    private func pinnedMySQL(
+        signature: Data, signatureSHA256: String, sizeLimit: Int64 = 900
+    ) throws -> (RuntimeRelease, FakeFetcher, [URL]) {
+        let archive = Data("mysql archive".utf8)
+        let url = try URL.runtime("https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz")
+        let signatureURL = try URL.runtime(url.absoluteString + ".asc")
+        let release = RuntimeRelease(
+            kind: .mysql, version: "8.4.11", artifact: .archive(url, size: .exact(Int64(archive.count))),
+            archiveSHA256: FileDigest.hexSHA256(of: archive), signatureURL: signatureURL,
+            releasePage: try .runtime("https://dev.mysql.com/downloads/mysql/8.4.html"), architecture: .arm64,
+            pinnedSignature: PinnedFile(url: signatureURL, sizeLimit: sizeLimit, sha256: signatureSHA256))
+        return (release, FakeFetcher([url: archive, signatureURL: signature]), [url, signatureURL])
+    }
+
+    private func mysqlInstaller(_ folder: TemporaryFolder, _ fetcher: FakeFetcher) -> RuntimeInstaller {
+        RuntimeInstaller(
+            directory: folder.url, fetcher: fetcher, commands: ScriptedCommandRunner(),
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+    }
+
+    /// RT-4: the pinned signature digest is enforced before the OpenPGP check.
+    @Test func pinnedSignatureWithAnotherDigestIsRefused() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let signature = Data("-----BEGIN PGP SIGNATURE-----\nAAAA\n".utf8)
+        let (release, fetcher, urls) = try pinnedMySQL(signature: signature, signatureSHA256: digest("d"))
+        await #expect(throws: JerdError.invalid("The MySQL signature file does not match its reviewed pin.")) {
+            try await mysqlInstaller(folder, fetcher).install(release)
+        }
+        #expect(fetcher.requests == urls)
+    }
+
+    @Test func pinnedSignatureWithItsDigestStillNeedsAValidOpenPGPSignature() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let signature = Data("-----BEGIN PGP SIGNATURE-----\nAAAA\n".utf8)
+        let (release, fetcher, _) = try pinnedMySQL(
+            signature: signature, signatureSHA256: FileDigest.hexSHA256(of: signature))
+        await #expect(throws: JerdError.invalid(PinnedRSAKey.mysqlRelease2025.failureMessage)) {
+            try await mysqlInstaller(folder, fetcher).install(release)
+        }
+    }
+
+    @Test func pinnedSignatureSizeLimitIsEnforced() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let signature = Data(repeating: 65, count: 64)
+        let (release, fetcher, _) = try pinnedMySQL(
+            signature: signature, signatureSHA256: FileDigest.hexSHA256(of: signature), sizeLimit: 32)
+        await #expect(throws: JerdError.invalid("The download exceeds its size limit or is empty.")) {
+            try await mysqlInstaller(folder, fetcher).install(release)
+        }
     }
 
     @Test func abandonedStagingFoldersAreRemoved() async throws {
