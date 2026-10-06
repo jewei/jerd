@@ -3,6 +3,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 import JerdServiceKit
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdDatabases
@@ -16,10 +17,22 @@ import Testing
             _ = try await manager.add(name: "A", runtimeID: "x", port: 2_000)
         }
         await #expect(throws: DatabaseMessages.notLoaded) { try await manager.start(UUID()) }
-        await #expect(throws: DatabaseMessages.notLoaded) { try await manager.stopAll() }
         _ = try await manager.load()
         #expect(mode(harness.layout.root) == 0o700)
         #expect(!exists(harness.layout.servicesFile))
+    }
+
+    @Test func quitSucceedsWhenCorruptSettingsBlockTheLoad() async throws {
+        let harness = try DatabaseHarness()
+        try OwnedDirectory.create(harness.layout.root)
+        try write("{not json", to: harness.layout.servicesFile)
+        let manager = harness.manager()
+        await #expect(throws: (any Error).self) { _ = try await manager.load() }
+        try await manager.stopAll()
+        // The load error is still reported, and the corrupt file is kept.
+        await #expect(throws: (any Error).self) { _ = try await manager.load() }
+        #expect(text(harness.layout.servicesFile) == "{not json")
+        await #expect(throws: DatabaseMessages.notLoaded) { try await manager.start(UUID()) }
     }
 
     @Test func servicesStartAndStopIndependently() async throws {

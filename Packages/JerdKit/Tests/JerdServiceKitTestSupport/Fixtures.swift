@@ -3,15 +3,15 @@ import JerdFoundation
 import JerdProcess
 
 /// Compiles each C fixture once per test run with `/usr/bin/cc`, through `CommandRunner`.
-actor Fixtures {
-    static let shared = Fixtures()
+package actor Fixtures {
+    package static let shared = Fixtures()
 
     private var builds: [String: Task<URL, any Error>] = [:]
     private let folder = FileManager.default.temporaryDirectory
         .appendingPathComponent("jerd-fixtures-\(UUID().uuidString) ü", isDirectory: true)
 
     /// The compiled executable of `Fixtures/<name>.c`.
-    func executable(_ name: String) async throws -> URL {
+    package func executable(_ name: String) async throws -> URL {
         if let build = builds[name] { return try await build.value }
         let folder = folder
         let build = Task {

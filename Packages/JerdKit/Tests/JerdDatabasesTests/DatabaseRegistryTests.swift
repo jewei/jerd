@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdServiceKitTestSupport
 import Testing
 
 @testable import JerdDatabases

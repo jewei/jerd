@@ -26,7 +26,10 @@ All paths come from `DatabasesLayout` in JerdFoundation. Folders have mode 0700 
 - `databases/instances/<UUID>/`: `runtime.json`, `initialized.json`, `credentials.json`,
   `removed-registration.json`, `service.lock`, `active-run.json`, `server.log`, `data/`, and the
   engine files `client.cnf`, `pgpass`, or `redis.conf`.
-- `$TMPDIR/jerd-db-XXXXXXXX-X/`: the socket folder of one run. It is removed after the stop.
+- `$TMPDIR/jerd-db-XXXXXXXX-X/`: the socket folder of one run, with `owner.json`
+  (`{"instance": "<instance folder>"}`). It is removed after the stop. When Jerd stopped without a
+  stop (a crash), the first `load()` removes it, but only when the marker names an instance of
+  this data root, the instance lock is free, and no saved process lives. Every other folder stays.
 
 ## Rules
 
@@ -37,7 +40,13 @@ All paths come from `DatabasesLayout` in JerdFoundation. Folders have mode 0700 
 - Data is never opened with another runtime identity. Partial data is never initialized again.
 - A password never appears in an argument. Messages and log tails show `[redacted]`.
 - Readiness requires the exact reply `42` (SQL) or `PONG` (Redis) within 45 seconds.
-- A timed-out initializer is stopped with `SIGTERM`, never with `SIGKILL`. Its partial data is kept.
+- `initdb` and `mysqld --initialize-insecure` run as owned processes of the instance: with a run
+  record, with the lock held, and with the graceful engine stop (`SIGINT` for PostgreSQL, `SIGTERM`
+  for MySQL), never `SIGKILL`. After 120 seconds the initializer is stopped. When that stop also
+  times out, the service is `stuck` with its lock and record, and Quit is cancelled until a Stop
+  succeeds. Partial data is kept.
+- `init-password`, `bootstrap.sql`, and `bootstrap.cnf` hold the password. They are removed when
+  the initializer exits or the setup readiness check ends; a failed removal fails the start.
 - Remove keeps every data file. A service that never created data leaves nothing to restore.
 - Restore needs the exact original runtime, matching markers, a real `data/` folder, and valid credentials.
 - Quit stops all services in parallel. Only a start, Edit, Remove, or Restore in progress refuses it.

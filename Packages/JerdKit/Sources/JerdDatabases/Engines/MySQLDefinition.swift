@@ -3,30 +3,30 @@ import JerdProcess
 
 /// MySQL 8.4: `mysqld --initialize-insecure`, then a socket-only bootstrap server that sets the
 /// passwords and creates the `jerd` account and database, then the TCP server on 127.0.0.1.
-public struct MySQLDefinition: DatabaseEngineDefinition {
-    public let runtime: DatabaseRuntime
-    public let service: DatabaseService
-    public let files: DatabaseInstanceFiles
+package struct MySQLDefinition: DatabaseEngineDefinition {
+    package let runtime: DatabaseRuntime
+    package let service: DatabaseService
+    package let files: DatabaseInstanceFiles
 
-    public init(runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles) {
+    package init(runtime: DatabaseRuntime, service: DatabaseService, files: DatabaseInstanceFiles) {
         self.runtime = runtime
         self.service = service
         self.files = files
     }
 
-    public var healthCheck: (command: [String], reply: String) { (["SELECT 42"], "42") }
+    package var healthCheck: (command: [String], reply: String) { (["SELECT 42"], "42") }
 
-    public func serverRequest(sockets: URL) -> ProcessRequest {
+    package func serverRequest(sockets: URL) -> ProcessRequest {
         request("mysqld", serverArguments(sockets: sockets))
     }
 
-    public func initializerRequest() -> ProcessRequest? {
+    package func initializerRequest() -> ProcessRequest? {
         request(
             "mysqld",
             ["--no-defaults", "--initialize-insecure", "--basedir=\(runtime.path)", "--datadir=\(files.data.path)"])
     }
 
-    public func configuration(_ credentials: DatabaseCredentials, sockets: URL) -> EngineFile {
+    package func configuration(_ credentials: DatabaseCredentials, sockets: URL) -> EngineFile {
         EngineFile(
             url: files.clientOptions,
             contents: """
@@ -40,12 +40,12 @@ public struct MySQLDefinition: DatabaseEngineDefinition {
                 """)
     }
 
-    public func clientRequest(_ command: [String], credentials: DatabaseCredentials) -> ProcessRequest {
+    package func clientRequest(_ command: [String], credentials: DatabaseCredentials) -> ProcessRequest {
         request("mysql", clientArguments(options: files.clientOptions, command) + ["jerd"])
     }
 
     /// The bootstrap server with `--skip-networking` and the bootstrap SQL as `--init-file`.
-    public func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase? {
+    package func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase? {
         let server = request(
             "mysqld",
             serverArguments(sockets: sockets) + ["--skip-networking", "--init-file=\(files.bootstrapSQL.path)"])
@@ -54,7 +54,7 @@ public struct MySQLDefinition: DatabaseEngineDefinition {
     }
 
     /// `bootstrap.sql` and `bootstrap.cnf` (root over the socket).
-    public func bootstrapFiles(_ credentials: DatabaseCredentials, sockets: URL) -> [EngineFile] {
+    package func bootstrapFiles(_ credentials: DatabaseCredentials, sockets: URL) -> [EngineFile] {
         let password = credentials.password
         let sql = """
             ALTER USER 'root'@'localhost' IDENTIFIED BY '\(password)';

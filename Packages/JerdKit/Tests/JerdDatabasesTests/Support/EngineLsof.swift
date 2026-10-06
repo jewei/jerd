@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import JerdProcess
+import JerdServiceKitTestSupport
 import os
 
 /// Answers `lsof` from the fake children: each server owns the port in its arguments or its

@@ -21,8 +21,11 @@ extension DatabaseManager {
     ///
     /// Only a start, Edit, Remove, or Restore in progress refuses Quit. An exit stop in progress
     /// is joined, so a crashed server never cancels Quit by mistake.
+    ///
+    /// It does not need loaded settings: it stops every instance that this manager owns. Without
+    /// a load there is none. A load failure (for example corrupt settings) stays the error of
+    /// `load()`, so it never blocks Quit.
     public func stopAll() async throws {
-        try requireLoaded()
         guard operations.isEmpty else { throw DatabaseMessages.quitBusy }
         let all = Array(instances.values)
         for instance in all where await instance.state == .starting { throw DatabaseMessages.quitBusy }
