@@ -32,7 +32,12 @@ extension SiteChangeTransaction {
         }
         advance(to: .preparing)
         let token = try await prepare(plan, running: running, reusing: prepared, ticket: ticket)
-        if let plan, approved == nil, !ApprovalPredicate.covers(status, hostnames: plan.hostnames) {
+        // The full rule, the CA included (review web-r1 M2): a regenerated or missing CA leads to
+        // an approval, whose `prepare` creates or loads the CA, instead of a failed activation.
+        if let plan, approved == nil,
+            !ApprovalPredicate.approves(
+                status, hostnames: plan.hostnames, authority: try await gateway.localAuthority())
+        {
             let setup = try await gateway.prepare(hostnames: request.registeredHostnames, caddy: plan.caddy)
             advance(to: .awaitingApproval)
             return .needsApproval(PendingSiteChange(setup: setup, request: request, prepared: token))

@@ -25,8 +25,10 @@ extension EnvironmentCoordinator {
                 return
             }
             let stamps = try ExecutableStamp.capture(plan.executablePaths)
-            try await requireApproval(of: plan)
+            // A kept run activates nothing new, so it needs no approval check. This lets a
+            // rollback keep the previous run that a refused activation never stopped.
             if await keeps(plan, stamps: stamps) { return }
+            try await requireApproval(of: plan)
             if !accept(prepared, for: plan, stamps: stamps) { try await preflightOwned(plan) }
             try checkpoint(ticket)
             await cleanup()
@@ -56,11 +58,8 @@ extension EnvironmentCoordinator {
         guard ApprovalPredicate.covers(status, hostnames: plan.hostnames) else {
             throw JerdError.unavailable("Approve HTTPS setup for the changed sites before activation.")
         }
-        guard let installationID = try InstallationIdentity(environment: environment).read(),
-            ApprovalPredicate.matches(
-                status, installationID: installationID,
-                fingerprint: try LocalCertificateAuthority.read(environment.rootCertificateFile).fingerprint)
-        else {
+        let authority = try InstallationAuthority.read(environment)
+        guard ApprovalPredicate.approves(status, hostnames: plan.hostnames, authority: authority) else {
             throw JerdError.unavailable(
                 "The local CA does not match the approved HTTPS setup. The active sites were kept running.")
         }

@@ -13,14 +13,20 @@ actor FakeGateway: SystemSetupManaging {
     private var failRestore = false
     private var holdRestore = false
     private var waiter: CheckedContinuation<Void, Never>?
+    /// This installation's CA. The default is the fixture CA, which `FakeSystem.approved` names.
+    private var authority: InstallationAuthority?
     let coordinator: FakeCoordinator
 
     init(_ status: HTTPSSetupStatus, coordinator: FakeCoordinator) {
         current = status
         self.coordinator = coordinator
+        authority = InstallationAuthority(
+            installationID: Certificates.installationID, fingerprint: (try? Certificates.authority().fingerprint) ?? "")
     }
 
     func set(_ status: HTTPSSetupStatus) { current = status }
+    func setLocalAuthority(_ authority: InstallationAuthority?) { self.authority = authority }
+    func localAuthority() -> InstallationAuthority? { authority }
     func failNextRestore() { failRestore = true }
     func holdNextRestore() { holdRestore = true }
 
