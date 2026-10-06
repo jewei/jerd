@@ -1,14 +1,21 @@
 name: CI
 
-# CI runs exactly `./dev check`: lint, the JerdKit and Tools tests, the Debug build, and an
-# unsigned Release build without runtimes (`--allow-missing-runtimes`), each with a check of the
+# The `check` job runs exactly `./dev check`: lint, the JerdKit and Tools tests, the Debug build, and
+# an unsigned Release build without runtimes (`--allow-missing-runtimes`), each with a check of the
 # built app. Run the same command locally before you push.
+#
+# The `runtime-integration` job (manual and weekly) prepares the pinned runtimes and runs the opt-in
+# integration tests with them. It does not run on every pull request, because it downloads about
+# 500 MB and builds Redis and XZ. Its cache is keyed on the pins, so a new pin prepares again.
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Every Monday at 04:00 UTC, for the runtime integration job.
+    - cron: "0 4 * * 1"
 
 permissions:
   contents: read
@@ -24,6 +31,7 @@ env:
 jobs:
   check:
     name: ./dev check
+    if: github.event_name != 'schedule'
     # The newest GitHub-hosted image with the Xcode in .xcode-version (Xcode 27, Swift 6.4).
     # It is a preview image. The fallback is macos-26 with Xcode 26.6 (Swift 6.3).
     runs-on: xcode-27
@@ -75,6 +83,52 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dev-check-logs
+          path: .build/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  runtime-integration:
+    name: Runtime integration
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # The same image as the check job. See its comment.
+    runs-on: xcode-27
+    timeout-minutes: 120
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          version="$(cat .xcode-version)"
+          sudo xcode-select --switch "/Applications/Xcode_${version}.app"
+          xcodebuild -version
+
+      - name: Restore prepared runtimes
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Downloads are kept by SHA-256. Payloads and the XZ build are verified before every use.
+          path: |
+            .build/runtimes/downloads
+            .build/runtimes/payloads
+            .build/runtimes/support
+          key: runtimes-${{ runner.os }}-${{ hashFiles('Runtimes/runtimes.json', 'Runtimes/laravel-installer/composer.lock') }}
+
+      - name: Prepare runtimes
+        run: ./dev runtimes prepare
+
+      - name: Verify runtimes
+        run: ./dev runtimes verify
+
+      - name: Run integration tests
+        run: ./dev test --integration web,database,mail,storage
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-integration-logs
           path: .build/logs
           if-no-files-found: ignore
           retention-days: 7
