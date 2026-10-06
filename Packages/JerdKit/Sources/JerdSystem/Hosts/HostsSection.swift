@@ -6,14 +6,15 @@ import JerdFoundation
 /// The section that Jerd writes (LF only, hostnames sorted):
 /// `"\n# BEGIN JERD\n127.0.0.1 a.test\n127.0.0.1 b.test\n# END JERD\n"`. No hostnames means no section.
 /// One rule reads a section for both `replacing` and `maps`, so a section that `replacing` accepts
-/// is also reported as configured.
+/// is also reported as configured. The parser and its rule are `HostsSectionLayout` and
+/// `HostsMapping` in JerdFoundation, which the app-side conflict check (`HostsConflictRule`) uses too.
 public enum HostsSection {
-    public static let beginMarker = "# BEGIN JERD"
-    public static let endMarker = "# END JERD"
+    public static let beginMarker = HostsSectionLayout.beginMarker
+    public static let endMarker = HostsSectionLayout.endMarker
     /// The only address that the section maps.
-    public static let address = "127.0.0.1"
+    public static let address = HostsSectionLayout.address
     /// The largest hosts file that Jerd reads or writes (bytes).
-    public static let maximumSize = 1_048_576
+    public static let maximumSize = HostsSectionLayout.maximumSize
 
     /// The section text for `hostnames`, or "" when there are none.
     public static func render(_ hostnames: [Hostname]) -> String {
@@ -34,8 +35,7 @@ public enum HostsSection {
     {
         let layout = try HostsSectionLayout.parse(data)
         try requireTracked(layout, expected: expected)
-        let outside = layout.outside
-        let outsideText = String(decoding: outside, as: UTF8.self)
+        let outsideText = layout.outsideText
         for host in hostnames.sorted() where HostsMapping.hasMapping(of: host.value, in: outsideText) {
             throw JerdError.invalid("The hostname \(host.value) already has an external hosts mapping.")
         }

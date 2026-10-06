@@ -81,7 +81,7 @@ let package = Package(
                           swiftSettings: strictSettings),
 
         // Tests
-        tests("JerdFoundation", []),
+        tests("JerdFoundation", [], resources: [.copy("Fixtures")]),
         tests("JerdProcess", ["JerdFoundation"], resources: [.copy("Fixtures")]),
         tests("JerdManifest", ["JerdFoundation"], resources: [.copy("Fixtures")]),
         tests("JerdArchive", ["JerdFoundation"]),

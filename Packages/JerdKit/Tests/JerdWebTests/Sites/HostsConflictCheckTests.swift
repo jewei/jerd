@@ -8,7 +8,8 @@ import Testing
         ("10.0.0.2 alias SHOP.test", true),
         ("# shop.test\n127.0.0.1 other.test", false),
         ("# BEGIN JERD\n127.0.0.1 shop.test\n# END JERD", false),
-        ("# BEGIN JERD\n::1 shop.test\n# END JERD", false),
+        // The helper never writes `::1` and refuses such a section (shared rule, review system-r1 L7).
+        ("# BEGIN JERD\n::1 shop.test\n# END JERD", true),
         ("# BEGIN JERD\n10.1.1.1 shop.test\n# END JERD", true),
         ("# BEGIN JERD\n127.0.0.1 x.test\n# END JERD\n127.0.0.1 shop.test", true),
         ("127.0.0.1\tother.test\tshop.test", true),

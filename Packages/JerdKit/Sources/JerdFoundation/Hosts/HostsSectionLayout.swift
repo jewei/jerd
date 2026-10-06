@@ -1,35 +1,45 @@
 import Foundation
-import JerdFoundation
 
-/// A hosts file split into the bytes outside Jerd's tracked section and the section itself.
+/// A hosts file split into the bytes outside Jerd's tracked section and the section itself. The
+/// one parser of the section, for the app-side conflict check and for the helper that writes it.
 ///
 /// Lines end at LF. A marker is a full line, `# BEGIN JERD` or `# END JERD`, with an optional CR.
 /// The section range starts at the BEGIN line (plus one LF before it) and ends after the END line
 /// (plus its LF). Removing that range from a file that Jerd extended gives back the original bytes.
-struct HostsSectionLayout: Sendable {
+public struct HostsSectionLayout: Sendable {
+    /// The first line of the section.
+    public static let beginMarker = "# BEGIN JERD"
+    /// The last line of the section.
+    public static let endMarker = "# END JERD"
+    /// The only address that a section line maps. Jerd never writes `::1`.
+    public static let address = "127.0.0.1"
+    /// The largest hosts file that Jerd reads or writes (bytes).
+    public static let maximumSize = 1_048_576
+
     /// One found section.
-    struct Section: Sendable {
+    public struct Section: Sendable {
         /// The bytes to remove or replace.
-        let range: Range<Int>
+        public let range: Range<Int>
         /// The body lines between the markers, in file order, or nil when a line is not
-        /// `127.0.0.1 <name>` (whitespace and a CR around the fields are allowed, empty lines are ignored).
-        let mappedNames: [String]?
+        /// `127.0.0.1 <name>` (whitespace and a CR around the fields are allowed, empty lines are
+        /// ignored). Nil means that something other than Jerd changed the section.
+        public let mappedNames: [String]?
     }
 
-    let bytes: [UInt8]
-    let section: Section?
+    public let bytes: [UInt8]
+    public let section: Section?
     /// True when a BEGIN marker comes after the END marker.
-    let markersReversed: Bool
+    public let markersReversed: Bool
 
     /// Parses `data`. Throws when the file is too large, not UTF-8, or has unpaired or repeated markers.
-    static func parse(_ data: Data) throws -> HostsSectionLayout {
-        guard data.count <= HostsSection.maximumSize, String(data: data, encoding: .utf8) != nil else {
+    public static func parse(_ data: Data) throws -> HostsSectionLayout {
+        guard data.count <= maximumSize, String(data: data, encoding: .utf8) != nil else {
             throw JerdError.invalid("The hosts file is too large or is not valid UTF-8. It was not changed.")
         }
         let bytes = [UInt8](data)
         let lines = lineRanges(bytes)
-        let begins = lines.filter { isMarker(bytes[$0], HostsSection.beginMarker) }
-        let ends = lines.filter { isMarker(bytes[$0], HostsSection.endMarker) }
+        let begins = lines.filter { isMarker(bytes[$0], beginMarker) }
+        let ends = lines.filter { isMarker(bytes[$0], endMarker) }
         guard begins.count == ends.count, begins.count <= 1 else {
             throw JerdError.invalid("The Jerd hosts section has invalid markers. The hosts file was not changed.")
         }
@@ -48,10 +58,13 @@ struct HostsSectionLayout: Sendable {
     }
 
     /// The file without the section.
-    var outside: [UInt8] {
+    public var outside: [UInt8] {
         guard let section else { return bytes }
         return Array(bytes[..<section.range.lowerBound] + bytes[section.range.upperBound...])
     }
+
+    /// The file without the section, as text.
+    public var outsideText: String { String(decoding: outside, as: UTF8.self) }
 
     private static let lineFeed: UInt8 = 0x0A
 
@@ -77,7 +90,7 @@ struct HostsSectionLayout: Sendable {
         for line in lines {
             let fields = String(decoding: line, as: UTF8.self).split(whereSeparator: \.isWhitespace)
             if fields.isEmpty { continue }
-            guard fields.count == 2, fields[0] == HostsSection.address else { return nil }
+            guard fields.count == 2, fields[0] == address else { return nil }
             names.append(String(fields[1]))
         }
         return names
