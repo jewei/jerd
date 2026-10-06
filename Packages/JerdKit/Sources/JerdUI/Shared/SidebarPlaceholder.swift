@@ -11,7 +11,7 @@ struct SidebarPlaceholder: View {
     }
 
     /// The text for a section of a service feature, from its load state.
-    static func text(for loadState: ServiceLoadState, items: String, settings: String) -> String {
+    nonisolated static func text(for loadState: ServiceLoadState, items: String, settings: String) -> String {
         switch loadState {
         case .loading: "Loading \(items)…"
         case .loaded: "No \(items) added"

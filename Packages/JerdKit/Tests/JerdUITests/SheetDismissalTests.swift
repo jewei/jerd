@@ -8,7 +8,9 @@ import Testing
 /// A sheet that AppKit ends without its buttons, for example when Quit ends every open sheet,
 /// ends exactly as its Cancel ends it. No sheet asks before it ends, so Quit does not ask
 /// either (see the JerdUI README, "Sheets and Quit").
-@Suite("Sheet dismissal", .timeLimit(.minutes(1)))
+// The full run renders snapshots on the main actor for minutes, so the limit is wide; it only
+// stops a hang.
+@Suite("Sheet dismissal", .timeLimit(.minutes(5)))
 @MainActor
 struct SheetDismissalTests {
     @Test("A dismissal by SwiftUI runs the sheet's own dismissal; a new item never does")
