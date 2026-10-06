@@ -15,6 +15,7 @@ public final class AppFixture {
     public let advanced: InMemoryAdvancedPorts
     public let panels: InMemoryFilePanels
     public let features: [InMemoryFeature]
+    public let services: InMemoryServicePorts
     public let defaults: UserDefaults
     public let state: AppState
     private let suiteName: String
@@ -26,7 +27,8 @@ public final class AppFixture {
         suiteName: String = "dev.jerd.fixtures.\(UUID().uuidString)",
         runtimes: InMemoryRuntimeInventory = InMemoryRuntimeInventory(inventory: SampleData.inventory),
         advanced: InMemoryAdvancedPorts = InMemoryAdvancedPorts(registrations: SampleData.registrations),
-        features: [InMemoryFeature] = SampleFeatures.all(.populated), updater: InMemoryUpdater = InMemoryUpdater(),
+        features: [InMemoryFeature] = SampleFeatures.all(.populated),
+        services: InMemoryServicePorts = InMemoryServicePorts(.populated), updater: InMemoryUpdater = InMemoryUpdater(),
         panels: InMemoryFilePanels = InMemoryFilePanels(), sleeper: any Sleeping = IdleSleeper(),
         prepareDefaults: (UserDefaults) -> Void = { _ in }
     ) {
@@ -38,12 +40,14 @@ public final class AppFixture {
         self.runtimes = runtimes
         self.advanced = advanced
         self.features = features
+        self.services = services
         self.updater = updater
         self.panels = panels
         let dependencies = AppDependencies(
             info: Self.info, defaults: defaults, presence: shell, iconImages: iconImages, updater: updater,
             runtimes: runtimes, recovery: advanced, executables: advanced, httpsRecovery: advanced, windows: shell,
-            pasteboard: shell, workspace: shell, filePanels: panels, sleeper: sleeper)
+            pasteboard: shell, workspace: shell, filePanels: panels, sleeper: sleeper,
+            services: services.ports)
         state = AppState(dependencies: dependencies, features: features)
     }
 

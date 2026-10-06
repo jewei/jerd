@@ -19,7 +19,6 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case about
     case aboutUpdateError = "about-update-error"
     case sitesPlaceholder = "sites-placeholder"
-    case mailPlaceholder = "mail-placeholder"
 
     /// Long pages also render at a tall size, so every section can be reviewed.
     public var showsFullPage: Bool {
@@ -34,7 +33,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     public func makeFixture() -> AppFixture {
         let fixture = AppFixture(
             suiteName: "dev.jerd.fixtures.snapshot", runtimes: runtimeInventory(), advanced: advancedPorts(),
-            features: SampleFeatures.all(variant), updater: updater()
+            features: SampleFeatures.all(variant), services: InMemoryServicePorts(variant), updater: updater()
         ) { defaults in
             if self == .appearanceHidden {
                 AppearanceDefaults(defaults).setShowMenuBar(false)
@@ -63,7 +62,6 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         case .advancedEmpty, .advanced: .dashboard(.advanced)
         case .about, .aboutUpdateError: .dashboard(.about)
         case .sitesPlaceholder: .section(.sites)
-        case .mailPlaceholder: .section(.mail)
         }
     }
 
