@@ -121,13 +121,23 @@ import Testing
         #expect(isLockFree(harness.mail.lockFile))
     }
 
+    /// Older builds wrote journals with these names in this order, and each name is a path of the layout.
+    @Test func theUpdateCoversTheLayoutItemsInTheOrderOfOlderBuilds() {
+        let layout = DataLayout(root: URL(fileURLWithPath: "/tmp/Jerd")).mail
+        let items = MailService.updateItems(layout)
+        #expect(items == ["settings.json", "settings.previous.json", "inbox"])
+        let paths = [layout.settingsFile, layout.previousSettingsFile, layout.inboxDirectory]
+        #expect(items.map { layout.root.appendingPathComponent($0).path } == paths.map(\.path))
+    }
+
     /// Simulates a crash after the backup: a journal and a backup of `settings.json` only.
     private func writeJournal(_ harness: MailHarness, settings: Data) throws {
         let id = UUID()
         let folder = harness.mail.runtimeBackupsDirectory.appendingPathComponent(id.uuidString)
         try OwnedDirectory.create(folder)
         try AtomicFile.write(settings, to: folder.appendingPathComponent("settings.json"))
-        let journal = RuntimeUpdateJournal(id: id, names: MailManager.updateItems, present: ["settings.json"])
+        let journal = RuntimeUpdateJournal(
+            id: id, names: MailService.updateItems(harness.mail), present: ["settings.json"])
         try MarkerFile.write(journal, to: harness.mail.runtimeUpdateJournal)
     }
 }

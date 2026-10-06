@@ -76,4 +76,19 @@ import Testing
         try await manager.edit(ports: Self.ports)
         #expect(await manager.snapshot().state == .stopped)
     }
+
+    /// The lease of a port edit ends on every path. The shared manager core holds this rule for
+    /// Mail and Storage (see `SingleServiceCoordinator.edit(ports:)`).
+    @Test func aFailedSaveOfNewPortsReleasesTheInboxLockAndKeepsThePorts() async throws {
+        let harness = try MailHarness()
+        let manager = try await harness.loadedManager()
+        try FileManager.default.createDirectory(
+            at: harness.mail.previousSettingsFile, withIntermediateDirectories: false)
+        await #expect(throws: JerdError.self) { try await manager.edit(ports: Self.ports) }
+        #expect(isLockFree(harness.mail.lockFile))
+        #expect(await manager.snapshot().settings.ports == MailSettings.defaultPorts)
+        try FileManager.default.removeItem(at: harness.mail.previousSettingsFile)
+        try await manager.edit(ports: Self.ports)
+        #expect(await manager.snapshot().settings.ports == Self.ports)
+    }
 }

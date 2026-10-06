@@ -36,6 +36,12 @@ public enum MailMessages {
     static let readinessTimedOut = "Mailpit did not pass its SMTP and web checks."
     static let noResponse = "Mailpit did not answer yet."
 
+    /// The messages of the shared manager core.
+    static let manager = SingleServiceMessages(
+        busy: busy, notLoaded: notLoaded, updatePending: updatePending, runtimeMissing: runtimeMissing,
+        runtimeChanged: runtimeChanged, runtimeRecordInvalid: runtimeRecordInvalid,
+        recoveryWithoutRuntime: recoveryWithoutRuntime, stopBeforeEditing: stopBeforeEditing)
+
     // MARK: Runtime update
 
     /// The words of the shared runtime update messages.
