@@ -82,6 +82,15 @@ the run; remove `.build/runtimes/payloads` and prepare again. Downloads are kept
 in `.build/runtimes/downloads/<sha256>`; only a file with the pinned digest goes
 into or comes out of that cache.
 
+The preparation removes the local symbols (`/usr/bin/strip -x`) of the PHP CLI and FPM,
+`mailpit`, `redis-server`, and `redis-cli` before it writes the receipt (`SymbolStripping` in
+JerdRuntimes). This removes about 9.8 MB from the app and from each installation (3.8 MB from
+each PHP 8.5 file, 1.7 MB from Mailpit, and 0.4 MB from Redis), and changes nothing at run time.
+Symbol tables compress well, so the disk image is only about 0.8 MB smaller. Each stripped file
+must keep a valid signature and pass its version probe. A stripped payload has new file digests,
+so its folder ID changes; to strip a payload that an older `./dev` prepared, remove its folder
+and prepare it again.
+
 Prerequisites: an arm64 Mac and Xcode. Redis and XZ build with the Xcode
 compiler. Both target the `MACOSX_DEPLOYMENT_TARGET` of
 `Configuration/Base.xcconfig`, not the macOS of the build Mac: each build gets
@@ -186,9 +195,9 @@ keys stay in the Keychain.
 3. Optional: run `./dev release VERSION BUILD --prepare-only` for a private candidate.
 4. On `main`, run `./dev release VERSION BUILD`.
 
-A candidate takes about 6 minutes on an Apple silicon Mac: about 2 minutes for the
-archive and about 3 minutes for the two notarizations. The public steps add the
-upload of the disk image.
+A candidate takes about 7 minutes on an Apple silicon Mac: about 3 minutes for the
+archive, about 3 minutes for the two notarizations, and about 80 seconds for the LZMA
+compression of the disk image. The public steps add the upload of the disk image.
 
 ### What the command does
 
@@ -219,7 +228,11 @@ local work comes first:
    only the signed form has, for example a missing entitlement, stops the release.
 5. **Notarize the app** and staple it.
 6. **Build and notarize the disk image** with `Jerd.app` and a link to
-   `/Applications`, then staple it.
+   `/Applications`, then staple it. The image uses `ULMO` (LZMA) compression, which macOS
+   opens since 10.15 (Jerd requires macOS 14). For the same app it is about 30 % smaller than
+   `UDZO` (zlib): 89 MB, not 130 MB. It takes about 80 seconds to build, not 10, and it still
+   attaches at once. Notarization, stapling, `spctl`, the validation below, and Sparkle read it
+   as before; `./dev check updates` uses a zip archive and is not affected.
 7. **Sign the disk image and the feed.** `sign_update` signs the disk image for
    Sparkle, and the candidate feed gets one new item. The item uses
    `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the

@@ -21,8 +21,11 @@ public struct PinnedPayloadPreparer: Sendable {
     ) {
         self.catalogDirectory = catalogDirectory
         self.output = output
-        pipeline = RuntimePipeline(
+        var pipeline = RuntimePipeline(
             fetcher: fetcher, commands: commands, policy: ReleasePolicy(platform: platform), minimumMacOS: minimumMacOS)
+        // The tool requires Xcode, so every pinned payload is stripped the same way.
+        pipeline.stripping = .required
+        self.pipeline = pipeline
     }
 
     /// The validated catalog of the repository.

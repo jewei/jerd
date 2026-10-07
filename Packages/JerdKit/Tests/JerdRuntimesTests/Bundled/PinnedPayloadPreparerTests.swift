@@ -47,6 +47,26 @@ import Testing
         #expect(installed.id == receipt.folderID && installed.version == "1.31.3")
     }
 
+    /// The receipt, and thus the release signer and every installation, covers the stripped file.
+    @Test func pinnedPayloadsAreStrippedBeforeTheProbeAndTheReceipt() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let (fetcher, pin) = try mailpitRepository(folder)
+        let commands = ScriptedCommandRunner { request in
+            if request.executable.lastPathComponent == "strip", let file = request.arguments.last {
+                try Data("stripped".utf8).write(to: URL(fileURLWithPath: file))
+            }
+            return CommandResult(status: 0, output: "mailpit v1.31.3")
+        }
+        let preparer = PinnedPayloadPreparer(
+            catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: fetcher,
+            commands: commands, platform: platform, minimumMacOS: .jerdKitMinimum)
+        let receipt = try await preparer.prepare(pin, architecture: .arm64, tools: PreparationTools())
+        #expect(commands.commandLines.map(\.first) == ["strip", "codesign", "mailpit"])
+        #expect(receipt.files["mailpit"]?.sha256 == FileDigest.hexSHA256(of: Data("stripped".utf8)))
+        #expect(receipt.files["mailpit"]?.executable == true)
+    }
+
     @Test func earlierPreparationIsVerifiedAndKept() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
