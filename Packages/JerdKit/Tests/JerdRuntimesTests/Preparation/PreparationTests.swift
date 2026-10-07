@@ -134,6 +134,27 @@ import os
         #expect(FileProbe.presence(at: context.payload.appendingPathComponent("composer.json")) == .present)
     }
 
+    @Test func laravelPreparationPrunesTheVendorFolderAfterComposer() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let commands = ScriptedCommandRunner { request in
+            let vendor = request.workingDirectory.appendingPathComponent("vendor/laravel/installer")
+            try FileManager.default.createDirectory(at: vendor, withIntermediateDirectories: true)
+            for name in ["README.md", "LICENSE.md", "composer.json"] {
+                try Data("x".utf8).write(to: vendor.appendingPathComponent(name))
+            }
+            return CommandResult(status: 0, output: "")
+        }
+        let tools = PreparationTools(phpCLI: URL(fileURLWithPath: "/php"), composer: URL(fileURLWithPath: "/c.phar"))
+        let context = try context(
+            folder, kind: .laravel, version: "5.32.0", tools: tools, commands: commands)
+        try await LaravelComposerResolver().prepare(context)
+        let package = context.payload.appendingPathComponent("vendor/laravel/installer")
+        #expect(FileProbe.presence(at: package.appendingPathComponent("README.md")) == .absent)
+        #expect(FileProbe.presence(at: package.appendingPathComponent("LICENSE.md")) == .present)
+        #expect(FileProbe.presence(at: package.appendingPathComponent("composer.json")) == .present)
+    }
+
     @Test(arguments: [false, true])
     func postgresImageIsAlwaysDetachedAfterCancellationOrFailure(failDetach: Bool) async throws {
         let folder = try TemporaryFolder()
