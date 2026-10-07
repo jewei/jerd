@@ -60,7 +60,31 @@ struct TestEnvironmentTests {
         var expected = webPaths
         expected["JERD_SECOND_PHP_CLI"] = "/r/php2"
         expected["JERD_INTEGRATION"] = "1"
+        expected["JERD_WEB_INTEGRATION"] = "1"
         #expect(environment == expected)
+    }
+
+    /// The web suites need PHP, so only the web group may turn them on: `--integration mail` alone
+    /// must not run them.
+    @Test("Each group turns on only its own suites", arguments: IntegrationGroup.allCases)
+    func eachGroupHasItsOwnSwitch(group: IntegrationGroup) throws {
+        let inherited = [
+            "JERD_PHP_CLI": "/r/php", "JERD_PHP_FPM": "/r/fpm", "JERD_CADDY": "/r/caddy",
+            "JERD_DATABASE_RUNTIMES": "/r/db", "JERD_MAIL_RUNTIME": "/r/mail", "JERD_STORAGE_RUNTIME": "/r/s3",
+        ]
+        let environment = try TestEnvironment.make(inherited: inherited, groups: [group])
+        let switches: [IntegrationGroup: String] = [
+            .web: "JERD_WEB_INTEGRATION", .database: "JERD_DATABASE_INTEGRATION", .mail: "JERD_MAIL_INTEGRATION",
+            .storage: "JERD_STORAGE_INTEGRATION",
+        ]
+        for (other, name) in switches {
+            #expect(environment[name] == (other == group ? "1" : nil), "\(group) sets \(name)")
+        }
+        #expect(Set(environment.keys).isSuperset(of: group.requiredVariables))
+        #expect(
+            environment.keys.filter { $0.hasPrefix("JERD_") && !$0.hasSuffix("_INTEGRATION") }.allSatisfy {
+                group.requiredVariables.contains($0) || group.optionalVariables.contains($0)
+            })
     }
 
     @Test("sets the group switch even when the user set it to another value")

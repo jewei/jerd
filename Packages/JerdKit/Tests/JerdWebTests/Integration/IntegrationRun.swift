@@ -7,14 +7,15 @@ import Testing
 
 @testable import JerdWeb
 
-/// Opt-in tests with real PHP and Caddy: `JERD_INTEGRATION=1`, `JERD_PHP_CLI`, `JERD_PHP_FPM`,
-/// `JERD_CADDY`, and optionally `JERD_SECOND_PHP_CLI` and `JERD_SECOND_PHP_FPM`.
+/// Opt-in tests with real PHP and Caddy: `JERD_WEB_INTEGRATION=1`, `JERD_PHP_CLI`, `JERD_PHP_FPM`,
+/// `JERD_CADDY`, and optionally `JERD_SECOND_PHP_CLI` and `JERD_SECOND_PHP_FPM`. Their own switch,
+/// not the `JERD_INTEGRATION=1` of every group, so another group alone never needs PHP.
 ///
 /// Every run uses an isolated CA, a temporary folder, and loopback ports above 1023. No trust
 /// store, hosts file, or system service changes. Requests verify TLS with the run's CA only.
 enum IntegrationRun {
     static let environment = ProcessInfo.processInfo.environment
-    static let enabled = environment["JERD_INTEGRATION"] == "1"
+    static let enabled = environment["JERD_WEB_INTEGRATION"] == "1"
 
     static func executable(_ name: String) throws -> URL {
         guard let path = environment[name], path.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: path)

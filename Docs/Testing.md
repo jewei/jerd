@@ -10,7 +10,7 @@ target in `Packages/JerdKit`. To test one target, name it:
 Default tests need no root access, no network, and no system changes.
 Tests that need real runtimes are opt-in. `./dev test` removes every inherited
 `JERD_*` variable. `./dev test --integration web,database,mail,storage` sets
-only the switches of the selected groups (for example `JERD_INTEGRATION=1`) and
+only the switches of the selected groups (for example `JERD_WEB_INTEGRATION=1`) and
 passes through the runtime path variables of those groups. Set each path to an
 absolute path of a trusted local runtime. The variables of each group are in
 [Tools](../Tools/README.md#integration-tests).

@@ -14,7 +14,7 @@ struct TestCommand: DevSubcommand {
               mail      JERD_MAIL_RUNTIME (required)
               storage   JERD_STORAGE_RUNTIME (required)
             Each group also sets JERD_INTEGRATION=1 and its own switch, for example \
-            JERD_DATABASE_INTEGRATION=1. The paths come from the receipts of ./dev runtimes prepare. \
+            JERD_WEB_INTEGRATION=1; only its own switch turns on its tests. The paths come from the receipts of ./dev runtimes prepare. \
             When you set every required path of a group, your paths win.
             """)
 

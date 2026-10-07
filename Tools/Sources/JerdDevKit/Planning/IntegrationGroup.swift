@@ -12,7 +12,7 @@ enum IntegrationGroup: String, CaseIterable, Sendable {
     /// Variables that enable the group's tests.
     var switchVariables: [String: String] {
         switch self {
-        case .web: ["JERD_INTEGRATION": "1"]
+        case .web: ["JERD_INTEGRATION": "1", "JERD_WEB_INTEGRATION": "1"]
         case .database: ["JERD_INTEGRATION": "1", "JERD_DATABASE_INTEGRATION": "1"]
         case .mail: ["JERD_INTEGRATION": "1", "JERD_MAIL_INTEGRATION": "1"]
         case .storage: ["JERD_INTEGRATION": "1", "JERD_STORAGE_INTEGRATION": "1"]
