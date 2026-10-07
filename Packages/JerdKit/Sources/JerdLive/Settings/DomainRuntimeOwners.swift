@@ -37,8 +37,9 @@ package actor DomainRuntimeOwners: RuntimeOwning {
         try await domain.mail.updateRuntime(runtime)
     }
 
+    /// Registers the build when no RustFS is saved, else updates the saved one.
     package func updateStorageRuntime(_ runtime: StorageRuntime) async throws {
-        try await domain.storage.updateRuntime(runtime)
+        try await StorageRuntimeAdoption.adopt(runtime, manager: domain.storage)
     }
 
     package func useTunnelRuntime(at executable: URL) async throws {

@@ -79,9 +79,13 @@ The app does not include RustFS; `StoragePort.runtimeOffer()` gives the pinned v
 download size, the installed size, the source host, and whether a copy on this Mac is reused.
 Nothing is downloaded without a user action.
 
-- The Storage page without RustFS shows a RustFS section: "Not installed. RustFS 1.0.0, 87 MB
-  download." with Install RustFS…, or the running installation with the bytes, a bar, and
-  Cancel. A failure or a cancel shows once, as a dismissible banner.
+- The Storage page without RustFS shows a Runtime section with the RustFS row, as the Databases
+  engine list does: "Not installed. 1.0.0, 87 MB download." with Install RustFS…, or the
+  running installation under the RustFS title with the bytes, a bar, and Cancel. Its footer says
+  "Nothing is downloaded" when a copy is reused. A failure or a cancel shows once, as a
+  dismissible banner. The status (page and card) is "Not installed".
+- The registration of RustFS chooses the ports, so before it the page shows no endpoint to copy
+  ("Not chosen yet") and Edit Ports is off.
 - Start Storage (header, card, menu bar) without RustFS asks first, with the same words and
   "Then Jerd starts storage.", installs, then starts storage in one flow. The card and the menu
   bar show the Storage page in the front window for the question.

@@ -20,6 +20,9 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
         if runtimeInstallation != nil { return DisplayStatus("Installing…", tone: .busy) }
+        if loadState.isLoaded, !hasRuntime {
+            return DisplayStatus(StorageRuntimeCopy.notInstalledStatus, tone: .idle)
+        }
         if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         let working = operation.isWorking || bucketOperation.isWorking
         if working, !state.isBusy { return DisplayStatus(state.displayStatus.label, tone: .busy) }

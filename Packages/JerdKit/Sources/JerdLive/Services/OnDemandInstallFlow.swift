@@ -44,7 +44,8 @@ package struct OnDemandInstallFlow: Sendable {
         return (try? await releases.hasReusablePayload(for: release.kind, layout: layout)) ?? false
     }
 
-    /// - Parameter tools: Reads the preparation tools only when the flow builds the pin.
+    /// - Parameter tools: Reads the preparation tools only when the flow downloads and prepares the
+    ///   pin. An installed build of the pin needs no preparation, so it needs no tools.
     package func install(
         _ release: RuntimeRelease, tools: () async throws -> PreparationTools = { PreparationTools() },
         progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
@@ -53,8 +54,10 @@ package struct OnDemandInstallFlow: Sendable {
             progress(RuntimeInstallProgress("Using the \(release.title) that is already on this Mac.", 1))
             return .reused(payload)
         }
-        if !(await hasBuild(of: release)) { try checkFreeSpace(for: release) }
-        return .built(try await installer.install(release, tools: try await tools(), progress: progress))
+        let hasBuild = await hasBuild(of: release)
+        if !hasBuild { try checkFreeSpace(for: release) }
+        let preparation = hasBuild ? PreparationTools() : try await tools()
+        return .built(try await installer.install(release, tools: preparation, progress: progress))
     }
 
     /// The pinned on-demand release of `kind`, or nil when the app has none.

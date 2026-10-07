@@ -86,7 +86,8 @@ public final class StorageModel {
     public var canOpenConsole: Bool { state.isRunning && !isShuttingDown }
     /// Save starts storage when needed, so Add needs only a runtime and no other work.
     public var canAddBucket: Bool { canChange && hasRuntime }
-    public var canEditPorts: Bool { canChange && !state.offersStop }
+    /// The registration of RustFS chooses the ports, so they can change only after it.
+    public var canEditPorts: Bool { canChange && hasRuntime && !state.offersStop }
     /// Credentials exist after the first start created the data folder.
     public var hasCredentials: Bool { files?.hasDataFolder == true }
 

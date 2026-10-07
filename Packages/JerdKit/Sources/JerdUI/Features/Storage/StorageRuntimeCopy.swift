@@ -8,6 +8,19 @@ enum StorageRuntimeCopy {
 
     static let cancelled = "The RustFS installation was cancelled. Nothing was installed."
 
+    /// Why the page shows no endpoint and no ports before RustFS is installed.
+    static let portsNotChosen = "Jerd chooses two free ports on this Mac when it installs RustFS."
+
+    /// The status of storage without RustFS.
+    static let notInstalledStatus = "Not installed"
+
+    /// The footer of the RustFS section: what Install and Start do.
+    static func footer(reuses: Bool) -> String {
+        reuses
+            ? "Storage needs RustFS. Jerd uses the copy that is already on this Mac. Nothing is downloaded."
+            : "Storage needs RustFS. Jerd downloads it only when you install it or start storage."
+    }
+
     /// The banner title of a failed installation.
     static let failedTitle = "RustFS was not installed"
 
@@ -40,8 +53,8 @@ enum StorageRuntimeCopy {
     /// The row detail of RustFS while it is not installed.
     static func notInstalledDetail(_ offer: StorageRuntimeOffer) -> String {
         offer.reusesInstalledCopy
-            ? "Not in use. \(offer.title) is already on this Mac."
-            : "Not installed. \(offer.title), \(offer.sizeText) download."
+            ? "Not in use. \(offer.versionLabel) is already on this Mac."
+            : "Not installed. \(offer.versionLabel), \(offer.sizeText) download."
     }
 
     /// The card text while RustFS is not installed, and why Start asks first.

@@ -173,5 +173,13 @@ struct ReleasePreconditionsTests {
             try await ReleasePreflight(shell: payload.shell(), inputs: ReleaseFixtures.inputs()).run()
         }
         #expect(error?.message.contains("mailpit-") == true)
+        // The XZ check of the smoke step needs the prepared RustFS, which the app does not embed.
+        let rustfs = try ReadyReleaseMac.workspace()
+        defer { rustfs.remove() }
+        try FileManager.default.removeItem(at: rustfs.path(".build/runtimes/payloads/storage"))
+        let missing = await #expect(throws: DevFailure.self) {
+            try await ReleasePreflight(shell: rustfs.shell(), inputs: ReleaseFixtures.inputs()).run()
+        }
+        #expect(missing?.message.contains("rustfs-1.0.0-arm64 is not prepared") == true)
     }
 }

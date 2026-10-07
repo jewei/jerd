@@ -1,4 +1,5 @@
 import Foundation
+import JerdDesign
 import JerdManifest
 import JerdRuntimes
 import JerdServiceKit
@@ -45,6 +46,24 @@ struct StorageRuntimeInstallTests {
         #expect(summary.summary == "RustFS is not installed. Start downloads it (87\u{00A0}MB).")
         #expect(summary.actions.map(\.title) == ["Start"] && summary.actions.allSatisfy(\.isEnabled))
         #expect(summary.actions.first?.spokenTitle == "Start Storage")
+    }
+
+    @Test("Before RustFS is installed: no endpoint to copy, no port edit, and the status says Not installed")
+    func beforeInstallNoPorts() async {
+        let (fixture, _) = await launched()
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.storage
+        let before = StorageConnectionSection.values(model, bucket: nil)
+        #expect(before.allSatisfy { $0.copy == nil })
+        #expect(before.first?.value == "Not chosen yet")
+        #expect(!model.canEditPorts)
+        #expect(model.status == DisplayStatus("Not installed", tone: .idle))
+        #expect(model.summary.status.label == "Not installed")
+        model.requestRuntimeInstall()
+        await model.confirmRuntimeInstall()?.value
+        let after = StorageConnectionSection.values(model, bucket: nil)
+        #expect(after.first?.label == "Endpoint" && after.first?.copy != nil)
+        #expect(model.canEditPorts && model.status.label == "Stopped")
     }
 
     @Test("Install asks first, then installs and registers RustFS without a start")
@@ -195,7 +214,7 @@ struct StorageRuntimeInstallTests {
         #expect(message.contains("87\u{00A0}MB from github.com") && message.contains("reviewed checksum"))
         #expect(message.contains("310.6\u{00A0}MB of free disk space") && !message.contains("signature"))
         #expect(StorageRuntimeCopy.confirmationMessage(start).hasSuffix("Then Jerd starts storage."))
-        #expect(StorageRuntimeCopy.notInstalledDetail(offer) == "Not installed. RustFS 1.0.0, 87\u{00A0}MB download.")
+        #expect(StorageRuntimeCopy.notInstalledDetail(offer) == "Not installed. 1.0.0, 87\u{00A0}MB download.")
 
         let reused = StorageRuntimeOffer(
             versionLabel: "1.0.0", downloadSize: offer.downloadSize, source: offer.source,
@@ -209,11 +228,17 @@ struct StorageRuntimeInstallTests {
         #expect(!StorageRuntimeCopy.confirmationMessage(reuse).contains("87"))
         #expect(StorageRuntimeCopy.notInstalledDetail(reused).contains("already on this Mac"))
         #expect(StorageRuntimeCopy.cardNotice(reused).contains("copy on this Mac"))
+        #expect(StorageRuntimeCopy.footer(reuses: true).contains("Nothing is downloaded"))
+        #expect(!StorageRuntimeCopy.footer(reuses: true).contains("downloads it"))
+        #expect(StorageRuntimeCopy.footer(reuses: false).contains("downloads it only when"))
         #expect(reused.requiredSpace == 0 && offer.requiredSpace == 310_553_317)
     }
 
     @Test("Runtimes offers RustFS with the same words while it is not installed")
     func runtimesOffersRustFS() throws {
+        #expect(RuntimeCopy.footer(.rustfs, checkedAt: nil, isInstalled: false)?.contains("start storage") == true)
+        #expect(RuntimeCopy.footer(.rustfs, checkedAt: nil)?.contains("An update restarts") == true)
+        #expect(RuntimeCopy.installedMessage(.rustfs, version: "1.0.0", useAsDefault: true).hasPrefix("RustFS 1.0.0"))
         let release = try #require(SampleData.onDemandReleases.first { $0.kind == .rustfs })
         #expect(SampleData.onDemandInventory.installableRelease(.rustfs) == release)
         #expect(

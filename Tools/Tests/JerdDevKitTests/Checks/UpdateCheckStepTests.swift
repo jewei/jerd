@@ -44,9 +44,11 @@ struct UpdateCheckStepTests {
 
         func leftovers() throws -> [String] {
             let build = try FileManager.default.contentsOfDirectory(atPath: root.appending(path: ".build").path)
-            let caches = root.appending(path: "home/Library/Caches").path
-            return build.filter { $0.hasPrefix("check-updates-") }
-                + ((try? FileManager.default.contentsOfDirectory(atPath: caches)) ?? [])
+            let library = ["Caches", "HTTPStorages", "Preferences"].flatMap { folder in
+                let path = root.appending(path: "home/Library/\(folder)").path
+                return ((try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []).map { "\(folder)/\($0)" }
+            }
+            return build.filter { $0.hasPrefix("check-updates-") } + library
         }
     }
 

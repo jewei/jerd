@@ -28,6 +28,13 @@ actor RecordingStorageManager: StorageManaging {
         settings.runtime = runtime
     }
 
+    /// Like the live manager: an update needs a saved runtime.
+    func updateRuntime(_ runtime: StorageRuntime) throws {
+        calls.append("update \(runtime.id)")
+        guard settings.runtime != nil else { throw JerdError.unavailable("The RustFS runtime is not installed.") }
+        settings.runtime = runtime
+    }
+
     func start() { calls.append("start") }
     func stop() { calls.append("stop") }
     func addBucket(name: String, publicRead: Bool) { calls.append("addBucket \(name) \(publicRead)") }

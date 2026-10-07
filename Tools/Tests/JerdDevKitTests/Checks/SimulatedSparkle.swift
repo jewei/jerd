@@ -58,8 +58,14 @@ struct SimulatedSparkle: Sendable {
             inspector.add(202, path: executable.path, lookups: 3)
         }
         let identifier = try required(info["CFBundleIdentifier"] as? String)
+        // What Sparkle and URLSession leave: caches, the preferences file, and URL storage.
         try FileManager.default.createDirectory(
             at: home.appending(path: "Library/Caches/\(identifier)"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: home.appending(path: "Library/HTTPStorages/\(identifier)"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: home.appending(path: "Library/Preferences"), withIntermediateDirectories: true)
+        try Data("<plist/>".utf8).write(to: home.appending(path: "Library/Preferences/\(identifier).plist"))
     }
 }
 

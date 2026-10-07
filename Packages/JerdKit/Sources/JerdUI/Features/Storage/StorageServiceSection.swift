@@ -9,7 +9,7 @@ struct StorageServiceSection: View {
     var body: some View {
         Section {
             ValueRow("RustFS", value: model.settings.runtime.map { "Version \($0.version)" } ?? "Not installed")
-            ActionRow("Ports", detail: "S3 \(model.settings.apiPort) · Console \(model.settings.consolePort)") {
+            ActionRow("Ports", detail: portsDetail) {
                 Button("Edit Ports…", action: model.editPorts)
                     .disabled(isQuitting || !model.canEditPorts)
                     .accessibilityLabel("Edit storage ports")
@@ -19,9 +19,17 @@ struct StorageServiceSection: View {
             Text("Service")
         } footer: {
             FormFooter(
-                model.state.offersStop
-                    ? "Stop storage to change its ports. Port changes keep all buckets and objects."
-                    : "Both ports are limited to this Mac. Port changes keep all buckets and objects.")
+                !model.hasRuntime
+                    ? StorageRuntimeCopy.portsNotChosen
+                    : model.state.offersStop
+                        ? "Stop storage to change its ports. Port changes keep all buckets and objects."
+                        : "Both ports are limited to this Mac. Port changes keep all buckets and objects.")
         }
+    }
+
+    /// The two ports, or why there are none yet: the RustFS registration chooses them.
+    private var portsDetail: String {
+        model.hasRuntime
+            ? "S3 \(model.settings.apiPort) · Console \(model.settings.consolePort)" : "Not chosen yet"
     }
 }
