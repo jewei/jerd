@@ -32,17 +32,20 @@ Every build checks the built app: the update feed URL and public key in
 are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
-That command verifies every prepared payload before it copies. The receipt must
+That command copies only the groups that `Runtimes/runtimes.json` marks
+`"embedded": true` (`PayloadInventory.embeddedGroups`): development, mail, and
+storage. The database runtimes are not in the app; the app installs them on
+demand from the same pins. The command verifies every embedded payload before it copies. The receipt must
 match its pin in `Runtimes/runtimes.json`. Every file must match its SHA-256
 and executable flag. It copies with `rsync --delete`, so an unchanged payload is
-not copied again, and it removes folders that no pin names. The script calls
+not copied again, and it removes folders that no embedded pin names. The script calls
 `./dev` and does not check the files itself. The receipt rules are in
 JerdManifest and JerdRuntimes, the same code that the app uses to install the
 payloads. The `dev` shim rebuilds `jerd-dev` only when a Tools source changes,
 so a build from Xcode works too.
 
-A Release build requires every pinned payload. A Debug build embeds the
-prepared payloads and warns about missing ones. `./dev check` and CI build
+A Release build requires every payload of an embedded group. A Debug build
+embeds the prepared payloads of those groups and warns about missing ones. `./dev check` and CI build
 Release with `--allow-missing-runtimes`, which turns the gate off for an
 unsigned check build only.
 
@@ -52,16 +55,18 @@ unsigned check build only.
 | --- | --- |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned payloads. Default: every group |
 | `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file |
-| `./dev runtimes status` | List each payload with its version, size, and state |
-| `./dev runtimes embed DEST [--require-all]` | Verify and copy the payloads into an app; the Xcode phase calls it |
+| `./dev runtimes status` | List each payload with its group, whether the app embeds it, its version, size, and state |
+| `./dev runtimes embed DEST [--require-all]` | Verify and copy the payloads of the embedded groups into an app; the Xcode phase calls it |
 
 Groups: `development` (PHP, Caddy, Composer, Laravel installer), `database`
 (MySQL, PostgreSQL, Redis), `mail` (Mailpit), `storage` (RustFS), and `xz` (the
 reviewed XZ library of RustFS; `storage` selects it too). Names ignore case,
 and `Support/XZ` names the library.
 
-`prepare` uses `PinnedPayloadPreparer`, the same pipeline as managed runtime
-updates in the app. The output is `.build/runtimes/payloads/<group>/<payload
+`prepare` prepares every group, also the database group that the app does not
+embed: CI and the integration tests use those payloads. It uses
+`PinnedPayloadPreparer`, the same pipeline as managed runtime updates and the
+on-demand database installation in the app. The output is `.build/runtimes/payloads/<group>/<payload
 ID>/` with `payload-receipt.json`, and a copy of the catalog. A payload that
 exists is verified and kept. A payload of an older pin is preserved and stops
 the run; remove `.build/runtimes/payloads` and prepare again. Downloads are kept

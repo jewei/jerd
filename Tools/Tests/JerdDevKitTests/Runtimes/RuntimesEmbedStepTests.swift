@@ -26,7 +26,7 @@ struct RuntimesEmbedStepTests {
         Setup(repository: try PayloadFixtures.repository(), output: RecordingTextOutput())
     }
 
-    @Test("Copies every verified payload and the catalog, and removes folders that no pin names")
+    @Test("Copies every verified payload of an embedded group and the catalog, and removes other folders")
     func embedsVerifiedPayloads() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
@@ -34,13 +34,17 @@ struct RuntimesEmbedStepTests {
         try TestFixtures.write(
             "old", to: "products/Jerd.app/Contents/Resources/RuntimePayloads/mail/old-1/x",
             in: setup.repository.root)
+        let mysql = try PayloadFixtures.pin(.mysql).id
+        try TestFixtures.write(
+            "old", to: "products/Jerd.app/Contents/Resources/RuntimePayloads/database/\(mysql)/x",
+            in: setup.repository.root)
         try TestFixtures.write(
             "old", to: "products/Jerd.app/Contents/Resources/RuntimePayloads/DevelopmentRuntimes/x",
             in: setup.repository.root)
         try await setup.embed(requiresAll: true)
         let mail = try PayloadFixtures.pin(.mailpit).id
         let names = try FileManager.default.contentsOfDirectory(atPath: setup.destination.path).sorted()
-        #expect(names == ["database", "development", "mail", "runtimes.json", "storage"])
+        #expect(names == ["development", "mail", "runtimes.json", "storage"])
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "mail").path) == [
                 mail
@@ -49,6 +53,22 @@ struct RuntimesEmbedStepTests {
         #expect(try Data(contentsOf: embedded) == Data("binary".utf8))
         let catalog = try Data(contentsOf: setup.destination.appending(path: "runtimes.json"))
         #expect(catalog == (try Data(contentsOf: setup.repository.runtimeCatalog)))
+    }
+
+    @Test("The embedded groups come from the catalog, and the database group is not one of them")
+    func embeddedGroupsComeFromTheCatalog() throws {
+        let inventory = PayloadInventory(root: URL(filePath: "/nonexistent"), catalog: try PayloadFixtures.catalog())
+        #expect(inventory.embeddedGroups == [.development, .mail, .storage])
+    }
+
+    @Test("Release needs only the embedded groups; the database payloads are not required")
+    func releaseNeedsOnlyEmbeddedGroups() async throws {
+        let setup = try setup()
+        defer { try? FileManager.default.removeItem(at: setup.repository.root) }
+        try PayloadFixtures.writePayloads([.development, .mail, .storage], in: setup.repository.payloads)
+        try await setup.embed(requiresAll: true)
+        #expect(!FileManager.default.fileExists(atPath: setup.destination.appending(path: "database").path))
+        #expect(!setup.output.all.contains("warning:"))
     }
 
     @Test("Release refuses a missing payload; Debug embeds the rest with a warning")

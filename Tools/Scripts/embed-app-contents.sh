@@ -2,6 +2,8 @@
 # Xcode build phase: copy the helper, the launcher, and the prepared runtime payloads into the app.
 #
 # Payloads come from `./dev runtimes prepare` in .build/runtimes/payloads/<group>/<payload ID>.
+# Only the groups that Runtimes/runtimes.json marks `"embedded": true` go into the app. The app
+# installs the other groups (the database runtimes) on demand from the same pins.
 # `./dev runtimes embed` verifies each receipt against its pin in Runtimes/runtimes.json, and every
 # file against its SHA-256 and executable flag, before it copies anything. It copies with
 # `rsync --delete`, so unchanged payloads are not copied again on every build.
@@ -12,7 +14,7 @@
 # only when a Tools source changed, so a build from Xcode works too. The tool runs with a minimal
 # environment, because the Xcode build settings in the environment would change the SwiftPM build.
 #
-# JERD_REQUIRE_RUNTIMES=YES (Release) requires every pinned payload. Without payloads, Debug and
+# JERD_REQUIRE_RUNTIMES=YES (Release) requires every payload of an embedded group. Without payloads, Debug and
 # the check build (`--allow-missing-runtimes`) warn and build an app without runtimes.
 set -eu
 

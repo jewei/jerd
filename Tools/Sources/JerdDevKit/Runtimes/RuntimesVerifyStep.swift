@@ -28,19 +28,21 @@ enum RuntimesVerifyStep {
         }
     }
 
-    /// One line for each payload and for the XZ library: group, ID, version, size, and state.
+    /// One line for each payload and for the XZ library: group, whether the app embeds it, ID, version,
+    /// size, and state.
     static func status(_ context: DevContext) throws {
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
         let inventory = PayloadInventory(root: context.repository.payloads, catalog: catalog)
-        var rows: [[String]] = [["Group", "Payload", "Version", "Size", "State"]]
+        var rows: [[String]] = [["Group", "In app", "Payload", "Version", "Size", "State"]]
         for entry in inventory.entries() {
             let version = versionText(of: entry)
             let size = entry.payload.map { Self.formatted(bytes: FolderSize.bytes(of: $0.origin)) } ?? "-"
-            rows.append([entry.group.rawValue, entry.pin.id, version, size, stateText(entry.state)])
+            let inApp = catalog.isEmbedded(entry.group) ? "yes" : "on demand"
+            rows.append([entry.group.rawValue, inApp, entry.pin.id, version, size, stateText(entry.state)])
         }
         if let source = catalog.supportSources["xz"] {
             let folder = context.repository.runtimeSupport.appending(path: "xz")
-            rows.append(["support", "xz-\(source.version)", source.version, sizeText(folder), xzState(folder)])
+            rows.append(["support", "no", "xz-\(source.version)", source.version, sizeText(folder), xzState(folder)])
         }
         context.console.detail(TextTable.render(rows))
     }

@@ -47,6 +47,10 @@ struct PayloadInventory: Sendable {
         }
     }
 
+    /// The groups that the app bundle embeds, in `PayloadGroup` order. The app installs the pins of
+    /// the other groups on demand; `./dev runtimes prepare` still prepares every group.
+    var embeddedGroups: [PayloadGroup] { catalog.embeddedGroups }
+
     /// The folder of a pin: `<root>/<group>/<payload ID>`.
     func folder(for pin: RuntimePin, group: PayloadGroup) -> URL {
         root.appending(path: group.rawValue).appending(path: pin.id, directoryHint: .isDirectory)
