@@ -55,7 +55,7 @@ unsigned check build only.
 | Command | Purpose |
 | --- | --- |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned payloads. Default: every group |
-| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads) |
+| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads); require each Mach-O file of an embedded payload to run on the deployment target |
 | `./dev runtimes status` | List each payload with its group, whether the app embeds it, its version, size, and state |
 | `./dev runtimes embed DEST [--require-all]` | Verify and copy the embedded payloads into an app; the Xcode phase calls it |
 
@@ -75,11 +75,22 @@ in `.build/runtimes/downloads/<sha256>`; only a file with the pinned digest goes
 into or comes out of that cache.
 
 Prerequisites: an arm64 Mac and Xcode. Redis and XZ build with the Xcode
-compiler. The MySQL signature is checked in Swift with Oracle's pinned key, so
+compiler. Both target the `MACOSX_DEPLOYMENT_TARGET` of
+`Configuration/Base.xcconfig`, not the macOS of the build Mac: each build gets
+it as `MACOSX_DEPLOYMENT_TARGET` and as `-mmacosx-version-min` in `CFLAGS` and
+`LDFLAGS`. The MySQL signature is checked in Swift with Oracle's pinned key, so
 GnuPG is not needed. XZ builds into `.build/runtimes/support/xz` with a fixed
-environment and the `MACOSX_DEPLOYMENT_TARGET` of `Configuration/Base.xcconfig`.
-Its `support-receipt.json` records the pin, the deployment target, and the file
-digests, so a later run reuses the build.
+environment. Its `support-receipt.json` records the pin, the deployment target,
+and the file digests, so a later run reuses the build.
+
+`./dev runtimes verify` also requires every Mach-O file of an embedded payload
+to run on that deployment target. It reads `minos` of `LC_BUILD_VERSION` (or
+`LC_VERSION_MIN_MACOSX`) from the same `otool -l` output as the dependency
+check, and a failure names the file and both versions, for example
+`bin/redis-cli: it needs macOS 27.0, above the deployment target 14.0`. To fix a
+payload that an older `./dev` built, remove its folder and prepare it again. An
+on-demand payload is exempt, because the app checks the minimum of its release
+before it installs it.
 
 ## Integration tests
 

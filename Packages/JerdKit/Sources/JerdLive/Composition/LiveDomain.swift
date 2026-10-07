@@ -47,7 +47,9 @@ package struct LiveDomain: Sendable {
         // Tests pass a fetcher with a local file server; the app uses HTTPS with its version.
         self.fetcher =
             fetcher ?? URLSessionFetcher(userAgent: URLSessionFetcher.userAgent(appVersion: configuration.appVersion))
-        runtimeInstaller = RuntimeInstaller(directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher)
+        runtimeInstaller = RuntimeInstaller(
+            directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher,
+            minimumMacOS: configuration.minimumMacOS)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
         web = WebDomain(layout: layout, helper: helper)
         developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)

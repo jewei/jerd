@@ -1,11 +1,16 @@
 import Foundation
 import JerdArchive
 import JerdFoundation
+import JerdManifest
 
 /// Redis from its verified source tarball, built with the local Command Line Tools.
 ///
 /// Third-party modules are left out except `modules/vector-sets`. The build has no TLS and uses
 /// libc malloc. Git reads no system or user configuration and stops at the staging folder.
+///
+/// The build targets the minimum macOS of the app, not the macOS of the build Mac. The flags go
+/// through the environment, because the Redis makefiles add to `CFLAGS` and `LDFLAGS` and pass them
+/// to every dependency, while a `make` argument would replace the flags of each dependency.
 package struct RedisSourceBuilder: RuntimePreparing {
     package static let makeTimeout: Duration = .seconds(900)
     package static let licenseFiles = ["COPYING", "LICENSE.txt", "REDISCONTRIBUTIONS.txt"]
@@ -14,6 +19,8 @@ package struct RedisSourceBuilder: RuntimePreparing {
     package static let missingCompiler = JerdError.unavailable(
         "Redis is built from its source on this Mac, and the build needs the Xcode Command Line Tools. Install them with xcode-select --install, then try again."
     )
+
+    package var buildsFromSource: Bool { true }
 
     package init() {}
 
@@ -25,6 +32,18 @@ package struct RedisSourceBuilder: RuntimePreparing {
     /// The `make` arguments for `processors` active processors.
     package static func makeArguments(processors: Int) -> [String] {
         ["-j\(max(1, min(4, processors)))", "MALLOC=libc", "BUILD_TLS=no", "redis-server", "redis-cli"]
+    }
+
+    /// The `make` environment: the deployment target for the compiler and the linker, and a Git
+    /// that reads no configuration and stops at `staging`.
+    package static func makeEnvironment(
+        staging: URL, minimum: MinimumMacOS, architecture: CPUArchitecture
+    ) -> [String: String] {
+        let flags = "-arch \(architecture.rawValue) \(minimum.compilerFlag)"
+        return [
+            "MACOSX_DEPLOYMENT_TARGET": minimum.description, "CFLAGS": flags, "LDFLAGS": flags,
+            "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CEILING_DIRECTORIES": staging.path,
+        ]
     }
 
     package func prepare(_ context: PreparationContext) async throws {
@@ -40,10 +59,8 @@ package struct RedisSourceBuilder: RuntimePreparing {
         try await context.run(
             "/usr/bin/make", Self.makeArguments(processors: ProcessInfo.processInfo.activeProcessorCount),
             in: source.appendingPathComponent("src"),
-            environment: [
-                "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
-                "GIT_CEILING_DIRECTORIES": context.staging.path,
-            ],
+            environment: Self.makeEnvironment(
+                staging: context.staging, minimum: context.minimumMacOS, architecture: context.release.architecture),
             timeout: Self.makeTimeout)
         let payload = context.payload
         try await BlockingWork.run { try Self.collect(from: source, into: payload) }

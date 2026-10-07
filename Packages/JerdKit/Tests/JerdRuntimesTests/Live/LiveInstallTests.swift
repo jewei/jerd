@@ -20,7 +20,8 @@ struct LiveInstallTests {
         defer { folder.remove() }
         let fetcher = URLSessionFetcher()
         let catalog = RuntimeCatalog(fetcher: fetcher)
-        let installer = RuntimeInstaller(directory: folder.path("runtime-updates"), fetcher: fetcher)
+        let installer = RuntimeInstaller(
+            directory: folder.path("runtime-updates"), fetcher: fetcher, minimumMacOS: .jerdKitMinimum)
         let environment = ProcessInfo.processInfo.environment
         var tools = PreparationTools()
         if let library = environment["JERD_LZMA_LIBRARY"], let license = environment["JERD_LZMA_LICENSE"] {

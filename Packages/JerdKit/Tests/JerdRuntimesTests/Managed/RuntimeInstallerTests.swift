@@ -175,7 +175,8 @@ import os
             releasePage: try .runtime("https://dev.mysql.com/downloads/mysql/8.4.html"), architecture: .arm64)
         let installer = RuntimeInstaller(
             directory: folder.url, fetcher: fetcher, commands: ScriptedCommandRunner(),
-            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)),
+            minimumMacOS: .jerdKitMinimum)
         await #expect(throws: JerdError.invalid(PinnedRSAKey.mysqlRelease2025.failureMessage)) {
             try await installer.install(release)
         }
@@ -200,7 +201,8 @@ import os
     private func mysqlInstaller(_ folder: TemporaryFolder, _ fetcher: FakeFetcher) -> RuntimeInstaller {
         RuntimeInstaller(
             directory: folder.url, fetcher: fetcher, commands: ScriptedCommandRunner(),
-            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)),
+            minimumMacOS: .jerdKitMinimum)
     }
 
     /// The pinned signature digest is enforced before the OpenPGP check.

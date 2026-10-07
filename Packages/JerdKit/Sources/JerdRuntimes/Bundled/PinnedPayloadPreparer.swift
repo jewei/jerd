@@ -17,11 +17,12 @@ public struct PinnedPayloadPreparer: Sendable {
 
     public init(
         catalogDirectory: URL, output: URL, fetcher: any HTTPFetching, commands: any CommandRunning,
-        platform: HostPlatform = .current
+        platform: HostPlatform = .current, minimumMacOS: MinimumMacOS
     ) {
         self.catalogDirectory = catalogDirectory
         self.output = output
-        pipeline = RuntimePipeline(fetcher: fetcher, commands: commands, policy: ReleasePolicy(platform: platform))
+        pipeline = RuntimePipeline(
+            fetcher: fetcher, commands: commands, policy: ReleasePolicy(platform: platform), minimumMacOS: minimumMacOS)
     }
 
     /// The validated catalog of the repository.

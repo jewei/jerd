@@ -14,10 +14,12 @@ package struct PreparationContext: Sendable {
     package let tools: PreparationTools
     package let commands: any CommandRunning
     package let fetcher: any HTTPFetching
+    /// The oldest macOS that a build from source must run on.
+    package let minimumMacOS: MinimumMacOS
 
     package init(
         release: RuntimeRelease, artifact: URL?, payload: URL, staging: URL, tools: PreparationTools,
-        commands: any CommandRunning, fetcher: any HTTPFetching
+        commands: any CommandRunning, fetcher: any HTTPFetching, minimumMacOS: MinimumMacOS
     ) {
         self.release = release
         self.artifact = artifact
@@ -26,6 +28,7 @@ package struct PreparationContext: Sendable {
         self.tools = tools
         self.commands = commands
         self.fetcher = fetcher
+        self.minimumMacOS = minimumMacOS
     }
 
     /// The verified download. Preparations of archives require it.

@@ -1,7 +1,8 @@
 import Foundation
 import JerdFoundation
 
-/// Reads and rewrites the library references of a thin 64-bit Mach-O file. Pure; works on bytes.
+/// Reads and rewrites the library references of a thin 64-bit Mach-O file, and reads its minimum
+/// macOS. Pure; works on bytes.
 ///
 /// It replaces an install name in place, inside its own load command, so the file layout and every
 /// offset stay the same. A new name must fit in the space of the old command.
@@ -20,25 +21,56 @@ package enum MachOLoadCommands {
     package static let libraryCommands: Set<UInt32> = [0xC, 0x8000_0018, 0x8000_001F, 0x20, 0x8000_0023]
     private static let headerSize = 32
 
+    /// LC_BUILD_VERSION and LC_VERSION_MIN_MACOSX: the commands that hold the minimum macOS.
+    package static let buildVersionCommand: UInt32 = 0x32
+    package static let versionMinimumCommand: UInt32 = 0x24
+    /// The `platform` value of macOS in LC_BUILD_VERSION.
+    package static let macOSPlatform: UInt32 = 1
+
     /// Every library that the file loads.
     /// - Throws: `.invalid` for a fat, 32-bit, or malformed file.
     package static func libraries(in data: Data) throws -> [LibraryReference] {
         let bytes = [UInt8](data)
+        return try commands(in: bytes).filter { libraryCommands.contains($0.command) }
+            .map { try reference(bytes, command: $0.offset, size: $0.size) }
+    }
+
+    /// The minimum macOS that the file declares, or nil when it declares none. A version is packed as
+    /// `xxxx.yy.zz` in one 32-bit word.
+    /// - Throws: `.invalid` for a fat, 32-bit, or malformed file.
+    package static func minimumMacOS(in data: Data) throws -> MinimumMacOS? {
+        let bytes = [UInt8](data)
+        for command in try commands(in: bytes) {
+            let packed: UInt32?
+            switch command.command {
+            case buildVersionCommand where read(bytes, at: command.offset + 8) == macOSPlatform:
+                packed = command.size >= 16 ? read(bytes, at: command.offset + 12) : nil
+            case versionMinimumCommand:
+                packed = command.size >= 12 ? read(bytes, at: command.offset + 8) : nil
+            default:
+                continue
+            }
+            guard let packed else { throw invalid }
+            return MinimumMacOS(major: Int(packed >> 16), minor: Int((packed >> 8) & 0xFF), patch: Int(packed & 0xFF))
+        }
+        return nil
+    }
+
+    /// The type, offset, and size of every load command, after a check that each fits in the file.
+    private static func commands(in bytes: [UInt8]) throws -> [(command: UInt32, offset: Int, size: Int)] {
         guard read(bytes, at: 0) == magic64, let count = read(bytes, at: 16), let size = read(bytes, at: 20),
             headerSize + Int(size) <= bytes.count
         else { throw invalid }
-        var references: [LibraryReference] = []
+        var commands: [(command: UInt32, offset: Int, size: Int)] = []
         var offset = headerSize
         for _ in 0..<count {
             guard let command = read(bytes, at: offset), let commandSize = read(bytes, at: offset + 4),
                 commandSize >= 8, offset + Int(commandSize) <= headerSize + Int(size)
             else { throw invalid }
-            if libraryCommands.contains(command) {
-                references.append(try reference(bytes, command: offset, size: Int(commandSize)))
-            }
+            commands.append((command, offset, Int(commandSize)))
             offset += Int(commandSize)
         }
-        return references
+        return commands
     }
 
     /// The file with `reference` renamed to `name`.

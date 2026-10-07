@@ -12,6 +12,7 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `URLSessionFetcher` (`HTTPFetching`), `MetadataCache` | HTTPS with a live byte limit and progress; a 5-minute shared cache. |
 | `RuntimeCatalog`, `RuntimeUpdateCheck` | One source per publisher. Bad candidates are dropped, not fatal. |
 | `RuntimePipeline`, `PreparationTools` | Download → verify → prepare → probe → permissions → hashes. |
+| `MinimumMacOS`, `SourceBuildCheck` | The oldest macOS of the app, which a source build targets and must declare. |
 | `PinnedRSAVerifier`, `PinnedRSAKey` | OpenPGP v4 signature check with Oracle's pinned MySQL key. |
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
@@ -43,6 +44,15 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G). Its disk image is
   always ejected with `diskutil eject`, the replacement that macOS 27 names for the deprecated
   `hdiutil detach`. `hdiutil attach` stays until its replacement is known to work on macOS 14.
+- A runtime that Jerd builds from source (today Redis, `RuntimePreparing.buildsFromSource`)
+  targets `MinimumMacOS`, the oldest macOS of the app, not the macOS of the build Mac. The
+  app reads it from `LSMinimumSystemVersion` of its Info.plist (`LiveConfiguration`); `./dev`
+  reads `MACOSX_DEPLOYMENT_TARGET` of `Configuration/Base.xcconfig`. The Redis `make` gets
+  `MACOSX_DEPLOYMENT_TARGET`, and `-arch arm64 -mmacosx-version-min=<minimum>` in `CFLAGS` and
+  `LDFLAGS` through the environment, because a `make` argument would replace the flags of
+  each Redis dependency. After the build, `SourceBuildCheck` refuses the payload when a
+  Mach-O file declares a newer minimum (`LC_BUILD_VERSION` or `LC_VERSION_MIN_MACOSX`) and
+  names each file and both versions. Jerd then installs nothing.
 - A build or payload has private modes only: folders and executables 0700, files 0600.
   No symbolic link, FIFO, or device is accepted.
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder

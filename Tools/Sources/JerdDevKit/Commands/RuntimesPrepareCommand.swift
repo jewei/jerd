@@ -31,7 +31,7 @@ struct RuntimesPrepareCommand: DevSubcommand {
         let context = try options.context()
         let selection = try RuntimeSelection.parse(groups)
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
-        let step = RuntimesPrepareStep.live(context, catalog: catalog)
+        let step = try RuntimesPrepareStep.live(context, catalog: catalog)
         try await step.checkPrerequisites(catalog: catalog, selection: selection)
         var sequence = StepSequence(console: context.console)
         var lzma: SupportLibrary?

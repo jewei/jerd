@@ -16,10 +16,10 @@ public actor RuntimeInstaller {
 
     public init(
         directory: URL, fetcher: any HTTPFetching, commands: any CommandRunning = CommandRunner(),
-        policy: ReleasePolicy = ReleasePolicy()
+        policy: ReleasePolicy = ReleasePolicy(), minimumMacOS: MinimumMacOS
     ) {
         store = ManagedRuntimeStore(directory: directory, architecture: policy.platform.architecture)
-        pipeline = RuntimePipeline(fetcher: fetcher, commands: commands, policy: policy)
+        pipeline = RuntimePipeline(fetcher: fetcher, commands: commands, policy: policy, minimumMacOS: minimumMacOS)
     }
 
     /// The installed builds, each folder on its own.

@@ -18,7 +18,7 @@ import os
         try OwnedDirectory.create(folder.path("payload"))
         return PreparationContext(
             release: release, artifact: artifact, payload: folder.path("payload"), staging: folder.url, tools: tools,
-            commands: commands, fetcher: fetcher)
+            commands: commands, fetcher: fetcher, minimumMacOS: .jerdKitMinimum)
     }
 
     @Test func phpTakesTheBranchExecutablesAndNotices() async throws {

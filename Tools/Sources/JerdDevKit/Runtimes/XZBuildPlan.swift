@@ -6,7 +6,9 @@ import Foundation
 /// does not try to run Automake, which the fixed `PATH` does not contain.
 ///
 /// The environment is fixed, so the build does not use Homebrew or other tools from `PATH`. The
-/// deployment target comes from `Configuration/Base.xcconfig`, the same as the app.
+/// deployment target comes from `Configuration/Base.xcconfig`, the same as the app. The compiler
+/// and the linker get it twice, as `MACOSX_DEPLOYMENT_TARGET` and as `-mmacosx-version-min`, so a
+/// build step that drops the environment still does not target the macOS of the build Mac.
 /// The library gets the install name `@rpath/liblzma.5.dylib` instead of the build folder path, and
 /// an ad hoc signature; the release signs it again with Developer ID.
 struct XZBuildPlan: Equatable, Sendable {
@@ -31,8 +33,8 @@ struct XZBuildPlan: Equatable, Sendable {
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "MACOSX_DEPLOYMENT_TARGET": deploymentTarget,
             "CC": "/usr/bin/clang",
-            "CFLAGS": "-O2 -arch arm64",
-            "LDFLAGS": "-arch arm64",
+            "CFLAGS": "-O2 -arch arm64 -mmacosx-version-min=\(deploymentTarget)",
+            "LDFLAGS": "-arch arm64 -mmacosx-version-min=\(deploymentTarget)",
         ]
         for name in ["HOME", "TMPDIR", "DEVELOPER_DIR"] {
             if let value = inherited[name], !value.isEmpty { environment[name] = value }

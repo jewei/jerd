@@ -14,11 +14,17 @@ public struct RuntimePipeline: Sendable {
     let fetcher: any HTTPFetching
     private let commands: any CommandRunning
     private let policy: ReleasePolicy
+    /// The oldest macOS that a runtime built from source must run on: the minimum of the app.
+    private let minimumMacOS: MinimumMacOS
 
-    public init(fetcher: any HTTPFetching, commands: any CommandRunning, policy: ReleasePolicy = ReleasePolicy()) {
+    public init(
+        fetcher: any HTTPFetching, commands: any CommandRunning, policy: ReleasePolicy = ReleasePolicy(),
+        minimumMacOS: MinimumMacOS
+    ) {
         self.fetcher = fetcher
         self.commands = commands
         self.policy = policy
+        self.minimumMacOS = minimumMacOS
     }
 
     /// Prepares `release` inside `staging/payload`.
@@ -31,10 +37,11 @@ public struct RuntimePipeline: Sendable {
         let artifact = try await acquire(release, staging: staging, progress: progress)
         let context = PreparationContext(
             release: release, artifact: artifact?.file, payload: payload, staging: staging.url, tools: tools,
-            commands: commands, fetcher: fetcher)
+            commands: commands, fetcher: fetcher, minimumMacOS: minimumMacOS)
         try Task.checkCancellation()
         progress(RuntimeInstallProgress(Self.preparationMessage(release.kind)))
-        try await RuntimePreparers.preparer(for: release.kind).prepare(context)
+        let preparer = RuntimePreparers.preparer(for: release.kind)
+        try await preparer.prepare(context)
         let digest: String
         if let artifact {
             digest = artifact.sha256
@@ -49,6 +56,12 @@ public struct RuntimePipeline: Sendable {
             )
         }
         let files = try await Self.recordFiles(of: payload)
+        if preparer.buildsFromSource {
+            let minimum = minimumMacOS
+            try await BlockingWork.run {
+                try SourceBuildCheck.verify(release.kind, files: files.keys, in: payload, minimum: minimum)
+            }
+        }
         return PreparedPayload(
             directory: payload, release: release, version: outcome.version, archiveSHA256: digest,
             executable: outcome.executable, secondaryExecutable: outcome.secondaryExecutable, files: files)
