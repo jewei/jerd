@@ -19,6 +19,7 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
 
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
+        if runtimeInstallation != nil { return DisplayStatus("Installing…", tone: .busy) }
         if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         let working = operation.isWorking || bucketOperation.isWorking
         if working, !state.isBusy { return DisplayStatus(state.displayStatus.label, tone: .busy) }
@@ -31,9 +32,20 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         return FeatureSummary(status: status, summary: text, actions: cardActions)
     }
 
-    /// The card text while RustFS cannot run yet: preparing, not loaded, or not installed.
+    /// The card text while RustFS cannot run yet: preparing, not loaded, installing, or not
+    /// installed. With a pinned RustFS, Start installs it first, so the card says so.
     var cardNotice: ServiceCardNotice? {
-        ServiceCardNotice.notice(load: loadState, hasRuntime: hasRuntime, runtime: "RustFS", settings: "Storage")
+        if let runtimeInstallation, !hasRuntime {
+            return ServiceCardNotice(
+                text: runtimeInstallation.message, reason: "Jerd is installing RustFS.", isPreparing: false)
+        }
+        let onDemand = runtimeOffer.map {
+            ServiceCardNotice(
+                text: StorageRuntimeCopy.cardNotice($0), reason: "Wait for the current storage work to end.",
+                isPreparing: false)
+        }
+        return ServiceCardNotice.notice(
+            load: loadState, hasRuntime: hasRuntime, runtime: "RustFS", settings: "Storage", missingRuntime: onDemand)
     }
 
     /// Start, or Stop and Open Console while RustFS runs (`CardActionRule`).
@@ -53,10 +65,15 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
             }
         }
         return FeatureAction(
-            id: "storage.start", title: "Start Storage", isEnabled: canStart, unavailableReason: cardNotice?.reason
+            id: "storage.start", title: "Start Storage", isEnabled: canStart, unavailableReason: startUnavailableReason
         ) {
             [weak self] in self?.start()
         }
+    }
+
+    /// Why Start is off: an installation on another page, then the card notice.
+    var startUnavailableReason: String? {
+        (startInstallsRuntime ? runtimeInstallElsewhere?() : nil) ?? cardNotice?.reason
     }
 
     var consoleAction: FeatureAction {
@@ -69,9 +86,12 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         await load()
     }
 
-    /// Waits for every running task, then stops RustFS. False keeps Jerd open.
+    /// Cancels a RustFS installation before its final rename, waits for every running task, then
+    /// stops RustFS. False keeps Jerd open.
     public func shutdown() async -> Bool {
         isShuttingDown = true
+        pendingRuntimeInstall = nil
+        cancelRuntimeInstall()
         await running.waitForAll()
         guard loadState.isLoaded, state != .stopped else { return true }
         do {

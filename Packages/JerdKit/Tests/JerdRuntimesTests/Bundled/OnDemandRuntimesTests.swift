@@ -5,7 +5,7 @@ import JerdRuntimes
 import Testing
 
 @Suite struct OnDemandRuntimesTests {
-    /// A bundle folder with only the committed catalog, as an app without database payloads has it.
+    /// A bundle folder with only the committed catalog, as an app without database and RustFS payloads has it.
     private func committedBundle(_ folder: TemporaryFolder) throws -> URL {
         let bundle = folder.path("RuntimePayloads")
         try OwnedDirectory.create(bundle)
@@ -19,11 +19,11 @@ import Testing
         return try #require(try RuntimePinCatalog.decode(data).pin(for: kind))
     }
 
-    @Test func committedCatalogOffersExactlyMySQLAndPostgreSQL() throws {
+    @Test func committedCatalogOffersExactlyMySQLPostgreSQLAndRustFS() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let releases = try OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64).releases()
-        #expect(releases.map(\.kind) == [.mysql, .postgresql])
+        #expect(releases.map(\.kind) == [.mysql, .postgresql, .rustfs])
         for release in releases {
             let pin = try committedPin(release.kind)
             let archive = try #require(pin.archive)
@@ -41,7 +41,7 @@ import Testing
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let source = OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64)
-        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs, .cloudflared] {
+        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .redis, .mailpit, .cloudflared] {
             #expect(try source.release(for: kind) == nil, "\(kind)")
         }
         #expect(try source.release(for: .mysql)?.versionLabel == "8.4.11")
@@ -49,6 +49,12 @@ import Testing
         let postgres = try #require(try source.release(for: .postgresql))
         #expect(postgres.versionLabel == "18.6" && postgres.engineVersion == "18.6" && postgres.version == "2.9.6")
         #expect(postgres.title == "PostgreSQL 18.6")
+        // RustFS has no signature file; its size and digest are the checks, and the installed size
+        // is known for the free-space check.
+        let rustfs = try #require(try source.release(for: .rustfs))
+        #expect(rustfs.title == "RustFS 1.0.0" && rustfs.pinnedSignature == nil)
+        #expect(rustfs.downloadSize == 87_018_416 && rustfs.installedSize == 223_534_901)
+        #expect(rustfs.requiredSpace == Int64(87_018_416 + 223_534_901))
     }
 
     @Test func catalogWithoutOnDemandPinsOffersNothing() throws {

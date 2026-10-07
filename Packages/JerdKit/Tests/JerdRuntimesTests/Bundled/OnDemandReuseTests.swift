@@ -41,6 +41,26 @@ import Testing
                     id: installed.lastPathComponent, kind: .mysql, version: "8.4.11", directory: installed))
     }
 
+    @Test func rustFSThatAnEarlierCopyEmbeddedIsReusedFromStorageRuntimes() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        func rustfs(_ name: String, embedded: Bool?) throws -> URL {
+            var builder = BundleBuilder(root: folder.path(name))
+            try builder.add(
+                .rustfs, id: "rustfs-1.0.0-arm64", version: "1.0.0",
+                files: [.init(path: "rustfs", text: "rustfs", executable: true)], embedded: embedded)
+            try builder.writeCatalog()
+            return folder.path(name)
+        }
+        let earlier = BundledRuntimeBootstrap(
+            resources: try rustfs("earlier", embedded: nil), layout: layout(folder), architecture: .arm64)
+        let installed = try #require(try await earlier.installStorage()).directory
+        #expect(installed.deletingLastPathComponent().lastPathComponent == "storage-runtimes")
+        let current = OnDemandRuntimes(resources: try rustfs("current", embedded: false), architecture: .arm64)
+        let reusable = try await current.reusablePayload(for: .rustfs, layout: layout(folder))
+        #expect(reusable?.directory == installed && reusable?.version == "1.0.0" && reusable?.kind == .rustfs)
+    }
+
     @Test func changedPayloadIsNotReusedAndStaysAsItIs() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

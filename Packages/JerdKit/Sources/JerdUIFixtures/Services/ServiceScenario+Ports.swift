@@ -60,6 +60,7 @@ extension ServiceScenario {
     }
 
     private func storage(_ base: InMemoryStorage) -> InMemoryStorage {
+        if let onDemand = onDemandStorage() { return onDemand }
         switch self {
         case .storageNoRuntime, .storageSetupFailed:
             return InMemoryStorage()

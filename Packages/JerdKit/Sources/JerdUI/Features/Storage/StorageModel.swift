@@ -24,9 +24,25 @@ public final class StorageModel {
     /// The open ports sheet, or nil.
     public var portsDraft: PortsDraft?
     public internal(set) var portsOperation: OperationState = .idle
+    /// The pinned RustFS that Jerd can install on demand, or nil.
+    public internal(set) var runtimeOffer: StorageRuntimeOffer?
+    /// The one RustFS installation that runs, or nil.
+    public internal(set) var runtimeInstallation: StorageRuntimeInstallation?
+    /// Why the last RustFS installation of the page failed, or that it was cancelled.
+    public internal(set) var runtimeNotice: StorageRuntimeNotice?
+    /// The installation that waits for the user to confirm it.
+    public var pendingRuntimeInstall: StorageRuntimeRequest?
 
     /// Shows another place in the window, for example a new bucket. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
+    /// Shows the Storage page in the front window, so a request from the card or the menu bar
+    /// shows its confirmation there. `AppState` sets it.
+    @ObservationIgnored public var presentPage: (@MainActor () -> Void)?
+    /// Why Install waits: Runtimes or the Databases page installs a runtime now; nil when none does.
+    /// `AppState` sets it: the pages share one installer.
+    @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
+    /// The RustFS installation of the page. Cancel and Quit stop it before its final rename.
+    @ObservationIgnored var runtimeInstallTask: Task<Void, Never>?
     @ObservationIgnored let port: any StoragePort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening
@@ -50,14 +66,22 @@ public final class StorageModel {
     public var hasRuntime: Bool { settings.runtime != nil }
 
     /// True while any work of this feature runs, so other pages and Quit can wait for it.
-    public var isBusy: Bool { operation.isWorking || bucketOperation.isWorking || portsOperation.isWorking }
+    public var isBusy: Bool {
+        operation.isWorking || bucketOperation.isWorking || portsOperation.isWorking || runtimeInstallation != nil
+    }
 
     /// True when a change can start now: nothing else of this feature runs.
     public var canChange: Bool {
         loadState.isLoaded && !isBusy && !isShuttingDown && !state.isBusy
     }
 
-    public var canStart: Bool { canChange && hasRuntime && !state.offersStop }
+    /// Start needs a runtime, or a pinned RustFS that it installs first.
+    public var canStart: Bool {
+        canChange && !state.offersStop && (hasRuntime || (runtimeOffer != nil && runtimeInstallElsewhere?() == nil))
+    }
+
+    /// True when Start installs RustFS first.
+    public var startInstallsRuntime: Bool { !hasRuntime && runtimeOffer != nil }
     public var canStop: Bool { canChange && state.offersStop }
     public var canOpenConsole: Bool { state.isRunning && !isShuttingDown }
     /// Save starts storage when needed, so Add needs only a runtime and no other work.
@@ -73,6 +97,7 @@ public final class StorageModel {
         do {
             apply(try await port.load())
             runtimeSetupFailure = await port.runtimeSetupFailure()
+            runtimeOffer = await port.runtimeOffer()
             loadState = .loaded
             await refreshFiles()
         } catch {

@@ -23,9 +23,10 @@ public final class RuntimesModel {
     /// Page-level work and failures: loading and the default PHP change.
     public internal(set) var operation: OperationState = .idle
     public internal(set) var isShuttingDown = false
-    /// The pinned release that waits for the install confirmation (a database engine on demand).
+    /// The pinned release that waits for the install confirmation (a runtime on demand).
     public var pendingOnDemandInstall: RuntimeRelease?
-    /// The runtime that the Databases page installs now, or nil. `AppState` sets it.
+    /// Why installs wait: the Databases or Storage page installs a runtime now; nil when none does.
+    /// `AppState` sets it.
     @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
 
     @ObservationIgnored let port: any RuntimeInventory

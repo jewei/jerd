@@ -82,13 +82,15 @@ import Testing
         }
     }
 
-    @Test func committedCatalogEmbedsEveryPayloadExceptMySQLAndPostgreSQL() throws {
+    @Test func committedCatalogEmbedsEveryPayloadExceptMySQLPostgreSQLAndRustFS() throws {
         let catalog = try committedCatalog()
-        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql])
-        #expect(
-            catalog.embeddedPins.map(\.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs])
-        // Redis stays embedded: the database group is partly embedded.
+        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql, .rustfs])
+        #expect(catalog.embeddedPins.map(\.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit])
+        // Redis stays embedded: the database group is partly embedded. The storage group is not.
         #expect(catalog.embeddedPins.filter { $0.group == .database }.map(\.kind) == [.redis])
+        #expect(catalog.embeddedPins.filter { $0.group == .storage }.isEmpty)
+        // The app keeps the XZ library that the RustFS preparation needs.
+        #expect(catalog.supportSources["xz"]?.version == "5.8.4")
     }
 
     @Test func committedPostgreSQLPinNamesItsEngineVersion() throws {
@@ -101,6 +103,7 @@ import Testing
         let catalog = try committedCatalog()
         #expect(catalog.pin(for: .mysql)?.installedSize == 321_049_835)
         #expect(catalog.pin(for: .postgresql)?.installedSize == 750_547_900)
+        #expect(catalog.pin(for: .rustfs)?.installedSize == 223_534_901)
         let page = try #require(URL(string: "https://example.com"))
         let url = try #require(URL(string: "https://example.com/a.tar.gz"))
         for size in [Int64(0), RuntimePin.installedSizeLimit + 1] {
@@ -147,6 +150,9 @@ import Testing
         #expect(earlier.schemaVersion == 1 && earlier.architecture == .arm64)
         #expect(earlier.pins.map(\.id) == (try committedCatalog().pins.map(\.id)))
         #expect(earlier.pins.first { $0.kind == .postgresql }?.version == "2.9.6")
+        // An earlier reader still finds the RustFS pin and its archive; it ignores `embedded`.
+        let rustfs = try #require(earlier.pins.first { $0.kind == .rustfs })
+        #expect(rustfs.version == "1.0.0" && rustfs.archive?.size == 87_018_416)
     }
 
     @Test func onDemandAndEngineVersionRulesAreEnforced() throws {

@@ -6,8 +6,9 @@ import JerdRuntimes
 import JerdStorage
 import os
 
-/// Installs the bundled MySQL, PostgreSQL, Redis, Mailpit, and RustFS payloads with
-/// `BundledRuntimeBootstrap` and maps them to service runtime records.
+/// Installs the embedded payloads of the data services (today Redis and Mailpit; MySQL,
+/// PostgreSQL, and RustFS install on demand) with `BundledRuntimeBootstrap` and maps them to
+/// service runtime records.
 package struct BundledServiceRuntimes: ServiceRuntimeSource {
     /// Bundled setup failures do not fail a service load, so they go to the unified log, where
     /// `log show --predicate 'subsystem == "dev.jerd.app"'` finds them.
@@ -27,8 +28,8 @@ package struct BundledServiceRuntimes: ServiceRuntimeSource {
         try BundledRuntimeMapping.mail(try await bootstrap.installMail())
     }
 
-    package func storageRuntime() async throws -> StorageRuntime {
-        try BundledRuntimeMapping.storage(try await bootstrap.installStorage())
+    package func storageRuntime() async throws -> StorageRuntime? {
+        try await bootstrap.installStorage().map(BundledRuntimeMapping.storage)
     }
 
     /// Records a failed bundled setup. The service keeps the runtimes it has.

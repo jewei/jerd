@@ -80,6 +80,10 @@ public enum SampleServices {
             installedSize: 750_547_900),
     ]
 
+    /// The RustFS that the committed catalog installs on demand, as the live port offers it.
+    public static let storageOffer = StorageRuntimeOffer(
+        versionLabel: "1.0.0", downloadSize: 87_018_416, source: "github.com", installedSize: 223_534_901)
+
     /// The Redis that the app embeds, as the first launch registers it.
     public static let embeddedRedis = DatabaseRuntime(
         id: "redis-8.8.3-arm64-5a1c0e7b9d2f4a61", engine: .redis, version: "8.8.3",

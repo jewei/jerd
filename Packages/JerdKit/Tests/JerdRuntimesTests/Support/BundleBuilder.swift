@@ -16,6 +16,7 @@ struct BundleBuilder {
     let root: URL
     var architecture = CPUArchitecture.arm64
     private(set) var pins: [RuntimePin] = []
+    private(set) var supportSources: [String: PinnedSupportSource] = [:]
 
     init(root: URL) { self.root = root }
 
@@ -62,8 +63,30 @@ struct BundleBuilder {
         try receipt.encoded().write(to: folder.appendingPathComponent(PayloadReceipt.fileName))
     }
 
+    /// Adds the XZ support source to the catalog and its folder `support/xz` with a receipt, as the
+    /// build embeds it. `recorded` overrides digests in the receipt.
+    mutating func addXZ(
+        version: String = "5.8.4", files: [String: String] = ["liblzma.5.dylib": "lzma", "XZ-LICENSE.txt": "0BSD"],
+        recorded: [String: String] = [:]
+    ) throws {
+        let archive = PinnedArchive(
+            url: try .runtime("https://github.com/tukaani-project/xz/xz-\(version).tar.gz"), size: 10,
+            sha256: digest("e"))
+        supportSources["xz"] = PinnedSupportSource(version: version, archive: archive)
+        let folder = BundledSupportLibrary.folder("xz", in: root)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var digests: [String: String] = [:]
+        for (name, text) in files {
+            try Data(text.utf8).write(to: folder.appendingPathComponent(name))
+            digests[name] = recorded[name] ?? FileDigest.hexSHA256(of: Data(text.utf8))
+        }
+        let receipt = SupportReceipt(
+            name: "xz", version: version, archiveSHA256: digest("e"), deploymentTarget: "14.0", files: digests)
+        try receipt.encoded().write(to: folder.appendingPathComponent(SupportReceipt.fileName))
+    }
+
     func writeCatalog() throws {
-        let catalog = RuntimePinCatalog(architecture: architecture, pins: pins)
+        let catalog = RuntimePinCatalog(architecture: architecture, pins: pins, supportSources: supportSources)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try JSONEncoder().encode(catalog).write(to: root.appendingPathComponent(RuntimePinCatalog.fileName))
     }

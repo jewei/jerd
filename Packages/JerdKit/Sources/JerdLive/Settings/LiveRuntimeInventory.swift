@@ -13,16 +13,19 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     let activator: RuntimeActivator
     /// The installation of the pinned database engines, shared with the Databases page, or nil.
     let databases: DatabaseRuntimeInstaller?
+    /// The installation of the pinned RustFS, shared with the Storage page, or nil.
+    let storage: StorageRuntimeInstaller?
 
     package init(
         catalog: any RuntimeCatalogChecking, installer: any ManagedRuntimeInstalling, owners: any RuntimeOwning,
-        activator: RuntimeActivator, databases: DatabaseRuntimeInstaller? = nil
+        activator: RuntimeActivator, databases: DatabaseRuntimeInstaller? = nil, storage: StorageRuntimeInstaller? = nil
     ) {
         self.catalog = catalog
         self.installer = installer
         self.owners = owners
         self.activator = activator
         self.databases = databases
+        self.storage = storage
     }
 
     /// The live inventory, on the app's one fetcher and installer. Every request of the
@@ -35,7 +38,8 @@ package struct LiveRuntimeInventory: RuntimeInventory {
                 owners: owners, sites: domain.web.transaction, inspector: ExecutableInspector(layout: domain.layout)),
             databases: DatabaseRuntimeInstaller(
                 releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
-                layout: domain.layout))
+                layout: domain.layout),
+            storage: StorageRuntimeInstaller(domain: domain))
     }
 
     /// Removes the staging folders of `runtime-updates/` that a crash left. The app calls it
@@ -51,7 +55,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     package func snapshot() async throws -> RuntimeInventorySnapshot {
         let records = try await owners.records()
         var snapshot = records.snapshot(managed: await installer.list().compactMap(\.runtime))
-        if let flow = databases?.flow {
+        if let flow = databases?.flow ?? storage?.flow {
             snapshot.onDemand = (try? flow.releases.releases()) ?? []
             for release in snapshot.onDemand where await flow.reusesInstalledCopy(release) {
                 snapshot.reusableOnDemand.insert(release.kind)
@@ -84,7 +88,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
 
     /// Only the kinds that need a tool read it: Composer and the Laravel installer run with the
     /// default PHP (and Composer resolves the installer); RustFS gets the reviewed XZ library
-    /// of the bundled payload instead of Homebrew's. Other kinds need nothing, so
+    /// of the app bundle instead of Homebrew's. Other kinds need nothing, so
     /// a corrupt site file never blocks a database or mail update.
     func tools(for kind: RuntimeKind) async throws -> PreparationTools {
         if kind.isPHPScript { return try await owners.records().preparationTools(lzma: nil) }

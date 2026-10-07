@@ -21,6 +21,11 @@ struct StorageOverviewPage: View {
         } messages: {
             StoragePageMessages(model: model)
         } content: {
+            if model.loadState.isLoaded, !model.hasRuntime,
+                model.runtimeOffer != nil || model.runtimeInstallation != nil
+            {
+                StorageRuntimeSection(model: model)
+            }
             bucketsSection
             StorageConnectionSection(model: model, bucket: nil)
             StorageCredentialsSection(model: model)
@@ -50,7 +55,10 @@ struct StorageOverviewPage: View {
     }
 
     private var bucketDetail: String {
-        model.buckets.isEmpty
+        if model.startInstallsRuntime, model.buckets.isEmpty {
+            return "Install RustFS first. Then give your application an S3 bucket for uploads and files."
+        }
+        return model.buckets.isEmpty
             ? "Give your application an S3 bucket for uploads and files. Jerd starts storage and checks the bucket when you create it."
             : "Select a bucket in the sidebar to see its connection and access settings."
     }

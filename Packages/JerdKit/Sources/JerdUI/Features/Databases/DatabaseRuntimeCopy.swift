@@ -44,11 +44,6 @@ enum DatabaseRuntimeCopy {
             + "\(ByteText.format(offer.requiredSpace)) of free disk space."
     }
 
-    /// Why Install is off while the Runtimes page installs a runtime.
-    static func waitsForRuntimes(_ name: String) -> String {
-        "Runtimes is installing \(name). Install again when it finishes."
-    }
-
     /// The confirm button of the Add sheet.
     static func addTitle(installsRuntime: Bool) -> String {
         installsRuntime ? "Install and Create" : "Create and Start"

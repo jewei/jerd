@@ -53,7 +53,7 @@ package struct DatabaseEditorSheet: View {
             if let offer, model.editorOperation.failureMessage == nil {
                 Section {
                     if let installation = model.runtimeInstallation, installation.addsService {
-                        DatabaseRuntimeProgressRow(installation: installation, cancel: nil)
+                        RuntimeInstallProgressRow(installation, cancel: nil)
                     } else if let other = model.runtimeInstallation {
                         InlineMessage(
                             "Wait for the \(other.engine.title) installation to finish.", kind: .info,

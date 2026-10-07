@@ -44,6 +44,16 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case storageEmpty = "storage-empty"
     case storageNoRuntime = "storage-no-runtime"
     case storageSetupFailed = "storage-setup-failed"
+    /// First launch of an app without RustFS: Jerd offers the pinned RustFS.
+    case storageOnDemand = "storage-on-demand"
+    /// An earlier copy left a verified RustFS on this Mac, so the install downloads nothing.
+    case storageOnDemandReuse = "storage-on-demand-reuse"
+    /// Start installs RustFS first: the download runs.
+    case storageInstalling = "storage-installing"
+    /// The last installation failed because the Mac is offline.
+    case storageInstallFailed = "storage-install-failed"
+    /// The dashboard at first launch, before RustFS and the database engines are installed.
+    case dashboardStorageOnDemand = "dashboard-storage-on-demand"
     case storageStuck = "storage-stuck"
     case storageFailed = "storage-failed"
     case bucket
@@ -92,7 +102,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         switch self {
         case .databases, .databasesEmpty, .databasesSetupFailed, .databaseRuntimeMissing, .databaseStuck, .storage,
             .bucket, .storageStuck, .mail, .mailSetupFailed, .databasesOnDemand, .databasesInstalling,
-            .databasesInstallFailed, .databaseRuntimeInstalling, .dashboardDatabasesOnDemand:
+            .databasesInstallFailed, .databaseRuntimeInstalling, .dashboardDatabasesOnDemand, .storageOnDemand,
+            .storageOnDemandReuse, .storageInstalling, .storageInstallFailed, .dashboardStorageOnDemand:
             SnapshotAppearance.allCases
         default: kind == .sheet ? SnapshotAppearance.allCases : SnapshotAppearance.standard
         }
@@ -121,9 +132,10 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .databasesInstalling, .databasesInstallFailed, .databaseEditorInstall, .databaseEditorInstalling,
             .databaseEditorInstallFailed:
             .section(.databases)
-        case .dashboardDatabasesOnDemand: .dashboard(.overview)
+        case .dashboardDatabasesOnDemand, .dashboardStorageOnDemand: .dashboard(.overview)
         case .storage, .storageEmpty, .storageNoRuntime, .storageSetupFailed, .storageStuck, .storageFailed,
-            .addBucket, .addBucketInvalid, .storagePorts:
+            .addBucket, .addBucketInvalid, .storagePorts, .storageOnDemand, .storageOnDemandReuse, .storageInstalling,
+            .storageInstallFailed:
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))
