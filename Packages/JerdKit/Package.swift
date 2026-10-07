@@ -86,7 +86,7 @@ let package = Package(
         .target(name: "JerdTestSupport", path: "Tests/JerdTestSupport", swiftSettings: strictSettings),
         tests("JerdFoundation", ["JerdTestSupport"], resources: [.copy("Fixtures")]),
         tests("JerdProcess", ["JerdFoundation", "JerdTestSupport"], resources: [.copy("Fixtures")]),
-        tests("JerdManifest", ["JerdFoundation"], resources: [.copy("Fixtures")]),
+        tests("JerdManifest", ["JerdFoundation", "JerdTestSupport"], resources: [.copy("Fixtures")]),
         tests("JerdArchive", ["JerdFoundation", "JerdTestSupport"]),
         tests(
             "JerdRuntimes", ["JerdFoundation", "JerdProcess", "JerdManifest", "JerdArchive"],

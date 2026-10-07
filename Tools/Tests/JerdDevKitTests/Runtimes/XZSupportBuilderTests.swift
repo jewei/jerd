@@ -126,6 +126,6 @@ struct XZSupportBuilderTests {
         #expect(!receipt.matches(source, deploymentTarget: "15.0"))
         try receipt.verify(in: folder)
         try TestFixtures.write("b", to: "b", in: folder)
-        #expect(throws: DevFailure.self) { try receipt.verify(in: folder) }
+        #expect(throws: JerdError.self) { try receipt.verify(in: folder) }
     }
 }
