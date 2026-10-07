@@ -45,7 +45,11 @@ public actor BundledRuntimeBootstrap {
             companions: record)
     }
 
-    /// Installs MySQL, PostgreSQL, and Redis, except the kinds in `excluding`.
+    /// Installs the bundled MySQL, PostgreSQL, and Redis, except the kinds in `excluding`.
+    ///
+    /// Only the embedded pins install (Redis). The app installs the other engines (MySQL and
+    /// PostgreSQL) on demand (`OnDemandRuntimes`), never here, and downloads nothing. Runtimes that
+    /// an earlier copy installed stay registered and in use.
     public func installDatabases(excluding: Set<RuntimeKind> = []) async throws -> [InstalledPayload] {
         try await install(.database, into: layout.runtimes.databaseRuntimesDirectory, excluding: excluding)
     }

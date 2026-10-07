@@ -30,6 +30,18 @@ struct DatabasesPage: View {
                     "Jerd stops \(service.name) and removes its registration. Its database files stay in the data folder, and Retained Databases can restore it."
                 )
             }
+            .confirmationDialog(
+                model.pendingRuntimeInstall.map(DatabaseRuntimeCopy.confirmationTitle) ?? "",
+                isPresented: isConfirmingInstall, titleVisibility: .visible, presenting: model.pendingRuntimeInstall
+            ) { _ in
+                Button(model.pendingRuntimeInstall.map(DatabaseRuntimeCopy.confirmTitle) ?? "Install") {
+                    model.confirmRuntimeInstall()
+                }
+                .disabled(isQuitting)
+                Button("Cancel", role: .cancel) { model.pendingRuntimeInstall = nil }
+            } message: { offer in
+                Text(DatabaseRuntimeCopy.confirmationMessage(offer))
+            }
     }
 
     @ViewBuilder private var content: some View {
@@ -47,6 +59,14 @@ struct DatabasesPage: View {
     private var selectedService: DatabaseService? {
         guard case .database(let id) = state.navigation.selection(in: .databases) else { return nil }
         return model.service(id)
+    }
+
+    private var isConfirmingInstall: Binding<Bool> {
+        Binding {
+            model.pendingRuntimeInstall != nil
+        } set: { isPresented in
+            if !isPresented { model.pendingRuntimeInstall = nil }
+        }
     }
 
     private var isConfirmingRemoval: Binding<Bool> {

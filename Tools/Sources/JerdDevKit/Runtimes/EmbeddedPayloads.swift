@@ -7,7 +7,7 @@ enum EmbeddedPayloads {
     /// The embedded pins of `inventory`, in catalog order. The build and the release both select
     /// through this function, so they always agree.
     static func pins(_ inventory: PayloadInventory) -> [(pin: RuntimePin, group: PayloadGroup)] {
-        inventory.pins(in: PayloadGroup.allCases)
+        inventory.embeddedPayloads
     }
 
     /// The state of each embedded payload in `root`. Other payloads are not read.

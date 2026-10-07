@@ -4,7 +4,9 @@ import ArgumentParser
 struct RuntimesVerifyCommand: DevSubcommand {
     static let configuration = CommandConfiguration(
         commandName: "verify",
-        abstract: "Verify every prepared payload against its pin and its receipt, file by file.")
+        abstract:
+            "Verify every prepared payload against its pin and its receipt, file by file, and its library references."
+    )
 
     @Argument(help: ArgumentHelp("Groups to verify. Default: every group.", valueName: "group"))
     var groups: [String] = []
@@ -23,7 +25,7 @@ struct RuntimesVerifyCommand: DevSubcommand {
         let context = try options.context()
         let selection = try RuntimeSelection.parse(groups)
         try await StepSequence.runSingle("Verify runtime payloads", console: context.console) {
-            try RuntimesVerifyStep.verify(context, groups: selection.groups)
+            try await RuntimesVerifyStep.verify(context, groups: selection.groups)
         }
     }
 }

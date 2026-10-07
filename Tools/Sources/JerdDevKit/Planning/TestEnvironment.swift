@@ -34,6 +34,23 @@ enum TestEnvironment {
         return environment
     }
 
+    /// The database group also installs one engine on demand through the app pipeline, from the
+    /// verified downloads of `./dev runtimes prepare` (`downloads`, when that folder exists). An
+    /// explicit `JERD_RUNTIME_DOWNLOADS` wins.
+    static func addingOnDemandDownloads(
+        _ environment: [String: String], groups: [IntegrationGroup], downloads: String?
+    ) -> [String: String] {
+        guard groups.contains(.database) else { return environment }
+        var result = environment
+        if (result["JERD_RUNTIME_DOWNLOADS"] ?? "").isEmpty, let downloads {
+            result["JERD_RUNTIME_DOWNLOADS"] = downloads
+        }
+        if !(result["JERD_RUNTIME_DOWNLOADS"] ?? "").isEmpty {
+            result["JERD_ON_DEMAND_INTEGRATION"] = "1"
+        }
+        return result
+    }
+
     private static func preparedPaths(
         _ group: IntegrationGroup, prepared: (IntegrationGroup) throws -> [String: String]
     ) throws -> [String: String] {

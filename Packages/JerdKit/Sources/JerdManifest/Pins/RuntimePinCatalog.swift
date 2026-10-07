@@ -54,6 +54,13 @@ public struct RuntimePinCatalog: Codable, Equatable, Sendable {
         for source in supportSources.values { try source.validate() }
     }
 
+    /// The pins whose payloads the build copies into the app, in catalog order. A support source
+    /// (`supportSources`) is a build input and is never embedded.
+    public var embeddedPins: [RuntimePin] { pins.filter(\.isEmbedded) }
+
+    /// The pins that the app installs on demand, after a user action, in catalog order.
+    public var onDemandPins: [RuntimePin] { pins.filter { !$0.isEmbedded } }
+
     /// The pins of one bootstrap group, in catalog order.
     public func pins(in group: PayloadGroup) -> [RuntimePin] { pins.filter { $0.group == group } }
 

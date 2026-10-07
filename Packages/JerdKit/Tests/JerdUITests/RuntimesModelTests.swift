@@ -165,6 +165,7 @@ struct RuntimesModelTests {
             RuntimeCopy.footer(.mysql, checkedAt: "Oct 6, 2026 at 9:41 AM")
                 == "Checked Oct 6, 2026 at 9:41 AM. MySQL uses the 8.4 LTS series.")
         #expect(RuntimeCopy.installTitle(.redis, hasInstalledVersion: true) == "Install Version")
+        #expect(RuntimeCopy.installTitle(.mysql, hasInstalledVersion: false) == "Install")
         #expect(RuntimeCopy.installTitle(.caddy, hasInstalledVersion: false) == "Install")
         #expect(RuntimeCopy.installTitle(.caddy, hasInstalledVersion: true) == "Update")
     }

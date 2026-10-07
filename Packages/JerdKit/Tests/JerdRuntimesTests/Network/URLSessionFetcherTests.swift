@@ -122,10 +122,30 @@ import os
         #expect(try String(contentsOf: existing, encoding: .utf8) == "keep")
     }
 
-    @Test func transportFailureIsReported() async throws {
+    @Test(arguments: [URLError.Code.notConnectedToInternet, .cannotFindHost, .timedOut, .networkConnectionLost])
+    func offlineTransferNamesTheNetworkConnection(_ code: URLError.Code) async throws {
         let url = testURL()
-        FakeURLProtocol.register(url, .init(failure: .notConnectedToInternet))
-        await #expect(throws: JerdError.self) { try await fetcher.data(from: url, limit: 100) }
+        FakeURLProtocol.register(url, .init(failure: code))
+        let offline = JerdError.unavailable(
+            "Jerd cannot reach the download server. Check the network connection, then try again.")
+        await #expect(throws: offline) { try await fetcher.data(from: url, limit: 100) }
+    }
+
+    @Test func otherTransportFailureKeepsTheSystemText() async throws {
+        let url = testURL()
+        FakeURLProtocol.register(url, .init(failure: .badServerResponse))
+        let error = await #expect(throws: JerdError.self) { try await fetcher.data(from: url, limit: 100) }
+        #expect(error?.message.hasPrefix("The download failed: ") == true)
+    }
+
+    @Test func fullDiskIsRecognizedInEveryErrorForm() {
+        #expect(DiskSpace.isOutOfSpace(POSIXError(.ENOSPC)))
+        #expect(DiskSpace.isOutOfSpace(CocoaError(.fileWriteOutOfSpace)))
+        #expect(DiskSpace.isOutOfSpace(NSError(domain: NSPOSIXErrorDomain, code: Int(EDQUOT))))
+        #expect(DiskSpace.isOutOfSpace(JerdError.unavailable("Cannot copy x (\(SystemError.describe(ENOSPC)))")))
+        #expect(!DiskSpace.isOutOfSpace(JerdError.unavailable("Cannot copy x (\(SystemError.describe(EACCES)))")))
+        #expect(!DiskSpace.isOutOfSpace(POSIXError(.EACCES)))
+        #expect(!DiskSpace.isOutOfSpace(CancellationError()))
     }
 
     @Test func userAgentNamesTheAppVersion() {

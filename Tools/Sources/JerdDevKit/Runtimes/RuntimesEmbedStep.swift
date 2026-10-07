@@ -2,9 +2,11 @@ import Foundation
 import JerdManifest
 import JerdRuntimes
 
-/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared payloads into the
-/// app. It verifies every payload receipt (pin, file set, SHA-256, executable flags) before it copies,
-/// so an app never contains a payload that its receipt does not describe.
+/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared embedded
+/// payloads into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
+/// flags) before it copies, so an app never contains a payload that its receipt does not describe.
+/// Pins that the catalog marks `"embedded": false` (MySQL and PostgreSQL) stay out of the app; the
+/// app installs them on demand from the same pins.
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.
     static let destinationName = BundledPayloadSource.folderName
@@ -61,7 +63,8 @@ enum RuntimesEmbedStep {
             let list = missing.joined(separator: ", ")
             guard !requiresAll else {
                 throw DevFailure.checkFailed(
-                    "A Release build needs every runtime payload. Missing: \(list). Run ./dev runtimes prepare.")
+                    "A Release build needs every embedded runtime payload. Missing: \(list). Run ./dev runtimes prepare."
+                )
             }
             if missing.count < entries.count {
                 context.console.warning("The app builds without these payloads: \(list).")

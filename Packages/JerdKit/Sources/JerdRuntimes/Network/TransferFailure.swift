@@ -25,6 +25,7 @@ enum TransferFailure: Equatable, Sendable {
         case .status(let code): .unavailable("The update source returned HTTP \(code).")
         case .unsupportedURL: HostAllowlist.unsupported
         case .missingURL: .invalid("The update response has no URL.")
+        case .write(let code) where code == ENOSPC || code == EDQUOT: DiskSpace.outOfSpace
         case .write(let code): .unavailable("Cannot save the download (\(SystemError.describe(code))).")
         }
     }

@@ -32,17 +32,21 @@ Every build checks the built app: the update feed URL and public key in
 are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
-That command verifies every prepared payload before it copies. The receipt must
+That command copies only the embedded payloads (`EmbeddedPayloads.pins`, which reads
+`PayloadInventory.embeddedPayloads`; `./dev release` uses the same rule): every pin except those that `Runtimes/runtimes.json` marks
+`"embedded": false`, today MySQL and PostgreSQL. Redis stays in the `database`
+folder of the app. The app installs MySQL and PostgreSQL on demand from the same
+pins. The command verifies every embedded payload before it copies. The receipt must
 match its pin in `Runtimes/runtimes.json`. Every file must match its SHA-256
 and executable flag. It copies with `rsync --delete`, so an unchanged payload is
-not copied again, and it removes folders that no pin names. The script calls
+not copied again, and it removes folders that no embedded pin names. The script calls
 `./dev` and does not check the files itself. The receipt rules are in
 JerdManifest and JerdRuntimes, the same code that the app uses to install the
 payloads. The `dev` shim rebuilds `jerd-dev` only when a Tools source changes,
 so a build from Xcode works too.
 
-A Release build requires every pinned payload. A Debug build embeds the
-prepared payloads and warns about missing ones. `./dev check` and CI build
+A Release build requires every embedded payload. A Debug build embeds the
+prepared embedded payloads and warns about missing ones. `./dev check` and CI build
 Release with `--allow-missing-runtimes`, which turns the gate off for an
 unsigned check build only.
 
@@ -51,17 +55,19 @@ unsigned check build only.
 | Command | Purpose |
 | --- | --- |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned payloads. Default: every group |
-| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file |
-| `./dev runtimes status` | List each payload with its version, size, and state |
-| `./dev runtimes embed DEST [--require-all]` | Verify and copy the payloads into an app; the Xcode phase calls it |
+| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads) |
+| `./dev runtimes status` | List each payload with its group, whether the app embeds it, its version, size, and state |
+| `./dev runtimes embed DEST [--require-all]` | Verify and copy the embedded payloads into an app; the Xcode phase calls it |
 
 Groups: `development` (PHP, Caddy, Composer, Laravel installer), `database`
 (MySQL, PostgreSQL, Redis), `mail` (Mailpit), `storage` (RustFS), and `xz` (the
 reviewed XZ library of RustFS; `storage` selects it too). Names ignore case,
 and `Support/XZ` names the library.
 
-`prepare` uses `PinnedPayloadPreparer`, the same pipeline as managed runtime
-updates in the app. The output is `.build/runtimes/payloads/<group>/<payload
+`prepare` prepares every pin, also MySQL and PostgreSQL, which the app does not
+embed: CI and the integration tests use those payloads. It uses
+`PinnedPayloadPreparer`, the same pipeline as managed runtime updates and the
+on-demand database installation in the app. The output is `.build/runtimes/payloads/<group>/<payload
 ID>/` with `payload-receipt.json`, and a copy of the catalog. A payload that
 exists is verified and kept. A payload of an older pin is preserved and stops
 the run; remove `.build/runtimes/payloads` and prepare again. Downloads are kept
@@ -87,10 +93,21 @@ local runtimes.
 | Group | Required | Optional |
 | --- | --- | --- |
 | `web` | `JERD_PHP_CLI`, `JERD_PHP_FPM`, `JERD_CADDY` | `JERD_SECOND_PHP_CLI`, `JERD_SECOND_PHP_FPM`, `JERD_KEEP_TEST_FILES` |
-| `database` | `JERD_DATABASE_RUNTIMES` | `JERD_OCCUPIED_DATABASE_PORT` |
+| `database` | `JERD_DATABASE_RUNTIMES` | `JERD_OCCUPIED_DATABASE_PORT`, `JERD_RUNTIME_DOWNLOADS`, `JERD_ON_DEMAND_ENGINE` |
 | `mail` | `JERD_MAIL_RUNTIME` | |
 | `storage` | `JERD_STORAGE_RUNTIME` | |
 
+The `database` group also sets `JERD_ON_DEMAND_INTEGRATION=1` and
+`JERD_RUNTIME_DOWNLOADS=.build/runtimes/downloads` when that folder exists, so the
+on-demand installation test runs from the verified downloads without internet.
+The download cache also keeps the pinned MySQL signature file under its SHA-256;
+`./dev runtimes prepare database` adds it when an earlier run did not. With the
+file cached, prepare verifies an existing payload without the network. Offline
+and without the file, prepare still verifies the payload and warns that one
+small download is needed for the on-demand test. The
+release runtime tests take the embedded payloads from the candidate app and the
+on-demand payloads (MySQL and PostgreSQL) from `.build/runtimes/payloads`, each
+verified file by file.
 Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
 `storage` groups also set their own switch, for example
 `JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`

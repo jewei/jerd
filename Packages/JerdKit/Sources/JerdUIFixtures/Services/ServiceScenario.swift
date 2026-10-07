@@ -22,8 +22,22 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case databaseCancelledSave = "database-cancelled-save"
     /// A quit waits for storage: the Databases controls are off before their own stage.
     case databaseQuitting = "database-quitting"
+    /// First launch of an app without database runtimes: Jerd offers every engine.
+    case databasesOnDemand = "databases-on-demand"
+    /// Redis is embedded, MySQL downloads, and PostgreSQL waits for its Install action.
+    case databasesInstalling = "databases-installing"
+    /// The last installation failed because the Mac is offline.
+    case databasesInstallFailed = "databases-install-failed"
+    /// A service page while another engine installs.
+    case databaseRuntimeInstalling = "database-runtime-installing"
+    /// The dashboard at first launch, before any engine is installed.
+    case dashboardDatabasesOnDemand = "dashboard-databases-on-demand"
     case databaseEditor = "database-editor"
     case databaseEditorInvalid = "database-editor-invalid"
+    /// Add Database for an engine that Jerd installs first.
+    case databaseEditorInstall = "database-editor-install"
+    case databaseEditorInstalling = "database-editor-installing"
+    case databaseEditorInstallFailed = "database-editor-install-failed"
     case retainedDatabases = "retained-databases"
     case restoreDatabase = "restore-database"
     case storage
@@ -55,8 +69,9 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
 
     public var kind: Kind {
         switch self {
-        case .databaseEditor, .databaseEditorInvalid, .retainedDatabases, .restoreDatabase, .addBucket,
-            .addBucketInvalid, .storagePorts, .mailPorts:
+        case .databaseEditor, .databaseEditorInvalid, .databaseEditorInstall, .databaseEditorInstalling,
+            .databaseEditorInstallFailed, .retainedDatabases, .restoreDatabase, .addBucket, .addBucketInvalid,
+            .storagePorts, .mailPorts:
             .sheet
         default: .window
         }
@@ -65,7 +80,9 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     /// Long pages also render scrolled to their end at both window sizes.
     public var showsEnd: Bool {
         switch self {
-        case .databases, .bucket, .storage, .mail, .advancedCommandLineTools: true
+        case .databases, .bucket, .storage, .mail, .advancedCommandLineTools, .databasesOnDemand,
+            .databasesInstallFailed:
+            true
         default: false
         }
     }
@@ -74,7 +91,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     package var snapshotAppearances: [SnapshotAppearance] {
         switch self {
         case .databases, .databasesEmpty, .databasesSetupFailed, .databaseRuntimeMissing, .databaseStuck, .storage,
-            .bucket, .storageStuck, .mail, .mailSetupFailed:
+            .bucket, .storageStuck, .mail, .mailSetupFailed, .databasesOnDemand, .databasesInstalling,
+            .databasesInstallFailed, .databaseRuntimeInstalling, .dashboardDatabasesOnDemand:
             SnapshotAppearance.allCases
         default: kind == .sheet ? SnapshotAppearance.allCases : SnapshotAppearance.standard
         }
@@ -98,7 +116,12 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .databaseCancelledSave, .databaseQuitting:
             .item(.database(SampleServices.reportingID))
         case .databaseStuck: .item(.database(SampleServices.cacheID))
-        case .databasesEmpty, .databasesNoRuntimes, .databasesSetupFailed, .databasesLoadFailed: .section(.databases)
+        case .databaseRuntimeInstalling: .item(.database(SampleServices.studioID))
+        case .databasesEmpty, .databasesNoRuntimes, .databasesSetupFailed, .databasesLoadFailed, .databasesOnDemand,
+            .databasesInstalling, .databasesInstallFailed, .databaseEditorInstall, .databaseEditorInstalling,
+            .databaseEditorInstallFailed:
+            .section(.databases)
+        case .dashboardDatabasesOnDemand: .dashboard(.overview)
         case .storage, .storageEmpty, .storageNoRuntime, .storageSetupFailed, .storageStuck, .storageFailed,
             .addBucket, .addBucketInvalid, .storagePorts:
             .section(.storage)

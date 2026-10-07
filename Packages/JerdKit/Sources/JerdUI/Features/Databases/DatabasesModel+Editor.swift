@@ -10,9 +10,10 @@ extension DatabasesModel {
         return editorRuns || restoreRuns ? CancelledSave.pendingMessage("Add, Edit, and Remove") : nil
     }
 
-    /// Opens the Add sheet for `engine` and asks for a free port.
+    /// Opens the Add sheet for `engine` and asks for a free port. An engine without a runtime
+    /// opens too: the sheet installs its pinned runtime first.
     public func beginAdd(_ engine: DatabaseEngine) {
-        guard canAdd else { return }
+        guard canAdd, addableEngines.contains(engine) else { return }
         editorOperation = .idle
         editor = .add(engine, in: configuration)
         sheet = .editor
@@ -42,14 +43,44 @@ extension DatabasesModel {
         }
     }
 
-    /// Add registers and starts the service, then selects it. Edit saves the stopped service.
+    /// The pinned runtime that Add installs first: the draft's engine has no runtime yet.
+    public var editorRuntimeOffer: DatabaseRuntimeOffer? {
+        guard let draft = editor, draft.isAdding, draft.runtimeID == nil else { return nil }
+        return offer(for: draft.engine)
+    }
+
+    /// True when the sheet can save now. Add of an engine without a runtime also needs the
+    /// installer, which runs one installation at a time.
+    public var canSaveEditor: Bool {
+        guard let draft = editor, canChangeRegistry else { return false }
+        guard editorRuntimeOffer != nil else { return draft.service(in: configuration) != nil }
+        return runtimeInstallation == nil && runtimeInstallElsewhere?() == nil
+            && draft.issue(in: configuration, installsRuntime: true) == nil
+            && PortInput.parse(draft.portText) != nil
+    }
+
+    /// Add registers and starts the service, then selects it; for an engine without a runtime,
+    /// it installs the pinned runtime first, in the same sheet. Edit saves the stopped service.
     /// A failure stays in the sheet. After Cancel, the result only refreshes the page.
     @discardableResult
     public func saveEditor() -> Task<Void, Never>? {
-        guard let draft = editor, let service = draft.service(in: configuration), canChangeRegistry else { return nil }
-        editorOperation = .working(draft.isAdding ? "Creating the database service…" : "Saving the service…")
+        guard canSaveEditor, let draft = editor else { return nil }
+        let offer = editorRuntimeOffer
+        editorOperation = .working(
+            offer.map { "Installing \($0.engine.title)…" }
+                ?? (draft.isAdding ? "Creating the database service…" : "Saving the service…"))
         let task = track { [self] in
             do {
+                // The draft as Save saw it: Cancel clears the sheet's draft while the save runs.
+                var saved = draft
+                if let offer {
+                    let runtime = try await installRuntime(offer, addsService: true)
+                    guard !Task.isCancelled else { return endCancelledEditor(failure: nil) }
+                    saved.runtimeID = runtime.id
+                    editor?.runtimeID = runtime.id
+                    editorOperation = .working("Creating the database service…")
+                }
+                guard let service = saved.service(in: configuration) else { return endCancelledEditor(failure: nil) }
                 let id = try await save(service, adding: draft.isAdding)
                 guard !Task.isCancelled else { return endCancelledEditor(failure: nil) }
                 editorOperation = .idle

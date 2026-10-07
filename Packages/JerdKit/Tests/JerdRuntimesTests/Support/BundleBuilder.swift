@@ -22,7 +22,7 @@ struct BundleBuilder {
     /// Adds a payload. The first executable file is the receipt executable.
     mutating func add(
         _ kind: RuntimeKind, id: String, version: String, reportedVersion: String? = nil, files: [File],
-        secondary: String? = nil
+        secondary: String? = nil, embedded: Bool? = nil
     ) throws {
         let page = try URL.runtime("https://github.com/example/releases")
         let pin: RuntimePin
@@ -38,7 +38,8 @@ struct BundleBuilder {
                 ? PinnedFile(url: try .runtime("https://cdn.mysql.com/\(id).asc"), sizeLimit: 900, sha256: digest("d"))
                 : nil
             pin = RuntimePin(
-                id: id, kind: kind, version: version, archive: archive, signature: signature, releasePage: page)
+                id: id, kind: kind, version: version, archive: archive, signature: signature, releasePage: page,
+                embedded: embedded)
         }
         pins.append(pin)
         let folder = root.appendingPathComponent(pin.group?.rawValue ?? "none").appendingPathComponent(id)

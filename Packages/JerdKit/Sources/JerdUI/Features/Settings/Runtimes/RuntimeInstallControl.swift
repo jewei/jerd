@@ -24,7 +24,7 @@ struct RuntimeInstallControl: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .disabled(!model.canChangeRuntimes)
+                .disabled(!model.canInstallRuntimes)
                 .help("More install options")
                 .accessibilityLabel("More install options")
             }
@@ -38,7 +38,7 @@ struct RuntimeInstallControl: View {
         Button(title) {
             model.install(release, useAsDefault: useAsDefault)
         }
-        .disabled(!model.canChangeRuntimes)
+        .disabled(!model.canInstallRuntimes)
         .accessibilityLabel("\(title), \(release.kind.title) \(release.versionLabel)")
         .accessibilityIdentifier(AccessibilityIdentifier.make("runtimes", release.kind.rawValue, "install"))
     }

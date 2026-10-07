@@ -20,6 +20,16 @@ but not the runtime integration tests. CI runs them: the weekly
 `runtime-integration` job, or a manual run of the workflow. Before a release
 that changes a pinned runtime, start that job and wait for its result.
 
+`--integration database` also installs MySQL and PostgreSQL on demand through
+the app wiring (`LiveDomain` and its one installer) into a temporary data root
+(`OnDemandRuntimeIntegrationTests` in JerdLive), then starts and stops a
+service with each. The MySQL install checks the pinned OpenPGP signature. The
+downloads come from `.build/runtimes/downloads` through a local file server
+inside URLSession, so the test needs no internet. `./dev runtimes prepare
+database` keeps the MySQL signature file there too. `JERD_RUNTIME_DOWNLOADS`
+names another folder of files named by SHA-256, and `JERD_ON_DEMAND_ENGINE`
+selects engines (`mysql,postgresql` by default).
+
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 

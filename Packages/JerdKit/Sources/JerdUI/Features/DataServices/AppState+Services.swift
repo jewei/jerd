@@ -14,5 +14,12 @@ extension AppState {
         }
         storage.navigate = show
         mail.navigate = show
+        // One installer serves both pages, so each page waits while the other one installs.
+        databases.runtimeInstallElsewhere = { [weak self] in
+            self?.runtimes.installation.map(\.kind.title)
+        }
+        runtimes.runtimeInstallElsewhere = { [weak self] in
+            self?.databases.runtimeInstallation.map(\.offer.title)
+        }
     }
 }

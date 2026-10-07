@@ -15,7 +15,9 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `PinnedRSAVerifier`, `PinnedRSAKey` | OpenPGP v4 signature check with Oracle's pinned MySQL key. |
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
-| `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the bundled payloads. |
+| `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the embedded payloads. |
+| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (the database engines), for `RuntimeInstaller`. |
+| `DiskSpace` | Recognizes a full volume in any step, for one clear message. |
 | `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
 | `PinnedPayloadPreparer` | Prepares the pinned payloads for the app bundle (`./dev runtimes prepare`). |
 | `CLICompanionStore`, `CLICompanions` | The only reader and writer of `runtimes/cli-tools.json`. |
@@ -27,6 +29,15 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   without user or password. The transfer stops as soon as it exceeds its byte limit.
 - A release needs a SHA-256 or a pinned publisher signature (MySQL). The Laravel installer
   is verified by Composer only, and the Runtimes page says so.
+- The selection rules leave out files whose library references cannot resolve inside the payload,
+  because Jerd never rewrites the load commands of a signed upstream file: for MySQL the debug
+  plugins (`lib/plugin/debug/`) and the WebAuthn client plugin with its private
+  `lib/plugin/libfido2.1.dylib` (an upstream link, so its `@loader_path` breaks as a file); for
+  PostgreSQL the ICU tool libraries `libicuio`, `libicutest`, and `libicutu`, which name their
+  dependencies by bare file name. No server and no default account uses them. `./dev runtimes
+  verify` checks every reference. A changed file set gives a new payload folder ID; installed
+  folders and registered services stay valid, because reuse and `runtime-updates/` match by pin
+  and digest, not by file set.
 - Managed updates and bundled payloads use the same preparers and version probes. PHP
   names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's.
   Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G). Its disk image is
@@ -37,6 +48,30 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder
   is never replaced. One installation runs at a time. Cancellation stops it before the rename.
 - A listing reports each build folder on its own. A bad folder does not hide the others.
+- The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL and
+  PostgreSQL; Redis stays embedded). `BundledPayloadSource` skips it and
+  `BundledRuntimeBootstrap` installs nothing of it and downloads nothing. `OnDemandRuntimes`
+  turns each such pin into a `RuntimeRelease` with the exact URL, size, SHA-256, the reviewed
+  MySQL signature file, and the pinned `engineVersion`, which the probe must report and which
+  names the release (`PostgreSQL 18.6`); the app installs it only after a user
+  action, with `RuntimeInstaller` into `runtime-updates/`. `./dev runtimes prepare` uses the
+  same mapping (`RuntimePin.release(architecture:catalogDirectory:)`), pipeline, and preparers.
+  A download that does not match its pin installs nothing. The download progress names the
+  bytes of the exact size (`Downloading MySQL 8.4.11… 70.6 MB of 168 MB`); `ByteText` is the
+  one byte format of the app.
+- `OnDemandRuntimes.reusablePayload(for:layout:)` finds a payload folder of an on-demand pin that
+  an earlier copy installed from its bundle (current or legacy form), so Jerd registers it again
+  instead of a download. A folder that does not match stays as it is. The group folder and the
+  payload folder must be real directories of the user inside the data root; a link is never
+  followed. What the check proves: the folder holds exactly the files of its own receipt, and the
+  receipt names the pin (ID, kind, release, archive digest, architecture, and folder ID). It does
+  not prove the origin, because the receipt is in the folder. The trust boundary is the same user,
+  who owns the data root, as for every installed runtime. `hasReusablePayload` reads receipts
+  only, for the dialog that says "Nothing is downloaded"; the install still verifies the files.
+- Failures name the step that fixes them: no network ("Jerd cannot reach the download
+  server…"), a digest mismatch ("…does not match its expected SHA-256. Jerd installed
+  nothing."), a full disk (`DiskSpace.outOfSpace`), and a Redis update without a compiler
+  (`RedisSourceBuilder.missingCompiler`).
 - A release without a digest (MySQL, Laravel) matches its build by kind and version, so it
   shows as installed and is not downloaded again.
 - Finder's `.DS_Store` is the only file that verification ignores, on both sides.

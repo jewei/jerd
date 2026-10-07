@@ -17,9 +17,20 @@ struct DatabasesEmptyPage: View {
             }
             .padding(.horizontal, Spacing.large)
             .padding(.top, Spacing.large)
-            EmptyState(title, systemImage: "cylinder.split.1x2", message: message) {
-                if model.loadState.isLoaded, model.services.isEmpty {
-                    actions
+            // The engine list can make the page taller than a small window, so it scrolls; when
+            // it fits, the empty state stays centered.
+            GeometryReader { proxy in
+                ScrollView {
+                    EmptyState(title, systemImage: "cylinder.split.1x2", message: message) {
+                        if model.loadState.isLoaded, model.services.isEmpty {
+                            actions
+                        }
+                        if model.loadState.isLoaded, !model.runtimeOffers.isEmpty {
+                            DatabaseEnginesSection(model: model)
+                                .padding(.top, Spacing.medium)
+                        }
+                    }
+                    .frame(minHeight: proxy.size.height)
                 }
             }
         }
@@ -27,7 +38,7 @@ struct DatabasesEmptyPage: View {
     }
 
     @ViewBuilder private var actions: some View {
-        if model.availableEngines.isEmpty {
+        if model.addableEngines.isEmpty {
             Button("View Runtimes", systemImage: "shippingbox") { model.showRuntimes() }
                 .primaryActionStyle(isEnabled: true)
         } else {
@@ -63,8 +74,10 @@ struct DatabasesEmptyPage: View {
         case .loaded:
             if !model.services.isEmpty {
                 "Select a database service in the sidebar."
-            } else if model.availableEngines.isEmpty {
+            } else if model.addableEngines.isEmpty {
                 "Install a MySQL, PostgreSQL, or Redis runtime in Runtimes first."
+            } else if model.availableEngines.isEmpty {
+                "Install an engine below. Add Database also installs the engine of a new service first."
             } else {
                 "Run MySQL, PostgreSQL, and Redis with a separate data folder, port, and password for each service."
             }

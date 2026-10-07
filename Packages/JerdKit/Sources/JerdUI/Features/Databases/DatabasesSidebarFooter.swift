@@ -12,7 +12,7 @@ struct DatabasesSidebarFooter: View {
         SidebarFooter(addTitle: "Add Database", caption: caption) {
             ForEach(DatabaseEngine.allCases, id: \.self) { engine in
                 Button("Add \(engine.title)…") { model.beginAdd(engine) }
-                    .disabled(isQuitting || !model.canAdd || !model.availableEngines.contains(engine))
+                    .disabled(isQuitting || !model.canAdd || !model.addableEngines.contains(engine))
             }
             Divider()
             Button("Retained Databases…") { model.showRetained() }

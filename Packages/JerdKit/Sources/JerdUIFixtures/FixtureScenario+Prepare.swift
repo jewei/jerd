@@ -1,3 +1,4 @@
+import JerdDatabases
 import JerdManifest
 import JerdUI
 
@@ -9,8 +10,19 @@ extension FixtureScenario {
         if self == .quitting {
             await fixture.services.storage.configure { $0.stopBehavior = .suspend }
         }
+        if self == .runtimesWaiting {
+            let progress = ServiceScenario.progress(of: 0, fraction: 0.42)
+            await fixture.services.databases.configure {
+                $0.configuration = DatabaseConfiguration(runtimes: [SampleServices.embeddedRedis])
+                $0.offers = SampleServices.offers
+                $0.installBehavior = .suspend(progress)
+            }
+        }
         await state.launch()
         switch self {
+        case .runtimesWaiting:
+            state.databases.requestRuntimeInstall(.mysql)
+            state.databases.confirmRuntimeInstall()
         case .runtimesChecked:
             await state.runtimes.check()?.value
             if let release = state.runtimes.selectedRelease(.mailpit) {
@@ -38,6 +50,7 @@ extension FixtureScenario {
         guard state.isLaunched else { return false }
         switch self {
         case .runtimesChecked: return state.runtimes.installation?.progress != nil
+        case .runtimesWaiting: return state.databases.runtimeInstallation?.progress != nil
         case .advanced: return state.advanced.hasInspected
         case .quitting: return state.shutdown.message == ShutdownPhase.storage.message
         default: return isSitesReady(fixture)

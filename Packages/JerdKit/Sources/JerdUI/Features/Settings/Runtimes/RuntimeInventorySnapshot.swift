@@ -12,13 +12,25 @@ public struct RuntimeInventorySnapshot: Hashable, Sendable {
     public var phpBuildDigests: [UUID: String]
     /// The managed builds that are in use.
     public var builds: [InstalledBuild]
+    /// The pinned releases that the app does not embed and installs on demand (the database engines).
+    public var onDemand: [RuntimeRelease]
+    /// The on-demand kinds whose install reuses a copy on this Mac, so nothing is downloaded.
+    public var reusableOnDemand: Set<RuntimeKind> = []
 
     public init(
-        versions: [RuntimeKind: [String]] = [:], phpBuildDigests: [UUID: String] = [:], builds: [InstalledBuild] = []
+        versions: [RuntimeKind: [String]] = [:], phpBuildDigests: [UUID: String] = [:], builds: [InstalledBuild] = [],
+        onDemand: [RuntimeRelease] = []
     ) {
         self.versions = versions
         self.phpBuildDigests = phpBuildDigests
         self.builds = builds
+        self.onDemand = onDemand
+    }
+
+    /// The pinned release of a kind that has no installed version yet, so the page offers it.
+    public func installableRelease(_ kind: RuntimeKind) -> RuntimeRelease? {
+        guard installedVersions(kind).isEmpty else { return nil }
+        return onDemand.first { $0.kind == kind }
     }
 
     /// The versions of a kind without duplicates, newest first. Text that is not a version

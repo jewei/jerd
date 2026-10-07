@@ -52,10 +52,26 @@ struct RuntimesPrepareStep: Sendable {
                 tools = try Self.tools(for: pin, preparer: preparer, catalog: catalog, lzma: lzma)
             }
             let receipt = try await prepareReportingProgress(pin, preparer: preparer, catalog: catalog, tools: tools)
+            if existed, let signature = pin.signature { await cacheSignature(signature, of: pin) }
             let verb = existed ? "Verified the prepared" : "Prepared"
             context.console.success("\(verb) \(pin.id): \(pin.kind.rawValue) \(receipt.version).")
         }
         try preparer.writeCatalog()
+    }
+
+    /// An earlier run may predate the signature cache, and the on-demand integration test needs the
+    /// reviewed file. A cached file is used without the network. Otherwise one small download is
+    /// tried; offline, the verified payload stays valid and a warning names the next step.
+    func cacheSignature(_ signature: PinnedFile, of pin: RuntimePin) async {
+        let cached = context.repository.runtimeDownloads.appending(path: signature.sha256)
+        if (try? DownloadCache.isValid(cached, digest: signature.sha256)) == true { return }
+        do {
+            _ = try await fetcher.data(from: signature.url, limit: Int(signature.sizeLimit))
+        } catch {
+            context.console.warning(
+                "\(pin.id): the signature file is not cached, and it cannot be downloaded now. The on-demand "
+                    + "integration test needs it: run ./dev runtimes prepare database once with a network connection.")
+        }
     }
 
     /// The pins in an order where each pin comes after the pins whose tools it needs: PHP, then Composer,

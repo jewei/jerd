@@ -1,3 +1,5 @@
+import Foundation
+
 /// Runs the JerdKit tests and the Tools tests with `swift test`.
 enum TestStep {
     /// The JerdKit test targets, read from the folders in `Packages/JerdKit/Tests`.
@@ -12,9 +14,12 @@ enum TestStep {
         filter: String?,
         groups: [IntegrationGroup]
     ) async throws {
-        let environment = try TestEnvironment.make(inherited: context.environment, groups: groups) { group in
-            try preparedPaths(context).variables(for: group)
-        }
+        let downloads = context.repository.runtimeDownloads
+        let environment = TestEnvironment.addingOnDemandDownloads(
+            try TestEnvironment.make(inherited: context.environment, groups: groups) { group in
+                try preparedPaths(context).variables(for: group)
+            }, groups: groups,
+            downloads: FileManager.default.fileExists(atPath: downloads.path) ? downloads.path : nil)
         let invocation = TestPlan.kitTests(
             repository: context.repository, toolchain: context.toolchain,
             testTargets: testTargets, filter: filter, environment: environment)

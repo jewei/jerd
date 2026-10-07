@@ -31,12 +31,13 @@ public struct BundledPayloadSource: Sendable {
         return catalog
     }
 
-    /// The payloads of one group, in catalog order.
+    /// The embedded payloads of one group, in catalog order. A pin that the app installs on
+    /// demand has no payload in the bundle and is skipped.
     public func payloads(in group: PayloadGroup) throws -> [BundledPayload] {
         let catalog = try catalog()
         let pins = catalog.pins(in: group)
         guard !pins.isEmpty else { throw JerdError.unavailable("The app has no bundled \(group.rawValue) runtimes.") }
-        return try pins.map { try payload(for: $0, catalog: catalog) }
+        return try pins.filter(\.isEmbedded).map { try payload(for: $0, catalog: catalog) }
     }
 
     /// The payload of one pin.

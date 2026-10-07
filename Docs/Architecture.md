@@ -117,7 +117,11 @@ Startup does not depend on a window:
       Sites loads the site configuration and installs the bundled PHP and Caddy when they are
       missing; Databases, Storage, and Mail each load their settings and install their bundled
       runtimes when none is registered; Tunnels connect the tunnels marked "Start when Jerd
-      opens". Then Runtimes and Advanced load, and polling starts.
+      opens". Then Runtimes and Advanced load, and polling starts. The app embeds Redis
+      but not MySQL and PostgreSQL (`"embedded": false` on their pins in `Runtimes/runtimes.json`),
+      so the launch installs Redis only and downloads nothing. The user installs MySQL and
+      PostgreSQL on demand from the Databases page, Add Database, or Runtimes, through the one
+      `RuntimeInstaller`.
 3. Reopening Jerd (Dock or Applications) shows the main window, also when the menu bar item and
    the Dock icon are both off.
 

@@ -51,10 +51,32 @@ import os
         let wrong = RuntimeRelease(
             kind: .cloudflared, version: "2026.9.3", artifact: fixture.release.artifact, archiveSHA256: digest("e"),
             releasePage: fixture.release.releasePage, architecture: .arm64)
-        await #expect(throws: JerdError.invalid("The runtime download failed its SHA-256 check.")) {
+        let message =
+            "The Cloudflare Tunnel 2026.9.3 download does not match its expected SHA-256. Jerd installed nothing."
+        await #expect(throws: JerdError.invalid(message)) {
             try await fixture.installer(directory: folder.url).install(wrong)
         }
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
+    }
+
+    @Test(arguments: [("2026.9.3", true), ("2026.9.4", false)])
+    func pinnedEngineVersionMustBeTheReportedVersion(_ engineVersion: String, installs: Bool) async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let fixture = try CloudflaredFixture()
+        let base = fixture.release
+        let pinned = RuntimeRelease(
+            kind: base.kind, version: base.version, artifact: base.artifact, archiveSHA256: base.archiveSHA256,
+            releasePage: base.releasePage, architecture: .arm64, engineVersion: engineVersion)
+        let installer = fixture.installer(directory: folder.url)
+        if installs {
+            #expect(try await installer.install(pinned).version == engineVersion)
+        } else {
+            let message =
+                "The installed Cloudflare Tunnel reports 2026.9.3, not its pinned 2026.9.4. Jerd installed nothing."
+            await #expect(throws: JerdError.invalid(message)) { try await installer.install(pinned) }
+            #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
+        }
     }
 
     @Test(arguments: ["cloudflared version 2026.9.30", "other version 2026.9.3"])

@@ -48,6 +48,21 @@ import os
         }
     }
 
+    @Test func redisWithoutTheCommandLineToolsNamesTheStepThatFixesIt() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        var tar = TarBuilder()
+        tar.file("redis-8.8.3/src/server.c", "int main(void) { return 0; }")
+        try tar.write(to: folder.path("download"))
+        let commands = ScriptedCommandRunner { request in
+            CommandResult(status: request.executable.lastPathComponent == "xcrun" ? 1 : 0, output: "no developer tools")
+        }
+        let context = try context(
+            folder, kind: .redis, version: "8.8.3", artifact: folder.path("download"), commands: commands)
+        await #expect(throws: RedisSourceBuilder.missingCompiler) { try await RedisSourceBuilder().prepare(context) }
+        #expect(commands.commandLines == [["xcrun", "--find", "clang"]])
+    }
+
     @Test func laravelNeedsPHPAndComposer() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
