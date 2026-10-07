@@ -9,22 +9,24 @@ import Testing
 
 @testable import JerdLive
 
-/// Opt-in: installs one pinned database engine through the app pipeline (the live Databases port,
-/// `RuntimeInstaller`, the real fetcher and preparers) into a temporary data root, then creates,
-/// starts, and stops a service with it. The downloads come from a local file server inside
-/// URLSession, so the test needs no internet.
+/// Opt-in: installs each on-demand database engine through the app wiring (`LiveDomain`, its one
+/// `RuntimeInstaller`, the live Databases port, the real fetcher, the OpenPGP check, and the real
+/// preparers) into a temporary data root, then creates, starts, and stops a service with it. The
+/// downloads come from a local file server inside URLSession, so the test needs no internet.
 ///
 /// `JERD_ON_DEMAND_INTEGRATION=1`, `JERD_RUNTIME_DOWNLOADS=<folder of files named by SHA-256>` (for
-/// example `.build/runtimes/downloads`), and optionally `JERD_ON_DEMAND_ENGINE` (`postgresql` by
-/// default; `mysql` also needs its signature file in the folder).
+/// example `.build/runtimes/downloads`, where `./dev runtimes prepare database` also keeps the MySQL
+/// signature file), and optionally `JERD_ON_DEMAND_ENGINE=mysql,postgresql` (the default: both).
 @Suite(
     "On-demand database runtime integration", .serialized,
     .enabled(if: ProcessInfo.processInfo.environment["JERD_ON_DEMAND_INTEGRATION"] == "1"))
 struct OnDemandRuntimeIntegrationTests {
     private var environment: [String: String] { ProcessInfo.processInfo.environment }
 
-    private var engine: DatabaseEngine {
-        DatabaseEngine(rawValue: environment["JERD_ON_DEMAND_ENGINE"] ?? "postgresql") ?? .postgresql
+    /// The engines to install: `JERD_ON_DEMAND_ENGINE`, or MySQL and PostgreSQL.
+    static var engines: [DatabaseEngine] {
+        let names = ProcessInfo.processInfo.environment["JERD_ON_DEMAND_ENGINE"] ?? "mysql,postgresql"
+        return names.split(separator: ",").compactMap { DatabaseEngine(rawValue: String($0)) }
     }
 
     /// A bundle with only the committed catalog, as in an app without database payloads.
@@ -42,7 +44,11 @@ struct OnDemandRuntimeIntegrationTests {
         let url = try #require(release.artifact.downloadURL)
         LocalDownloadProtocol.serve(url, from: folder.appendingPathComponent(try #require(release.archiveSHA256)))
         if let signature = release.pinnedSignature {
-            LocalDownloadProtocol.serve(signature.url, from: folder.appendingPathComponent(signature.sha256))
+            let file = folder.appendingPathComponent(signature.sha256)
+            try #require(
+                FileProbe.presence(at: file) == .present,
+                "The MySQL signature file is missing in \(downloads). Run ./dev runtimes prepare database.")
+            LocalDownloadProtocol.serve(signature.url, from: file)
         }
     }
 
@@ -54,32 +60,31 @@ struct OnDemandRuntimeIntegrationTests {
         }
     }
 
-    @Test("Installs the pinned engine, registers it, and runs a service with it")
-    func installsAndRunsAPinnedEngine() async throws {
+    @Test("Installs the pinned engine, registers it, and runs a service with it", arguments: engines)
+    func installsAndRunsAPinnedEngine(_ engine: DatabaseEngine) async throws {
         let folder = try TemporaryDirectory("on-demand")
         defer { folder.remove() }
         let configuration = LiveConfiguration(
             layout: folder.layout, appBundle: folder.path("Jerd.app"), resources: try bundle(in: folder),
             appVersion: "test")
-        let domain = LiveDomain(configuration: configuration)
+        let domain = LiveDomain(configuration: configuration, fetcher: fetcher())
         let release = try #require(try domain.onDemandRuntimes.releases().first { $0.kind.rawValue == engine.rawValue })
         try serve(release)
-        let installer = RuntimeInstaller(
-            directory: folder.layout.runtimes.managedRuntimesDirectory, fetcher: fetcher())
-        let port = LiveDatabasesPort(
-            manager: domain.databases, runtimes: BundledServiceRuntimes(bootstrap: domain.bootstrap),
-            layout: folder.layout.databases,
-            onDemand: DatabaseRuntimeInstaller(
-                releases: domain.onDemandRuntimes, installer: installer, manager: domain.databases))
+        let installer = domain.runtimeInstaller
+        let port = LiveDatabasesPort(domain: domain)
+        let before = LocalDownloadProtocol.requests.count
 
         // The launch downloads nothing. The test bundle holds only the catalog, so the setup of the
         // embedded Redis finds no payload and installs nothing; it never falls back to a download.
         #expect(try await port.load().configuration.runtimes.isEmpty)
-        #expect(LocalDownloadProtocol.requests.isEmpty)
+        #expect(LocalDownloadProtocol.requests.count == before)
         #expect(await port.runtimeOffers().map(\.engine) == [.mysql, .postgresql])
         #expect(await port.runtimeOffers().first { $0.engine == .postgresql }?.versionLabel == "18.6")
 
-        let runtime = try await port.installRuntime(engine) { _ in }
+        let messages = ProgressLog()
+        let runtime = try await port.installRuntime(engine) { messages.append($0.message) }
+        // The progress names the bytes of the exact pinned size, as the app shows it.
+        #expect(messages.all.contains { $0.hasPrefix("Downloading \(release.title)… ") && $0.contains(" of ") })
         #expect(
             runtime.engine == engine && runtime.path.hasPrefix(folder.layout.runtimes.managedRuntimesDirectory.path))
         let receipt = try BuildReceipt.decode(

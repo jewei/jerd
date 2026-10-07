@@ -36,7 +36,7 @@ package struct LiveDomain: Sendable {
 
     package init(
         configuration: LiveConfiguration, helper: any HelperControlling = HelperClient(),
-        processes: ProcessSupervisor = ProcessSupervisor(ceiling: .graceful)
+        processes: ProcessSupervisor = ProcessSupervisor(ceiling: .graceful), fetcher: URLSessionFetcher? = nil
     ) {
         let layout = configuration.layout
         self.configuration = configuration
@@ -44,8 +44,10 @@ package struct LiveDomain: Sendable {
         self.helper = helper
         effects = ServiceEffects(processes: processes)
         bootstrap = BundledRuntimeBootstrap(resources: configuration.payloads, layout: layout)
-        fetcher = URLSessionFetcher(userAgent: URLSessionFetcher.userAgent(appVersion: configuration.appVersion))
-        runtimeInstaller = RuntimeInstaller(directory: layout.runtimes.managedRuntimesDirectory, fetcher: fetcher)
+        // Tests pass a fetcher with a local file server; the app uses HTTPS with its version.
+        self.fetcher =
+            fetcher ?? URLSessionFetcher(userAgent: URLSessionFetcher.userAgent(appVersion: configuration.appVersion))
+        runtimeInstaller = RuntimeInstaller(directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
         web = WebDomain(layout: layout, helper: helper)
         developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)

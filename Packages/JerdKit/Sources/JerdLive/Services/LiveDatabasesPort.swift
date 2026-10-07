@@ -31,7 +31,8 @@ package struct LiveDatabasesPort: DatabasesPort {
             manager: domain.databases, runtimes: BundledServiceRuntimes(bootstrap: domain.bootstrap),
             layout: domain.layout.databases,
             onDemand: DatabaseRuntimeInstaller(
-                releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases))
+                releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
+                layout: domain.layout))
     }
 
     package func runtimeOffers() async -> [DatabaseRuntimeOffer] {
