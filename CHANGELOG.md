@@ -8,6 +8,7 @@ code marks.
 
 ## [Unreleased]
 
+- The app is a little smaller: the Laravel installer no longer includes documentation, tests, and the Carbon translations that it does not use.
 - The app is a little smaller: the Redis runtime no longer includes the Lua build tools and other build output that Redis does not use.
 
 ## [0.1.0] - 2026-10-07
