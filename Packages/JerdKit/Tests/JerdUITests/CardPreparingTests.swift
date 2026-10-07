@@ -107,7 +107,8 @@ struct CardPreparingTests {
         defer { fixture.removeDefaults() }
         await fixture.state.launch()
         #expect(fixture.state.mail.summary.summary == "Mailpit is not installed. Install it in Runtimes.")
-        #expect(fixture.state.mail.summary.status.label == "Stopped")
+        #expect(fixture.state.mail.summary.status.label == "Not installed")
+        #expect(fixture.state.storage.summary.status.label == "Not installed")
         #expect(fixture.state.mail.summary.actions.first?.unavailableReason == "Install Mailpit in Runtimes first.")
         #expect(fixture.state.storage.summary.summary == "RustFS is not installed. Install it in Runtimes.")
     }

@@ -66,7 +66,7 @@ struct RuntimesModelTests {
         let release = try #require(model.selectedRelease(.mailpit))
         await model.install(release)?.value
         #expect(model.installation == nil)
-        #expect(model.messages[.mailpit] == "Updated to 1.28.0.")
+        #expect(model.messages[.mailpit] == "Mailpit 1.28.0 is in use. Captured messages stay in the inbox.")
         #expect(model.inventory.isInstalled(release))
         #expect(await inventory.activations.count == 1)
     }
@@ -81,6 +81,7 @@ struct RuntimesModelTests {
             (.php, true, "PHP 8.4.7 is the default. Pinned sites keep their selected version."),
             (.php, false, "PHP 8.4.7 is available in each site’s PHP selection."),
             (.caddy, true, "Updated to 8.4.7."),
+            (.mailpit, true, "Mailpit 8.4.7 is in use. Captured messages stay in the inbox."),
         ])
     func installMessages(kind: RuntimeKind, useAsDefault: Bool, expected: String) {
         #expect(RuntimeCopy.installedMessage(kind, version: "8.4.7", useAsDefault: useAsDefault) == expected)

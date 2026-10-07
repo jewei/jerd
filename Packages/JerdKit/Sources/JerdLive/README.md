@@ -31,9 +31,9 @@ calls. Pure mappings are `package static` functions with their own tests.
 - The PHP CA bundle trusts the local CA only while macOS trusts it (`SystemTrustDecision`).
 - Each feature load installs its bundled runtimes before it reads its services: PHP and Caddy
   in the first site load (`DevelopmentRuntimeSetup`, shared with Advanced), the database
-  engines without a runtime, Mailpit and an embedded RustFS when none is saved. RustFS is not
-  embedded, so the storage load installs nothing and records no failure; a saved runtime (also
-  one in `storage-runtimes/`) stays in use. A corrupt settings file
+  engines without a runtime, an embedded Mailpit and an embedded RustFS when none is saved.
+  Mailpit and RustFS are not embedded, so the mail and storage loads install nothing and record
+  no failure; a saved runtime (also one in `mail-runtimes/` or `storage-runtimes/`) stays in use. A corrupt settings file
   fails the load before anything is installed. A failed bundled setup does not fail the load:
   the site setup message shows it in Advanced. The service setups write it to the unified log
   (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`. The port
@@ -55,6 +55,15 @@ calls. Pure mappings are `package static` functions with their own tests.
   registers the runtime with `StorageManager.registerRuntime`, which never replaces a saved
   runtime and never touches buckets, objects, or credentials. Only Install RustFS…, Start, and
   Runtimes › Install… call it.
+- `MailRuntimeInstaller` (in `LiveMailPort` and `LiveRuntimeInventory`) installs the pinned
+  Mailpit through the same flow; Mailpit needs no preparation tools. A Mailpit folder that an
+  earlier copy embedded (`mail-runtimes/`) is reused, and nothing is downloaded. It registers the
+  runtime with `MailManager.registerRuntime`, which chooses the ports, never replaces a saved
+  runtime, and never touches the inbox. Only Install Mailpit…, Start, and Runtimes › Install…
+  call it. `OnDemandInstallFlow.offer(of:log:)` builds the `ServiceRuntimeOffer` of both.
+- A RustFS or Mailpit build from Check for Runtime Updates goes to `StorageRuntimeAdoption` or
+  `MailRuntimeAdoption`: without a saved runtime it is registered, else it goes through the
+  journaled runtime update.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated

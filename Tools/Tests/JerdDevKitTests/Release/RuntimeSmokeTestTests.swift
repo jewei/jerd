@@ -54,8 +54,8 @@ struct RuntimeSmokeTestTests {
         let composer = try #require(commands.first { $0.arguments.first?.contains("/composer-") == true })
         #expect(composer.executable.path == php && composer.arguments.suffix(2) == ["--version", "--no-interaction"])
         #expect(commands.contains { $0.executable.path.contains("/caddy-") && $0.arguments == ["version"] })
-        #expect(commands.contains { $0.executable.path.contains("/mailpit-") && $0.arguments == ["version"] })
-        // RustFS installs on demand, so the app has no RustFS to run.
+        // Mailpit and RustFS install on demand, so the app has no Mailpit or RustFS to run.
+        #expect(!commands.contains { $0.executable.path.contains("/mailpit-") })
         #expect(!commands.contains { $0.executable.path.contains("/rustfs-") })
         // Every payload gets at least one command; PHP gets three.
         #expect(commands.count >= payloads.count + 2)

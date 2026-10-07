@@ -33,8 +33,9 @@ package actor DomainRuntimeOwners: RuntimeOwning {
         try await domain.databases.registerRuntime(runtime)
     }
 
+    /// Registers the build when no Mailpit is saved, else updates the saved one.
     package func updateMailRuntime(_ runtime: MailRuntime) async throws {
-        try await domain.mail.updateRuntime(runtime)
+        try await MailRuntimeAdoption.adopt(runtime, manager: domain.mail)
     }
 
     /// Registers the build when no RustFS is saved, else updates the saved one.

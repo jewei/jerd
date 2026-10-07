@@ -6,7 +6,7 @@ import Testing
 
 @testable import JerdWeb
 
-@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
+@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_WEB_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
 struct PHPTrustIntegrationTests {
     /// The trust answer is injected for this isolated CA only; no trust store changes.
     @Test(arguments: [false, true])

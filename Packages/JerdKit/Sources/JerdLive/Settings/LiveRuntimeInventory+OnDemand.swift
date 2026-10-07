@@ -14,6 +14,8 @@ extension LiveRuntimeInventory {
             version = try await databases.install(release, progress: progress).version
         } else if let storage, release.kind == .rustfs, storage.flow.isOnDemand(release) {
             version = try await storage.install(release, progress: progress).version
+        } else if let mail, release.kind == .mailpit, mail.flow.isOnDemand(release) {
+            version = try await mail.install(release, progress: progress).version
         } else {
             return nil
         }
@@ -28,6 +30,10 @@ extension LiveRuntimeInventory {
         if build.kind == .rustfs {
             guard storage != nil else { return false }
             return try await owners.records().storage?.version == build.version
+        }
+        if build.kind == .mailpit {
+            guard mail != nil else { return false }
+            return try await owners.records().mail?.version == build.version
         }
         guard databases != nil, let engine = BundledRuntimeMapping.engine(of: build.kind) else { return false }
         return try await owners.records().databases.contains { $0.engine == engine && $0.version == build.version }

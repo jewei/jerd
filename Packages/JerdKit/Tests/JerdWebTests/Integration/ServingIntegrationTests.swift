@@ -7,7 +7,7 @@ import Testing
 
 @testable import JerdWeb
 
-@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
+@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_WEB_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
 struct ServingIntegrationTests {
     @Test(arguments: [false, true])
     func realPHPAnswersOverVerifiedTLSAndTheRulesHold(inherited: Bool) async throws {

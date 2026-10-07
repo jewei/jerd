@@ -75,10 +75,11 @@ struct AppVerifierTests {
             output: "cmd LC_BUILD_VERSION\nminos 14.0\ncmd LC_LOAD_DYLIB\nname /usr/lib/libSystem.B.dylib (offset 24)\n"
         )
         let code = try await check.verify(root)
-        // The seven files of the six embedded payloads and the XZ library; no MySQL, PostgreSQL, or RustFS.
-        #expect(code.count == 8)
+        // The six files of the five embedded payloads and the XZ library; no MySQL, PostgreSQL,
+        // Mailpit, or RustFS.
+        #expect(code.count == 7)
         #expect(code.contains { $0.file.path.hasSuffix("/support/xz/liblzma.5.dylib") })
-        #expect(!code.contains { $0.file.path.contains("/storage/") })
+        #expect(!code.contains { $0.file.path.contains("/storage/") || $0.file.path.contains("/mail/") })
         #expect(code.allSatisfy { $0.identifier == .exact($0.file.lastPathComponent) })
         workspace.runner.on("otool", output: "cmd LC_BUILD_VERSION\nminos 15.0\n")
         await #expect(throws: DevFailure.self) { _ = try await check.verify(root) }

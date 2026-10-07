@@ -34,9 +34,9 @@ are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
 That command copies only the embedded payloads (`EmbeddedPayloads.pins`, which reads
 `PayloadInventory.embeddedPayloads`; `./dev release` uses the same rule): every pin except those that `Runtimes/runtimes.json` marks
-`"embedded": false`, today MySQL, PostgreSQL, and RustFS. Redis stays in the `database`
-folder of the app. The app installs MySQL, PostgreSQL, and RustFS on demand from the same
-pins. The RustFS preparation needs the reviewed XZ library, so the command also copies
+`"embedded": false`, today MySQL, PostgreSQL, Mailpit, and RustFS. Redis stays in the
+`database` folder of the app; the app has no `mail` or `storage` folder. The app installs
+MySQL, PostgreSQL, Mailpit, and RustFS on demand from the same pins. The RustFS preparation needs the reviewed XZ library, so the command also copies
 `.build/runtimes/support/xz` into `RuntimePayloads/support/xz` (`EmbeddedSupport`): about
 180 KB with `support-receipt.json`. The receipt must name the pinned XZ source and the
 deployment target of the app, and every file must match it. A Release build refuses a
@@ -70,7 +70,7 @@ Groups: `development` (PHP, Caddy, Composer, Laravel installer), `database`
 reviewed XZ library of RustFS; `storage` selects it too). Names ignore case,
 and `Support/XZ` names the library.
 
-`prepare` prepares every pin, also MySQL, PostgreSQL, and RustFS, which the app does not
+`prepare` prepares every pin, also MySQL, PostgreSQL, Mailpit, and RustFS, which the app does not
 embed: CI and the integration tests use those payloads. `verify` with the `storage` or
 `xz` group (or no group) also checks `support/xz`: its receipt, its files, its libraries,
 and that every file runs on the minimum macOS of the app. It uses
@@ -132,15 +132,17 @@ The download cache also keeps the pinned MySQL signature file under its SHA-256;
 `./dev runtimes prepare database` adds it when an earlier run did not. With the
 file cached, prepare verifies an existing payload without the network. Offline
 and without the file, prepare still verifies the payload and warns that one
-small download is needed for the on-demand test. The
-release runtime tests take the embedded payloads from the candidate app and the
-on-demand payloads (MySQL, PostgreSQL, and RustFS) from `.build/runtimes/payloads`, each
-verified file by file. The `storage` group also sets `JERD_XZ_SUPPORT` and
+small download is needed for the on-demand test. Every group takes its payloads,
+embedded or on demand, from `.build/runtimes/payloads`, each verified file by file;
+`./dev release` runs no integration tests. The `storage` group also sets `JERD_XZ_SUPPORT` and
 `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` when `.build/runtimes/support/xz` exists, so the
-on-demand RustFS test runs too.
-Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
-`storage` groups also set their own switch, for example
-`JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`
+on-demand RustFS test runs too. The `mail` group sets `JERD_ON_DEMAND_MAIL_INTEGRATION=1` and
+`JERD_RUNTIME_DOWNLOADS` when the downloads folder exists, so the on-demand Mailpit test runs
+without internet too.
+Each group also sets `JERD_INTEGRATION=1` and its own switch:
+`JERD_WEB_INTEGRATION=1`, `JERD_DATABASE_INTEGRATION=1`, `JERD_MAIL_INTEGRATION=1`, or
+`JERD_STORAGE_INTEGRATION=1`. Only its own switch turns on the suites of a group, so
+`--integration mail` alone needs no PHP. The database tests read a folder with `pins.json`
 and one folder for each engine. `./dev` writes that index in
 `.build/runtimes/integration/database` with links to the payloads, so the
 payloads stay unchanged.
@@ -223,7 +225,8 @@ local work comes first:
    debug symbols.
 4. **Run the signed runtimes.** It runs each embedded executable once from the
    signed app with a version argument (PHP also with `-m`; Composer and the Laravel
-   installer with the embedded PHP). Each command has a time limit, a private
+   installer with the embedded PHP; the app embeds no Mailpit, which loads nothing from
+   the app, so the step does not run it). Each command has a time limit, a private
    temporary home, and a minimal environment, and none uses the network. A fault that
    only the signed form has, for example a missing entitlement, stops the release.
 5. **Notarize the app** and staple it.

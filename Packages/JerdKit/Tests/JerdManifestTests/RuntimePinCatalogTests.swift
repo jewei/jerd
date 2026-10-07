@@ -82,12 +82,14 @@ import Testing
         }
     }
 
-    @Test func committedCatalogEmbedsEveryPayloadExceptMySQLPostgreSQLAndRustFS() throws {
+    @Test func committedCatalogEmbedsEveryPayloadExceptMySQLPostgreSQLMailpitAndRustFS() throws {
         let catalog = try committedCatalog()
-        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql, .rustfs])
-        #expect(catalog.embeddedPins.map(\.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit])
-        // Redis stays embedded: the database group is partly embedded. The storage group is not.
+        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql, .mailpit, .rustfs])
+        #expect(catalog.embeddedPins.map(\.kind) == [.php, .caddy, .composer, .laravel, .redis])
+        // Redis stays embedded: the database group is partly embedded. The mail and storage groups
+        // are not.
         #expect(catalog.embeddedPins.filter { $0.group == .database }.map(\.kind) == [.redis])
+        #expect(catalog.embeddedPins.filter { $0.group == .mail }.isEmpty)
         #expect(catalog.embeddedPins.filter { $0.group == .storage }.isEmpty)
         // The app keeps the XZ library that the RustFS preparation needs.
         #expect(catalog.supportSources["xz"]?.version == "5.8.4")
@@ -104,6 +106,7 @@ import Testing
         #expect(catalog.pin(for: .mysql)?.installedSize == 321_049_835)
         #expect(catalog.pin(for: .postgresql)?.installedSize == 750_547_900)
         #expect(catalog.pin(for: .rustfs)?.installedSize == 223_534_901)
+        #expect(catalog.pin(for: .mailpit)?.installedSize == 26_328_126)
         let page = try #require(URL(string: "https://example.com"))
         let url = try #require(URL(string: "https://example.com/a.tar.gz"))
         for size in [Int64(0), RuntimePin.installedSizeLimit + 1] {
@@ -153,6 +156,8 @@ import Testing
         // An earlier reader still finds the RustFS pin and its archive; it ignores `embedded`.
         let rustfs = try #require(earlier.pins.first { $0.kind == .rustfs })
         #expect(rustfs.version == "1.0.0" && rustfs.archive?.size == 87_018_416)
+        let mailpit = try #require(earlier.pins.first { $0.kind == .mailpit })
+        #expect(mailpit.version == "1.31.3" && mailpit.archive?.size == 9_848_192)
     }
 
     @Test func onDemandAndEngineVersionRulesAreEnforced() throws {

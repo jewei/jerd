@@ -22,8 +22,9 @@ It depends only on JerdFoundation. It does no network work.
 
 ## Rules
 
-- `embeddedPins` are copied into the app; `onDemandPins` (today MySQL, PostgreSQL, and RustFS)
-  are not, so the database group is partly embedded (Redis stays) and the storage group is not. An on-demand pin must name an archive.
+- `embeddedPins` are copied into the app; `onDemandPins` (today MySQL, PostgreSQL, Mailpit, and
+  RustFS) are not, so the database group is partly embedded (Redis stays) and the mail and
+  storage groups are not. An on-demand pin must name an archive.
   The installed runtime must report a pinned `engineVersion`. `installedSize` (1 byte to 8 GB)
   is the approximate size of the installed runtime, for the free-space check and the install
   dialog. The keys are optional, are omitted when nil, and earlier readers ignore them; the

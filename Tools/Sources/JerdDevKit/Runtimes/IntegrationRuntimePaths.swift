@@ -11,9 +11,6 @@ struct IntegrationRuntimePaths: Sendable {
     let inventory: PayloadInventory
     /// The folder for the database index: `<indexRoot>/database/pins.json` and one link per payload.
     let indexRoot: URL
-    /// Where the pins that the app installs on demand come from, when `inventory` is an app that does
-    /// not embed them: `./dev release prepare` passes `.build/runtimes/payloads`. Nil: `inventory`.
-    var onDemandInventory: PayloadInventory? = nil
 
     /// The path variables of `group`.
     /// - Throws: `missingPrerequisite` when a payload is not prepared, `checkFailed` when one is invalid.
@@ -47,14 +44,13 @@ struct IntegrationRuntimePaths: Sendable {
         guard let pin = inventory.catalog.pin(for: kind), let group = pin.group else {
             throw DevFailure.checkFailed("The runtime pin catalog has no \(kind.rawValue) pin.")
         }
-        let source = pin.isEmbedded ? inventory : (onDemandInventory ?? inventory)
-        let entry = source.entry(for: pin, group: group)
+        let entry = inventory.entry(for: pin, group: group)
         switch entry.state {
         case .valid(let payload):
             return payload
         case .missing:
             throw DevFailure.missingPrerequisite(
-                "The \(pin.id) payload is missing in \(source.root.path). Run ./dev runtimes prepare \(group.rawValue)."
+                "The \(pin.id) payload is missing in \(inventory.root.path). Run ./dev runtimes prepare \(group.rawValue)."
             )
         case .invalid(let message):
             throw DevFailure.checkFailed("The \(pin.id) payload is invalid: \(message)")

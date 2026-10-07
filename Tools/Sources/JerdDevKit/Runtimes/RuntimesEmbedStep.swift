@@ -5,8 +5,8 @@ import JerdRuntimes
 /// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared embedded
 /// payloads into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
 /// flags) before it copies, so an app never contains a payload that its receipt does not describe.
-/// Pins that the catalog marks `"embedded": false` (MySQL, PostgreSQL, and RustFS) stay out of the
-/// app; the app installs them on demand from the same pins. The XZ library that the RustFS
+/// Pins that the catalog marks `"embedded": false` (MySQL, PostgreSQL, Mailpit, and RustFS) stay out
+/// of the app; the app installs them on demand from the same pins. The XZ library that the RustFS
 /// preparation needs goes into `support/xz` with its receipt (`EmbeddedSupport`).
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.

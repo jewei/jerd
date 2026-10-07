@@ -21,7 +21,8 @@ extension ServiceScenario {
     /// The databases of an on-demand scenario, or nil for the other scenarios.
     func onDemandDatabases() -> InMemoryDatabases? {
         switch self {
-        case .databasesOnDemand, .dashboardDatabasesOnDemand, .dashboardStorageOnDemand, .databasesInstallFailed,
+        case .databasesOnDemand, .dashboardDatabasesOnDemand, .dashboardStorageOnDemand, .dashboardMailOnDemand,
+            .databasesInstallFailed,
             .databaseEditorInstall,
             .databaseEditorInstalling, .databaseEditorInstallFailed, .databasesInstalling:
             // Redis is embedded, so the first launch installed it.

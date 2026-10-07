@@ -22,7 +22,7 @@ struct StoragePageMessages: View {
         if let notice = model.runtimeNotice {
             InlineMessage(
                 notice.message, kind: notice.isFailure ? .error : .info,
-                title: notice.isFailure ? StorageRuntimeCopy.failedTitle : nil, style: .banner,
+                title: notice.isFailure ? ServiceRuntimeCopy.storage.failedTitle : nil, style: .banner,
                 identifier: "storage.install-notice", dismiss: model.dismissRuntimeNotice)
         }
         ServiceStateBanner(

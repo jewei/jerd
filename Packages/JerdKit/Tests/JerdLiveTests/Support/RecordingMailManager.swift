@@ -28,6 +28,13 @@ actor RecordingMailManager: MailManaging {
         settings.runtime = runtime
     }
 
+    /// Like the live manager: an update needs a saved runtime.
+    func updateRuntime(_ runtime: MailRuntime) throws {
+        calls.append("update \(runtime.id)")
+        guard settings.runtime != nil else { throw JerdError.unavailable("The Mailpit runtime is not installed.") }
+        settings.runtime = runtime
+    }
+
     func suggestedPorts() -> MailPorts { MailSettings.defaultPorts }
     func edit(ports: MailPorts) { calls.append("edit") }
     func start() { calls.append("start") }

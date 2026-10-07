@@ -69,6 +69,16 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case mailPorts = "mail-ports"
     /// A quit waits for storage: the Mail controls are off before their own stage.
     case mailQuitting = "mail-quitting"
+    /// First launch of an app without Mailpit: Jerd offers the pinned Mailpit.
+    case mailOnDemand = "mail-on-demand"
+    /// An earlier copy left a verified Mailpit on this Mac, so the install downloads nothing.
+    case mailOnDemandReuse = "mail-on-demand-reuse"
+    /// Start installs Mailpit first: the download runs.
+    case mailInstalling = "mail-installing"
+    /// The last installation failed because the Mac is offline.
+    case mailInstallFailed = "mail-install-failed"
+    /// The dashboard at first launch: no database engine, RustFS, or Mailpit is installed yet.
+    case dashboardMailOnDemand = "dashboard-mail-on-demand"
     case advancedCommandLineTools = "advanced-command-line-tools"
 
     /// The kind of snapshot: a full window or one sheet alone.
@@ -103,7 +113,8 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
         case .databases, .databasesEmpty, .databasesSetupFailed, .databaseRuntimeMissing, .databaseStuck, .storage,
             .bucket, .storageStuck, .mail, .mailSetupFailed, .databasesOnDemand, .databasesInstalling,
             .databasesInstallFailed, .databaseRuntimeInstalling, .dashboardDatabasesOnDemand, .storageOnDemand,
-            .storageOnDemandReuse, .storageInstalling, .storageInstallFailed, .dashboardStorageOnDemand:
+            .storageOnDemandReuse, .storageInstalling, .storageInstallFailed, .dashboardStorageOnDemand, .mailOnDemand,
+            .mailOnDemandReuse, .mailInstalling, .mailInstallFailed, .dashboardMailOnDemand:
             SnapshotAppearance.allCases
         default: kind == .sheet ? SnapshotAppearance.allCases : SnapshotAppearance.standard
         }
@@ -132,14 +143,15 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
             .databasesInstalling, .databasesInstallFailed, .databaseEditorInstall, .databaseEditorInstalling,
             .databaseEditorInstallFailed:
             .section(.databases)
-        case .dashboardDatabasesOnDemand, .dashboardStorageOnDemand: .dashboard(.overview)
+        case .dashboardDatabasesOnDemand, .dashboardStorageOnDemand, .dashboardMailOnDemand: .dashboard(.overview)
         case .storage, .storageEmpty, .storageNoRuntime, .storageSetupFailed, .storageStuck, .storageFailed,
             .addBucket, .addBucketInvalid, .storagePorts, .storageOnDemand, .storageOnDemandReuse, .storageInstalling,
             .storageInstallFailed:
             .section(.storage)
         case .bucket: .item(.bucket("studio-public-assets"))
         case .bucketIncomplete: .item(.bucket("reports-archive"))
-        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailSetupFailed, .mailPorts, .mailQuitting:
+        case .mail, .mailStopped, .mailStuck, .mailNoRuntime, .mailSetupFailed, .mailPorts, .mailQuitting,
+            .mailOnDemand, .mailOnDemandReuse, .mailInstalling, .mailInstallFailed:
             .section(.mail)
         case .advancedCommandLineTools: .dashboard(.advanced)
         }

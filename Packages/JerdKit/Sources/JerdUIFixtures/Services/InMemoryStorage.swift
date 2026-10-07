@@ -22,7 +22,7 @@ public actor InMemoryStorage: StoragePort {
     /// When set, Add Bucket and the port change wait here before they change anything.
     public var gate: FixtureGate?
     /// The pinned RustFS that `runtimeOffer()` reports, or nil.
-    public var offer: StorageRuntimeOffer?
+    public var offer: ServiceRuntimeOffer?
     /// How `installRuntime` answers.
     public var installBehavior = InstallBehavior.succeed
     public private(set) var calls: [String] = []
@@ -51,7 +51,7 @@ public actor InMemoryStorage: StoragePort {
         setupFailure
     }
 
-    public func runtimeOffer() async -> StorageRuntimeOffer? {
+    public func runtimeOffer() async -> ServiceRuntimeOffer? {
         settings.runtime == nil ? offer : nil
     }
 

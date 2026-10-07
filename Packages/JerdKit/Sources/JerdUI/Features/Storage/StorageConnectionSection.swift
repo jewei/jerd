@@ -17,7 +17,7 @@ struct StorageConnectionSection: View {
             FormFooter(
                 model.hasRuntime
                     ? "Available only on this Mac. All buckets use the same storage service."
-                    : StorageRuntimeCopy.portsNotChosen)
+                    : ServiceRuntimeCopy.storage.portsNotChosen)
         }
     }
 

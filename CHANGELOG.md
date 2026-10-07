@@ -8,6 +8,7 @@ code marks.
 
 ## [Unreleased]
 
+- Jerd is smaller: it no longer includes Mailpit. Start Mail or Install Mailpit on the Mail page downloads it first (about 10 MB). A Mailpit that you already have stays in use, and your captured mail stays.
 - The app is a little smaller: the Redis runtime no longer includes the Lua build tools and other build output that Redis does not use.
 - The download is about 30 percent smaller, because the disk image uses stronger compression. The PHP, Mailpit, and Redis programs also use less disk space.
 

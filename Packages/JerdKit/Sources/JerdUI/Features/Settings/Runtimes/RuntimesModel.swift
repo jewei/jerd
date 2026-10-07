@@ -25,7 +25,7 @@ public final class RuntimesModel {
     public internal(set) var isShuttingDown = false
     /// The pinned release that waits for the install confirmation (a runtime on demand).
     public var pendingOnDemandInstall: RuntimeRelease?
-    /// Why installs wait: the Databases or Storage page installs a runtime now; nil when none does.
+    /// Why installs wait: the Databases, Storage, or Mail page installs a runtime now; nil when none does.
     /// `AppState` sets it.
     @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
 

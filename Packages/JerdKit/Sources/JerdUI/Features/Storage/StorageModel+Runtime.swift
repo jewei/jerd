@@ -11,10 +11,10 @@ extension StorageModel {
 
     /// Asks to confirm the installation of the pinned RustFS. Nothing downloads before the user
     /// confirms. The request shows on the Storage page, so a card or menu request shows that page.
-    /// - Parameter startsStorage: True for Start: storage starts after the installation.
-    public func requestRuntimeInstall(startsStorage: Bool = false) {
+    /// - Parameter startsService: True for Start: storage starts after the installation.
+    public func requestRuntimeInstall(startsService: Bool = false) {
         guard canInstallRuntime, let runtimeOffer else { return }
-        pendingRuntimeInstall = StorageRuntimeRequest(offer: runtimeOffer, startsStorage: startsStorage)
+        pendingRuntimeInstall = ServiceRuntimeRequest(offer: runtimeOffer, startsService: startsService)
         presentPage?()
     }
 
@@ -29,14 +29,14 @@ extension StorageModel {
             do {
                 try await installRuntime(request)
             } catch is CancellationError {
-                runtimeNotice = StorageRuntimeNotice(message: StorageRuntimeCopy.cancelled, isFailure: false)
+                runtimeNotice = ServiceRuntimeNotice(message: ServiceRuntimeCopy.storage.cancelled, isFailure: false)
                 return
             } catch {
-                runtimeNotice = StorageRuntimeNotice(message: ErrorText.message(for: error), isFailure: true)
+                runtimeNotice = ServiceRuntimeNotice(message: ErrorText.message(for: error), isFailure: true)
                 return
             }
             // A Cancel that came after the final rename keeps the runtime but starts nothing.
-            if request.startsStorage, !isShuttingDown, !Task.isCancelled { await start()?.value }
+            if request.startsService, !isShuttingDown, !Task.isCancelled { await start()?.value }
         }
         runtimeInstallTask = task
         return task
@@ -54,9 +54,9 @@ extension StorageModel {
     /// Download, verify, install, and register, then read the new runtime. A failed or cancelled
     /// installation reads the offer again, because a build may now be on this Mac. It throws
     /// `CancellationError` after a cancel.
-    private func installRuntime(_ request: StorageRuntimeRequest) async throws {
+    private func installRuntime(_ request: ServiceRuntimeRequest) async throws {
         runtimeNotice = nil
-        runtimeInstallation = StorageRuntimeInstallation(offer: request.offer, startsStorage: request.startsStorage)
+        runtimeInstallation = ServiceRuntimeInstallation(offer: request.offer, startsService: request.startsService)
         defer { runtimeInstallation = nil }
         do {
             _ = try await port.installRuntime { [weak self] progress in

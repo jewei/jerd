@@ -24,7 +24,7 @@ struct StorageOverviewPage: View {
             if model.loadState.isLoaded, !model.hasRuntime,
                 model.runtimeOffer != nil || model.runtimeInstallation != nil
             {
-                StorageRuntimeSection(model: model)
+                ServiceRuntimeSection(model: model)
             }
             bucketsSection
             StorageConnectionSection(model: model, bucket: nil)
