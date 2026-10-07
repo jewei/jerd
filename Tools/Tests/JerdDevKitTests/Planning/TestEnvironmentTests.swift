@@ -32,6 +32,19 @@ struct TestEnvironmentTests {
         #expect(noXZ["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == nil)
     }
 
+    @Test("The mail group also installs the on-demand Mailpit from the prepared downloads")
+    func mailGroupAddsTheMailpitCase() {
+        let base = ["PATH": "/usr/bin"]
+        let added = TestEnvironment.addingOnDemandDownloads(base, groups: [.mail], downloads: "/r/downloads")
+        #expect(added["JERD_ON_DEMAND_MAIL_INTEGRATION"] == "1" && added["JERD_RUNTIME_DOWNLOADS"] == "/r/downloads")
+        #expect(added["JERD_ON_DEMAND_INTEGRATION"] == nil && added["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == nil)
+        // Without the downloads the Mailpit case cannot run offline, so it is not switched on.
+        #expect(TestEnvironment.addingOnDemandDownloads(base, groups: [.mail], downloads: nil) == base)
+        // The other groups alone do not run the Mailpit case.
+        let database = TestEnvironment.addingOnDemandDownloads(base, groups: [.database], downloads: "/r/downloads")
+        #expect(database["JERD_ON_DEMAND_MAIL_INTEGRATION"] == nil)
+    }
+
     @Test("removes every inherited JERD_ variable from default tests")
     func stripsInheritedVariables() throws {
         let inherited = ["PATH": "/usr/bin", "JERD_INTEGRATION": "1", "JERD_UPDATE_INSTALL": "1"]

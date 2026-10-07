@@ -34,14 +34,15 @@ enum TestEnvironment {
         return environment
     }
 
-    /// The database group also installs the on-demand engines through the app pipeline, and the
-    /// storage group the on-demand RustFS, from the verified downloads of `./dev runtimes prepare`
-    /// (`downloads`, when that folder exists). RustFS also needs the prepared XZ library
-    /// (`xzSupport`), which the test puts into its app bundle. Explicit values win.
+    /// The database group also installs the on-demand engines through the app pipeline, the mail
+    /// group the on-demand Mailpit, and the storage group the on-demand RustFS, from the verified
+    /// downloads of `./dev runtimes prepare` (`downloads`, when that folder exists). RustFS also needs
+    /// the prepared XZ library (`xzSupport`), which the test puts into its app bundle. Explicit values
+    /// win.
     static func addingOnDemandDownloads(
         _ environment: [String: String], groups: [IntegrationGroup], downloads: String?, xzSupport: String? = nil
     ) -> [String: String] {
-        guard groups.contains(.database) || groups.contains(.storage) else { return environment }
+        guard groups.contains(where: [.database, .mail, .storage].contains) else { return environment }
         var result = environment
         if (result["JERD_RUNTIME_DOWNLOADS"] ?? "").isEmpty, let downloads {
             result["JERD_RUNTIME_DOWNLOADS"] = downloads
@@ -49,6 +50,9 @@ enum TestEnvironment {
         guard !(result["JERD_RUNTIME_DOWNLOADS"] ?? "").isEmpty else { return result }
         if groups.contains(.database) {
             result["JERD_ON_DEMAND_INTEGRATION"] = "1"
+        }
+        if groups.contains(.mail) {
+            result["JERD_ON_DEMAND_MAIL_INTEGRATION"] = "1"
         }
         if groups.contains(.storage) {
             if (result["JERD_XZ_SUPPORT"] ?? "").isEmpty, let xzSupport {
