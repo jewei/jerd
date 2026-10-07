@@ -80,15 +80,30 @@ struct OnDemandMailIntegrationTests {
         do {
             try await port.start()
             #expect(await port.snapshot().state.isRunning)
+            #expect(try await messageCount(webPort: settings.webPort) == 0)
             try await port.sendTestEmail()
+            #expect(try await messageCount(webPort: settings.webPort) == 1)
+            try await port.stop()
+            #expect(await port.snapshot().state == .stopped)
+            // Stop keeps the captured message: a new start of the same inbox still lists it.
+            try await port.start()
+            #expect(try await messageCount(webPort: settings.webPort) == 1)
             try await port.stop()
         } catch {
             try? await port.stop()
             throw error
         }
         #expect(await port.snapshot().state == .stopped)
-        // Stop keeps the inbox with the captured message.
-        let database = folder.layout.mail.inboxDirectory.appendingPathComponent("messages.sqlite")
-        #expect(FileProbe.presence(at: database) == .present)
+    }
+
+    /// The `total` of the Mailpit message list API of the running inbox on its loopback web port.
+    private func messageCount(webPort: UInt16) async throws -> Int {
+        let url = try #require(URL(string: "http://127.0.0.1:\(webPort)/api/v1/messages"))
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.connectionProxyDictionary = [:]
+        let (data, response) = try await URLSession(configuration: configuration).data(from: url)
+        #expect((response as? HTTPURLResponse)?.statusCode == 200)
+        let list = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return try #require(list?["total"] as? Int, "The message list has no total.")
     }
 }
