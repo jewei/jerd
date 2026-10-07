@@ -30,6 +30,10 @@ All paths come from `MailLayout` in JerdFoundation. Folders have mode 0700 and f
 
 ## Rules
 
+- The app does not embed Mailpit: JerdLive installs the pinned release on demand, and only after
+  a user action. `registerRuntime` then chooses two free ports, never replaces a saved runtime,
+  and never touches the inbox. A runtime that an earlier copy saved (also in `mail-runtimes/`)
+  stays in use.
 - A corrupt or unsupported `settings.json` is never replaced. Its runtime changes only in an update.
 - Both ports are from 1024 to 65535, differ, and are free on every address before a start.
 - Mailpit listens only on `127.0.0.1`, has no UDP socket, and gets a clean environment.

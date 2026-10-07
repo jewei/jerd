@@ -140,8 +140,8 @@ struct PayloadSignerTests {
     func refusesChangedPayload() async throws {
         let (workspace, layout) = try Self.setUp()
         defer { workspace.remove() }
-        let mail = layout.appPayloads.appending(path: "mail/mailpit-1.31.3-arm64/LICENSE")
-        try Data("changed".utf8).write(to: mail)
+        let caddy = layout.appPayloads.appending(path: "development/\(try PayloadFixtures.pin(.caddy).id)/LICENSE")
+        try Data("changed".utf8).write(to: caddy)
         await #expect(throws: DevFailure.self) { _ = try await Self.signer(workspace, layout).run() }
         #expect(workspace.runner.calls("codesign", ["--force"]).isEmpty)
     }

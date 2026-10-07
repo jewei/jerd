@@ -21,7 +21,7 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
         if runtimeInstallation != nil { return DisplayStatus("Installing…", tone: .busy) }
         if loadState.isLoaded, !hasRuntime {
-            return DisplayStatus(StorageRuntimeCopy.notInstalledStatus, tone: .idle)
+            return DisplayStatus(ServiceRuntimeCopy.notInstalledStatus, tone: .idle)
         }
         if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         let working = operation.isWorking || bucketOperation.isWorking
@@ -44,7 +44,7 @@ extension StorageModel: WorkspaceFeature, ShutdownParticipant {
         }
         let onDemand = runtimeOffer.map {
             ServiceCardNotice(
-                text: StorageRuntimeCopy.cardNotice($0), reason: "Wait for the current storage work to end.",
+                text: ServiceRuntimeCopy.storage.cardNotice($0), reason: "Wait for the current storage work to end.",
                 isPreparing: false)
         }
         return ServiceCardNotice.notice(

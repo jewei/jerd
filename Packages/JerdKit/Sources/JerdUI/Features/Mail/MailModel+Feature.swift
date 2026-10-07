@@ -11,6 +11,10 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
     /// The status of the page header, the card, and the menu.
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
+        if runtimeInstallation != nil { return DisplayStatus("Installing…", tone: .busy) }
+        if loadState.isLoaded, !hasRuntime {
+            return DisplayStatus(ServiceRuntimeCopy.notInstalledStatus, tone: .idle)
+        }
         if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
         if operation.isWorking, !state.isBusy { return DisplayStatus(state.displayStatus.label, tone: .busy) }
         return state.displayStatus
@@ -21,9 +25,20 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
         return FeatureSummary(status: status, summary: text, actions: cardActions)
     }
 
-    /// The card text while Mailpit cannot run yet: preparing, not loaded, or not installed.
+    /// The card text while Mailpit cannot run yet: preparing, not loaded, installing, or not
+    /// installed. With a pinned Mailpit, Start installs it first, so the card says so.
     var cardNotice: ServiceCardNotice? {
-        ServiceCardNotice.notice(load: loadState, hasRuntime: hasRuntime, runtime: "Mailpit", settings: "Mail")
+        if let runtimeInstallation, !hasRuntime {
+            return ServiceCardNotice(
+                text: runtimeInstallation.message, reason: "Jerd is installing Mailpit.", isPreparing: false)
+        }
+        let onDemand = runtimeOffer.map {
+            ServiceCardNotice(
+                text: ServiceRuntimeCopy.mail.cardNotice($0), reason: "Wait for the current mail work to end.",
+                isPreparing: false)
+        }
+        return ServiceCardNotice.notice(
+            load: loadState, hasRuntime: hasRuntime, runtime: "Mailpit", settings: "Mail", missingRuntime: onDemand)
     }
 
     /// Start, or Stop and Open Inbox while Mailpit runs (`CardActionRule`).
@@ -44,14 +59,21 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
             }
         }
         return FeatureAction(
-            id: "mail.start", title: "Start Mail", isEnabled: canStart, unavailableReason: cardNotice?.reason
+            id: "mail.start", title: "Start Mail", isEnabled: canStart, unavailableReason: startUnavailableReason
         ) {
             [weak self] in self?.start()
         }
     }
 
+    /// Why Start is off: an installation on another page, then the card notice.
+    var startUnavailableReason: String? {
+        (startInstallsRuntime ? runtimeInstallElsewhere?() : nil) ?? cardNotice?.reason
+    }
+
     var inboxAction: FeatureAction {
-        FeatureAction(id: "mail.inbox", title: "Open Inbox", isEnabled: canOpenInbox) {
+        FeatureAction(
+            id: "mail.inbox", title: "Open Inbox", isEnabled: canOpenInbox, unavailableReason: inboxUnavailableReason
+        ) {
             [weak self] in self?.openInbox()
         }
     }
@@ -60,9 +82,12 @@ extension MailModel: WorkspaceFeature, ShutdownParticipant {
         await load()
     }
 
-    /// Waits for every running task, then stops Mailpit. False keeps Jerd open.
+    /// Cancels a Mailpit installation before its final rename, waits for every running task, then
+    /// stops Mailpit. False keeps Jerd open.
     public func shutdown() async -> Bool {
         isShuttingDown = true
+        pendingRuntimeInstall = nil
+        cancelRuntimeInstall()
         await running.waitForAll()
         guard loadState.isLoaded, state != .stopped else { return true }
         do {

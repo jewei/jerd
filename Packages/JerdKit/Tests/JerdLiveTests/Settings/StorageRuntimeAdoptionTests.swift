@@ -1,6 +1,7 @@
 import Foundation
 import JerdDatabases
 import JerdFoundation
+import JerdMail
 import JerdManifest
 import JerdRuntimes
 import JerdStorage
@@ -9,8 +10,8 @@ import Testing
 
 @testable import JerdLive
 
-/// A new user has no RustFS (the app installs it on demand). A RustFS or database release from
-/// Check for Runtime Updates must then become usable, not stay an unused build.
+/// A new user has no RustFS and no Mailpit (the app installs them on demand). A RustFS, Mailpit, or
+/// database release from Check for Runtime Updates must then become usable, not stay an unused build.
 @Suite("Runtime updates without a saved runtime")
 struct StorageRuntimeAdoptionTests {
     static let runtime = StorageRuntime(
@@ -28,6 +29,22 @@ struct StorageRuntimeAdoptionTests {
         let saved = RecordingStorageManager(settings)
         try await StorageRuntimeAdoption.adopt(Self.runtime, manager: saved)
         #expect(await saved.calls == ["update \(Self.runtime.id)"])
+    }
+
+    @Test("Without a saved Mailpit the build is registered; with one it goes through the update")
+    func mailAdoptionRule() async throws {
+        let build = MailRuntime(
+            id: "mailpit-1.31.4-arm64-abc", version: "1.31.4",
+            path: "/nonexistent/Jerd/runtime-updates/mailpit-1.31.4-arm64-abc")
+        let empty = RecordingMailManager()
+        try await MailRuntimeAdoption.adopt(build, manager: empty)
+        #expect(await empty.calls == ["register \(build.id)"])
+
+        var settings = MailSettings()
+        settings.runtime = MailRuntime(id: "mailpit-1.31.3", version: "1.31.3", path: "/runtimes/mailpit")
+        let saved = RecordingMailManager(settings)
+        try await MailRuntimeAdoption.adopt(build, manager: saved)
+        #expect(await saved.calls == ["update \(build.id)"])
     }
 
     /// The live domain on a temporary data root, with the committed catalog in its bundle.
@@ -67,6 +84,25 @@ struct StorageRuntimeAdoptionTests {
         let saved = await domain.storage.snapshot().settings
         #expect(saved.runtime == RuntimeActivator.storageRuntime(build))
         #expect(saved.buckets.isEmpty)
+    }
+
+    /// The live `MailManager` refuses an update without a saved runtime, so this fails if the
+    /// activation calls the update directly.
+    @Test("A checked Mailpit release without a saved Mailpit is registered and usable")
+    func checkedMailpitIsRegistered() async throws {
+        let folder = try TemporaryDirectory("checked-mailpit")
+        defer { folder.remove() }
+        let domain = try domain(folder)
+        _ = try await domain.mail.load()
+        let build = SettingsSamples.build(.mailpit, version: "1.31.4", digest: "abc")
+        let release = DatabaseRuntimeInstallerTests.pinned(
+            .mailpit, "1.31.4", digest: "abc",
+            link: "https://github.com/axllent/mailpit/releases/download/v1.31.4/m.tar.gz", size: 10)
+        try await installChecked(release, build: build, domain: domain)
+        let saved = await domain.mail.snapshot().settings
+        #expect(saved.runtime == RuntimeActivator.mailRuntime(build))
+        // The registration chose the ports; the inbox folder is created only at the first start.
+        #expect(FileProbe.presence(at: folder.layout.mail.inboxDirectory) == .absent)
     }
 
     @Test("A checked MySQL release for an engine without a runtime is registered")

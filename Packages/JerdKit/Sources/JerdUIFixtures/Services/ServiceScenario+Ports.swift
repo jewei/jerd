@@ -81,6 +81,7 @@ extension ServiceScenario {
     }
 
     private func mail(_ base: InMemoryMail) -> InMemoryMail {
+        if let onDemand = onDemandMail() { return onDemand }
         switch self {
         case .mailStopped:
             return InMemoryMail(settings: MailSettings(runtime: SampleServices.mailRuntime), hasData: true)

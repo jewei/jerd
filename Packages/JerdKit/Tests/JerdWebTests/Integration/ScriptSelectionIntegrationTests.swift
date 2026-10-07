@@ -10,7 +10,7 @@ import Testing
 ///
 /// Every target script prints `TARGET-` and `EXECUTED` joined at run time, so its source text never
 /// contains the marker. A response that contains the marker proves that PHP ran the target.
-@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
+@Suite(.enabled(if: IntegrationRun.enabled, "Set JERD_WEB_INTEGRATION=1 and select PHP CLI, PHP-FPM, and Caddy."))
 struct ScriptSelectionIntegrationTests {
     /// What one request must produce.
     enum Outcome: Equatable {

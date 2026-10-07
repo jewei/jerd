@@ -31,7 +31,7 @@ package struct LiveStoragePort: StoragePort {
             layout: domain.layout.storage, onDemand: StorageRuntimeInstaller(domain: domain))
     }
 
-    package func runtimeOffer() async -> StorageRuntimeOffer? {
+    package func runtimeOffer() async -> ServiceRuntimeOffer? {
         await onDemand?.offer()
     }
 

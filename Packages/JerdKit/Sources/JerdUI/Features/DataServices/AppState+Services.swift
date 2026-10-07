@@ -6,6 +6,7 @@ extension AppState {
         case runtimes
         case databases
         case storage
+        case mail
     }
 
     /// Lets the service models show another place in the window, for example Runtimes or a
@@ -25,12 +26,19 @@ extension AppState {
             self?.open(.section(.storage))
         }
         mail.navigate = show
-        // One installer serves the three pages, so each page waits while another one installs.
+        // The card and the menu bar ask to install Mailpit on the Mail page, in the front window.
+        mail.presentPage = { [weak self] in
+            self?.open(.section(.mail))
+        }
+        // One installer serves the four pages, so each page waits while another one installs.
         databases.runtimeInstallElsewhere = { [weak self] in
             self?.runtimeInstallReason(excluding: .databases)
         }
         storage.runtimeInstallElsewhere = { [weak self] in
             self?.runtimeInstallReason(excluding: .storage)
+        }
+        mail.runtimeInstallElsewhere = { [weak self] in
+            self?.runtimeInstallReason(excluding: .mail)
         }
         runtimes.runtimeInstallElsewhere = { [weak self] in
             self?.runtimeInstallReason(excluding: .runtimes)
@@ -47,6 +55,9 @@ extension AppState {
         }
         if page != .storage, let installation = storage.runtimeInstallation {
             return RuntimeInstallCopy.waits(for: "The Storage page", installing: installation.offer.title)
+        }
+        if page != .mail, let installation = mail.runtimeInstallation {
+            return RuntimeInstallCopy.waits(for: "The Mail page", installing: installation.offer.title)
         }
         return nil
     }

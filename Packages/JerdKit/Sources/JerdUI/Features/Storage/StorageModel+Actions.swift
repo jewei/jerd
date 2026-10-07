@@ -8,7 +8,7 @@ extension StorageModel {
     public func start() -> Task<Void, Never>? {
         guard canStart else { return nil }
         if startInstallsRuntime {
-            requestRuntimeInstall(startsStorage: true)
+            requestRuntimeInstall(startsService: true)
             return nil
         }
         return perform("Starting storage…") { try await $0.port.start() }

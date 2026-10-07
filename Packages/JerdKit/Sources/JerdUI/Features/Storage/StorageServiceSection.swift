@@ -20,7 +20,7 @@ struct StorageServiceSection: View {
         } footer: {
             FormFooter(
                 !model.hasRuntime
-                    ? StorageRuntimeCopy.portsNotChosen
+                    ? ServiceRuntimeCopy.storage.portsNotChosen
                     : model.state.offersStop
                         ? "Stop storage to change its ports. Port changes keep all buckets and objects."
                         : "Both ports are limited to this Mac. Port changes keep all buckets and objects.")

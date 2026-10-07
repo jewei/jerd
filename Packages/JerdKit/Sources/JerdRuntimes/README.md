@@ -11,13 +11,14 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `RuntimeRelease`, `ReleasePolicy`, `HostAllowlist` | A release, rules R1–R5 for one candidate, and the one URL rule. |
 | `URLSessionFetcher` (`HTTPFetching`), `MetadataCache` | HTTPS with a live byte limit and progress; a 5-minute shared cache. |
 | `RuntimeCatalog`, `RuntimeUpdateCheck` | One source per publisher. Bad candidates are dropped, not fatal. |
-| `RuntimePipeline`, `PreparationTools` | Download → verify → prepare → probe → permissions → hashes. |
+| `RuntimePipeline`, `PreparationTools` | Download → verify → prepare → strip → probe → permissions → hashes. |
+| `SymbolStripping`, `SymbolStripper` | The pinned rule that removes local symbols from some executables, and the step that applies it. |
 | `MinimumMacOS`, `SourceBuildCheck` | The oldest macOS of the app, which a source build targets and must declare. |
 | `PinnedRSAVerifier`, `PinnedRSAKey` | OpenPGP v4 signature check with Oracle's pinned MySQL key. |
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
 | `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the embedded payloads. |
-| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (MySQL, PostgreSQL, and RustFS), for `RuntimeInstaller`. |
+| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (MySQL, PostgreSQL, Mailpit, and RustFS), for `RuntimeInstaller`. |
 | `BundledSupportLibrary` | The XZ library that the app embeds on its own (`RuntimePayloads/support/xz`), verified against its receipt and the pinned XZ source. |
 | `DiskSpace` | Recognizes a full volume in any step, for one clear message. |
 | `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
@@ -40,6 +41,15 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   verify` checks every reference. A changed file set gives a new payload folder ID; installed
   folders and registered services stay valid, because reuse and `runtime-updates/` match by pin
   and digest, not by file set.
+- After the preparer and before the probe, `SymbolStripper` runs `/usr/bin/strip -x` on the files that
+  `SymbolStripping` names: the PHP CLI and FPM, `mailpit`, and Redis `bin/redis-server` and `bin/redis-cli`.
+  Then `codesign --verify --strict` must accept each file, and the probe runs the stripped files, so the
+  receipt and the release signer cover them. `-x` keeps the global symbols; `-S` saves almost nothing on
+  these builds. The listed files carry an ad-hoc linker signature, which `strip` writes again. Caddy
+  (`strip` refuses it), RustFS (no gain), MySQL, PostgreSQL, and the PHP scripts stay as they are.
+  `./dev runtimes prepare` requires the step (`.required`). The app strips only when `xcode-select -p`
+  names a developer folder (`.whenDeveloperToolsExist`), so an update never asks for the Command Line
+  Tools. Stripped files give a new payload folder ID; installed folders stay valid.
 - Managed updates and bundled payloads use the same preparers and version probes. PHP
   names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's:
   `LZMALinker` copies `liblzma.5.dylib` and its license into the installed runtime, so the
@@ -64,7 +74,8 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   is never replaced. One installation runs at a time. Cancellation stops it before the rename.
 - A listing reports each build folder on its own. A bad folder does not hide the others.
 - The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL,
-  PostgreSQL, and RustFS; Redis and Mailpit stay embedded). `installStorage()` returns nil then. `BundledPayloadSource` skips it and
+  PostgreSQL, Mailpit, and RustFS; Redis stays embedded). `installMail()` and `installStorage()`
+  return nil then. `BundledPayloadSource` skips it and
   `BundledRuntimeBootstrap` installs nothing of it and downloads nothing. `OnDemandRuntimes`
   turns each such pin into a `RuntimeRelease` with the exact URL, size, SHA-256, the reviewed
   MySQL signature file, and the pinned `engineVersion`, which the probe must report and which

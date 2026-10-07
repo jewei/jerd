@@ -49,8 +49,9 @@ struct StorageRuntimeInstallerTests {
     func offerMapsThePin() async {
         #expect(
             await installer().offer()
-                == StorageRuntimeOffer(
-                    versionLabel: "1.0.0", downloadSize: 87_018_416, source: "github.com", installedSize: 223_534_901))
+                == ServiceRuntimeOffer(
+                    name: "RustFS", versionLabel: "1.0.0", downloadSize: 87_018_416, source: "github.com",
+                    installedSize: 223_534_901))
         #expect(await installer().offer()?.requiredSpace == 87_018_416 + 223_534_901)
     }
 

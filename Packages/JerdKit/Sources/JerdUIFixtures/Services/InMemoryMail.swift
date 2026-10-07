@@ -1,5 +1,6 @@
 import JerdFoundation
 import JerdMail
+import JerdRuntimes
 import JerdServiceKit
 import JerdUI
 
@@ -18,6 +19,10 @@ public actor InMemoryMail: MailPort {
     public var suggestion = MailPorts(smtp: 1026, web: 8026)
     /// When set, the port change waits here before it changes anything.
     public var gate: FixtureGate?
+    /// The pinned Mailpit that `runtimeOffer()` reports, or nil.
+    public var offer: ServiceRuntimeOffer?
+    /// How `installRuntime` answers.
+    public var installBehavior = InstallBehavior.succeed
     public private(set) var calls: [String] = []
 
     public init(settings: MailSettings = MailSettings(), state: ServiceState = .stopped, hasData: Bool = false) {
@@ -38,6 +43,33 @@ public actor InMemoryMail: MailPort {
 
     public func runtimeSetupFailure() async -> String? {
         setupFailure
+    }
+
+    public func runtimeOffer() async -> ServiceRuntimeOffer? {
+        settings.runtime == nil ? offer : nil
+    }
+
+    /// Registers a sample runtime of the offered version, like the live installer. The inbox stays
+    /// as it is.
+    public func installRuntime(
+        progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> MailRuntime {
+        calls.append("install mailpit")
+        guard let offer else { throw JerdError.unavailable("This copy of Jerd has no pinned Mailpit runtime.") }
+        switch installBehavior {
+        case .succeed:
+            progress(RuntimeInstallProgress("Downloading \(offer.title)…", 0.5))
+            let runtime = MailRuntime(
+                id: "mailpit-\(offer.versionLabel)-arm64-0123456789abcdef", version: offer.versionLabel,
+                path: "/Users/sample/Library/Application Support/Jerd/runtime-updates/mailpit")
+            settings.runtime = runtime
+            return runtime
+        case .fail(let message):
+            throw JerdError.unavailable(message)
+        case .suspend(let report):
+            progress(report)
+            try await ServiceBehavior.waitForCancellation()
+        }
     }
 
     public func snapshot() async -> MailSnapshot { MailSnapshot(settings: settings, state: state) }

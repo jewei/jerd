@@ -1,0 +1,81 @@
+import Foundation
+import JerdMail
+import JerdRuntimes
+
+extension MailModel {
+    /// True when the Mailpit installation can start now: no runtime yet, a pinned offer, no other
+    /// mail work, no installation on another page, and not during a quit.
+    public var canInstallRuntime: Bool {
+        canChange && !hasRuntime && runtimeOffer != nil && runtimeInstallElsewhere?() == nil
+    }
+
+    /// Asks to confirm the installation of the pinned Mailpit. Nothing downloads before the user
+    /// confirms. The request shows on the Mail page, so a card or menu request shows that page.
+    /// - Parameter startsService: True for Start: mail starts after the installation.
+    public func requestRuntimeInstall(startsService: Bool = false) {
+        guard canInstallRuntime, let runtimeOffer else { return }
+        pendingRuntimeInstall = ServiceRuntimeRequest(offer: runtimeOffer, startsService: startsService)
+        presentPage?()
+    }
+
+    /// Installs the confirmed Mailpit, then starts mail when Start asked for it. The page shows the
+    /// progress; Cancel stops it.
+    @discardableResult
+    public func confirmRuntimeInstall() -> Task<Void, Never>? {
+        guard let request = pendingRuntimeInstall else { return nil }
+        pendingRuntimeInstall = nil
+        guard canInstallRuntime else { return nil }
+        let task = running.run { [self] in
+            do {
+                try await installRuntime(request)
+            } catch is CancellationError {
+                runtimeNotice = ServiceRuntimeNotice(message: ServiceRuntimeCopy.mail.cancelled, isFailure: false)
+                return
+            } catch {
+                runtimeNotice = ServiceRuntimeNotice(message: ErrorText.message(for: error), isFailure: true)
+                return
+            }
+            // A Cancel that came after the final rename keeps the runtime but starts nothing.
+            if request.startsService, !isShuttingDown, !Task.isCancelled { await start()?.value }
+        }
+        runtimeInstallTask = task
+        return task
+    }
+
+    /// Stops the running installation before its final rename. Nothing is installed then.
+    public func cancelRuntimeInstall() {
+        runtimeInstallTask?.cancel()
+    }
+
+    public func dismissRuntimeNotice() {
+        runtimeNotice = nil
+    }
+
+    /// Download, verify, install, and register, then read the new runtime and its ports. A failed
+    /// or cancelled installation reads the offer again, because a build may now be on this Mac. It
+    /// throws `CancellationError` after a cancel.
+    private func installRuntime(_ request: ServiceRuntimeRequest) async throws {
+        runtimeNotice = nil
+        testResult = nil
+        runtimeInstallation = ServiceRuntimeInstallation(offer: request.offer, startsService: request.startsService)
+        defer { runtimeInstallation = nil }
+        do {
+            _ = try await port.installRuntime { [weak self] progress in
+                Task { @MainActor in self?.show(progress) }
+            }
+            await refresh()
+        } catch {
+            await refresh()
+            runtimeOffer = await port.runtimeOffer()
+            // A cancelled task can end with any error of the step that it stopped.
+            if Task.isCancelled { throw CancellationError() }
+            throw error
+        }
+    }
+
+    /// Progress that arrives after the installation ended is dropped.
+    private func show(_ progress: RuntimeInstallProgress) {
+        guard runtimeInstallation != nil else { return }
+        runtimeInstallation?.progress = progress
+    }
+}

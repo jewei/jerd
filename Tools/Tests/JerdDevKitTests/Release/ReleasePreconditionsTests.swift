@@ -168,11 +168,16 @@ struct ReleasePreconditionsTests {
         }
         let payload = try ReadyReleaseMac.workspace()
         defer { payload.remove() }
-        try FileManager.default.removeItem(at: payload.path(".build/runtimes/payloads/mail"))
+        try FileManager.default.removeItem(at: payload.path(".build/runtimes/payloads/database"))
         let error = await #expect(throws: DevFailure.self) {
             try await ReleasePreflight(shell: payload.shell(), inputs: ReleaseFixtures.inputs()).run()
         }
-        #expect(error?.message.contains("mailpit-") == true)
+        #expect(error?.message.contains("redis-") == true)
+        // Mailpit installs on demand, so a release does not need its prepared payload.
+        let mail = try ReadyReleaseMac.workspace()
+        defer { mail.remove() }
+        try FileManager.default.removeItem(at: mail.path(".build/runtimes/payloads/mail"))
+        try await ReleasePreflight(shell: mail.shell(), inputs: ReleaseFixtures.inputs()).run()
         // The XZ check of the smoke step needs the prepared RustFS, which the app does not embed.
         let rustfs = try ReadyReleaseMac.workspace()
         defer { rustfs.remove() }

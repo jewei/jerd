@@ -86,6 +86,6 @@ swift test --package-path Packages/JerdKit --filter JerdWebTests
 ```
 
 The default tests use temporary folders, fakes, and loopback ports above 1023. Opt-in tests
-need `JERD_INTEGRATION=1`, `JERD_PHP_CLI`, `JERD_PHP_FPM`, and `JERD_CADDY` (and optionally
+need `JERD_WEB_INTEGRATION=1`, `JERD_PHP_CLI`, `JERD_PHP_FPM`, and `JERD_CADDY` (and optionally
 `JERD_SECOND_PHP_CLI` and `JERD_SECOND_PHP_FPM`). They use an isolated CA and change no
 system trust.

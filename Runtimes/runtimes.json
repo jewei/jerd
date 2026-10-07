@@ -99,7 +99,9 @@
         "size": 9848192,
         "sha256": "f72ac5bae2c8ef6bd719c1aa11237500e9a81e50ba759f92b9b1e80812920a85"
       },
-      "releasePage": "https://github.com/axllent/mailpit/releases/tag/v1.31.3"
+      "releasePage": "https://github.com/axllent/mailpit/releases/tag/v1.31.3",
+      "embedded": false,
+      "installedSize": 26328126
     },
     {
       "id": "rustfs-1.0.0-arm64",

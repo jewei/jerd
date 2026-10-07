@@ -146,6 +146,62 @@ struct LiveServicePortsTests {
         #expect(files.log == layout.logFile)
     }
 
+    @Test func mailLoadOfAnAppWithoutMailpitRegistersNothingAndReportsNoFailure() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let manager = RecordingMailManager()
+        let runtimes = FakeServiceRuntimes(embedsMail: false)
+        let port = LiveMailPort(manager: manager, runtimes: runtimes, layout: temporary.layout.mail)
+
+        #expect(try await port.load().settings.runtime == nil)
+        #expect(await port.runtimeSetupFailure() == nil)
+        #expect(await manager.calls == ["load"])
+        // A port without on-demand installation offers nothing and installs nothing.
+        #expect(await port.runtimeOffer() == nil)
+        await #expect(throws: JerdError.self) { try await port.installRuntime { _ in } }
+    }
+
+    /// An earlier copy embedded Mailpit and registered it from `mail-runtimes/`: it stays in use.
+    @Test func mailThatAnEarlierCopyRegisteredKeepsItsRuntime() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        var settings = MailSettings()
+        settings.runtime = MailRuntime(
+            id: "mailpit-1.31.3-arm64-0123456789abcdef", version: "1.31.3",
+            path: temporary.path("mail-runtimes/mailpit-1.31.3-arm64-0123456789abcdef").path)
+        settings.ports = MailPorts(smtp: 2525, web: 8125)
+        let manager = RecordingMailManager(settings)
+        let runtimes = FakeServiceRuntimes(embedsMail: false)
+        let port = LiveMailPort(manager: manager, runtimes: runtimes, layout: temporary.layout.mail)
+
+        let loaded = try await port.load().settings
+        #expect(loaded.runtime == settings.runtime && loaded.ports == settings.ports)
+        #expect(await runtimes.mailRequests == 0)
+        #expect(await manager.calls == ["load"])
+    }
+
+    @Test func mailPortInstallsThroughTheOnDemandFlow() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let manager = RecordingMailManager()
+        let managed = FakeManagedInstaller([MailRuntimeInstallerTests.mailpitBuild])
+        let onDemand = MailRuntimeInstaller(
+            flow: OnDemandInstallFlow(
+                releases: FakeOnDemandReleases(list: [MailRuntimeInstallerTests.mailpit]), installer: managed,
+                layout: temporary.layout, freeSpace: FakeFreeSpace(bytes: nil)),
+            manager: manager)
+        let port = LiveMailPort(
+            manager: manager, runtimes: FakeServiceRuntimes(embedsMail: false), layout: temporary.layout.mail,
+            onDemand: onDemand)
+
+        _ = try await port.load()
+        // The build exists already, so the offer says that nothing is downloaded.
+        #expect(await port.runtimeOffer()?.reusesInstalledCopy == true)
+        let runtime = try await port.installRuntime { _ in }
+        #expect(await port.snapshot().settings.runtime == runtime)
+        #expect(await manager.calls == ["load", "register \(runtime.id)"])
+    }
+
     // MARK: Storage
 
     @Test func storageLoadInstallsRustFSOnlyWhenNoRuntimeIsSaved() async throws {

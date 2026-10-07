@@ -1,7 +1,8 @@
 import JerdDesign
 import SwiftUI
 
-/// How an application reaches the inbox, and the Laravel settings to copy.
+/// How an application reaches the inbox, and the Laravel settings to copy. Before Mailpit is
+/// installed there is no address yet: the registration chooses the ports.
 struct MailConnectionSection: View {
     let model: MailModel
 
@@ -12,7 +13,9 @@ struct MailConnectionSection: View {
             Text("Connection")
         } footer: {
             FormFooter(
-                "Available only on this Mac. Messages are captured here; they are not sent to external recipients.")
+                model.hasRuntime
+                    ? "Available only on this Mac. Messages are captured here; they are not sent to external recipients."
+                    : ServiceRuntimeCopy.mail.portsNotChosen)
         }
         Section {
             ActionRow(".env settings", detail: "MAIL_HOST and MAIL_PORT for this inbox, without a password.") {
@@ -30,6 +33,13 @@ struct MailConnectionSection: View {
     /// The host, ports, and URL to paste; the authentication and encryption to read.
     static func values(_ model: MailModel) -> [ConnectionValue] {
         let host = "127.0.0.1"
+        guard model.hasRuntime else {
+            return [
+                .description("SMTP server", "Not chosen yet"), .description("Inbox URL", "Not chosen yet"),
+                .description("Authentication", "No username or password"),
+                .description("Encryption", "None · Local SMTP and HTTP"),
+            ]
+        }
         return [
             .pasteable("Host", host) { model.copyValue(host, label: "Host") },
             .pasteable("SMTP port", String(model.settings.smtpPort), copy: model.copySMTPPort),

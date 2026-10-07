@@ -17,7 +17,7 @@ implements them in memory.
 | `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, the engine list (`DatabaseEnginesSection`), and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
 | `Features/Mail/` | `MailPort`, `MailModel`, the Mail page, and the ports sheet. |
-| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet, the missing-runtime banner with the reason of a failed bundled setup (`MissingRuntimeBanner`), and the state banner (`ServiceStateBanner`). A failed service shows one cause line, Open Log, and the last three log lines with short paths behind a disclosure (`ServiceFailureSummary`), not the whole log tail of the reason. |
+| `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet, the on-demand runtime of Storage and Mail (`ServiceRuntimeOffer`, `ServiceRuntimeRequest`, `ServiceRuntimeInstallation`, `ServiceRuntimeNotice`, `ServiceRuntimeCopy`, `ServiceRuntimeSection`, `ServiceRuntimeConfirmation`), the missing-runtime banner with the reason of a failed bundled setup (`MissingRuntimeBanner`), and the state banner (`ServiceStateBanner`). A failed service shows one cause line, Open Log, and the last three log lines with short paths behind a disclosure (`ServiceFailureSummary`), not the whole log tail of the reason. |
 | `Features/Sites/` | `SitesModel` (`SitesPort`): the sidebar, site page, site editor, HTTPS approval, system setup states. |
 | `Features/Tunnels/` | `TunnelsModel` (`TunnelsPort`): the tunnel page, tunnel editor, and connector log, inside Sites. |
 
@@ -94,6 +94,23 @@ Nothing is downloaded without a user action.
 - One installation runs at a time: the Databases, Storage, and Runtimes pages each turn off
   their Install while another page installs (`runtimeInstallElsewhere` gives the reason). Quit
   cancels a running installation before its final rename.
+
+## Mailpit on demand
+
+The app does not include Mailpit either; `MailPort.runtimeOffer()` gives the same
+`ServiceRuntimeOffer` as Storage, and the Mail page uses the same section, question, and words
+(`ServiceRuntimeCopy.mail`). Nothing is downloaded without a user action.
+
+- The Mail page without Mailpit shows the Runtime section first: "Not installed. 1.31.3, 9.8 MB
+  download." with Install Mailpit…, or the running installation with the bytes, a bar, and
+  Cancel. The status (page, card, and menu bar) is "Not installed".
+- The registration of Mailpit chooses the ports, so before it the page shows no SMTP server,
+  port, or inbox URL to copy ("Not chosen yet"); Edit Ports and Copy Laravel Settings are off.
+- Start Mail (header, card, menu bar) asks first, with "Then Jerd starts mail.", installs, then
+  starts mail in one flow. Send Test Email and Open Inbox are off and say why: "Install Mailpit,
+  then start mail to send a test email."
+- The Databases, Storage, Mail, and Runtimes pages wait for each other's install. Quit cancels a
+  running installation before its final rename. Captured mail is never touched.
 
 ## Dashboard cards
 

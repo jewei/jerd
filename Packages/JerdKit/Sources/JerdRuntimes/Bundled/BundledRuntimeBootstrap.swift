@@ -54,9 +54,11 @@ public actor BundledRuntimeBootstrap {
         try await install(.database, into: layout.runtimes.databaseRuntimesDirectory, excluding: excluding)
     }
 
-    /// Installs Mailpit.
-    public func installMail() async throws -> InstalledPayload {
-        try await single(.mail, into: layout.runtimes.mailRuntimesDirectory)
+    /// Installs the embedded Mailpit, or returns nil when the app installs Mailpit on demand
+    /// (`"embedded": false` on its pin). Then nothing is installed and nothing is downloaded; a
+    /// Mailpit that an earlier copy installed stays registered and in use.
+    public func installMail() async throws -> InstalledPayload? {
+        try await install(.mail, into: layout.runtimes.mailRuntimesDirectory).first
     }
 
     /// Installs the embedded RustFS, or returns nil when the app installs RustFS on demand
@@ -103,12 +105,5 @@ public actor BundledRuntimeBootstrap {
             installed.append(try await installer.install(payload))
         }
         return installed
-    }
-
-    private func single(_ group: PayloadGroup, into directory: URL) async throws -> InstalledPayload {
-        guard let payload = try await install(group, into: directory).first else {
-            throw JerdError.unavailable("The app has no bundled \(group.rawValue) runtimes.")
-        }
-        return payload
     }
 }

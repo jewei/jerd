@@ -4,7 +4,7 @@ import JerdManifest
 import JerdProcess
 
 /// The one preparation pipeline of managed updates and of bundled payloads:
-/// download → verify → prepare → probe → permissions → hashes.
+/// download → verify → prepare → strip → probe → permissions → hashes.
 ///
 /// The caller owns the staging folder and decides what receipt to write and where the payload goes.
 public struct RuntimePipeline: Sendable {
@@ -16,6 +16,8 @@ public struct RuntimePipeline: Sendable {
     private let policy: ReleasePolicy
     /// The oldest macOS that a runtime built from source must run on: the minimum of the app.
     private let minimumMacOS: MinimumMacOS
+    /// When the pipeline strips local symbols (`SymbolStripping`). `./dev runtimes prepare` requires it.
+    package var stripping = SymbolStripping.Requirement.whenDeveloperToolsExist
 
     public init(
         fetcher: any HTTPFetching, commands: any CommandRunning, policy: ReleasePolicy = ReleasePolicy(),
@@ -42,12 +44,8 @@ public struct RuntimePipeline: Sendable {
         progress(RuntimeInstallProgress(Self.preparationMessage(release.kind)))
         let preparer = RuntimePreparers.preparer(for: release.kind)
         try await preparer.prepare(context)
-        let digest: String
-        if let artifact {
-            digest = artifact.sha256
-        } else {
-            digest = try await lockDigest(release, payload: payload)
-        }
+        try await SymbolStripper(context: context, requirement: stripping).strip()
+        let digest = if let artifact { artifact.sha256 } else { try await lockDigest(release, payload: payload) }
         progress(RuntimeInstallProgress("Checking the installed version…"))
         let outcome = try await VersionProber(context: context).probe()
         if let expected = release.engineVersion, outcome.version != expected {

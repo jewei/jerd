@@ -10,7 +10,7 @@ target in `Packages/JerdKit`. To test one target, name it:
 Default tests need no root access, no network, and no system changes.
 Tests that need real runtimes are opt-in. `./dev test` removes every inherited
 `JERD_*` variable. `./dev test --integration web,database,mail,storage` sets
-only the switches of the selected groups (for example `JERD_INTEGRATION=1`) and
+only the switches of the selected groups (for example `JERD_WEB_INTEGRATION=1`) and
 passes through the runtime path variables of those groups. Set each path to an
 absolute path of a trusted local runtime. The variables of each group are in
 [Tools](../Tools/README.md#integration-tests).
@@ -37,6 +37,11 @@ catalog and the prepared XZ library (`.build/runtimes/support/xz`, passed as
 `@loader_path/liblzma.5.dylib` and no Homebrew path, then starts storage,
 creates a bucket, and stops. `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` switches it
 on.
+
+`--integration mail` also installs Mailpit on demand the same way
+(`OnDemandMailIntegrationTests`), from the verified downloads and without the
+internet. It starts mail, captures a test email, stops, and checks that the
+inbox stays. `JERD_ON_DEMAND_MAIL_INTEGRATION=1` switches it on.
 
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.

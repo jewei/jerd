@@ -19,10 +19,13 @@ actor FakeServiceRuntimes: ServiceRuntimeSource {
     let failure: JerdError?
     /// False for an app that installs RustFS on demand: it embeds no storage runtime.
     let embedsStorage: Bool
+    /// False for an app that installs Mailpit on demand: it embeds no mail runtime.
+    let embedsMail: Bool
 
-    init(failure: JerdError? = nil, embedsStorage: Bool = true) {
+    init(failure: JerdError? = nil, embedsStorage: Bool = true, embedsMail: Bool = true) {
         self.failure = failure
         self.embedsStorage = embedsStorage
+        self.embedsMail = embedsMail
     }
 
     func databaseRuntimes(excluding: Set<RuntimeKind>) throws -> [DatabaseRuntime] {
@@ -31,10 +34,10 @@ actor FakeServiceRuntimes: ServiceRuntimeSource {
         return [Self.mysql, Self.redis].filter { !excluding.contains(BundledRuntimeMapping.kind(of: $0.engine)) }
     }
 
-    func mailRuntime() throws -> MailRuntime {
+    func mailRuntime() throws -> MailRuntime? {
         mailRequests += 1
         if let failure { throw failure }
-        return Self.mail
+        return embedsMail ? Self.mail : nil
     }
 
     func storageRuntime() throws -> StorageRuntime? {

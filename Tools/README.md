@@ -34,9 +34,9 @@ are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
 That command copies only the embedded payloads (`EmbeddedPayloads.pins`, which reads
 `PayloadInventory.embeddedPayloads`; `./dev release` uses the same rule): every pin except those that `Runtimes/runtimes.json` marks
-`"embedded": false`, today MySQL, PostgreSQL, and RustFS. Redis stays in the `database`
-folder of the app. The app installs MySQL, PostgreSQL, and RustFS on demand from the same
-pins. The RustFS preparation needs the reviewed XZ library, so the command also copies
+`"embedded": false`, today MySQL, PostgreSQL, Mailpit, and RustFS. Redis stays in the
+`database` folder of the app; the app has no `mail` or `storage` folder. The app installs
+MySQL, PostgreSQL, Mailpit, and RustFS on demand from the same pins. The RustFS preparation needs the reviewed XZ library, so the command also copies
 `.build/runtimes/support/xz` into `RuntimePayloads/support/xz` (`EmbeddedSupport`): about
 180 KB with `support-receipt.json`. The receipt must name the pinned XZ source and the
 deployment target of the app, and every file must match it. A Release build refuses a
@@ -70,7 +70,7 @@ Groups: `development` (PHP, Caddy, Composer, Laravel installer), `database`
 reviewed XZ library of RustFS; `storage` selects it too). Names ignore case,
 and `Support/XZ` names the library.
 
-`prepare` prepares every pin, also MySQL, PostgreSQL, and RustFS, which the app does not
+`prepare` prepares every pin, also MySQL, PostgreSQL, Mailpit, and RustFS, which the app does not
 embed: CI and the integration tests use those payloads. `verify` with the `storage` or
 `xz` group (or no group) also checks `support/xz`: its receipt, its files, its libraries,
 and that every file runs on the minimum macOS of the app. It uses
@@ -81,6 +81,15 @@ exists is verified and kept. A payload of an older pin is preserved and stops
 the run; remove `.build/runtimes/payloads` and prepare again. Downloads are kept
 in `.build/runtimes/downloads/<sha256>`; only a file with the pinned digest goes
 into or comes out of that cache.
+
+The preparation removes the local symbols (`/usr/bin/strip -x`) of the PHP CLI and FPM,
+`mailpit`, `redis-server`, and `redis-cli` before it writes the receipt (`SymbolStripping` in
+JerdRuntimes). This removes about 9.8 MB from the app and from each installation (3.8 MB from
+each PHP 8.5 file, 1.7 MB from Mailpit, and 0.4 MB from Redis), and changes nothing at run time.
+Symbol tables compress well, so the disk image is only about 0.8 MB smaller. Each stripped file
+must keep a valid signature and pass its version probe. A stripped payload has new file digests,
+so its folder ID changes; to strip a payload that an older `./dev` prepared, remove its folder
+and prepare it again.
 
 Prerequisites: an arm64 Mac and Xcode. Redis and XZ build with the Xcode
 compiler. Both target the `MACOSX_DEPLOYMENT_TARGET` of
@@ -123,15 +132,17 @@ The download cache also keeps the pinned MySQL signature file under its SHA-256;
 `./dev runtimes prepare database` adds it when an earlier run did not. With the
 file cached, prepare verifies an existing payload without the network. Offline
 and without the file, prepare still verifies the payload and warns that one
-small download is needed for the on-demand test. The
-release runtime tests take the embedded payloads from the candidate app and the
-on-demand payloads (MySQL, PostgreSQL, and RustFS) from `.build/runtimes/payloads`, each
-verified file by file. The `storage` group also sets `JERD_XZ_SUPPORT` and
+small download is needed for the on-demand test. Every group takes its payloads,
+embedded or on demand, from `.build/runtimes/payloads`, each verified file by file;
+`./dev release` runs no integration tests. The `storage` group also sets `JERD_XZ_SUPPORT` and
 `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` when `.build/runtimes/support/xz` exists, so the
-on-demand RustFS test runs too.
-Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
-`storage` groups also set their own switch, for example
-`JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`
+on-demand RustFS test runs too. The `mail` group sets `JERD_ON_DEMAND_MAIL_INTEGRATION=1` and
+`JERD_RUNTIME_DOWNLOADS` when the downloads folder exists, so the on-demand Mailpit test runs
+without internet too.
+Each group also sets `JERD_INTEGRATION=1` and its own switch:
+`JERD_WEB_INTEGRATION=1`, `JERD_DATABASE_INTEGRATION=1`, `JERD_MAIL_INTEGRATION=1`, or
+`JERD_STORAGE_INTEGRATION=1`. Only its own switch turns on the suites of a group, so
+`--integration mail` alone needs no PHP. The database tests read a folder with `pins.json`
 and one folder for each engine. `./dev` writes that index in
 `.build/runtimes/integration/database` with links to the payloads, so the
 payloads stay unchanged.
@@ -186,9 +197,9 @@ keys stay in the Keychain.
 3. Optional: run `./dev release VERSION BUILD --prepare-only` for a private candidate.
 4. On `main`, run `./dev release VERSION BUILD`.
 
-A candidate takes about 6 minutes on an Apple silicon Mac: about 2 minutes for the
-archive and about 3 minutes for the two notarizations. The public steps add the
-upload of the disk image.
+A candidate takes about 7 minutes on an Apple silicon Mac: about 3 minutes for the
+archive, about 3 minutes for the two notarizations, and about 80 seconds for the LZMA
+compression of the disk image. The public steps add the upload of the disk image.
 
 ### What the command does
 
@@ -214,12 +225,17 @@ local work comes first:
    debug symbols.
 4. **Run the signed runtimes.** It runs each embedded executable once from the
    signed app with a version argument (PHP also with `-m`; Composer and the Laravel
-   installer with the embedded PHP). Each command has a time limit, a private
+   installer with the embedded PHP; the app embeds no Mailpit, which loads nothing from
+   the app, so the step does not run it). Each command has a time limit, a private
    temporary home, and a minimal environment, and none uses the network. A fault that
    only the signed form has, for example a missing entitlement, stops the release.
 5. **Notarize the app** and staple it.
 6. **Build and notarize the disk image** with `Jerd.app` and a link to
-   `/Applications`, then staple it.
+   `/Applications`, then staple it. The image uses `ULMO` (LZMA) compression, which macOS
+   opens since 10.15 (Jerd requires macOS 14). For the same app it is about 30 % smaller than
+   `UDZO` (zlib): 89 MB, not 130 MB. It takes about 80 seconds to build, not 10, and it still
+   attaches at once. Notarization, stapling, `spctl`, the validation below, and Sparkle read it
+   as before; `./dev check updates` uses a zip archive and is not affected.
 7. **Sign the disk image and the feed.** `sign_update` signs the disk image for
    Sparkle, and the candidate feed gets one new item. The item uses
    `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the

@@ -43,10 +43,10 @@ struct RuntimesEmbedStepTests {
             in: setup.repository.root)
         try PayloadFixture.writeSupport(in: setup.repository.runtimeSupport.appending(path: "xz"))
         try await setup.embed(requiresAll: true)
-        let mail = try PayloadFixtures.pin(.mailpit).id
         let names = try FileManager.default.contentsOfDirectory(atPath: setup.destination.path).sorted()
-        // No storage folder: RustFS installs on demand. Its XZ library has its own folder.
-        #expect(names == ["database", "development", "mail", "runtimes.json", "support"])
+        // No mail or storage folder: Mailpit and RustFS install on demand, so the stale mail folder of
+        // an earlier build goes too. The XZ library of RustFS has its own folder.
+        #expect(names == ["database", "development", "runtimes.json", "support"])
         let xz = setup.destination.appending(path: "support/xz")
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: xz.path).sorted() == [
@@ -57,31 +57,29 @@ struct RuntimesEmbedStepTests {
             try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "database").path) == [
                 redis
             ])
-        #expect(
-            try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "mail").path) == [
-                mail
-            ])
-        let embedded = setup.destination.appending(path: "mail/\(mail)/bin/mailpit")
+        let caddy = try PayloadFixtures.pin(.caddy).id
+        let embedded = setup.destination.appending(path: "development/\(caddy)/bin/caddy")
         #expect(try Data(contentsOf: embedded) == Data("binary".utf8))
         let catalog = try Data(contentsOf: setup.destination.appending(path: "runtimes.json"))
         #expect(catalog == (try Data(contentsOf: setup.repository.runtimeCatalog)))
     }
 
-    @Test("The embedded payloads come from the catalog: every pin except MySQL, PostgreSQL, and RustFS")
+    @Test("The embedded payloads come from the catalog: every pin except MySQL, PostgreSQL, Mailpit, and RustFS")
     func embeddedPayloadsComeFromTheCatalog() throws {
         let catalog = try PayloadFixtures.catalog()
         let inventory = PayloadInventory(root: URL(filePath: "/nonexistent"), catalog: catalog)
-        #expect(inventory.embeddedPayloads.map(\.pin.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit])
+        #expect(inventory.embeddedPayloads.map(\.pin.kind) == [.php, .caddy, .composer, .laravel, .redis])
+        #expect(!inventory.embeddedPayloads.contains { $0.group == .mail || $0.group == .storage })
         // The XZ library that the RustFS preparation needs is embedded on its own.
         #expect(EmbeddedSupport.names(catalog) == ["xz"])
         #expect(inventory.embeddedPayloads.first { $0.pin.kind == .redis }?.group == .database)
     }
 
-    @Test("Release needs only the embedded payloads; MySQL and PostgreSQL are not required")
+    @Test("Release needs only the embedded payloads; MySQL, PostgreSQL, Mailpit, and RustFS are not required")
     func releaseNeedsOnlyEmbeddedPayloads() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
-        try PayloadFixtures.writePayloads([.development, .mail, .storage], in: setup.repository.payloads)
+        try PayloadFixtures.writePayloads([.development], in: setup.repository.payloads)
         try PayloadFixtures.writePayload(.redis, in: setup.repository.payloads)
         try PayloadFixture.writeSupport(in: setup.repository.runtimeSupport.appending(path: "xz"))
         try await setup.embed(requiresAll: true)
@@ -89,25 +87,26 @@ struct RuntimesEmbedStepTests {
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: database.path) == [try PayloadFixtures.pin(.redis).id])
         #expect(!setup.output.all.contains("warning:"))
+        #expect(!FileManager.default.fileExists(atPath: setup.destination.appending(path: "mail").path))
     }
 
     @Test("Release refuses a missing payload; Debug embeds the rest with a warning")
     func missingPayloads() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
-        try PayloadFixtures.writePayloads([.mail], in: setup.repository.payloads)
+        try PayloadFixtures.writePayloads([.development], in: setup.repository.payloads)
         await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: true) }
         #expect(!FileManager.default.fileExists(atPath: setup.destination.path))
         try await setup.embed(requiresAll: false)
         #expect(setup.output.all.contains("warning: The app builds without these payloads:"))
-        #expect(FileManager.default.fileExists(atPath: setup.destination.appending(path: "mail").path))
+        #expect(FileManager.default.fileExists(atPath: setup.destination.appending(path: "development").path))
     }
 
     @Test("Release refuses a missing or changed XZ library; Debug builds without it with a warning")
     func supportLibraryRules() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
-        try PayloadFixtures.writePayloads([.development, .mail], in: setup.repository.payloads)
+        try PayloadFixtures.writePayloads([.development], in: setup.repository.payloads)
         try PayloadFixtures.writePayload(.redis, in: setup.repository.payloads)
         await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: true) }
         try await setup.embed(requiresAll: false)
@@ -133,7 +132,7 @@ struct RuntimesEmbedStepTests {
     func changedPayloadFails() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
-        let folder = try PayloadFixtures.writePayload(.mailpit, in: setup.repository.payloads)
+        let folder = try PayloadFixtures.writePayload(.caddy, in: setup.repository.payloads)
         try Data("changed".utf8).write(to: folder.appending(path: "LICENSE"))
         await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: false) }
         #expect(!FileManager.default.fileExists(atPath: setup.destination.path))

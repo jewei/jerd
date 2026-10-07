@@ -10,10 +10,11 @@ enum RuntimeCopy {
 
     /// The fixed note under a section, after the check date.
     /// - Parameter isInstalled: False for a kind without an installed version: an update note
-    ///   would not fit, so RustFS names how storage installs it.
+    ///   would not fit, so RustFS and Mailpit name how their service installs them.
     static func note(_ kind: RuntimeKind, isInstalled: Bool = true) -> String? {
         switch kind {
         case .rustfs where !isInstalled: "Storage needs RustFS. Install it here, or start storage to install it first."
+        case .mailpit where !isInstalled: "Mail needs Mailpit. Install it here, or start mail to install it first."
         case .mysql: "MySQL uses the 8.4 LTS series."
         case .postgresql: "PostgreSQL uses the 18 series from Postgres.app."
         case .redis: "Redis builds need the Xcode command line tools."
@@ -44,6 +45,8 @@ enum RuntimeCopy {
             "PHP \(version) is available in each site’s PHP selection."
         case .rustfs:
             "RustFS \(version) is in use. Buckets, objects, and credentials stay as they are."
+        case .mailpit:
+            "Mailpit \(version) is in use. Captured messages stay in the inbox."
         default:
             "Updated to \(version)."
         }
