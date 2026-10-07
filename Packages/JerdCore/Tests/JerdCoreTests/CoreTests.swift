@@ -224,7 +224,7 @@ struct ConfigurationTests {
         #expect(text.contains("fastcgi"))
         #expect(text.contains(".env"))
         #expect(text.contains(".git"))
-        #expect(text.contains("php[0-9]*|phtml|phar|inc)(\\\\.|/|$)"))
+        #expect(text.contains("php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\\\.|/|$)"))
         let routes = try #require(servers["https"]?["routes"] as? [[String: Any]])
         let handlers = try #require(routes[0]["handle"] as? [[String: Any]])
         let applicationRoutes = try #require(handlers[0]["routes"] as? [[String: Any]])
@@ -232,7 +232,8 @@ struct ConfigurationTests {
         let regexp = try #require(firstMatcher[0]["path_regexp"] as? [String: String])
         let pattern = try NSRegularExpression(pattern: #require(regexp["pattern"]))
         for path in ["/.env", "/.git/config", "/index.php.bak", "/private.PHP.txt", "/file.phar",
-                     "/config.inc.bak", "/lib.phar.txt", "/packages/foo/auth.json"] {
+                     "/config.inc.bak", "/lib.phar.txt", "/packages/foo/auth.json", "/shell.pht", "/shell.PHT.txt",
+                     "/source.phps", "/test.phpt"] {
             #expect(pattern.firstMatch(in: path, range: NSRange(path.startIndex..., in: path)) != nil)
         }
         for path in ["/index.php", "/index.php/route", "/js/app.include.js", "/hello.txt"] {
@@ -245,6 +246,50 @@ struct ConfigurationTests {
         #expect(!fpm.contains("user = root"))
         #expect(fpm == (try ConfigurationGenerator.fpm(paths: paths)))
         #expect(throws: (any Error).self) { try ConfigurationGenerator.caddy(site: site, paths: paths, httpsPort: 443, httpPort: 80) }
+    }
+
+    /// FPM runs only the script that the routes select; path info never names a file.
+    @Test func phpRunsOnlyTheSelectedScript() throws {
+        let paths = EnginePaths(root: URL(fileURLWithPath: "/tmp/run"), socketDirectory: URL(fileURLWithPath: "/tmp/jerd-test"))
+        let data = try ConfigurationGenerator.caddy(site: makeSite(URL(fileURLWithPath: "/tmp/project")), paths: paths,
+                                                    httpsPort: 18443, httpPort: 18080)
+        let config = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let servers = try #require(((config["apps"] as? [String: Any])?["http"] as? [String: Any])?["servers"] as? [String: [String: Any]])
+        let siteRoute = try #require((servers["https"]?["routes"] as? [[String: Any]])?.first)
+        let routes = try #require((siteRoute["handle"] as? [[String: Any]])?.first?["routes"] as? [[String: Any]])
+        // The front controller keeps its path info before the PHP route's file matcher replaces it.
+        #expect(routes[3]["handle"] as? [[String: String]] == [
+            ["handler": "vars", "jerd_path_info": "{http.matchers.file.remainder}"],
+            ["handler": "rewrite", "uri": "{http.matchers.file.relative}"]])
+        // The name on disk must end in lowercase .php: a glob class makes Caddy compare names case-sensitively.
+        let file = try #require((routes[4]["match"] as? [[String: Any]])?.first?["file"] as? [String: Any])
+        #expect(file["try_files"] as? [String] == ["{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"])
+        #expect(file["try_policy"] as? String == "first_exist")
+        #expect(file["split_path"] == nil)
+        // Path info reaches PHP only as PATH_INFO, so Caddy sends no PATH_TRANSLATED.
+        let proxy = try #require((routes[4]["handle"] as? [[String: Any]])?.first)
+        let transport = try #require(proxy["transport"] as? [String: Any])
+        #expect(transport["env"] as? [String: String] == ["PATH_INFO": "{http.vars.jerd_path_info}"])
+        #expect(!String(decoding: data, as: UTF8.self).contains("PATH_TRANSLATED"))
+        // PHP-like files answer 404 and are never served as source.
+        let hidden = try #require((routes[6]["handle"] as? [[String: Any]])?.first?["hide"] as? [String])
+        for pattern in ["*.php", "*.PHP", "*.php[0-9]", "*.pht", "*.phtml", "*.phar", "*.phps", "*.phpt", "*.inc"] {
+            #expect(hidden.contains(pattern), "\(pattern) is not hidden")
+        }
+        let phpLike = try #require(((routes[5]["match"] as? [[String: Any]])?.first?["path_regexp"] as? [String: String])?["pattern"])
+        let expression = try NSRegularExpression(pattern: phpLike)
+        for path in ["/a.pht", "/a.phps", "/a.phpt", "/a.php7", "/a.PHP", "/a.inc", "/a.Pht.txt"] {
+            #expect(expression.firstMatch(in: path, range: NSRange(path.startIndex..., in: path)) != nil, "\(path)")
+        }
+    }
+
+    /// FPM runs SCRIPT_FILENAME, never PATH_TRANSLATED, and the pool refuses other extensions.
+    @Test func fpmRunsOnlyScriptFilename() throws {
+        let ini = PHPConfigurationPolicy.fpmINI.split(separator: "\n").map(String.init)
+        #expect(ini.contains("cgi.fix_pathinfo = 1"))
+        #expect(!ini.contains("cgi.fix_pathinfo = 0"))
+        let paths = EnginePaths(root: URL(fileURLWithPath: "/tmp/run"), socketDirectory: URL(fileURLWithPath: "/tmp/jerd-test"))
+        #expect(try ConfigurationGenerator.fpm(paths: paths).split(separator: "\n").contains("security.limit_extensions = .php"))
     }
 }
 

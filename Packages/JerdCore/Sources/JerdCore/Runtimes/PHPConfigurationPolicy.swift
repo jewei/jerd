@@ -9,13 +9,15 @@ public enum PHPConfigurationPolicy {
     log_errors = On
 
     """
+    // cgi.fix_pathinfo = 1 makes FPM run SCRIPT_FILENAME, the script that the Caddy routes
+    // selected. With 0, FPM ran PATH_TRANSLATED, so /index.php/storage/upload.php ran an upload.
     public static let fpmINI = commonINI + """
     memory_limit = 256M
     upload_max_filesize = 32M
     post_max_size = 40M
     max_execution_time = 30
     display_errors = Off
-    cgi.fix_pathinfo = 0
+    cgi.fix_pathinfo = 1
     [opcache]
     opcache.enable = 1
     opcache.validate_timestamps = 1
