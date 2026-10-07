@@ -5,6 +5,7 @@ package protocol StorageManaging: Sendable {
     func load() async throws -> StorageSettings
     func snapshot() async -> StorageSnapshot
     func registerRuntime(_ runtime: StorageRuntime) async throws
+    func updateRuntime(_ runtime: StorageRuntime) async throws
     func start() async throws
     func stop() async throws
     func addBucket(name: String, publicRead: Bool) async throws
