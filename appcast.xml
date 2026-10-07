@@ -1,13 +1,34 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
 --><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
-  <channel>
-    <title>Jerd updates</title>
-    <link>https://github.com/jewei/jerd</link>
-    <description>Signed updates for Jerd on macOS.</description>
-    <language>en</language>
-  </channel>
+    <channel>
+        <title>Jerd updates</title>
+        <link>https://github.com/jewei/jerd</link>
+        <description>Signed updates for Jerd on macOS.</description>
+        <language>en</language>
+        <item>
+            <title>Jerd 0.1.0</title>
+            <pubDate>Wed, 07 Oct 2026 12:22:01 GMT</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">- Jerd is rebuilt from the ground up. Your sites, PHP selections, databases, mail, buckets, tunnels, and settings stay where they are.
+- Security: PHP now runs only the script that the site routes select. A path such as /index.php/storage/upload.php can no longer run an uploaded or vendor PHP file.
+- Jerd now runs only on Macs with Apple silicon, with macOS 14 or later.
+- Quit lets each data service stop safely. When a service does not stop in 30 seconds, Jerd keeps it running and cancels Quit.
+- After a crash, Jerd finds the processes that still run and offers Process recovery. It no longer reports only that a port is occupied.
+- HTTPS setup, removal, and recovery undo their own steps when one step fails. Changes that other tools make to the hosts file stay.
+- A rejected tunnel token and a lost connection now show different messages. A permanent error stops the retries.
+- The php, composer, and laravel commands use the PHP of the registered project that contains the current folder.
+- Jerd checks each runtime download and installed runtime against its pinned digest before use.
+- The Lock and Stack icons are removed. If you used one, Jerd now shows the Rainbow hook icon.
+- Jerd is much smaller: it no longer includes MySQL, PostgreSQL, and the RustFS storage server. Install an engine from the Databases page, or add a database and Jerd installs the engine first. Start Storage installs RustFS first. Redis and Mailpit stay included, and runtimes that you already have stay installed.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.0/Jerd-0.1.0.dmg" length="132931894" type="application/octet-stream" sparkle:edSignature="g+CmwyX8RFdClR01jaReaEaFvtV9bSVe2j8CincCO5JSNv9FihJbaD3ngXG7ikJFRSLREfypgr1KFiDt7Y2TAQ=="></enclosure>
+        </item>
+    </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 74JGYRhmmNYgDEHLsZgwy4xjiLuRksJ9s9hunH76T9IJlSaFsYX8r16i8CyXbSZSBG4M9kTFQPxP9J0x/PFTDw==
-length: 582
+edSignature: gjptqCBGTW2N3pt2JU+kEz8Dy0vq6EPZIWVu5HSp1BmAkiCkFO9ZtKF9W3HbnFtu6GjNhLldNeSk3ZjSYs2GDg==
+length: 2858
 -->

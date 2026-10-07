@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-07
+
 - Jerd is rebuilt from the ground up. Your sites, PHP selections, databases, mail, buckets, tunnels, and settings stay where they are.
 - Security: PHP now runs only the script that the site routes select. A path such as /index.php/storage/upload.php can no longer run an uploaded or vendor PHP file.
 - Jerd now runs only on Macs with Apple silicon, with macOS 14 or later.
