@@ -49,14 +49,22 @@ struct ReleaseNotesTests {
         #expect(throws: DevFailure.self) { try ReleaseNotes.promoted(changelog, version: "0.2.0", date: "2026-10-06") }
     }
 
-    @Test("The repository changelog has unreleased notes that a bump can promote")
+    /// Right after a bump the unreleased section is empty by design, so the test accepts both states.
+    @Test("The repository changelog has notes that a bump can promote, or notes for the current version")
     func repositoryChangelog() throws {
-        let url = ReleaseFixtures.repositoryRoot.appending(path: "CHANGELOG.md")
-        let changelog = try String(contentsOf: url, encoding: .utf8)
-        let promoted = try ReleaseNotes.promoted(changelog, version: "99.0.0", date: "2026-10-06")
-        let notes = try ReleaseNotes.section(for: "99.0.0", in: promoted)
-        #expect(notes.contains("Apple silicon"))
-        #expect(ReleaseNotes.unreleased(in: promoted) == "")
+        let root = ReleaseFixtures.repositoryRoot
+        let changelog = try String(contentsOf: root.appending(path: "CHANGELOG.md"), encoding: .utf8)
+        if let unreleased = ReleaseNotes.unreleased(in: changelog), !unreleased.isEmpty {
+            let promoted = try ReleaseNotes.promoted(changelog, version: "99.0.0", date: "2026-10-06")
+            #expect(try !ReleaseNotes.section(for: "99.0.0", in: promoted).isEmpty)
+            #expect(ReleaseNotes.unreleased(in: promoted) == "")
+        } else {
+            let versionText = try String(
+                contentsOf: root.appending(path: "Configuration/Version.xcconfig"), encoding: .utf8)
+            let version = try XcconfigFile(path: "Configuration/Version.xcconfig", text: versionText)
+                .value(of: ReleaseSourceFiles.marketingVersion)
+            #expect(try !ReleaseNotes.section(for: version, in: changelog).isEmpty)
+        }
     }
 
     @Test("Only a heading with a date names a release")
