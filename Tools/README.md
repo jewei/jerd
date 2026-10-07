@@ -123,17 +123,17 @@ The download cache also keeps the pinned MySQL signature file under its SHA-256;
 `./dev runtimes prepare database` adds it when an earlier run did not. With the
 file cached, prepare verifies an existing payload without the network. Offline
 and without the file, prepare still verifies the payload and warns that one
-small download is needed for the on-demand test. The
-release runtime tests take the embedded payloads from the candidate app and the
-on-demand payloads (MySQL, PostgreSQL, Mailpit, and RustFS) from `.build/runtimes/payloads`, each
-verified file by file. The `storage` group also sets `JERD_XZ_SUPPORT` and
+small download is needed for the on-demand test. Every group takes its payloads,
+embedded or on demand, from `.build/runtimes/payloads`, each verified file by file;
+`./dev release` runs no integration tests. The `storage` group also sets `JERD_XZ_SUPPORT` and
 `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` when `.build/runtimes/support/xz` exists, so the
 on-demand RustFS test runs too. The `mail` group sets `JERD_ON_DEMAND_MAIL_INTEGRATION=1` and
 `JERD_RUNTIME_DOWNLOADS` when the downloads folder exists, so the on-demand Mailpit test runs
 without internet too.
-Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
-`storage` groups also set their own switch, for example
-`JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`
+Each group also sets `JERD_INTEGRATION=1` and its own switch:
+`JERD_WEB_INTEGRATION=1`, `JERD_DATABASE_INTEGRATION=1`, `JERD_MAIL_INTEGRATION=1`, or
+`JERD_STORAGE_INTEGRATION=1`. Only its own switch turns on the suites of a group, so
+`--integration mail` alone needs no PHP. The database tests read a folder with `pins.json`
 and one folder for each engine. `./dev` writes that index in
 `.build/runtimes/integration/database` with links to the payloads, so the
 payloads stay unchanged.
