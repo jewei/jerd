@@ -20,6 +20,10 @@ struct ReleaseCommitFiles: Equatable, Sendable {
         versionFile = file.text
         changelog = try ReleaseNotes.promoted(
             source.changelog, version: version.text, date: ReleaseNotes.dateText(date))
+        // The changelog section must hold exactly the notes of the feed item and the GitHub release.
+        guard try ReleaseNotes.section(for: version.text, in: changelog) == source.notes else {
+            throw DevFailure.checkFailed("The promoted CHANGELOG.md section differs from the release notes.")
+        }
         self.feed = feed
     }
 }
