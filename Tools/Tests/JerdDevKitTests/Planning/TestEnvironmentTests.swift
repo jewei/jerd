@@ -6,6 +6,18 @@ import Testing
 struct TestEnvironmentTests {
     private let webPaths = ["JERD_PHP_CLI": "/r/php", "JERD_PHP_FPM": "/r/php-fpm", "JERD_CADDY": "/r/caddy"]
 
+    @Test("the database group installs one engine on demand from the prepared downloads")
+    func databaseGroupUsesThePreparedDownloads() {
+        let base = ["PATH": "/usr/bin"]
+        let added = TestEnvironment.addingOnDemandDownloads(base, groups: [.database], downloads: "/r/downloads")
+        #expect(added["JERD_RUNTIME_DOWNLOADS"] == "/r/downloads" && added["JERD_ON_DEMAND_INTEGRATION"] == "1")
+        let explicit = TestEnvironment.addingOnDemandDownloads(
+            ["JERD_RUNTIME_DOWNLOADS": "/mine"], groups: [.database], downloads: "/r/downloads")
+        #expect(explicit["JERD_RUNTIME_DOWNLOADS"] == "/mine")
+        #expect(TestEnvironment.addingOnDemandDownloads(base, groups: [.web], downloads: "/r/downloads") == base)
+        #expect(TestEnvironment.addingOnDemandDownloads(base, groups: [.database], downloads: nil) == base)
+    }
+
     @Test("removes every inherited JERD_ variable from default tests")
     func stripsInheritedVariables() throws {
         let inherited = ["PATH": "/usr/bin", "JERD_INTEGRATION": "1", "JERD_UPDATE_INSTALL": "1"]

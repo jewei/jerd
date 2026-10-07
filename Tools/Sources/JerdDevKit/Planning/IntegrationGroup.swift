@@ -33,7 +33,7 @@ enum IntegrationGroup: String, CaseIterable, Sendable {
     var optionalVariables: [String] {
         switch self {
         case .web: ["JERD_SECOND_PHP_CLI", "JERD_SECOND_PHP_FPM", "JERD_KEEP_TEST_FILES"]
-        case .database: ["JERD_OCCUPIED_DATABASE_PORT"]
+        case .database: ["JERD_OCCUPIED_DATABASE_PORT", "JERD_RUNTIME_DOWNLOADS", "JERD_ON_DEMAND_ENGINE"]
         case .mail, .storage: []
         }
     }
