@@ -17,16 +17,73 @@ private struct UnusedCommands: CommandRunning {
 @Suite("Runtime prepare, verify, and status steps")
 struct RuntimesStepsTests {
     @Test("Verify reports each payload and fails for a missing one")
-    func verifyReportsMissing() throws {
+    func verifyReportsMissing() async throws {
         let repository = try PayloadFixtures.repository()
         defer { try? FileManager.default.removeItem(at: repository.root) }
         try PayloadFixtures.writePayload(.mailpit, in: repository.payloads)
         let output = RecordingTextOutput()
         let context = TestFixtures.context(repository: repository, output: output)
-        try RuntimesVerifyStep.verify(context, groups: [.mail])
+        try await RuntimesVerifyStep.verify(context, groups: [.mail])
         #expect(output.all.contains("files match the receipt"))
-        #expect(throws: DevFailure.self) { try RuntimesVerifyStep.verify(context, groups: [.storage]) }
+        await #expect(throws: DevFailure.self) { try await RuntimesVerifyStep.verify(context, groups: [.storage]) }
         #expect(output.all.contains("is not prepared. Run ./dev runtimes prepare storage."))
+    }
+
+    @Test("Verify fails on a library reference that does not resolve inside the payload")
+    func verifyChecksLibraryReferences() async throws {
+        let repository = try PayloadFixtures.repository()
+        defer { try? FileManager.default.removeItem(at: repository.root) }
+        let pin = try PayloadFixtures.pin(.mysql)
+        let folder = repository.payloads.appending(path: "database/\(pin.id)")
+        try PayloadFixture.writePayload(pin, in: folder)
+        // The materialized libfido2 case: `bin/../lib/libcrypto.3.dylib` is not in the payload.
+        let broken = "cmd LC_LOAD_DYLIB\nname @loader_path/../lib/libcrypto.3.dylib (offset 24)\n"
+        let output = RecordingTextOutput()
+        let failing = TestFixtures.context(
+            repository: repository,
+            runner: RecordingProcessRunner {
+                InvocationResult(commandLine: $0.commandLine, status: 0, standardOutput: broken)
+            },
+            output: output)
+        await #expect(throws: DevFailure.self) { try await RuntimesVerifyStep.verify(failing, groups: [.database]) }
+        #expect(output.all.contains("bin/tool: tool needs @loader_path/../lib/libcrypto.3.dylib"))
+        #expect(output.all.contains("remove .build/runtimes/payloads/database/\(pin.id)"))
+        let system = "cmd LC_LOAD_DYLIB\nname /usr/lib/libSystem.B.dylib (offset 24)\n"
+        let passing = TestFixtures.context(
+            repository: repository,
+            runner: RecordingProcessRunner {
+                InvocationResult(commandLine: $0.commandLine, status: 0, standardOutput: system)
+            },
+            output: RecordingTextOutput())
+        let entry = try #require(
+            PayloadInventory(root: repository.payloads, catalog: try PayloadFixtures.catalog())
+                .entry(for: pin, group: .database).payload)
+        #expect(try await PayloadDependencyCheck(context: passing).problems(in: entry).isEmpty)
+    }
+
+    @Test("Prepare keeps an existing MySQL payload offline: a cached signature needs no network")
+    func prepareWithCachedSignatureNeedsNoNetwork() async throws {
+        let repository = try PayloadFixtures.repository()
+        defer { try? FileManager.default.removeItem(at: repository.root) }
+        let pin = try PayloadFixtures.pin(.mysql)
+        let pinned = try #require(pin.signature)
+        let bytes = Data("signature".utf8)
+        let signature = PinnedFile(
+            url: pinned.url, sizeLimit: pinned.sizeLimit, sha256: FileDigest.hexSHA256(of: bytes))
+        let output = RecordingTextOutput()
+        let fetcher = FakeFetcher(files: [:])
+        let step = RuntimesPrepareStep(
+            context: TestFixtures.context(repository: repository, output: output), fetcher: fetcher,
+            commands: UnusedCommands())
+        // Offline and not cached: the step goes on, and a warning names the next step.
+        await step.cacheSignature(signature, of: pin)
+        #expect(output.all.contains("run ./dev runtimes prepare database once with a network connection"))
+        // Cached with its pinned digest: no request at all.
+        try FileManager.default.createDirectory(at: repository.runtimeDownloads, withIntermediateDirectories: true)
+        try bytes.write(to: repository.runtimeDownloads.appending(path: signature.sha256))
+        let requests = fetcher.requested.count
+        await step.cacheSignature(signature, of: pin)
+        #expect(fetcher.requested.count == requests)
     }
 
     @Test("Status lists every pin and the XZ library with its state")

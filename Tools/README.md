@@ -55,7 +55,7 @@ unsigned check build only.
 | Command | Purpose |
 | --- | --- |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned payloads. Default: every group |
-| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file |
+| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads) |
 | `./dev runtimes status` | List each payload with its group, whether the app embeds it, its version, size, and state |
 | `./dev runtimes embed DEST [--require-all]` | Verify and copy the embedded payloads into an app; the Xcode phase calls it |
 
@@ -101,7 +101,10 @@ The `database` group also sets `JERD_ON_DEMAND_INTEGRATION=1` and
 `JERD_RUNTIME_DOWNLOADS=.build/runtimes/downloads` when that folder exists, so the
 on-demand installation test runs from the verified downloads without internet.
 The download cache also keeps the pinned MySQL signature file under its SHA-256;
-`./dev runtimes prepare database` adds it when an earlier run did not. The
+`./dev runtimes prepare database` adds it when an earlier run did not. With the
+file cached, prepare verifies an existing payload without the network. Offline
+and without the file, prepare still verifies the payload and warns that one
+small download is needed for the on-demand test. The
 release runtime tests take the embedded payloads from the candidate app and the
 on-demand payloads (MySQL and PostgreSQL) from `.build/runtimes/payloads`, each
 verified file by file.
