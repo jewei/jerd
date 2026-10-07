@@ -15,7 +15,7 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `PinnedRSAVerifier`, `PinnedRSAKey` | OpenPGP v4 signature check with Oracle's pinned MySQL key. |
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
-| `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the bundled payloads of the embedded groups. |
+| `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the embedded payloads. |
 | `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (the database engines), for `RuntimeInstaller`. |
 | `DiskSpace` | Recognizes a full volume in any step, for one clear message. |
 | `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
@@ -39,16 +39,18 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder
   is never replaced. One installation runs at a time. Cancellation stops it before the rename.
 - A listing reports each build folder on its own. A bad folder does not hide the others.
-- The app does not embed a group that the catalog marks `"embedded": false` (today the
-  database group). `BundledRuntimeBootstrap` installs nothing of it and downloads nothing.
-  `OnDemandRuntimes` turns each of its pins into a `RuntimeRelease` with the exact URL, size,
-  SHA-256, and the reviewed MySQL signature file; the app installs it only after a user
+- The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL and
+  PostgreSQL; Redis stays embedded). `BundledPayloadSource` skips it and
+  `BundledRuntimeBootstrap` installs nothing of it and downloads nothing. `OnDemandRuntimes`
+  turns each such pin into a `RuntimeRelease` with the exact URL, size, SHA-256, the reviewed
+  MySQL signature file, and the pinned `engineVersion`, which the probe must report and which
+  names the release (`PostgreSQL 18.6`); the app installs it only after a user
   action, with `RuntimeInstaller` into `runtime-updates/`. `./dev runtimes prepare` uses the
   same mapping (`RuntimePin.release(architecture:catalogDirectory:)`), pipeline, and preparers.
   A download that does not match its pin installs nothing.
 - Failures name the step that fixes them: no network ("Jerd cannot reach the download
   server…"), a digest mismatch ("…does not match its expected SHA-256. Jerd installed
-  nothing."), a full disk (`DiskSpace.outOfSpace`), and Redis without a compiler
+  nothing."), a full disk (`DiskSpace.outOfSpace`), and a Redis update without a compiler
   (`RedisSourceBuilder.missingCompiler`).
 - A release without a digest (MySQL, Laravel) matches its build by kind and version, so it
   shows as installed and is not downloaded again.

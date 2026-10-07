@@ -34,8 +34,8 @@ All paths come from `DatabasesLayout` in JerdFoundation. Folders have mode 0700 
 ## Runtimes
 
 A runtime record names a folder with `bin/`. Records of earlier versions name payloads that the
-app bundle installed into `database-runtimes/`; they stay in use. An app without embedded database
-runtimes installs each engine on demand into `runtime-updates/` (see JerdLive) and registers it
+app bundle installed into `database-runtimes/`; they stay in use. The app embeds Redis and installs
+MySQL and PostgreSQL on demand into `runtime-updates/` (see JerdLive) and registers it
 with `registerRuntime`. Each build has its own ID, so a registered service never changes runtime.
 
 ## Rules

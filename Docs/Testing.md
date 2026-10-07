@@ -20,8 +20,8 @@ app pipeline into a temporary data root (`OnDemandRuntimeIntegrationTests` in
 JerdLive), then starts and stops a service with it. The downloads come from
 `.build/runtimes/downloads` through a local file server inside URLSession, so
 the test needs no internet. `JERD_RUNTIME_DOWNLOADS` names another folder of
-files named by SHA-256, and `JERD_ON_DEMAND_ENGINE` selects `redis` (default),
-`postgresql`, or `mysql` (MySQL also needs its signature file in the folder).
+files named by SHA-256, and `JERD_ON_DEMAND_ENGINE` selects `postgresql` (default)
+or `mysql` (MySQL also needs its signature file in the folder).
 
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.

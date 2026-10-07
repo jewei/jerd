@@ -47,15 +47,16 @@ implements them in memory.
 
 ## Database engines on demand
 
-The app does not include MySQL, PostgreSQL, and Redis; `DatabasesPort.runtimeOffers()` lists the
-pinned engines that Jerd can install, with version, download size, and source host. Nothing is
+The app includes Redis, but not MySQL and PostgreSQL; `DatabasesPort.runtimeOffers()` lists the
+pinned engines that Jerd can install, with the engine version (`PostgreSQL 18.6`, not the
+Postgres.app release), download size, and source host. Redis never shows an install action. Nothing is
 downloaded without a user action.
 
 - The Databases page without a selected service lists every engine (`DatabaseEnginesSection`):
   installed with its versions, or "Install MySQL…" with the download size. Install asks first
   (title, size, source, and checks), then shows the step, a progress bar, and Cancel in the row.
   A service page shows a running installation as a banner with Cancel. A failure or a cancel
-  shows once, as a dismissible banner, with the reason (offline, checksum, disk space, compiler).
+  shows once, as a dismissible banner, with the reason (offline, checksum, disk space).
 - Add Database lists every engine. For an engine without a runtime it shows the pinned version
   and a note, and its confirm button is "Install and Create": one flow installs the engine, then
   creates and starts the service. The progress shows in the sheet; Cancel stops the download and

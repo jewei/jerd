@@ -17,4 +17,4 @@ each note as one `- ` list item, without headings, links, or code marks.
 - The php, composer, and laravel commands use the PHP of the registered project that contains the current folder.
 - Jerd checks each runtime download and installed runtime against its pinned digest before use.
 - The Lock and Stack icons are removed. If you used one, Jerd now shows the Rainbow hook icon.
-- Jerd is much smaller: it no longer includes MySQL, PostgreSQL, and Redis. Install an engine from the Databases page, or add a database and Jerd installs the engine first. Engines that you already have stay installed.
+- Jerd is much smaller: it no longer includes MySQL and PostgreSQL. Install one from the Databases page, or add a database and Jerd installs the engine first. Redis stays included, and engines that you already have stay installed.
