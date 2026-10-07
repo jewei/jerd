@@ -59,6 +59,13 @@ struct ReleasePreflight: Sendable {
             case .invalid(let message): problems.append("the \(name) support library: \(message)")
             }
         }
+        // The smoke step runs the prepared RustFS with the signed XZ library of the candidate.
+        if let rustfs = catalog.pin(for: .rustfs), !rustfs.isEmbedded, let group = rustfs.group,
+            PayloadInventory(root: repository.payloads, catalog: catalog).entry(for: rustfs, group: group).payload
+                == nil
+        {
+            problems.append("\(rustfs.id) is not prepared (the XZ check runs it)")
+        }
         guard problems.isEmpty else {
             throw DevFailure.missingPrerequisite(
                 "A release needs every embedded runtime payload. \(problems.joined(separator: "; ")). "

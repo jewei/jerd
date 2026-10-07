@@ -6,7 +6,8 @@ import JerdRuntimes
 /// list argument. The payloads have new signatures, the hardened runtime, and reviewed entitlements, so
 /// a fault that only the signed form has (library validation, a missing entitlement) stops the release
 /// before anything is public. The commands use a private temporary home and a minimal environment,
-/// and none of them opens a network connection.
+/// and none of them opens a network connection. RustFS installs on demand, so the prepared RustFS
+/// runs once beside the signed XZ library of the app (`runSupportCheck`).
 struct RuntimeSmokeTest: Sendable {
     /// One command line.
     struct Command: Equatable, Sendable {
@@ -28,6 +29,7 @@ struct RuntimeSmokeTest: Sendable {
                 environment: environment, directory: home)
         }
         shell.console.success("\(commands.count) commands of the signed runtimes ran.")
+        try await runSupportCheck(home: home, environment: environment)
     }
 
     /// The commands of each payload, in catalog order. Composer and the Laravel installer are PHP
