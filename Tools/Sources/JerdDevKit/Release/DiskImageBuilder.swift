@@ -6,8 +6,8 @@ struct DiskImageBuilder: Sendable {
     let signing: SigningIdentity
     let layout: CandidateLayout
 
-    /// LZMA compression: about 28 % smaller than zlib (`UDZO`) for Jerd 0.1.1 (87 MB, not 122 MB).
-    /// macOS opens it since 10.15, and Jerd requires macOS 14. It takes about a minute to build.
+    /// LZMA compression: about 30 % smaller than zlib (`UDZO`), 89 MB and not 130 MB for the same
+    /// app. macOS opens it since 10.15, and Jerd requires macOS 14. It takes about 80 s to build.
     static let format = "ULMO"
 
     /// The `hdiutil create` arguments of the read-only, compressed disk image.

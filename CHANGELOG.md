@@ -9,7 +9,7 @@ code marks.
 ## [Unreleased]
 
 - The app is a little smaller: the Redis runtime no longer includes the Lua build tools and other build output that Redis does not use.
-- The download is smaller: the disk image uses stronger compression, and the PHP, Mailpit, and Redis programs no longer include symbols that only debugging tools use.
+- The download is about 30 percent smaller, because the disk image uses stronger compression. The PHP, Mailpit, and Redis programs also use less disk space.
 
 ## [0.1.0] - 2026-10-07
 
