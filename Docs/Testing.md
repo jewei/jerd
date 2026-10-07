@@ -38,6 +38,11 @@ catalog and the prepared XZ library (`.build/runtimes/support/xz`, passed as
 creates a bucket, and stops. `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` switches it
 on.
 
+`--integration mail` also installs Mailpit on demand the same way
+(`OnDemandMailIntegrationTests`), from the verified downloads and without the
+internet. It starts mail, captures a test email, stops, and checks that the
+inbox stays. `JERD_ON_DEMAND_MAIL_INTEGRATION=1` switches it on.
+
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 

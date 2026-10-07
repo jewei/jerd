@@ -19,14 +19,16 @@ Jerd is a native macOS app for local PHP development. It does these tasks:
   use them.
 - An administrator account, to approve the HTTPS setup one time.
 - An internet connection the first time you add MySQL or PostgreSQL, and the
-  first time you start Storage. The app includes Redis and Mailpit, but not
-  MySQL, PostgreSQL, and the RustFS storage server. Jerd downloads one of them
-  only when you select Install, Add Database, or Start Storage:
+  first time you start Storage or Mail. The app includes Redis, but not MySQL,
+  PostgreSQL, the Mailpit mail inbox, and the RustFS storage server. Jerd
+  downloads one of them only when you select Install, Add Database, Start
+  Storage, or Start Mail:
 
   | Runtime | Download | Installed | Free space during the install |
   | --- | --- | --- | --- |
   | MySQL 8.4.11 | 168 MB | 321 MB | 489 MB |
   | PostgreSQL 18.6 | 122.5 MB | 750.5 MB | 873.1 MB |
+  | Mailpit 1.31.3 | 9.8 MB | 26.3 MB | 36.2 MB |
   | RustFS 1.0.0 | 87 MB | 223.5 MB | 310.6 MB |
 
   Jerd installs a runtime only when the download matches its reviewed checksum

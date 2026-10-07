@@ -8,6 +8,7 @@ code marks.
 
 ## [Unreleased]
 
+- Jerd is smaller: it no longer includes Mailpit. Start Mail or Install Mailpit on the Mail page downloads it first (about 10 MB). A Mailpit that you already have stays in use, and your captured mail stays.
 - The app is a little smaller: the Redis runtime no longer includes the Lua build tools and other build output that Redis does not use.
 
 ## [0.1.0] - 2026-10-07

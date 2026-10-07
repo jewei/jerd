@@ -117,13 +117,14 @@ Startup does not depend on a window:
       Sites loads the site configuration and installs the bundled PHP and Caddy when they are
       missing; Databases, Storage, and Mail each load their settings and install their bundled
       runtimes when none is registered; Tunnels connect the tunnels marked "Start when Jerd
-      opens". Then Runtimes and Advanced load, and polling starts. The app embeds Redis and
-      Mailpit but not MySQL, PostgreSQL, and RustFS (`"embedded": false` on their pins in
-      `Runtimes/runtimes.json`), so the launch installs Redis and Mailpit only and downloads
-      nothing. The user installs MySQL and PostgreSQL on demand from the Databases page, Add
-      Database, or Runtimes, and RustFS from the Storage page (Install RustFS… or Start), the
-      Dashboard card, the menu bar, or Runtimes, through the one `OnDemandInstallFlow` and the
-      one `RuntimeInstaller`. The app embeds the signed XZ library that the RustFS preparation
+      opens". Then Runtimes and Advanced load, and polling starts. The app embeds Redis but
+      not MySQL, PostgreSQL, Mailpit, and RustFS (`"embedded": false` on their pins in
+      `Runtimes/runtimes.json`), so the launch installs Redis only and downloads nothing. The
+      user installs MySQL and PostgreSQL on demand from the Databases page, Add Database, or
+      Runtimes; RustFS from the Storage page (Install RustFS… or Start); and Mailpit from the
+      Mail page (Install Mailpit… or Start). The Dashboard card, the menu bar, and Runtimes
+      install RustFS and Mailpit too. All use the one `OnDemandInstallFlow` and the one
+      `RuntimeInstaller`. The app embeds the signed XZ library that the RustFS preparation
       needs on its own, in `RuntimePayloads/support/xz`.
 3. Reopening Jerd (Dock or Applications) shows the main window, also when the menu bar item and
    the Dock icon are both off.

@@ -17,7 +17,7 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
 | `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the embedded payloads. |
-| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (MySQL, PostgreSQL, and RustFS), for `RuntimeInstaller`. |
+| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (MySQL, PostgreSQL, Mailpit, and RustFS), for `RuntimeInstaller`. |
 | `BundledSupportLibrary` | The XZ library that the app embeds on its own (`RuntimePayloads/support/xz`), verified against its receipt and the pinned XZ source. |
 | `DiskSpace` | Recognizes a full volume in any step, for one clear message. |
 | `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
@@ -64,7 +64,8 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   is never replaced. One installation runs at a time. Cancellation stops it before the rename.
 - A listing reports each build folder on its own. A bad folder does not hide the others.
 - The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL,
-  PostgreSQL, and RustFS; Redis and Mailpit stay embedded). `installStorage()` returns nil then. `BundledPayloadSource` skips it and
+  PostgreSQL, Mailpit, and RustFS; Redis stays embedded). `installMail()` and `installStorage()`
+  return nil then. `BundledPayloadSource` skips it and
   `BundledRuntimeBootstrap` installs nothing of it and downloads nothing. `OnDemandRuntimes`
   turns each such pin into a `RuntimeRelease` with the exact URL, size, SHA-256, the reviewed
   MySQL signature file, and the pinned `engineVersion`, which the probe must report and which
