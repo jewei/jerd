@@ -82,5 +82,55 @@ import Testing
         }
     }
 
+    @Test func committedCatalogEmbedsEveryGroupExceptTheDatabaseRuntimes() throws {
+        let catalog = try committedCatalog()
+        #expect(catalog.embeddedGroups == [.development, .mail, .storage])
+        #expect(!catalog.isEmbedded(.database))
+        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql, .redis])
+        #expect(catalog.groups?["xz"] == PayloadGroupSettings(embedded: false))
+    }
+
+    @Test func catalogWithoutGroupSettingsEmbedsEveryGroup() throws {
+        let committed = try committedCatalog()
+        let old = RuntimePinCatalog(
+            architecture: .arm64, pins: committed.pins, supportSources: committed.supportSources)
+        #expect(old.embeddedGroups == PayloadGroup.allCases)
+        #expect(old.onDemandPins.isEmpty)
+        let encoded = try JSONEncoder().encode(old)
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("\"groups\""))
+        #expect(try RuntimePinCatalog.decode(encoded) == old)
+    }
+
+    /// The fields that every earlier reader decodes. Unknown keys such as `groups` are ignored.
+    private struct EarlierCatalog: Decodable {
+        let schemaVersion: Int
+        let architecture: CPUArchitecture
+        let pins: [RuntimePin]
+        let supportSources: [String: PinnedSupportSource]
+    }
+
+    @Test func earlierReadersStillReadTheCommittedCatalog() throws {
+        let data = try Data(contentsOf: Fixture.repositoryFile("Runtimes/runtimes.json"))
+        let earlier = try JSONDecoder().decode(EarlierCatalog.self, from: data)
+        #expect(earlier.schemaVersion == 1 && earlier.architecture == .arm64)
+        #expect(earlier.pins == (try committedCatalog().pins) && earlier.supportSources["xz"] != nil)
+    }
+
+    @Test func groupSettingsThatBreakARuleAreRefused() throws {
+        let committed = try committedCatalog()
+        let complete = try #require(committed.groups)
+        var missing = complete
+        missing["mail"] = nil
+        var unknown = complete
+        unknown["tools"] = PayloadGroupSettings(embedded: true)
+        var embeddedSupport = complete
+        embeddedSupport["xz"] = PayloadGroupSettings(embedded: true)
+        for groups in [missing, unknown, embeddedSupport] {
+            let catalog = RuntimePinCatalog(
+                architecture: .arm64, pins: committed.pins, supportSources: committed.supportSources, groups: groups)
+            #expect(throws: JerdError.self, "\(groups.keys.sorted())") { try catalog.validate() }
+        }
+    }
+
     private func archive(_ url: URL) -> PinnedArchive { PinnedArchive(url: url, size: 10, sha256: digest("a")) }
 }

@@ -1,6 +1,13 @@
 {
   "schemaVersion": 1,
   "architecture": "arm64",
+  "groups": {
+    "development": { "embedded": true },
+    "database": { "embedded": false },
+    "mail": { "embedded": true },
+    "storage": { "embedded": true },
+    "xz": { "embedded": false }
+  },
   "pins": [
     {
       "id": "php-8.5.11-arm64",

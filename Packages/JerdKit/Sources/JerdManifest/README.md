@@ -11,7 +11,8 @@ It depends only on JerdFoundation. It does no network work.
 | --- | --- |
 | `RuntimeKind`, `RuntimeVersion`, `CPUArchitecture` | The runtime values. Raw values are saved in files and folder names. |
 | `PayloadGroup`, `PayloadIdentifier` | The first-launch groups and the one identifier rule. |
-| `RuntimePinCatalog`, `RuntimePin` | The pin catalog `Runtimes/runtimes.json`: one reviewed artifact per bundled kind. |
+| `RuntimePinCatalog`, `RuntimePin` | The pin catalog `Runtimes/runtimes.json`: one reviewed artifact per pinned kind. |
+| `PayloadGroupSettings` | Whether the app embeds the payloads of one group. |
 | `PayloadReceipt`, `PayloadFileRecord`, `PayloadSigning` | The one receipt of a bundled payload: `payload-receipt.json`. |
 | `PayloadFolderID` | The one formula for the folder name of an installed bundled payload. |
 | `BuildReceipt` | The receipt of a managed build: `runtime-updates/<folder>/update-receipt.json`. |
@@ -42,8 +43,13 @@ It depends only on JerdFoundation. It does no network work.
 
 ## Pin catalog
 
-`Runtimes/runtimes.json` has `schemaVersion`, `architecture`, `pins`, and
-`supportSources` (the XZ source that the release tool builds for RustFS). Each pin has `id`,
+`Runtimes/runtimes.json` has `schemaVersion`, `architecture`, `groups`, `pins`, and
+`supportSources` (the XZ source that the release tool builds for RustFS). `groups` has one
+entry `{"embedded": true|false}` for each payload group and each support source. The build
+copies only the embedded groups into the app (`embeddedGroups`); the app installs the pins of
+the other groups on demand (`onDemandPins`). Today `database` is not embedded, and `xz` is a
+build input that is never embedded. A catalog without `groups` (an older build) embeds every
+payload group. Earlier readers ignore the unknown key. Each pin has `id`,
 `kind`, `version` (the Postgres.app version for PostgreSQL), `releasePage`, and one of
 `archive {url, size, sha256, assetID?}` or `composerProject {directory, lockSHA256}`, plus
 `signature {url, sizeLimit, sha256}` for MySQL. The build copies the catalog into the app

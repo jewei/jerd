@@ -20,13 +20,19 @@ public struct RuntimePinCatalog: Codable, Equatable, Sendable {
     public let pins: [RuntimePin]
     /// Sources that the release tool builds from, for example the XZ library for RustFS.
     public let supportSources: [String: PinnedSupportSource]
+    /// The settings of each payload group (`development`, `database`, …) and each support source
+    /// (`xz`). Catalogs of older builds have none: every payload group is embedded then.
+    public let groups: [String: PayloadGroupSettings]?
 
-    public init(architecture: CPUArchitecture, pins: [RuntimePin], supportSources: [String: PinnedSupportSource] = [:])
-    {
+    public init(
+        architecture: CPUArchitecture, pins: [RuntimePin], supportSources: [String: PinnedSupportSource] = [:],
+        groups: [String: PayloadGroupSettings]? = nil
+    ) {
         schemaVersion = Self.currentSchemaVersion
         self.architecture = architecture
         self.pins = pins
         self.supportSources = supportSources
+        self.groups = groups
     }
 
     /// Decodes and validates catalog bytes.
@@ -52,6 +58,33 @@ public struct RuntimePinCatalog: Codable, Equatable, Sendable {
             throw Self.invalid("The runtime pin catalog repeats a payload ID or a runtime kind.")
         }
         for source in supportSources.values { try source.validate() }
+        try validateGroups()
+    }
+
+    /// True when the app bundle embeds the payloads of `group`.
+    public func isEmbedded(_ group: PayloadGroup) -> Bool {
+        groups?[group.rawValue]?.embedded ?? true
+    }
+
+    /// The groups that the build copies into the app, in `PayloadGroup` order.
+    public var embeddedGroups: [PayloadGroup] { PayloadGroup.allCases.filter(isEmbedded) }
+
+    /// The pins that the app installs on demand: every pin of a group that is not embedded.
+    public var onDemandPins: [RuntimePin] {
+        pins.filter { pin in pin.group.map { !isEmbedded($0) } ?? false }
+    }
+
+    /// Every payload group and support source has one entry, and nothing else. A support
+    /// source is a build input, so it is never embedded.
+    private func validateGroups() throws {
+        guard let groups else { return }
+        let expected = Set(PayloadGroup.allCases.map(\.rawValue)).union(supportSources.keys)
+        guard Set(groups.keys) == expected else {
+            throw Self.invalid("The runtime pin catalog must list each payload group and support source once.")
+        }
+        guard supportSources.keys.allSatisfy({ groups[$0]?.embedded == false }) else {
+            throw Self.invalid("A support source of the runtime pin catalog is a build input and is never embedded.")
+        }
     }
 
     /// The pins of one bootstrap group, in catalog order.
