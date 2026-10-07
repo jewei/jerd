@@ -19,12 +19,16 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     /// The reviewed signature file of a pinned release: its size limit and SHA-256. Nil for
     /// catalog releases, whose signature is limited by `RuntimePipeline.signatureLimit` only.
     public let pinnedSignature: PinnedFile?
+    /// The version that the installed runtime must report, when the pin states one (the PostgreSQL
+    /// version of a Postgres.app release). Nil for catalog releases.
+    public let engineVersion: String?
 
     public init(
         kind: RuntimeKind, version: String, artifact: ReleaseArtifact, archiveSHA256: String?,
         signatureURL: URL? = nil, releasePage: URL, architecture: CPUArchitecture = .current,
-        minimumOSMajor: Int? = nil, pinnedSignature: PinnedFile? = nil
+        minimumOSMajor: Int? = nil, pinnedSignature: PinnedFile? = nil, engineVersion: String? = nil
     ) {
+        self.engineVersion = engineVersion
         self.pinnedSignature = pinnedSignature
         self.kind = kind
         self.version = version
@@ -40,12 +44,17 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     public var id: String { "\(kind.rawValue)-\(version)" + (archiveSHA256.map { "-\($0)" } ?? "") }
 
     /// The version text for the user. PostgreSQL shows the Postgres.app version until its engine is probed.
-    public var versionLabel: String { kind == .postgresql ? "Postgres.app \(version)" : version }
+    /// A pinned engine version wins, so a pinned PostgreSQL shows `18.6`.
+    public var versionLabel: String {
+        engineVersion ?? (kind == .postgresql ? "Postgres.app \(version)" : version)
+    }
 
     /// The name of the download, for example `PHP 8.5.11`. PostgreSQL comes from a Postgres.app release,
     /// whose version is not the PostgreSQL version.
+    /// A pinned engine version names the engine (`PostgreSQL 18.6`).
     public var title: String {
-        kind == .postgresql ? "Postgres.app \(version)" : "\(kind.title) \(version)"
+        if let engineVersion { return "\(kind.title) \(engineVersion)" }
+        return kind == .postgresql ? "Postgres.app \(version)" : "\(kind.title) \(version)"
     }
 
     /// The exact download size in bytes, when the publisher or the pin states it.

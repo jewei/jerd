@@ -1,13 +1,6 @@
 {
   "schemaVersion": 1,
   "architecture": "arm64",
-  "groups": {
-    "development": { "embedded": true },
-    "database": { "embedded": false },
-    "mail": { "embedded": true },
-    "storage": { "embedded": true },
-    "xz": { "embedded": false }
-  },
   "pins": [
     {
       "id": "php-8.5.11-arm64",
@@ -68,7 +61,8 @@
         "sizeLimit": 16384,
         "sha256": "7ae5895cfa44a930e7bb07fbc3cdaac0488997e56ae6b0d6e0733161bc506d03"
       },
-      "releasePage": "https://dev.mysql.com/downloads/mysql/8.4.html"
+      "releasePage": "https://dev.mysql.com/downloads/mysql/8.4.html",
+      "embedded": false
     },
     {
       "id": "postgresql-18.6-universal",
@@ -79,7 +73,9 @@
         "size": 122517005,
         "sha256": "9fc7d0dc08cf46dfd94bb32cbaaad81b41b37847a42d6dcb2f9fbd292813defb"
       },
-      "releasePage": "https://github.com/PostgresApp/PostgresApp/releases/tag/v2.9.6"
+      "releasePage": "https://github.com/PostgresApp/PostgresApp/releases/tag/v2.9.6",
+      "embedded": false,
+      "engineVersion": "18.6"
     },
     {
       "id": "redis-8.8.3-arm64",

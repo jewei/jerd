@@ -43,6 +43,11 @@ public struct RuntimePipeline: Sendable {
         }
         progress(RuntimeInstallProgress("Checking the installed version…"))
         let outcome = try await VersionProber(context: context).probe()
+        if let expected = release.engineVersion, outcome.version != expected {
+            throw JerdError.invalid(
+                "The installed \(release.kind.title) reports \(outcome.version), not its pinned \(expected). Jerd installed nothing."
+            )
+        }
         let files = try await Self.recordFiles(of: payload)
         return PreparedPayload(
             directory: payload, release: release, version: outcome.version, archiveSHA256: digest,

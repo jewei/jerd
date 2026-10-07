@@ -68,8 +68,8 @@ struct AppVerifierTests {
             output: "cmd LC_BUILD_VERSION\nminos 14.0\ncmd LC_LOAD_DYLIB\nname /usr/lib/libSystem.B.dylib (offset 24)\n"
         )
         let code = try await check.verify(root)
-        // The seven payloads of the embedded groups; the app has no database payloads.
-        #expect(code.count == 7)
+        // The eight embedded payloads; the app has no MySQL and PostgreSQL payloads.
+        #expect(code.count == 8)
         #expect(code.allSatisfy { $0.identifier == .exact($0.file.lastPathComponent) })
         workspace.runner.on("otool", output: "cmd LC_BUILD_VERSION\nminos 15.0\n")
         await #expect(throws: DevFailure.self) { _ = try await check.verify(root) }

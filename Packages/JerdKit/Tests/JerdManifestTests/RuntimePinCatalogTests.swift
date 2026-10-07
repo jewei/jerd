@@ -82,30 +82,47 @@ import Testing
         }
     }
 
-    @Test func committedCatalogEmbedsEveryGroupExceptTheDatabaseRuntimes() throws {
+    @Test func committedCatalogEmbedsEveryPayloadExceptMySQLAndPostgreSQL() throws {
         let catalog = try committedCatalog()
-        #expect(catalog.embeddedGroups == [.development, .mail, .storage])
-        #expect(!catalog.isEmbedded(.database))
-        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql, .redis])
-        #expect(catalog.groups?["xz"] == PayloadGroupSettings(embedded: false))
+        #expect(catalog.onDemandPins.map(\.kind) == [.mysql, .postgresql])
+        #expect(
+            catalog.embeddedPins.map(\.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs])
+        // Redis stays embedded: the database group is partly embedded.
+        #expect(catalog.embeddedPins.filter { $0.group == .database }.map(\.kind) == [.redis])
     }
 
-    @Test func catalogWithoutGroupSettingsEmbedsEveryGroup() throws {
+    @Test func committedPostgreSQLPinNamesItsEngineVersion() throws {
+        let pin = try #require(try committedCatalog().pin(for: .postgresql))
+        #expect(pin.version == "2.9.6" && pin.engineVersion == "18.6" && pin.displayVersion == "18.6")
+        #expect(try committedCatalog().pin(for: .mysql)?.displayVersion == "8.4.11")
+    }
+
+    @Test func pinWithoutTheNewFieldsIsEmbeddedAndKeepsItsEncoding() throws {
         let committed = try committedCatalog()
-        let old = RuntimePinCatalog(
-            architecture: .arm64, pins: committed.pins, supportSources: committed.supportSources)
-        #expect(old.embeddedGroups == PayloadGroup.allCases)
-        #expect(old.onDemandPins.isEmpty)
-        let encoded = try JSONEncoder().encode(old)
-        #expect(!String(decoding: encoded, as: UTF8.self).contains("\"groups\""))
-        #expect(try RuntimePinCatalog.decode(encoded) == old)
+        let pins = committed.pins.map {
+            RuntimePin(
+                id: $0.id, kind: $0.kind, version: $0.version, archive: $0.archive, signature: $0.signature,
+                composerProject: $0.composerProject, releasePage: $0.releasePage)
+        }
+        let old = RuntimePinCatalog(architecture: .arm64, pins: pins, supportSources: committed.supportSources)
+        #expect(old.onDemandPins.isEmpty && old.embeddedPins.count == pins.count)
+        let encoded = String(decoding: try JSONEncoder().encode(old), as: UTF8.self)
+        #expect(!encoded.contains("\"embedded\"") && !encoded.contains("\"engineVersion\""))
+        #expect(try RuntimePinCatalog.decode(Data(encoded.utf8)) == old)
     }
 
-    /// The fields that every earlier reader decodes. Unknown keys such as `groups` are ignored.
+    /// The fields that every earlier reader decodes. Unknown keys such as `embedded` are ignored.
+    private struct EarlierPin: Decodable {
+        let id: String
+        let kind: RuntimeKind
+        let version: String
+        let archive: PinnedArchive?
+    }
+
     private struct EarlierCatalog: Decodable {
         let schemaVersion: Int
         let architecture: CPUArchitecture
-        let pins: [RuntimePin]
+        let pins: [EarlierPin]
         let supportSources: [String: PinnedSupportSource]
     }
 
@@ -113,23 +130,23 @@ import Testing
         let data = try Data(contentsOf: Fixture.repositoryFile("Runtimes/runtimes.json"))
         let earlier = try JSONDecoder().decode(EarlierCatalog.self, from: data)
         #expect(earlier.schemaVersion == 1 && earlier.architecture == .arm64)
-        #expect(earlier.pins == (try committedCatalog().pins) && earlier.supportSources["xz"] != nil)
+        #expect(earlier.pins.map(\.id) == (try committedCatalog().pins.map(\.id)))
+        #expect(earlier.pins.first { $0.kind == .postgresql }?.version == "2.9.6")
     }
 
-    @Test func groupSettingsThatBreakARuleAreRefused() throws {
-        let committed = try committedCatalog()
-        let complete = try #require(committed.groups)
-        var missing = complete
-        missing["mail"] = nil
-        var unknown = complete
-        unknown["tools"] = PayloadGroupSettings(embedded: true)
-        var embeddedSupport = complete
-        embeddedSupport["xz"] = PayloadGroupSettings(embedded: true)
-        for groups in [missing, unknown, embeddedSupport] {
-            let catalog = RuntimePinCatalog(
-                architecture: .arm64, pins: committed.pins, supportSources: committed.supportSources, groups: groups)
-            #expect(throws: JerdError.self, "\(groups.keys.sorted())") { try catalog.validate() }
-        }
+    @Test func onDemandAndEngineVersionRulesAreEnforced() throws {
+        let page = try #require(URL(string: "https://example.com"))
+        let project = PinnedComposerProject(
+            directory: try #require(RelativePath("laravel-installer")), lockSHA256: digest("c"))
+        let laravel = RuntimePin(
+            id: "x", kind: .laravel, version: "5.32.0", archive: nil, composerProject: project, releasePage: page,
+            embedded: false)
+        #expect(throws: JerdError.self) { try laravel.validate() }
+        let url = try #require(URL(string: "https://example.com/a.tar.gz"))
+        let badEngine = RuntimePin(
+            id: "x", kind: .postgresql, version: "2.9.6", archive: archive(url), releasePage: page,
+            engineVersion: "eighteen")
+        #expect(throws: JerdError.self) { try badEngine.validate() }
     }
 
     private func archive(_ url: URL) -> PinnedArchive { PinnedArchive(url: url, size: 10, sha256: digest("a")) }

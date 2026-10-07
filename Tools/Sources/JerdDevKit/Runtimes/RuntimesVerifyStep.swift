@@ -37,7 +37,7 @@ enum RuntimesVerifyStep {
         for entry in inventory.entries() {
             let version = versionText(of: entry)
             let size = entry.payload.map { Self.formatted(bytes: FolderSize.bytes(of: $0.origin)) } ?? "-"
-            let inApp = catalog.isEmbedded(entry.group) ? "yes" : "on demand"
+            let inApp = entry.pin.isEmbedded ? "yes" : "on demand"
             rows.append([entry.group.rawValue, inApp, entry.pin.id, version, size, stateText(entry.state)])
         }
         if let source = catalog.supportSources["xz"] {

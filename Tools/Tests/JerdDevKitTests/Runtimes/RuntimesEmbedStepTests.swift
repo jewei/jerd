@@ -44,7 +44,12 @@ struct RuntimesEmbedStepTests {
         try await setup.embed(requiresAll: true)
         let mail = try PayloadFixtures.pin(.mailpit).id
         let names = try FileManager.default.contentsOfDirectory(atPath: setup.destination.path).sorted()
-        #expect(names == ["development", "mail", "runtimes.json", "storage"])
+        #expect(names == ["database", "development", "mail", "runtimes.json", "storage"])
+        let redis = try PayloadFixtures.pin(.redis).id
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "database").path) == [
+                redis
+            ])
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "mail").path) == [
                 mail
@@ -55,19 +60,26 @@ struct RuntimesEmbedStepTests {
         #expect(catalog == (try Data(contentsOf: setup.repository.runtimeCatalog)))
     }
 
-    @Test("The embedded groups come from the catalog, and the database group is not one of them")
-    func embeddedGroupsComeFromTheCatalog() throws {
+    @Test("The embedded payloads come from the catalog: every pin except MySQL and PostgreSQL")
+    func embeddedPayloadsComeFromTheCatalog() throws {
         let inventory = PayloadInventory(root: URL(filePath: "/nonexistent"), catalog: try PayloadFixtures.catalog())
-        #expect(inventory.embeddedGroups == [.development, .mail, .storage])
+        #expect(
+            inventory.embeddedPayloads.map(\.pin.kind) == [
+                .php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs,
+            ])
+        #expect(inventory.embeddedPayloads.first { $0.pin.kind == .redis }?.group == .database)
     }
 
-    @Test("Release needs only the embedded groups; the database payloads are not required")
-    func releaseNeedsOnlyEmbeddedGroups() async throws {
+    @Test("Release needs only the embedded payloads; MySQL and PostgreSQL are not required")
+    func releaseNeedsOnlyEmbeddedPayloads() async throws {
         let setup = try setup()
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
         try PayloadFixtures.writePayloads([.development, .mail, .storage], in: setup.repository.payloads)
+        try PayloadFixtures.writePayload(.redis, in: setup.repository.payloads)
         try await setup.embed(requiresAll: true)
-        #expect(!FileManager.default.fileExists(atPath: setup.destination.appending(path: "database").path))
+        let database = setup.destination.appending(path: "database")
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: database.path) == [try PayloadFixtures.pin(.redis).id])
         #expect(!setup.output.all.contains("warning:"))
     }
 

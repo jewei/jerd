@@ -144,25 +144,23 @@ import Testing
         }
     }
 
-    @Test func databasesThatTheCatalogDoesNotEmbedAreNeverInstalledAtLaunch() async throws {
+    @Test func onlyTheEmbeddedDatabasePinsInstallAtLaunch() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         var builder = BundleBuilder(root: folder.path("bundle"))
-        builder.groups = [
-            "development": PayloadGroupSettings(embedded: true), "database": PayloadGroupSettings(embedded: false),
-            "mail": PayloadGroupSettings(embedded: true), "storage": PayloadGroupSettings(embedded: true),
-        ]
+        try builder.add(
+            .mysql, id: "mysql-8.4.11-arm64", version: "8.4.11",
+            files: [.init(path: "bin/mysqld", text: "m", executable: true)], embedded: false)
         try builder.add(
             .redis, id: "redis-8.8.3-arm64", version: "8.8.3",
             files: [.init(path: "bin/redis-server", text: "r", executable: true)])
-        try builder.add(
-            .mailpit, id: "mailpit-1.31.3-arm64", version: "1.31.3",
-            files: [.init(path: "mailpit", text: "m", executable: true)])
         try builder.writeCatalog()
-        let bootstrap = bootstrap(folder.path("bundle"), folder)
-        #expect(try await bootstrap.installDatabases().isEmpty)
-        #expect(FileProbe.presence(at: folder.path("data/database-runtimes")) == .absent)
-        #expect(try await bootstrap.installMail().version == "1.31.3")
+        // The app bundle has no payload of a pin that installs on demand.
+        try FileManager.default.removeItem(at: folder.path("bundle/database/mysql-8.4.11-arm64"))
+        let installed = try await bootstrap(folder.path("bundle"), folder).installDatabases()
+        #expect(installed.map(\.kind) == [.redis])
+        let names = try FileManager.default.contentsOfDirectory(atPath: folder.path("data/database-runtimes").path)
+        #expect(names == [installed[0].id])
     }
 
     @Test func databasesCanSkipInstalledEngines() async throws {

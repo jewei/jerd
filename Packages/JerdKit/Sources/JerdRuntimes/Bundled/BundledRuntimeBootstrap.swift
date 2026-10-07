@@ -47,9 +47,9 @@ public actor BundledRuntimeBootstrap {
 
     /// Installs the bundled MySQL, PostgreSQL, and Redis, except the kinds in `excluding`.
     ///
-    /// An app whose catalog does not embed the database group returns none and downloads nothing:
-    /// the user installs each engine on demand (`OnDemandRuntimes`). Runtimes that an earlier copy
-    /// installed stay registered and in use.
+    /// Only the embedded pins install (Redis). The app installs the other engines (MySQL and
+    /// PostgreSQL) on demand (`OnDemandRuntimes`), never here, and downloads nothing. Runtimes that
+    /// an earlier copy installed stay registered and in use.
     public func installDatabases(excluding: Set<RuntimeKind> = []) async throws -> [InstalledPayload] {
         try await install(.database, into: layout.runtimes.databaseRuntimesDirectory, excluding: excluding)
     }
@@ -91,7 +91,6 @@ public actor BundledRuntimeBootstrap {
     private func install(
         _ group: PayloadGroup, into directory: URL, excluding: Set<RuntimeKind> = []
     ) async throws -> [InstalledPayload] {
-        guard try source.catalog().isEmbedded(group) else { return [] }
         let installer = VerifiedPayloadInstaller(directory: directory)
         var installed: [InstalledPayload] = []
         for payload in try source.payloads(in: group) where !excluding.contains(payload.pin.kind) {

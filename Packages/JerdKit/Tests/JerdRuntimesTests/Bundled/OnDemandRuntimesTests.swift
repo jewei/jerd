@@ -23,7 +23,7 @@ import Testing
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let releases = try OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64).releases()
-        #expect(releases.map(\.kind) == [.mysql, .postgresql, .redis])
+        #expect(releases.map(\.kind) == [.mysql, .postgresql])
         for release in releases {
             let pin = try committedPin(release.kind)
             let archive = try #require(pin.archive)
@@ -41,13 +41,17 @@ import Testing
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let source = OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64)
-        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .mailpit, .rustfs, .cloudflared] {
+        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs, .cloudflared] {
             #expect(try source.release(for: kind) == nil, "\(kind)")
         }
-        #expect(try source.release(for: .redis)?.version == "8.8.3")
+        #expect(try source.release(for: .mysql)?.versionLabel == "8.4.11")
+        // The engine version of the pin, not the Postgres.app version, before the install.
+        let postgres = try #require(try source.release(for: .postgresql))
+        #expect(postgres.versionLabel == "18.6" && postgres.engineVersion == "18.6" && postgres.version == "2.9.6")
+        #expect(postgres.title == "PostgreSQL 18.6")
     }
 
-    @Test func catalogWithoutGroupSettingsOffersNothing() throws {
+    @Test func catalogWithoutOnDemandPinsOffersNothing() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         var builder = BundleBuilder(root: folder.path("bundle"))
@@ -66,12 +70,18 @@ import Testing
         }
     }
 
-    @Test(arguments: [10, 4_496_813])
+    /// The pin of the builder is 10 bytes with the SHA-256 `digest("c")`.
+    @Test(arguments: [5, 10])
     func downloadThatDoesNotMatchItsPinInstallsNothing(_ byteCount: Int) async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
-        let source = OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64)
-        let release = try #require(try source.release(for: .redis))
+        var builder = BundleBuilder(root: folder.path("bundle"))
+        try builder.add(
+            .mysql, id: "mysql-8.4.11-arm64", version: "8.4.11",
+            files: [.init(path: "bin/mysqld", text: "m", executable: true)], embedded: false)
+        try builder.writeCatalog()
+        let release = try #require(
+            try OnDemandRuntimes(resources: folder.path("bundle"), architecture: .arm64).release(for: .mysql))
         let url = try #require(release.artifact.downloadURL)
         let fetcher = FakeFetcher([url: Data(count: byteCount)])
         let commands = ScriptedCommandRunner()
@@ -80,6 +90,8 @@ import Testing
             policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
         await #expect(throws: JerdError.self) { try await installer.install(release) }
         #expect(commands.requests.isEmpty)
+        // The signature is never fetched: the size and the digest fail first.
+        #expect(fetcher.requests == [url])
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path("runtime-updates").path).isEmpty)
     }
 }

@@ -45,6 +45,8 @@ struct RuntimesStepsTests {
         let mysql = try PayloadFixtures.pin(.mysql).id
         #expect(lines.contains { $0.contains("database  ") && $0.contains("on demand") && $0.contains(mysql) })
         #expect(lines.contains { $0.contains("mail  ") && $0.contains(" yes ") })
+        let redis = try PayloadFixtures.pin(.redis).id
+        #expect(lines.contains { $0.contains("database  ") && $0.contains(" yes ") && $0.contains(redis) })
     }
 
     @Test("Status shows the PostgreSQL engine version, or names Postgres.app before the payload exists")

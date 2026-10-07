@@ -19,10 +19,18 @@ public struct RuntimePin: Codable, Equatable, Sendable {
     public let composerProject: PinnedComposerProject?
     /// The release page that a reviewer used.
     public let releasePage: URL
+    /// False when the app does not embed this payload and installs it on demand. Nil (older
+    /// catalogs, and the default) means embedded. Earlier readers ignore the key.
+    public let embedded: Bool?
+    /// The version that the runtime reports, when it differs from `version`: the PostgreSQL
+    /// version of a Postgres.app release, for example `18.6`. Users see it before the install,
+    /// and the installed runtime must report it. Earlier readers ignore the key.
+    public let engineVersion: String?
 
     public init(
         id: String, kind: RuntimeKind, version: String, archive: PinnedArchive?, signature: PinnedFile? = nil,
-        composerProject: PinnedComposerProject? = nil, releasePage: URL
+        composerProject: PinnedComposerProject? = nil, releasePage: URL, embedded: Bool? = nil,
+        engineVersion: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -31,7 +39,15 @@ public struct RuntimePin: Codable, Equatable, Sendable {
         self.signature = signature
         self.composerProject = composerProject
         self.releasePage = releasePage
+        self.embedded = embedded
+        self.engineVersion = engineVersion
     }
+
+    /// True when the build copies the payload into the app.
+    public var isEmbedded: Bool { embedded ?? true }
+
+    /// The version that the user sees: the engine version when the pin states one.
+    public var displayVersion: String { engineVersion ?? version }
 
     /// The bootstrap group of this pin.
     public var group: PayloadGroup? { PayloadGroup(kind: kind) }
@@ -42,8 +58,12 @@ public struct RuntimePin: Codable, Equatable, Sendable {
     /// Checks the structural rules of one pin.
     public func validate() throws {
         guard PayloadIdentifier.isValid(id), RuntimeVersion(version) != nil, group != nil,
-            releasePage.scheme == "https"
+            releasePage.scheme == "https", engineVersion.map({ RuntimeVersion($0) != nil }) ?? true
         else { throw RuntimePinCatalog.invalid("The pin \(id) has an invalid identity.") }
+        // The app has no Composer project folder, so only an archive can install on demand.
+        guard isEmbedded || archive != nil else {
+            throw RuntimePinCatalog.invalid("The pin \(id) cannot install on demand: it names no archive.")
+        }
         if kind == .laravel {
             guard archive == nil, signature == nil, let project = composerProject else {
                 throw RuntimePinCatalog.invalid("The pin \(id) must name only a Composer project.")

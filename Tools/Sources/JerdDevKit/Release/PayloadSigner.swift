@@ -35,11 +35,11 @@ struct PayloadSigner: Sendable {
         return reports
     }
 
-    /// Every payload of an embedded group in the bundle, each verified file by file.
+    /// Every embedded payload of the bundle, each verified file by file.
     static func verifiedPayloads(in root: URL) throws -> [BundledPayload] {
         let catalog = try PayloadInventory.catalog(at: root.appending(path: RuntimePinCatalog.fileName))
         let inventory = PayloadInventory(root: root, catalog: catalog)
-        return try inventory.entries(in: inventory.embeddedGroups).map { entry in
+        return try inventory.embeddedEntries().map { entry in
             switch entry.state {
             case .valid(let payload): return payload
             case .missing: throw DevFailure.checkFailed("The app has no \(entry.pin.id) payload.")

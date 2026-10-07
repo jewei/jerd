@@ -20,6 +20,6 @@ extension RuntimePin {
         return RuntimeRelease(
             kind: kind, version: version, artifact: artifact, archiveSHA256: artifactSHA256,
             signatureURL: signature?.url, releasePage: releasePage, architecture: architecture,
-            pinnedSignature: signature)
+            pinnedSignature: signature, engineVersion: engineVersion)
     }
 }

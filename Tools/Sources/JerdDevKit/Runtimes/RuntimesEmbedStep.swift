@@ -2,16 +2,16 @@ import Foundation
 import JerdManifest
 import JerdRuntimes
 
-/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared payloads of the
-/// embedded groups into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
+/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared embedded
+/// payloads into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
 /// flags) before it copies, so an app never contains a payload that its receipt does not describe.
-/// Groups that the catalog does not embed (the database runtimes) stay out of the app; the app
-/// installs them on demand from the same pins.
+/// Pins that the catalog marks `"embedded": false` (MySQL and PostgreSQL) stay out of the app; the
+/// app installs them on demand from the same pins.
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.
     static let destinationName = BundledPayloadSource.folderName
 
-    /// - Parameter requiresAll: Release: every payload of an embedded group must be present.
+    /// - Parameter requiresAll: Release: every embedded payload must be present.
     static func run(_ context: DevContext, destination: URL, requiresAll: Bool) async throws {
         guard destination.lastPathComponent == destinationName, destination.path.contains(".app/") else {
             throw DevFailure.usage("The embed destination must be <app>/Contents/Resources/\(destinationName).")
@@ -20,7 +20,7 @@ enum RuntimesEmbedStep {
         let catalogBytes = try RepositoryPolicy.read("Runtimes/runtimes.json", in: context.repository)
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
         let inventory = PayloadInventory(root: context.repository.payloads, catalog: catalog)
-        let entries = inventory.entries(in: inventory.embeddedGroups)
+        let entries = inventory.embeddedEntries()
         let payloads = try checked(entries, requiresAll: requiresAll, context: context)
         let manager = FileManager.default
         guard !payloads.isEmpty else {
