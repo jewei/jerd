@@ -2,8 +2,8 @@ import Foundation
 
 /// Runs one update case in its own folder: two signed test apps, a signed feed on a new loopback
 /// server, one launch of version 1, and the judgement of its events. Cleanup always runs: the server
-/// stops, owned test processes stop, and Sparkle's preferences and caches of the random bundle
-/// identifier are removed.
+/// stops, owned test processes stop, and the preferences (the domain and its plist file), URL storage,
+/// and caches of the random bundle identifier are removed (`UpdateCaseCleanup`).
 struct UpdateCaseRun: Sendable {
     /// How long a case may take after version 1 ended until its last event and its last process.
     static let completionLimit: Duration = .seconds(60)
@@ -30,7 +30,7 @@ struct UpdateCaseRun: Sendable {
     func run(_ testCase: UpdateCase, in workFolder: URL) async throws -> EvidenceRecord.CaseResult {
         let folder = Folder(root: workFolder.appending(path: testCase.rawValue, directoryHint: .isDirectory))
         let bundleIdentifier =
-            "dev.jerd.updater-test."
+            UpdateCaseCleanup.identifierPrefix
             + UUID().uuidString.lowercased().replacingOccurrences(
                 of: "-", with: "")
         let server = effects.makeServer()
@@ -74,13 +74,25 @@ struct UpdateCaseRun: Sendable {
         server: any LoopbackFileServing, processes: FixtureProcesses, folder: Folder, bundleIdentifier: String
     ) async throws {
         await server.stop()
-        try await processes.stopOwned(events: Self.events(folder), clock: effects.clock)
-        // The domain does not exist when Sparkle wrote nothing, so the status does not matter.
-        _ = try await context.run(plan.deleteDefaults(bundleIdentifier: bundleIdentifier), output: .capture)
-        let caches = effects.home.appending(path: "Library/Caches/\(bundleIdentifier)", directoryHint: .isDirectory)
-        if FileManager.default.fileExists(atPath: caches.path) {
-            try FileManager.default.removeItem(at: caches)
+        var failure: (any Error)?
+        do {
+            try await processes.stopOwned(events: Self.events(folder), clock: effects.clock)
+        } catch {
+            failure = error
         }
+        // Also after a failure: the defaults domain, its plist, and the URL and cache folders go.
+        // The domain does not exist when Sparkle wrote nothing, so the status does not matter.
+        do {
+            _ = try await context.run(plan.deleteDefaults(bundleIdentifier: bundleIdentifier), output: .capture)
+        } catch {
+            failure = failure ?? error
+        }
+        do {
+            try UpdateCaseCleanup(home: effects.home, bundleIdentifier: bundleIdentifier).removeFiles()
+        } catch {
+            failure = failure ?? error
+        }
+        if let failure { throw failure }
     }
 
     static func events(_ folder: Folder) -> String {
