@@ -19,7 +19,7 @@ import Testing
         return try #require(try RuntimePinCatalog.decode(data).pin(for: kind))
     }
 
-    @Test func committedCatalogOffersExactlyTheThreeDatabasePins() throws {
+    @Test func committedCatalogOffersExactlyMySQLAndPostgreSQL() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let releases = try OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64).releases()

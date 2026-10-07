@@ -15,11 +15,11 @@ extension RuntimePipeline {
         progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> VerifiedArtifact? {
         guard case .archive(let url, let size) = release.artifact else { return nil }
-        let message = "Downloading \(release.title)…"
-        progress(RuntimeInstallProgress(message, 0))
+        progress(RuntimeInstallProgress(Self.downloadMessage(release.title, fraction: 0, size: size), 0))
         let file = staging.url.appendingPathComponent("download")
         let count = try await fetcher.download(from: url, to: file, limit: size.limit) { fraction in
-            progress(RuntimeInstallProgress(message, fraction))
+            progress(
+                RuntimeInstallProgress(Self.downloadMessage(release.title, fraction: fraction, size: size), fraction))
         }
         if case .exact(let expected) = size, count != expected {
             throw JerdError.invalid("The download does not have the size that its publisher states.")
@@ -34,6 +34,14 @@ extension RuntimePipeline {
             try await verifySignature(of: file, at: signatureURL, release: release)
         }
         return VerifiedArtifact(file: file, sha256: sha256)
+    }
+
+    /// `Downloading MySQL 8.4.11… 70.6 MB of 168 MB`: the bytes so far of an exact size. Without an
+    /// exact size, or before the first byte, only the title.
+    package static func downloadMessage(_ title: String, fraction: Double, size: ByteLimit) -> String {
+        guard case .exact(let total) = size, fraction > 0 else { return "Downloading \(title)…" }
+        let received = Int64((Double(total) * min(1, fraction)).rounded())
+        return "Downloading \(title)… \(ByteText.format(received)) of \(ByteText.format(total))"
     }
 
     /// Checks the detached publisher signature with the pinned key of the kind. A pinned release

@@ -26,11 +26,14 @@ public struct RuntimePin: Codable, Equatable, Sendable {
     /// version of a Postgres.app release, for example `18.6`. Users see it before the install,
     /// and the installed runtime must report it. Earlier readers ignore the key.
     public let engineVersion: String?
+    /// The approximate size in bytes of the installed runtime, for the free-space check and the
+    /// install dialog of an on-demand pin. Earlier readers ignore the key.
+    public let installedSize: Int64?
 
     public init(
         id: String, kind: RuntimeKind, version: String, archive: PinnedArchive?, signature: PinnedFile? = nil,
         composerProject: PinnedComposerProject? = nil, releasePage: URL, embedded: Bool? = nil,
-        engineVersion: String? = nil
+        engineVersion: String? = nil, installedSize: Int64? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -41,7 +44,11 @@ public struct RuntimePin: Codable, Equatable, Sendable {
         self.releasePage = releasePage
         self.embedded = embedded
         self.engineVersion = engineVersion
+        self.installedSize = installedSize
     }
+
+    /// The largest installed size that a pin can state (8 GB).
+    public static let installedSizeLimit: Int64 = 8_000_000_000
 
     /// True when the build copies the payload into the app.
     public var isEmbedded: Bool { embedded ?? true }
@@ -58,7 +65,8 @@ public struct RuntimePin: Codable, Equatable, Sendable {
     /// Checks the structural rules of one pin.
     public func validate() throws {
         guard PayloadIdentifier.isValid(id), RuntimeVersion(version) != nil, group != nil,
-            releasePage.scheme == "https", engineVersion.map({ RuntimeVersion($0) != nil }) ?? true
+            releasePage.scheme == "https", engineVersion.map({ RuntimeVersion($0) != nil }) ?? true,
+            installedSize.map({ (1...Self.installedSizeLimit).contains($0) }) ?? true
         else { throw RuntimePinCatalog.invalid("The pin \(id) has an invalid identity.") }
         // The app has no Composer project folder, so only an archive can install on demand.
         guard isEmbedded || archive != nil else {

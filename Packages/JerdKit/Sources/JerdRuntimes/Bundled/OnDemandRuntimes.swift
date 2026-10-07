@@ -8,7 +8,7 @@ import JerdManifest
 /// in the bundled catalog: the URL, the exact size, the SHA-256, and for MySQL the reviewed
 /// signature file. It uses the same pipeline and preparers as `./dev runtimes prepare`.
 public struct OnDemandRuntimes: Sendable {
-    private let source: BundledPayloadSource
+    let source: BundledPayloadSource
 
     /// - Parameter resources: `Jerd.app/Contents/Resources/RuntimePayloads`.
     public init(resources: URL, architecture: CPUArchitecture = .current) {

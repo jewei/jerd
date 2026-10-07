@@ -62,7 +62,8 @@
         "sha256": "7ae5895cfa44a930e7bb07fbc3cdaac0488997e56ae6b0d6e0733161bc506d03"
       },
       "releasePage": "https://dev.mysql.com/downloads/mysql/8.4.html",
-      "embedded": false
+      "embedded": false,
+      "installedSize": 360498219
     },
     {
       "id": "postgresql-18.6-universal",
@@ -75,7 +76,8 @@
       },
       "releasePage": "https://github.com/PostgresApp/PostgresApp/releases/tag/v2.9.6",
       "embedded": false,
-      "engineVersion": "18.6"
+      "engineVersion": "18.6",
+      "installedSize": 753446725
     },
     {
       "id": "redis-8.8.3-arm64",

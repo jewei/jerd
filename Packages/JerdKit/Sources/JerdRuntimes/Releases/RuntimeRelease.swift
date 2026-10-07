@@ -22,13 +22,17 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     /// The version that the installed runtime must report, when the pin states one (the PostgreSQL
     /// version of a Postgres.app release). Nil for catalog releases.
     public let engineVersion: String?
+    /// The approximate installed size in bytes that the pin states, or nil.
+    public let installedSize: Int64?
 
     public init(
         kind: RuntimeKind, version: String, artifact: ReleaseArtifact, archiveSHA256: String?,
         signatureURL: URL? = nil, releasePage: URL, architecture: CPUArchitecture = .current,
-        minimumOSMajor: Int? = nil, pinnedSignature: PinnedFile? = nil, engineVersion: String? = nil
+        minimumOSMajor: Int? = nil, pinnedSignature: PinnedFile? = nil, engineVersion: String? = nil,
+        installedSize: Int64? = nil
     ) {
         self.engineVersion = engineVersion
+        self.installedSize = installedSize
         self.pinnedSignature = pinnedSignature
         self.kind = kind
         self.version = version
@@ -61,6 +65,13 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
     public var downloadSize: Int64? {
         if case .archive(_, .exact(let size)) = artifact { return size }
         return nil
+    }
+
+    /// The free disk space that an installation needs: the download and the installed copy exist
+    /// at the same time. Nil when neither size is known.
+    public var requiredSpace: Int64? {
+        guard downloadSize != nil || installedSize != nil else { return nil }
+        return (downloadSize ?? 0) + (installedSize ?? 0)
     }
 
     /// How Jerd verifies this release, for the user.

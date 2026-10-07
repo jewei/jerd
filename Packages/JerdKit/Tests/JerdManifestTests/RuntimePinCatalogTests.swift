@@ -97,6 +97,21 @@ import Testing
         #expect(try committedCatalog().pin(for: .mysql)?.displayVersion == "8.4.11")
     }
 
+    @Test func onDemandPinsStateTheirInstalledSize() throws {
+        let catalog = try committedCatalog()
+        #expect(catalog.pin(for: .mysql)?.installedSize == 360_498_219)
+        #expect(catalog.pin(for: .postgresql)?.installedSize == 753_446_725)
+        let page = try #require(URL(string: "https://example.com"))
+        let url = try #require(URL(string: "https://example.com/a.tar.gz"))
+        for size in [Int64(0), RuntimePin.installedSizeLimit + 1] {
+            let pin = RuntimePin(
+                id: "x", kind: .mysql, version: "8.4.11", archive: archive(url),
+                signature: PinnedFile(url: url, sizeLimit: 10, sha256: digest("a")), releasePage: page,
+                embedded: false, installedSize: size)
+            #expect(throws: JerdError.self, "\(size)") { try pin.validate() }
+        }
+    }
+
     @Test func pinWithoutTheNewFieldsIsEmbeddedAndKeepsItsEncoding() throws {
         let committed = try committedCatalog()
         let pins = committed.pins.map {
