@@ -70,7 +70,7 @@ struct StorageRuntimeInstallerTests {
     @Test("Install builds the pin with the app's XZ library, then registers it under a new ID")
     func installUsesTheAppLibraryAndRegisters() async throws {
         let manager = RecordingStorageManager()
-        let managed = FakeManagedInstaller([Self.rustfsBuild])
+        let managed = FakeManagedInstaller(downloads: [Self.rustfsBuild])
         let runtime = try await installer(installer: managed, manager: manager).install { _ in }
         #expect(runtime == RuntimeActivator.storageRuntime(Self.rustfsBuild))
         #expect(await managed.tools.map(\.lzma) == [Self.lzma])
@@ -89,6 +89,16 @@ struct StorageRuntimeInstallerTests {
         }
         #expect(await managed.tools.isEmpty)
         #expect(await manager.calls.isEmpty)
+    }
+
+    @Test("An installed build of the pin is registered also without the XZ library: nothing is prepared")
+    func installedBuildNeedsNoLibrary() async throws {
+        let manager = RecordingStorageManager()
+        let managed = FakeManagedInstaller([Self.rustfsBuild])
+        let runtime = try await installer(installer: managed, manager: manager, lzma: nil).install { _ in }
+        #expect(runtime == RuntimeActivator.storageRuntime(Self.rustfsBuild))
+        #expect(await managed.tools.map(\.lzma) == [nil])
+        #expect(await manager.calls == ["register \(runtime.id)"])
     }
 
     @Test("A verified RustFS of an earlier copy is registered again; nothing is downloaded")

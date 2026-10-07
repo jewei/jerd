@@ -11,7 +11,10 @@ struct StorageRuntimeSection: View {
     var body: some View {
         Section {
             if let installation = model.runtimeInstallation {
-                RuntimeInstallProgressRow(installation, cancel: model.cancelRuntimeInstall)
+                VStack(alignment: .leading, spacing: Spacing.tight) {
+                    Text("RustFS").textRole(.rowTitle)
+                    RuntimeInstallProgressRow(installation, cancel: model.cancelRuntimeInstall)
+                }
             } else if let offer = model.runtimeOffer {
                 ActionRow("RustFS", detail: StorageRuntimeCopy.notInstalledDetail(offer)) {
                     Button(StorageRuntimeCopy.installTitle) { model.requestRuntimeInstall() }
@@ -25,9 +28,9 @@ struct StorageRuntimeSection: View {
                 }
             }
         } header: {
-            Text("RustFS")
+            Text("Runtime")
         } footer: {
-            FormFooter("Storage needs RustFS. Jerd downloads it only when you install it or start storage.")
+            FormFooter(StorageRuntimeCopy.footer(reuses: model.runtimeOffer?.reusesInstalledCopy == true))
         }
     }
 }

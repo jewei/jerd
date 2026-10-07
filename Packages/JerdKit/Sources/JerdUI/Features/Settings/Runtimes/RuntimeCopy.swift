@@ -9,8 +9,11 @@ enum RuntimeCopy {
     static let checkTitle = "Check for Runtime Updates"
 
     /// The fixed note under a section, after the check date.
-    static func note(_ kind: RuntimeKind) -> String? {
+    /// - Parameter isInstalled: False for a kind without an installed version: an update note
+    ///   would not fit, so RustFS names how storage installs it.
+    static func note(_ kind: RuntimeKind, isInstalled: Bool = true) -> String? {
         switch kind {
+        case .rustfs where !isInstalled: "Storage needs RustFS. Install it here, or start storage to install it first."
         case .mysql: "MySQL uses the 8.4 LTS series."
         case .postgresql: "PostgreSQL uses the 18 series from Postgres.app."
         case .redis: "Redis builds need the Xcode command line tools."
@@ -39,6 +42,8 @@ enum RuntimeCopy {
             "PHP \(version) is the default. Pinned sites keep their selected version."
         case .php:
             "PHP \(version) is available in each site’s PHP selection."
+        case .rustfs:
+            "RustFS \(version) is in use. Buckets, objects, and credentials stay as they are."
         default:
             "Updated to \(version)."
         }
@@ -53,22 +58,21 @@ enum RuntimeCopy {
 
     /// The section footer: when the kind was checked, then its note, or nil when there is
     /// neither. Before the first check the page says it once, not under every section.
-    static func footer(_ kind: RuntimeKind, checkedAt: String?) -> String? {
-        let parts = [checkedAt.map { "Checked \($0)." }, note(kind)].compactMap { $0 }
+    static func footer(_ kind: RuntimeKind, checkedAt: String?, isInstalled: Bool = true) -> String? {
+        let parts = [checkedAt.map { "Checked \($0)." }, note(kind, isInstalled: isInstalled)].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// The one page line before the first check.
     static let notCheckedMessage = "Updates have not been checked. Select \(checkTitle) to see new versions."
 
-    /// The detail of the pinned release that the app installs on demand, for example
-    /// `8.4.11, 168 MB download. Jerd checks it against its reviewed checksum.`
-    /// Why runtime installs are off while the Databases page installs an engine.
     /// The detail of a pinned release whose install reuses a copy on this Mac.
     static func reuseDetail(_ release: RuntimeRelease) -> String {
         "\(release.versionLabel) is already on this Mac. Installing it downloads nothing."
     }
 
+    /// The detail of the pinned release that the app installs on demand, for example
+    /// `8.4.11, 168 MB download. Jerd checks it against its reviewed checksum.`
     static func onDemandDetail(_ release: RuntimeRelease) -> String {
         let size = release.downloadSize.map { ", \(ByteText.format($0)) download" }
         let checks = RuntimeInstallCopy.checks(isSigned: release.pinnedSignature != nil)

@@ -48,7 +48,9 @@ struct RuntimeSection: View {
         } header: {
             Text(kind.title)
         } footer: {
-            if let footer = RuntimeCopy.footer(kind, checkedAt: checkedText) {
+            if let footer = RuntimeCopy.footer(
+                kind, checkedAt: checkedText, isInstalled: !model.inventory.installedVersions(kind).isEmpty)
+            {
                 FormFooter(footer)
             }
         }

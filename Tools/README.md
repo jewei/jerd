@@ -61,7 +61,7 @@ unsigned check build only.
 | Command | Purpose |
 | --- | --- |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned payloads. Default: every group |
-| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads); require each Mach-O file of an embedded payload to run on the deployment target |
+| `./dev runtimes verify [GROUP...]` | Verify each payload against its pin and receipt, file by file, and require every `@loader_path`, `@rpath`, and `@executable_path` reference of each Mach-O file to resolve inside the payload (embedded and on-demand payloads); require each Mach-O file of an embedded payload to run on the deployment target. With `storage`, `xz`, or no group it also verifies the XZ support library (`.build/runtimes/support/xz`) the same way; `database`, `development`, and `mail` alone skip it |
 | `./dev runtimes status` | List each payload with its group, whether the app embeds it, its version, size, and state |
 | `./dev runtimes embed DEST [--require-all]` | Verify and copy the embedded payloads into an app; the Xcode phase calls it |
 
