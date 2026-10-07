@@ -62,14 +62,13 @@ final class ReleaseWorkspace: Sendable {
         try Data(text.utf8).write(to: url)
     }
 
-    func environment(feed: [Data?] = [nil]) throws -> ReleaseEnvironment {
+    func environment() throws -> ReleaseEnvironment {
         var toolchain = TestFixtures.toolchain
         toolchain.gh = URL(filePath: "/opt/tools/gh")
         let context = DevContext(
             repository: repository, toolchain: toolchain, runner: runner,
             console: Console(output: output, verbose: false), environment: ["PATH": "/usr/bin", "JERD_PHP_CLI": "/x"])
-        return ReleaseEnvironment(
-            context: context, clock: clock, feedFetcher: FakeFeedFetcher(feed), verifier: try key.verifier)
+        return ReleaseEnvironment(context: context, clock: clock, verifier: try key.verifier)
     }
 
     func shell() throws -> ReleaseShell { try environment().shell }

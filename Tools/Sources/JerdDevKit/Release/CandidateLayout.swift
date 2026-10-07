@@ -1,15 +1,20 @@
 import Foundation
 
-/// The files of one private release candidate in `.build/releases/Jerd-<version>-<build>-<random>/`.
+/// The files of one release candidate in `.build/releases/Jerd-<version>-<build>/` (mode 0700).
+/// A new run of the same version and build replaces the folder. A run stops before that when the tag
+/// of the version exists, so the files that the recovery commands name stay.
 struct CandidateLayout: Equatable, Sendable {
     static let feedName = "appcast.xml"
     static let notesName = "release-notes.md"
-    static let namePrefix = "Jerd-"
 
     let root: URL
 
-    var state: URL { file(ReleaseState.fileName) }
-    var manifest: URL { file(ReleaseManifest.fileName) }
+    init(root: URL) { self.root = root }
+
+    init(releases: URL, version: ReleaseVersion, build: Int) {
+        root = releases.appending(path: "Jerd-\(version)-\(build)", directoryHint: .isDirectory)
+    }
+
     var sourceFeed: URL { file("source-appcast.xml") }
     var feed: URL { file(Self.feedName) }
     var notes: URL { file(Self.notesName) }
@@ -20,10 +25,6 @@ struct CandidateLayout: Equatable, Sendable {
     var diskImageFolder: URL { file("disk-image") }
     var appSubmission: URL { file("notary-app.zip") }
     var entitlements: URL { file("entitlements") }
-    var integration: URL { file("integration") }
-    var publishedAssets: URL { file("published-assets") }
-    /// The temporary Git index of the feed commit. Publication commits without a worktree.
-    var feedIndex: URL { file("feed-index") }
 
     func file(_ name: String) -> URL { root.appending(path: name) }
 

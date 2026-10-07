@@ -2,9 +2,9 @@ import Foundation
 
 /// Reads and promotes release notes in `CHANGELOG.md`.
 ///
-/// `./dev release bump` turns the `## [Unreleased]` notes into a `## [V] - YYYY-MM-DD` section, and the
-/// pull request of the version change carries it. `./dev release prepare` reads only that section, so
-/// the notes of a release are fixed in the reviewed source commit.
+/// `./dev release` reads the `## [Unreleased]` notes before the build. Its release commit turns them
+/// into a `## [V] - YYYY-MM-DD` section, so the feed, the GitHub release, and the changelog have the
+/// same text.
 enum ReleaseNotes {
     static let unreleasedHeading = "## [Unreleased]"
 
@@ -12,8 +12,7 @@ enum ReleaseNotes {
     static func section(for version: String, in changelog: String) throws -> String {
         let lines = changelog.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         guard let start = lines.firstIndex(where: { isHeading($0, of: version) }) else {
-            throw DevFailure.checkFailed(
-                "CHANGELOG.md has no \"## [\(version)] - YYYY-MM-DD\" section. Run ./dev release bump first.")
+            throw DevFailure.checkFailed("CHANGELOG.md has no \"## [\(version)] - YYYY-MM-DD\" section.")
         }
         let body = body(after: start, in: lines)
         guard !body.isEmpty else {
@@ -48,6 +47,14 @@ enum ReleaseNotes {
         var result = lines
         result.replaceSubrange(index...index, with: [unreleasedHeading, "", "## [\(version)] - \(date)"])
         return result.joined(separator: "\n")
+    }
+
+    /// The unreleased notes of the next release, with one final line break. They must be plain-text
+    /// items, and the changelog must have no section of `version` yet, so the release commit can promote them.
+    static func forRelease(_ changelog: String, version: String) throws -> String {
+        _ = try promoted(changelog, version: version, date: "2000-01-01")
+        guard let notes = unreleased(in: changelog) else { preconditionFailure("checked by promoted") }
+        return notes + "\n"
     }
 
     /// The text of `release-notes.md`: the notes and the system requirement.

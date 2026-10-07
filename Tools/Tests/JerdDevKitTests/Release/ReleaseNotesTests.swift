@@ -19,12 +19,19 @@ struct ReleaseNotesTests {
 
         """
 
-    @Test("A bump moves the unreleased notes under the version heading")
+    @Test("The release commit moves the unreleased notes under the version heading")
     func promotes() throws {
         let promoted = try ReleaseNotes.promoted(Self.changelog, version: "0.2.0", date: "2026-10-06")
         #expect(promoted.contains("## [Unreleased]\n\n## [0.2.0] - 2026-10-06\n\n- New thing."))
         #expect(ReleaseNotes.unreleased(in: promoted) == "")
         #expect(try ReleaseNotes.section(for: "0.2.0", in: promoted) == "- New thing.\n- Other thing.\n")
+    }
+
+    @Test("The notes of the next release are the unreleased notes, checked as the release commit checks them")
+    func notesForRelease() throws {
+        #expect(try ReleaseNotes.forRelease(Self.changelog, version: "0.2.0") == "- New thing.\n- Other thing.\n")
+        #expect(throws: DevFailure.self) { try ReleaseNotes.forRelease(Self.changelog, version: "0.1.0") }
+        #expect(throws: DevFailure.self) { try ReleaseNotes.forRelease("## [Unreleased]\n\n", version: "0.2.0") }
     }
 
     @Test("A section ends at the next heading")
@@ -49,8 +56,8 @@ struct ReleaseNotesTests {
         #expect(throws: DevFailure.self) { try ReleaseNotes.promoted(changelog, version: "0.2.0", date: "2026-10-06") }
     }
 
-    /// Right after a bump the unreleased section is empty by design, so the test accepts both states.
-    @Test("The repository changelog has notes that a bump can promote, or notes for the current version")
+    /// Right after a release commit the unreleased section is empty by design, so the test accepts both states.
+    @Test("The repository changelog has notes that a release can promote, or notes for the current version")
     func repositoryChangelog() throws {
         let root = ReleaseFixtures.repositoryRoot
         let changelog = try String(contentsOf: root.appending(path: "CHANGELOG.md"), encoding: .utf8)

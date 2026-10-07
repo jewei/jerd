@@ -82,20 +82,19 @@ struct AppSigningTests {
         #expect(!SignatureVerifier.IdentifierRule.any.accepts(nil))
     }
 
-    @Test("The archive uses the pinned packages, manual signing, and no version overrides")
+    @Test("The archive uses the pinned packages, the certificate SHA-1, and the release version and build")
     func archiveArguments() throws {
         let workspace = try ReleaseWorkspace()
         defer { workspace.remove() }
-        let inputs = try ReleaseInputs.parse(
-            version: "0.2.0", build: "3", minimumMacOS: "14.0", identity: ReleaseFixtures.identity,
-            team: ReleaseFixtures.team, notaryProfile: "p", keychain: nil)
         let arguments = AppArchiver(
-            shell: try workspace.shell(), inputs: inputs, layout: CandidateLayout(root: workspace.path("c"))
+            shell: try workspace.shell(), inputs: try ReleaseFixtures.inputs(),
+            layout: CandidateLayout(root: workspace.path("c"))
         )
         .arguments()
         #expect(arguments.contains("-onlyUsePackageVersionsFromResolvedFile"))
         #expect(arguments.contains("CODE_SIGN_STYLE=Manual") && arguments.contains("DEVELOPMENT_TEAM=ABCDE12345"))
-        #expect(!arguments.contains { $0.hasPrefix("MARKETING_VERSION") || $0.hasPrefix("CURRENT_PROJECT_VERSION") })
+        #expect(arguments.contains("CODE_SIGN_IDENTITY=\(ReleaseFixtures.sha1)"))
+        #expect(arguments.suffix(2) == ["MARKETING_VERSION=0.2.0", "CURRENT_PROJECT_VERSION=3"])
     }
 
     @Test("The minimum macOS version is written into the exported Info.plist")

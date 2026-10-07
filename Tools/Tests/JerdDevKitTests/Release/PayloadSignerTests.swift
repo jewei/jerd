@@ -101,6 +101,34 @@ struct PayloadSignerTests {
         #expect(second.runner.calls("codesign", ["--force"]).isEmpty)
     }
 
+    @Test("Signs exactly the pins of the embedded groups")
+    func signsEmbeddedPayloads() async throws {
+        let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
+        let catalog = try PayloadInventory.catalog(at: layout.appPayloads.appending(path: RuntimePinCatalog.fileName))
+        let groups = EmbeddedPayloads.groups(catalog)
+        let expected = catalog.pins.filter { $0.group.map(groups.contains) == true }.map(\.id)
+        let reports = try await Self.signer(workspace, layout).run()
+        #expect(reports.map(\.payloadID) == expected)
+        #expect(!expected.isEmpty)
+    }
+
+    @Test("Refuses an app that contains a payload that the release does not embed")
+    func refusesOtherPayloads() async throws {
+        for extra in ["unknown-group/x/LICENSE", "mail/mailpit-0.0.1-arm64/LICENSE"] {
+            let (workspace, layout) = try Self.setUp()
+            defer { workspace.remove() }
+            let file = layout.appPayloads.appending(path: extra)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: file)
+            let error = #expect(throws: DevFailure.self) { try PayloadSigner.verifiedPayloads(in: layout.appPayloads) }
+            #expect(error?.message.contains("does not embed") == true)
+            await #expect(throws: DevFailure.self) { _ = try await Self.signer(workspace, layout).run() }
+            #expect(workspace.runner.calls("codesign", ["--force"]).isEmpty)
+        }
+    }
+
     @Test("Refuses a changed payload before any file is signed")
     func refusesChangedPayload() async throws {
         let (workspace, layout) = try Self.setUp()

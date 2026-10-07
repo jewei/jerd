@@ -33,37 +33,64 @@ struct ReleaseInputsTests {
         }
     }
 
-    @Test("Inputs need an explicit minimum macOS, a team ID, and a notary profile")
-    func inputsAreChecked() throws {
-        let inputs = try ReleaseInputs.parse(
-            version: "0.2.0", build: "3", minimumMacOS: "14.0", identity: ReleaseFixtures.identity,
-            team: ReleaseFixtures.team, notaryProfile: "notary", keychain: nil)
+    @Test("The minimum macOS defaults to the deployment target and may not be older")
+    func minimumMacOS() throws {
+        let inputs = try ReleaseFixtures.inputs(minimum: nil)
         #expect(inputs.minimumMacOS.text == "14.0")
         #expect(inputs.notary.arguments == ["--keychain-profile", "notary"])
-        let failures: [() throws -> ReleaseInputs] = [
-            {
-                try .parse(
-                    version: "0.2", build: "3", minimumMacOS: "x", identity: "I", team: "ABCDE12345",
-                    notaryProfile: "p", keychain: nil)
-            },
-            {
-                try .parse(
-                    version: "0.2", build: "3", minimumMacOS: "14", identity: "I", team: "abc",
-                    notaryProfile: "p", keychain: nil)
-            },
-            {
-                try .parse(
-                    version: "0.2", build: "3", minimumMacOS: "14", identity: "", team: "ABCDE12345",
-                    notaryProfile: "p", keychain: nil)
-            },
-            {
-                try .parse(
-                    version: "0.2", build: "3", minimumMacOS: "14", identity: "I", team: "ABCDE12345",
-                    notaryProfile: "p", keychain: "relative")
-            },
-        ]
-        for failure in failures {
-            #expect(throws: DevFailure.self) { try failure() }
+        #expect(inputs.signing.identity == ReleaseFixtures.sha1)
+        #expect(try ReleaseFixtures.inputs(minimum: "15.1").minimumMacOS.text == "15.1")
+        #expect(throws: DevFailure.self) { try ReleaseFixtures.inputs(minimum: "13.5") }
+    }
+
+    @Test("The form check refuses a bad version, build, minimum, team, identity, and Keychain path")
+    func formIsChecked() throws {
+        try ReleaseInputs.checkForm(ReleaseFixtures.request())
+        var requests: [ReleaseRequest] = []
+        for change in [
+            { (r: inout ReleaseRequest) in r.version = "1" }, { $0.version = "0.2.x" }, { $0.build = "03" },
+            { $0.build = "0" }, { $0.minimumMacOS = "x" }, { $0.team = "abc" }, { $0.identity = "" },
+            { $0.keychain = "relative" }, { $0.notaryProfile = "-p" },
+        ] as [(inout ReleaseRequest) -> Void] {
+            var request = ReleaseFixtures.request()
+            change(&request)
+            requests.append(request)
+        }
+        for request in requests {
+            #expect(throws: DevFailure.self) { try ReleaseInputs.checkForm(request) }
+        }
+    }
+
+    @Test("Without --identity the only Developer ID identity of the team is selected by SHA-1")
+    func selectsDefaultIdentity() throws {
+        let identity = try SigningIdentity.select(
+            nil, team: ReleaseFixtures.team, identities: ReleaseFixtures.identities)
+        #expect(identity.identity == ReleaseFixtures.sha1 && identity.name == ReleaseFixtures.identity)
+        let lower = try SigningIdentity.select(
+            ReleaseFixtures.sha1.lowercased(), team: ReleaseFixtures.team, identities: ReleaseFixtures.identities)
+        #expect(lower.identity == ReleaseFixtures.sha1)
+        let named = try SigningIdentity.select(
+            ReleaseFixtures.identity, team: ReleaseFixtures.team, identities: ReleaseFixtures.identities)
+        #expect(named.identity == ReleaseFixtures.sha1)
+    }
+
+    @Test("Two certificates with the same name need a SHA-1, and a missing identity is a missing prerequisite")
+    func refusesAmbiguousIdentity() throws {
+        let two = ReleaseFixtures.identities + "  3) \(ReleaseFixtures.otherSHA1) \"\(ReleaseFixtures.identity)\"\n"
+        let error = #expect(throws: DevFailure.self) {
+            try SigningIdentity.select(nil, team: ReleaseFixtures.team, identities: two)
+        }
+        #expect(error?.status == .usage && error?.message.contains(ReleaseFixtures.otherSHA1) == true)
+        let chosen = try SigningIdentity.select(ReleaseFixtures.otherSHA1, team: ReleaseFixtures.team, identities: two)
+        #expect(chosen.identity == ReleaseFixtures.otherSHA1)
+        let missing = #expect(throws: DevFailure.self) {
+            try SigningIdentity.select(nil, team: "QQQQQ11111", identities: ReleaseFixtures.identities)
+        }
+        #expect(missing?.status == .missingPrerequisite)
+        #expect(throws: DevFailure.self) {
+            try SigningIdentity.select(
+                "FEDCBA9876543210FEDCBA9876543210FEDCBA98", team: ReleaseFixtures.team,
+                identities: ReleaseFixtures.identities)
         }
     }
 
@@ -95,27 +122,19 @@ struct ReleaseInputsTests {
         }
     }
 
-    @Test("A bump raises the build and keeps or raises the version")
-    func bumpRules() throws {
+    @Test("A release keeps or raises the version file values, and a released build must grow")
+    func projectRules() throws {
         let version = try #require(ReleaseVersion.release("0.1.0"))
-        try VersionRules.checkBump(version: version, build: 3, current: ("0.1.0", "2"), items: [])
+        try VersionRules.checkProject(version: version, build: 2, current: ("0.1.0", "2"), currentIsTagged: false)
+        try VersionRules.checkProject(version: version, build: 3, current: ("0.1.0", "2"), currentIsTagged: true)
         #expect(throws: DevFailure.self) {
-            try VersionRules.checkBump(version: version, build: 2, current: ("0.1.0", "2"), items: [])
+            try VersionRules.checkProject(version: version, build: 2, current: ("0.1.0", "2"), currentIsTagged: true)
         }
         #expect(throws: DevFailure.self) {
-            try VersionRules.checkBump(version: version, build: 3, current: ("0.2.0", "2"), items: [])
-        }
-    }
-
-    @Test("Preparation requires the version of the source commit")
-    func sourceRule() throws {
-        let version = try #require(ReleaseVersion.release("0.2.0"))
-        try VersionRules.checkSource(version: version, build: 3, file: ("0.2.0", "3"))
-        #expect(throws: DevFailure.self) {
-            try VersionRules.checkSource(version: version, build: 3, file: ("0.1.0", "3"))
+            try VersionRules.checkProject(version: version, build: 1, current: ("0.1.0", "2"), currentIsTagged: false)
         }
         #expect(throws: DevFailure.self) {
-            try VersionRules.checkSource(version: version, build: 4, file: ("0.2.0", "3"))
+            try VersionRules.checkProject(version: version, build: 3, current: ("0.2.0", "2"), currentIsTagged: false)
         }
     }
 }

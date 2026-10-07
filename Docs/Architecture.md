@@ -71,7 +71,8 @@ fakes. View models depend only on ports.
 **Explicit state machines.** Every long-running component has a named state
 enum and one function that changes it. These components are managed instances,
 the environment coordinator, the site change transaction, the setup
-transaction, tunnels, and the release publisher of `./dev release`.
+transaction, and tunnels. The release phases of `./dev release` are a named
+enum too, so a failure names what is already public.
 
 **One owner per file.** Each saved file has exactly one type that reads and
 writes it. That type keeps the exact compatible encoding and the backup copy.
