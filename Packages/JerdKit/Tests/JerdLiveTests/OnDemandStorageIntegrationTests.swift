@@ -14,8 +14,9 @@ import Testing
 /// and stops. The download comes from a local file server inside URLSession: no internet.
 ///
 /// `JERD_ON_DEMAND_STORAGE_INTEGRATION=1`, `JERD_RUNTIME_DOWNLOADS=<folder of files named by SHA-256>`
-/// (`.build/runtimes/downloads`), and `JERD_XZ_SUPPORT=<prepared support/xz folder>`
-/// (`.build/runtimes/support/xz`). `./dev test --integration storage` sets all three.
+/// (`.build/runtimes/downloads`), `JERD_XZ_SUPPORT=<prepared support/xz folder>`
+/// (`.build/runtimes/support/xz`), and `JERD_STORAGE_RUNTIME` (the prepared RustFS payload, for
+/// its pinned license). `./dev test --integration storage` sets all four.
 @Suite(
     "On-demand RustFS integration", .serialized,
     .enabled(if: ProcessInfo.processInfo.environment["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == "1"))
@@ -36,6 +37,8 @@ struct OnDemandStorageIntegrationTests {
         return folder.path("Jerd.app/Contents/Resources")
     }
 
+    /// Serves the pinned archive from the downloads folder, and the pinned license (the archive has
+    /// none) from the prepared RustFS payload, which holds the same reviewed text.
     private func serve(_ release: RuntimeRelease) throws {
         let downloads = try #require(environment["JERD_RUNTIME_DOWNLOADS"], "Set JERD_RUNTIME_DOWNLOADS.")
         let url = try #require(release.artifact.downloadURL)
@@ -43,6 +46,12 @@ struct OnDemandStorageIntegrationTests {
             url,
             from: URL(fileURLWithPath: downloads, isDirectory: true).appendingPathComponent(
                 try #require(release.archiveSHA256)))
+        let payload = try #require(environment["JERD_STORAGE_RUNTIME"], "Set JERD_STORAGE_RUNTIME.")
+        let license = URL(fileURLWithPath: payload).appendingPathComponent("LICENSE")
+        let pinned = try #require(try PinnedLicense.of(.rustfs))
+        try #require(
+            try FileDigest.hexSHA256(of: license) == pinned.sha256, "The prepared license is not the pinned one.")
+        LocalDownloadProtocol.serve(pinned.url, from: license)
     }
 
     private func fetcher() -> URLSessionFetcher {
@@ -64,12 +73,12 @@ struct OnDemandStorageIntegrationTests {
         let release = try #require(try domain.onDemandRuntimes.release(for: .rustfs))
         try serve(release)
         let port = LiveStoragePort(domain: domain)
-        let before = LocalDownloadProtocol.requests.count
+        let before = LocalDownloadProtocol.requests(for: release)
 
         // The launch downloads nothing and installs nothing: RustFS is not embedded.
         #expect(try await port.load().settings.runtime == nil)
         #expect(await port.runtimeSetupFailure() == nil)
-        #expect(LocalDownloadProtocol.requests.count == before)
+        #expect(LocalDownloadProtocol.requests(for: release) == before)
         let offer = try #require(await port.runtimeOffer())
         #expect(offer.title == "RustFS 1.0.0" && !offer.reusesInstalledCopy)
 
