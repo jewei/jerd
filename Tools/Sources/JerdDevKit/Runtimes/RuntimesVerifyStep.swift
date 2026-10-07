@@ -5,16 +5,28 @@ import JerdRuntimes
 /// `./dev runtimes verify` and `./dev runtimes status`: check every prepared payload against its pin
 /// and its receipt, file by file.
 enum RuntimesVerifyStep {
-    /// Reports each payload and fails when one is missing or invalid.
-    static func verify(_ context: DevContext, groups: [PayloadGroup]) throws {
+    /// Reports each payload and fails when one is missing or invalid, or when a Mach-O file of it
+    /// needs a library that the payload does not contain.
+    static func verify(_ context: DevContext, groups: [PayloadGroup]) async throws {
         let inventory = PayloadInventory(
             root: context.repository.payloads,
             catalog: try PayloadInventory.catalog(at: context.repository.runtimeCatalog))
         var failed: [String] = []
+        let dependencies = PayloadDependencyCheck(context: context)
         for entry in inventory.entries(in: groups) {
             switch entry.state {
             case .valid(let payload):
-                context.console.success("\(entry.pin.id): \(payload.receipt.files.count) files match the receipt.")
+                let problems = try await dependencies.problems(in: payload)
+                guard problems.isEmpty else {
+                    failed.append(entry.pin.id)
+                    for problem in problems { context.console.error("\(entry.pin.id): \(problem)") }
+                    context.console.error(
+                        "\(entry.pin.id): remove .build/runtimes/payloads/\(entry.group.rawValue)/\(entry.pin.id) "
+                            + "and run ./dev runtimes prepare \(entry.group.rawValue).")
+                    continue
+                }
+                context.console.success(
+                    "\(entry.pin.id): \(payload.receipt.files.count) files match the receipt; every library resolves.")
             case .missing:
                 failed.append(entry.pin.id)
                 context.console.error(missingMessage(entry))

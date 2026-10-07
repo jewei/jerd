@@ -11,6 +11,10 @@ import Testing
         ("bin/mysqld", true), ("bin/mysql", true), ("bin/mysqlsh", false), ("bin/libprotobuf.dylib", true),
         ("lib/libssl.dylib", true), ("lib/libmysqlclient.a", false), ("share/english/errmsg.sys", true),
         ("LICENSE", true), ("README", true), ("docs/INFO_SRC", false), ("include/mysql.h", false),
+        ("lib/plugin/debug/adt_null.so", false), ("lib/plugin/debug/libfido2.1.dylib", false),
+        ("lib/plugin/authentication_webauthn_client.so", false), ("lib/plugin/libfido2.1.dylib", false),
+        ("lib/plugin/adt_null.so", true), ("lib/libfido2.1.dylib", true), ("lib/libcrypto.3.dylib", true),
+        ("lib/plugin/authentication_ldap_sasl_client.so", true),
     ])
     func mysqlKeepsTheServerClientsLibrariesAndSharedData(_ text: String, _ kept: Bool) throws {
         #expect(MySQLTarPreparer.selects(try path(text)) == kept)
@@ -22,6 +26,8 @@ import Testing
         ("lib/postgresql/plpgsql.dylib", true), ("share/postgresql/extension/plpython3u.control", false),
         ("share/postgresql/extension/jsonb_plpython3u--1.0.sql", false),
         ("share/postgresql/extension/plpgsql.control", true),
+        ("lib/libicuio.77.dylib", false), ("lib/libicutest.77.1.dylib", false), ("lib/libicutu.dylib", false),
+        ("lib/libicuuc.77.dylib", true), ("lib/libicui18n.77.dylib", true), ("lib/libicudata.77.dylib", true),
     ])
     func postgresLeavesOutStaticLibrariesAndPLPython(_ text: String, _ kept: Bool) throws {
         #expect(PostgresAppPreparer.selects(try path(text)) == kept)
