@@ -92,10 +92,13 @@ local runtimes.
 | Group | Required | Optional |
 | --- | --- | --- |
 | `web` | `JERD_PHP_CLI`, `JERD_PHP_FPM`, `JERD_CADDY` | `JERD_SECOND_PHP_CLI`, `JERD_SECOND_PHP_FPM`, `JERD_KEEP_TEST_FILES` |
-| `database` | `JERD_DATABASE_RUNTIMES` | `JERD_OCCUPIED_DATABASE_PORT` |
+| `database` | `JERD_DATABASE_RUNTIMES` | `JERD_OCCUPIED_DATABASE_PORT`, `JERD_RUNTIME_DOWNLOADS`, `JERD_ON_DEMAND_ENGINE` |
 | `mail` | `JERD_MAIL_RUNTIME` | |
 | `storage` | `JERD_STORAGE_RUNTIME` | |
 
+The `database` group also sets `JERD_ON_DEMAND_INTEGRATION=1` and
+`JERD_RUNTIME_DOWNLOADS=.build/runtimes/downloads` when that folder exists, so the
+on-demand installation test runs from the verified downloads without internet.
 Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
 `storage` groups also set their own switch, for example
 `JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`

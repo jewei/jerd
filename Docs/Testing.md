@@ -15,6 +15,14 @@ passes through the runtime path variables of those groups. Set each path to an
 absolute path of a trusted local runtime. The variables of each group are in
 [Tools](../Tools/README.md#integration-tests).
 
+`--integration database` also installs one pinned engine on demand through the
+app pipeline into a temporary data root (`OnDemandRuntimeIntegrationTests` in
+JerdLive), then starts and stops a service with it. The downloads come from
+`.build/runtimes/downloads` through a local file server inside URLSession, so
+the test needs no internet. `JERD_RUNTIME_DOWNLOADS` names another folder of
+files named by SHA-256, and `JERD_ON_DEMAND_ENGINE` selects `redis` (default),
+`postgresql`, or `mysql` (MySQL also needs its signature file in the folder).
+
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 

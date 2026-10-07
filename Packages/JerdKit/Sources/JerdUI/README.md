@@ -14,7 +14,7 @@ implements them in memory.
 | `Shared/` | `OperationState`, `OperationLock`, `ServicePoller`, `PollingPolicy`, `PollingTask`, `Clipboard`, the effect ports, `WorkspaceFeature` with its value types, and the `isQuitting` environment value. |
 | `Features/Dashboard/` | The overview cards with their button rule (`CardActionRule`) and the runtimes row. |
 | `Features/Settings/` | Appearance, Runtimes, Advanced (with Command-Line Tools and the shared `RegistrationStore`), and About, each with its model and ports. |
-| `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, and the editor, retained, and restore sheets. |
+| `Features/Databases/` | `DatabasesPort`, `DatabasesModel`, the sidebar, the service page, the engine list (`DatabaseEnginesSection`), and the editor, retained, and restore sheets. |
 | `Features/Storage/` | `StoragePort`, `StorageModel`, the bucket sidebar, the storage and bucket pages, Add Bucket, and the ports sheet. |
 | `Features/Mail/` | `MailPort`, `MailModel`, the Mail page, and the ports sheet. |
 | `Features/DataServices/` | What the three service features share: `ServicePorts`, state display (with `stuck`), files, port rules, the ports sheet, the missing-runtime banner with the reason of a failed bundled setup (`MissingRuntimeBanner`), and the state banner (`ServiceStateBanner`). A failed service shows one cause line, Open Log, and the last three log lines with short paths behind a disclosure (`ServiceFailureSummary`), not the whole log tail of the reason. |
@@ -44,6 +44,26 @@ implements them in memory.
    waits for it.
 9. Read and change PHP registrations and the default PHP only through
    `AppState.registrations` (`RegistrationStore`), so every page shows the same values.
+
+## Database engines on demand
+
+The app does not include MySQL, PostgreSQL, and Redis; `DatabasesPort.runtimeOffers()` lists the
+pinned engines that Jerd can install, with version, download size, and source host. Nothing is
+downloaded without a user action.
+
+- The Databases page without a selected service lists every engine (`DatabaseEnginesSection`):
+  installed with its versions, or "Install MySQL…" with the download size. Install asks first
+  (title, size, source, and checks), then shows the step, a progress bar, and Cancel in the row.
+  A service page shows a running installation as a banner with Cancel. A failure or a cancel
+  shows once, as a dismissible banner, with the reason (offline, checksum, disk space, compiler).
+- Add Database lists every engine. For an engine without a runtime it shows the pinned version
+  and a note, and its confirm button is "Install and Create": one flow installs the engine, then
+  creates and starts the service. The progress shows in the sheet; Cancel stops the download and
+  creates nothing; a failure stays in the sheet.
+- The Dashboard card and the empty page offer Add Database at first launch. They say "Install it
+  in Runtimes" only when the app has no pins at all.
+- Runtimes shows a pinned engine without an installed version as "Available" with Install.
+- One installation runs at a time. Quit cancels a running installation before its final rename.
 
 ## Dashboard cards
 
