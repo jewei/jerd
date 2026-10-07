@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "repository": "lerd-env/php",
+  "tag": "php-8.5.11",
+  "assetID": 596171229,
+  "metadataURL": "https://api.github.com/repos/lerd-env/php/releases/tags/php-8.5.11",
+  "archiveSHA256": "59761adfe93cf737282843ea1cbc74e2fef3dd86839554efd71c3dddb2b867dc",
+  "fileSHA256": {
+    "php-native-8.5": "415eb78a98b1cf97647ae66855f665f629096b1da98aa19ce8e71b102e8029e0",
+    "php-native-fpm-8.5": "670219d725dc4f87e722443d90d04628d0e90fd9d0c72e568e29ef08229ec609",
+    "THIRD-PARTY-NOTICES.txt": "7fe1f65c68e7c40a3768e138f79294aeac89e8680848fe28dafd558334a3524c",
+    "BUILD-INFO.txt": "4c17146c69e5b27dec286a5099a562aff52a1be778e0fd8de2d8f21a7ce5246b"
+  },
+  "verifiedAt": "2026-10-01T07:14:04.702422+00:00",
+  "authentication": "GitHub release API over verified HTTPS and reviewed local digest pin",
+  "publisherSignatureVerified": false
+}

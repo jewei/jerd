@@ -1,0 +1,15 @@
+// Settings shared by every target.
+#include "Version.xcconfig"
+
+SWIFT_VERSION = 6.0
+MACOSX_DEPLOYMENT_TARGET = 14.0
+ENABLE_HARDENED_RUNTIME = YES
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO
+ENABLE_USER_SCRIPT_SANDBOXING = NO
+DEAD_CODE_STRIPPING = YES
+
+// Jerd runs only on Apple silicon: every bundled runtime payload is arm64 only, and the appcast item
+// requires arm64. A universal app would start on an Intel Mac and then fail with every runtime.
+// `./dev build` checks that the built executables contain only arm64.
+ARCHS = arm64

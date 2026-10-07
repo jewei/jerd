@@ -1,0 +1,6 @@
+// Settings for the php, composer, and laravel launcher.
+#include "Base.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.cli
+PRODUCT_NAME = JerdCLI
+SKIP_INSTALL = YES

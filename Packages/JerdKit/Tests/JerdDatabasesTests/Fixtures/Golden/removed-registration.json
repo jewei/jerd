@@ -1,0 +1,1 @@
+{"schemaVersion":1,"service":{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"Main MySQL","runtimeID":"mysql-8.4.11-arm64","port":3306},"runtime":{"id":"mysql-8.4.11-arm64","engine":"mysql","version":"8.4.11","path":"\/Users\/me\/Library\/Application Support\/Jerd\/database-runtimes\/mysql-8.4.11-arm64"}}

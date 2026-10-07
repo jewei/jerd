@@ -1,0 +1,966 @@
+{
+  "archiveSHA256": "b96e00493bc3499b9ffd7f08d65c5d64933af0383a8287d9873b64f94c2d6009",
+  "files": {
+    "LICENSE": {
+      "executable": false,
+      "sha256": "cb104b45f22bdecc7517916f792726056912586ffa5f4b1b0322d687bc3f3f1e"
+    },
+    "README": {
+      "executable": false,
+      "sha256": "4f8f901666dfdc5dbd307ff90248eac8c3da030249b630019d982a4e57ba91d5"
+    },
+    "bin/libprotobuf-lite.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "4b15755de9688cce04e90115273a2097914c4472699ecc31364c263d489783f4"
+    },
+    "bin/libprotobuf.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "df4ff8194c0eae238efa892d16798224a9234a6a1a7e38af709eea71f676f286"
+    },
+    "bin/mysql": {
+      "executable": true,
+      "sha256": "0ee0668b56046002c0c8d60312840b5e23c4560621761394603f548dc312cf3d"
+    },
+    "bin/mysqladmin": {
+      "executable": true,
+      "sha256": "59f4ae8817fa036bf831feb1b7e104290d39853c2edd687dcef7dfda2114bc58"
+    },
+    "bin/mysqld": {
+      "executable": true,
+      "sha256": "e5482c964c6f67aebfe7754c97f28a4876b6a036d63e818e5bf173b1221b671b"
+    },
+    "bin/mysqldump": {
+      "executable": true,
+      "sha256": "12e8c49d0a8d722e0814b6cb03752b305fae9b8d7aa40b446ac8997a45b53a92"
+    },
+    "lib/libcom_err.3.0.dylib": {
+      "executable": false,
+      "sha256": "a4b4736b422abf928f9fefaa2a9298ef7ff0ac098c455f8a69df81219af21040"
+    },
+    "lib/libcom_err.dylib": {
+      "executable": true,
+      "sha256": "a4b4736b422abf928f9fefaa2a9298ef7ff0ac098c455f8a69df81219af21040"
+    },
+    "lib/libcrypto.3.dylib": {
+      "executable": false,
+      "sha256": "d120a0b2746f30a0e7014757be459c67debc1e1291f95f6e0afdff99f0960dfe"
+    },
+    "lib/libcrypto.dylib": {
+      "executable": true,
+      "sha256": "d120a0b2746f30a0e7014757be459c67debc1e1291f95f6e0afdff99f0960dfe"
+    },
+    "lib/libfido2.1.15.0.dylib": {
+      "executable": true,
+      "sha256": "9e0404672e6a54f12de618159cb2b035c8fb630a6330b42091175b61c32d87ff"
+    },
+    "lib/libfido2.1.dylib": {
+      "executable": true,
+      "sha256": "9e0404672e6a54f12de618159cb2b035c8fb630a6330b42091175b61c32d87ff"
+    },
+    "lib/libfido2.dylib": {
+      "executable": true,
+      "sha256": "9e0404672e6a54f12de618159cb2b035c8fb630a6330b42091175b61c32d87ff"
+    },
+    "lib/libgssapi_krb5.2.2.dylib": {
+      "executable": false,
+      "sha256": "c5cd164cd1928d9aa08d0dc3d37f53ce3c5bea5eabf4368336ded4cbdd89bcb9"
+    },
+    "lib/libgssapi_krb5.dylib": {
+      "executable": true,
+      "sha256": "c5cd164cd1928d9aa08d0dc3d37f53ce3c5bea5eabf4368336ded4cbdd89bcb9"
+    },
+    "lib/libk5crypto.3.1.dylib": {
+      "executable": false,
+      "sha256": "2d4945e89f2dff047e32374072d2e8a4812964103e35a4a6b55d16651b44b868"
+    },
+    "lib/libk5crypto.dylib": {
+      "executable": true,
+      "sha256": "2d4945e89f2dff047e32374072d2e8a4812964103e35a4a6b55d16651b44b868"
+    },
+    "lib/libkrb5.3.3.dylib": {
+      "executable": false,
+      "sha256": "ccf3abc5d15213b5291ce493bf616cc72c2e6bfb0c3b4c0184459c56ed602069"
+    },
+    "lib/libkrb5.dylib": {
+      "executable": true,
+      "sha256": "ccf3abc5d15213b5291ce493bf616cc72c2e6bfb0c3b4c0184459c56ed602069"
+    },
+    "lib/libkrb5support.1.1.dylib": {
+      "executable": false,
+      "sha256": "cc6ecd3cb4e87ff084fa10d2aea8e9277d89a7fdabee4e75450e3e74c05a124f"
+    },
+    "lib/libkrb5support.dylib": {
+      "executable": true,
+      "sha256": "cc6ecd3cb4e87ff084fa10d2aea8e9277d89a7fdabee4e75450e3e74c05a124f"
+    },
+    "lib/libmysqlclient.24.dylib": {
+      "executable": true,
+      "sha256": "e4644c13d48fe85cc651f3e55d9e2ac4833f863e32c462d1b2b557a8566fb776"
+    },
+    "lib/libmysqlclient.dylib": {
+      "executable": true,
+      "sha256": "e4644c13d48fe85cc651f3e55d9e2ac4833f863e32c462d1b2b557a8566fb776"
+    },
+    "lib/libprotobuf-lite.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "4b15755de9688cce04e90115273a2097914c4472699ecc31364c263d489783f4"
+    },
+    "lib/libprotobuf-lite.dylib": {
+      "executable": true,
+      "sha256": "4b15755de9688cce04e90115273a2097914c4472699ecc31364c263d489783f4"
+    },
+    "lib/libprotobuf.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "df4ff8194c0eae238efa892d16798224a9234a6a1a7e38af709eea71f676f286"
+    },
+    "lib/libprotobuf.dylib": {
+      "executable": true,
+      "sha256": "df4ff8194c0eae238efa892d16798224a9234a6a1a7e38af709eea71f676f286"
+    },
+    "lib/libssl.3.dylib": {
+      "executable": false,
+      "sha256": "105ad5458312a75a6befed08ab8f60f2bd3d14323865eb51eee69e8c4ce1f73b"
+    },
+    "lib/libssl.dylib": {
+      "executable": true,
+      "sha256": "105ad5458312a75a6befed08ab8f60f2bd3d14323865eb51eee69e8c4ce1f73b"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/char.bin": {
+      "executable": false,
+      "sha256": "81bba502ae48fa005a374819f15e44452eb68086a8b323ec20a044d514400832"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/dicrc": {
+      "executable": false,
+      "sha256": "add6bb131a75e69478961ea59712541ace3779f7c5daa4da80d281f097c9d4d1"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/left-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/matrix.bin": {
+      "executable": false,
+      "sha256": "ee44d7350cdcb680ebd699f83e121be1dc63310f8832d55bcb537a068177611a"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/pos-id.def": {
+      "executable": false,
+      "sha256": "6a8a84243800970fd33327800d71477dbcacb3af71a7de572e1a98ce18f7fafb"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/rewrite.def": {
+      "executable": false,
+      "sha256": "df412c702cfa8e061500ee9aa77c0e4d4e182eee2790b05cbe8be7adf784bc03"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/right-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/sys.dic": {
+      "executable": false,
+      "sha256": "c63b2c463f1c111d6676a42b166b3016927f0116f5b5180719f8b32cb89f180f"
+    },
+    "lib/mecab/dic/ipadic_euc-jp/unk.dic": {
+      "executable": false,
+      "sha256": "4db635218d0c9ab6248c43cf07a539b8452933de21248c341b36a99955837203"
+    },
+    "lib/mecab/dic/ipadic_sjis/char.bin": {
+      "executable": false,
+      "sha256": "81bba502ae48fa005a374819f15e44452eb68086a8b323ec20a044d514400832"
+    },
+    "lib/mecab/dic/ipadic_sjis/dicrc": {
+      "executable": false,
+      "sha256": "add6bb131a75e69478961ea59712541ace3779f7c5daa4da80d281f097c9d4d1"
+    },
+    "lib/mecab/dic/ipadic_sjis/left-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_sjis/matrix.bin": {
+      "executable": false,
+      "sha256": "ee44d7350cdcb680ebd699f83e121be1dc63310f8832d55bcb537a068177611a"
+    },
+    "lib/mecab/dic/ipadic_sjis/pos-id.def": {
+      "executable": false,
+      "sha256": "6a8a84243800970fd33327800d71477dbcacb3af71a7de572e1a98ce18f7fafb"
+    },
+    "lib/mecab/dic/ipadic_sjis/rewrite.def": {
+      "executable": false,
+      "sha256": "df412c702cfa8e061500ee9aa77c0e4d4e182eee2790b05cbe8be7adf784bc03"
+    },
+    "lib/mecab/dic/ipadic_sjis/right-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_sjis/sys.dic": {
+      "executable": false,
+      "sha256": "954409d52b65af3fdac4cd971c17c083d9cf46051da08b97452cc8a6c249d892"
+    },
+    "lib/mecab/dic/ipadic_sjis/unk.dic": {
+      "executable": false,
+      "sha256": "dc1dace5f729dfcdfc1001eca4493f9d5f13eb242bfa0801b0fed697cbf553fb"
+    },
+    "lib/mecab/dic/ipadic_utf-8/char.bin": {
+      "executable": false,
+      "sha256": "81bba502ae48fa005a374819f15e44452eb68086a8b323ec20a044d514400832"
+    },
+    "lib/mecab/dic/ipadic_utf-8/dicrc": {
+      "executable": false,
+      "sha256": "add6bb131a75e69478961ea59712541ace3779f7c5daa4da80d281f097c9d4d1"
+    },
+    "lib/mecab/dic/ipadic_utf-8/left-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_utf-8/matrix.bin": {
+      "executable": false,
+      "sha256": "ee44d7350cdcb680ebd699f83e121be1dc63310f8832d55bcb537a068177611a"
+    },
+    "lib/mecab/dic/ipadic_utf-8/pos-id.def": {
+      "executable": false,
+      "sha256": "6a8a84243800970fd33327800d71477dbcacb3af71a7de572e1a98ce18f7fafb"
+    },
+    "lib/mecab/dic/ipadic_utf-8/rewrite.def": {
+      "executable": false,
+      "sha256": "df412c702cfa8e061500ee9aa77c0e4d4e182eee2790b05cbe8be7adf784bc03"
+    },
+    "lib/mecab/dic/ipadic_utf-8/right-id.def": {
+      "executable": false,
+      "sha256": "6d07aea525bc9730a4a07d12cc9f50abef4700431c938840b68896e79c761fe4"
+    },
+    "lib/mecab/dic/ipadic_utf-8/sys.dic": {
+      "executable": false,
+      "sha256": "d566567b7ac4b388dc7fafcb33b57911cc515f80be2cb457fd6c58666c0e3cb6"
+    },
+    "lib/mecab/dic/ipadic_utf-8/unk.dic": {
+      "executable": false,
+      "sha256": "9b464496956ed8ef851a08ba10f970b1718bbaf9bcf519cf25ee92f185c0d4f8"
+    },
+    "lib/mecab/etc/mecabrc": {
+      "executable": false,
+      "sha256": "f76918ac809ff40829cf42070f5cdb07bbe232c3e2f21c8e8c6e70e4c4d16af2"
+    },
+    "lib/pkgconfig/mysqlclient.pc": {
+      "executable": false,
+      "sha256": "df1f7c17590c6c683b0ffdf70ef6d0f3fe48f07249177fe02da1848f0bd75b3c"
+    },
+    "lib/plugin/adt_null.so": {
+      "executable": true,
+      "sha256": "00407ef8967799f4e2a1780e5e58b8076c8d82fd9a2af20f32324a978b7d948d"
+    },
+    "lib/plugin/authentication_kerberos_client.so": {
+      "executable": true,
+      "sha256": "f862670ede5ef703b0c92b5e37820c27f703e9f696e0df551a2d37e8ddec0441"
+    },
+    "lib/plugin/authentication_ldap_sasl_client.so": {
+      "executable": true,
+      "sha256": "a7d07d9c868b87f724106e724531b9b2c86a0e9652e9549178491aa982afad2c"
+    },
+    "lib/plugin/authentication_oci_client.so": {
+      "executable": true,
+      "sha256": "3796af3b638465f0a589d4bae29ab8790dd0bc03527bb2753d8d88fcc2ae4ccb"
+    },
+    "lib/plugin/authentication_webauthn_client.so": {
+      "executable": true,
+      "sha256": "298358d4c248fc15e273a9af7b0f31c225e8895a0d67902f835eff67551d04db"
+    },
+    "lib/plugin/component_audit_api_message_emit.so": {
+      "executable": true,
+      "sha256": "094b7e6fa5f76744ce410bd7cb43fc2bddd9bb4a8b1b8cf7044bcf7f40dc70d8"
+    },
+    "lib/plugin/component_keyring_file.so": {
+      "executable": true,
+      "sha256": "5fe108180fa6e1eac50856ce0d6a19bb6bef62d94c4a7d5ccc7c4a5c8826e242"
+    },
+    "lib/plugin/component_log_filter_dragnet.so": {
+      "executable": true,
+      "sha256": "a68f6bf662914772489681ccc050909f84af6f50dfe6b6090d3259a9d7147ae7"
+    },
+    "lib/plugin/component_log_sink_json.so": {
+      "executable": true,
+      "sha256": "de08be57efa12cc1830966597f88b1e9c10f0eb79e7cca5f0f384b54b0abde06"
+    },
+    "lib/plugin/component_log_sink_syseventlog.so": {
+      "executable": true,
+      "sha256": "d2e440effb510a3434a8bf82b7e81c400c5df6c1393fb29b3519996d802fd14a"
+    },
+    "lib/plugin/component_mysqlbackup.so": {
+      "executable": true,
+      "sha256": "7c48976365c65e9be70c62d17fd80aeb9c4925d8ae7e340afc346c54a716cfd0"
+    },
+    "lib/plugin/component_query_attributes.so": {
+      "executable": true,
+      "sha256": "e69051754fa9e66ad621d5700c80aa5f91f628b572377611d56185967d2f0a2c"
+    },
+    "lib/plugin/component_reference_cache.so": {
+      "executable": true,
+      "sha256": "27870c20615b87d1bc94ef23c19d46cbfb75a7573cb347889312fbe8c8f66d49"
+    },
+    "lib/plugin/component_validate_password.so": {
+      "executable": true,
+      "sha256": "30ff3e9f19af1ebfb5b8de39a4e4e7b6f90a606d6738b217da2b3d30e344cc2a"
+    },
+    "lib/plugin/connection_control.so": {
+      "executable": true,
+      "sha256": "6178b3137db55a3927848c050c38dfc516165498fb5bc0f5578e2535f5362f9a"
+    },
+    "lib/plugin/ddl_rewriter.so": {
+      "executable": true,
+      "sha256": "c226109d80bb7fb58ab4425ed8f3eb07c9f6ebde26dd6d8f3c5e63dcc0097624"
+    },
+    "lib/plugin/debug/adt_null.so": {
+      "executable": true,
+      "sha256": "84aeb9750f7f84ee7912b5b4492b26e6ee3b13e84b8f7b16f5569c85fd3432f3"
+    },
+    "lib/plugin/debug/component_audit_api_message_emit.so": {
+      "executable": true,
+      "sha256": "72ad7efa0738ee9307e3b24fcf592e455504505e8c7f7cb308675ac6a9ab6a09"
+    },
+    "lib/plugin/debug/component_keyring_file.so": {
+      "executable": true,
+      "sha256": "7de47c8fd1edfa8570cd2714a2ccaa3a552c5ce637fae436b36583031e6aff86"
+    },
+    "lib/plugin/debug/component_log_filter_dragnet.so": {
+      "executable": true,
+      "sha256": "8f4082300a75433d3ed0ab2c587bae92382803ab48b7ea956b64a07d47e4625b"
+    },
+    "lib/plugin/debug/component_log_sink_json.so": {
+      "executable": true,
+      "sha256": "bf0628d2468e281eb840bbefdd173b1a6a524faa9e28ae238c47842e9178ee70"
+    },
+    "lib/plugin/debug/component_log_sink_syseventlog.so": {
+      "executable": true,
+      "sha256": "e56754fc4bdfd76ef94b241de774c8547bb85e41d386dcb274581363a934719d"
+    },
+    "lib/plugin/debug/component_mysqlbackup.so": {
+      "executable": true,
+      "sha256": "c39df646c96ae7f6e208a6ba89c0608038d7162be94982cffce28d3d2710e221"
+    },
+    "lib/plugin/debug/component_query_attributes.so": {
+      "executable": true,
+      "sha256": "2aa7f3d88ca73872f3894fb80e130af21c43261bb2cd78095c0b6c92a0d8e538"
+    },
+    "lib/plugin/debug/component_reference_cache.so": {
+      "executable": true,
+      "sha256": "bceb257b1629a3a06155012ad8e9aa28b740fa60a1a560a411864eb08f03bdd7"
+    },
+    "lib/plugin/debug/component_validate_password.so": {
+      "executable": true,
+      "sha256": "e17dea0fa6a305118cca9275124a6e191f77995fd5dc24909f9c2aa167166331"
+    },
+    "lib/plugin/debug/connection_control.so": {
+      "executable": true,
+      "sha256": "e01b9119087d42f2c4c835bc11aff337d147d44a996ff6bd1e373462c6a091b5"
+    },
+    "lib/plugin/debug/ddl_rewriter.so": {
+      "executable": true,
+      "sha256": "d6754354132e6b5c5cfcd5411a34eeb202fdfe9bfbd2e0652679117c6afedb12"
+    },
+    "lib/plugin/debug/group_replication.so": {
+      "executable": true,
+      "sha256": "cc97cb9b62f5f568a38c27b4b1708d5a1de1e6066e9430410ad9ab4625a22804"
+    },
+    "lib/plugin/debug/ha_example.so": {
+      "executable": true,
+      "sha256": "d56ed9c1a166d23a56edbe72b30a7466a7ecfe0a5d17bf01a8a1ad9f9515d6ac"
+    },
+    "lib/plugin/debug/ha_mock.so": {
+      "executable": true,
+      "sha256": "dc5d5c800445628268be4b9b4d6067e24c6ba469ba6dd6c5f213164f4c3db5f0"
+    },
+    "lib/plugin/debug/keyring_udf.so": {
+      "executable": true,
+      "sha256": "36820c8c40b707a5365d91bc61be283d931589722ded96c5cce7929e32206c2d"
+    },
+    "lib/plugin/debug/libcom_err.3.0.dylib": {
+      "executable": true,
+      "sha256": "a4b4736b422abf928f9fefaa2a9298ef7ff0ac098c455f8a69df81219af21040"
+    },
+    "lib/plugin/debug/libcrypto.3.dylib": {
+      "executable": true,
+      "sha256": "d120a0b2746f30a0e7014757be459c67debc1e1291f95f6e0afdff99f0960dfe"
+    },
+    "lib/plugin/debug/libfido2.1.dylib": {
+      "executable": true,
+      "sha256": "9e0404672e6a54f12de618159cb2b035c8fb630a6330b42091175b61c32d87ff"
+    },
+    "lib/plugin/debug/libgssapi_krb5.2.2.dylib": {
+      "executable": true,
+      "sha256": "c5cd164cd1928d9aa08d0dc3d37f53ce3c5bea5eabf4368336ded4cbdd89bcb9"
+    },
+    "lib/plugin/debug/libk5crypto.3.1.dylib": {
+      "executable": true,
+      "sha256": "2d4945e89f2dff047e32374072d2e8a4812964103e35a4a6b55d16651b44b868"
+    },
+    "lib/plugin/debug/libkrb5.3.3.dylib": {
+      "executable": true,
+      "sha256": "ccf3abc5d15213b5291ce493bf616cc72c2e6bfb0c3b4c0184459c56ed602069"
+    },
+    "lib/plugin/debug/libkrb5support.1.1.dylib": {
+      "executable": true,
+      "sha256": "cc6ecd3cb4e87ff084fa10d2aea8e9277d89a7fdabee4e75450e3e74c05a124f"
+    },
+    "lib/plugin/debug/libpluginmecab.so": {
+      "executable": true,
+      "sha256": "d6e5ec08a4f400f293cd51e1faa83e8a96234bfe06009bcb278b1cf332774d1b"
+    },
+    "lib/plugin/debug/libprotobuf-lite.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "4b15755de9688cce04e90115273a2097914c4472699ecc31364c263d489783f4"
+    },
+    "lib/plugin/debug/libprotobuf.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "df4ff8194c0eae238efa892d16798224a9234a6a1a7e38af709eea71f676f286"
+    },
+    "lib/plugin/debug/libssl.3.dylib": {
+      "executable": true,
+      "sha256": "105ad5458312a75a6befed08ab8f60f2bd3d14323865eb51eee69e8c4ce1f73b"
+    },
+    "lib/plugin/debug/locking_service.so": {
+      "executable": true,
+      "sha256": "c327803b0b2f7aa4955ba9e4ab32b1a2496cdf75488a41d1f7a3cc87d5912416"
+    },
+    "lib/plugin/debug/mypluglib.so": {
+      "executable": true,
+      "sha256": "206295aa877e50381195a8ec7e9c8f7223b3922de6a50f4b0486b17032e7841e"
+    },
+    "lib/plugin/debug/mysql_clone.so": {
+      "executable": true,
+      "sha256": "a702761620735020662f70991b48c7d7552d2d11b837f28aaf47a536427a0958"
+    },
+    "lib/plugin/debug/mysql_no_login.so": {
+      "executable": true,
+      "sha256": "61209b83b0e3a26a6bb0a3417b9c9098bbdc81f245001186fb5a33d91b899b72"
+    },
+    "lib/plugin/debug/rewrite_example.so": {
+      "executable": true,
+      "sha256": "166e580f9f7b793f00a744758b840de30992d07eba7a3388997fac2df892d8c0"
+    },
+    "lib/plugin/debug/rewriter.so": {
+      "executable": true,
+      "sha256": "339eee0e4a8b905eae9bcc8b82e4ac2e7a7c900bcc29812b4d92556ad7968518"
+    },
+    "lib/plugin/debug/semisync_master.so": {
+      "executable": true,
+      "sha256": "b510d3afdc3e14af3a03ca8b687b7cf27a6c8a8a56010373479d2c1f3dcd78bc"
+    },
+    "lib/plugin/debug/semisync_replica.so": {
+      "executable": true,
+      "sha256": "29399048299a1f21539ea72acffdfc3a8e6973303ef67084793aaf86e76676f2"
+    },
+    "lib/plugin/debug/semisync_slave.so": {
+      "executable": true,
+      "sha256": "5b56962889285b6f45c317b488a7794c38d728d4dfbe4fc62a8ed0758ffa4035"
+    },
+    "lib/plugin/debug/semisync_source.so": {
+      "executable": true,
+      "sha256": "239f6ca62529374ffc1a237bbb42cb0cf6bc085a9076c2479a46403447a3010d"
+    },
+    "lib/plugin/debug/validate_password.so": {
+      "executable": true,
+      "sha256": "b14288d2cd88f511fe8b54335ee7dd96a04fbc0335ce33ee542f1dd26c29c0a7"
+    },
+    "lib/plugin/debug/version_token.so": {
+      "executable": true,
+      "sha256": "69fd2569a7724aa95e41c02d133397ab99dbe5b7dce0c9eaa134ef1ad3c7254d"
+    },
+    "lib/plugin/group_replication.so": {
+      "executable": true,
+      "sha256": "9da3d182e3a72ec4accad021d4bfd70106ce3dd452873cba633a340f00475657"
+    },
+    "lib/plugin/ha_example.so": {
+      "executable": true,
+      "sha256": "4cbe0c6ef9e402f91ed59c1edf4e55acd36754d53c12fef74cf7c2e4c0fd8993"
+    },
+    "lib/plugin/ha_mock.so": {
+      "executable": true,
+      "sha256": "a1d712421cb95eccbafe49ad22bb536f0a0970bafa064d222aed3830799f912c"
+    },
+    "lib/plugin/keyring_udf.so": {
+      "executable": true,
+      "sha256": "6bfcd7eebd1951efff30f5d69f23c89d629963ccf6bd1b726419e0ada8e07892"
+    },
+    "lib/plugin/libcom_err.3.0.dylib": {
+      "executable": true,
+      "sha256": "a4b4736b422abf928f9fefaa2a9298ef7ff0ac098c455f8a69df81219af21040"
+    },
+    "lib/plugin/libcrypto.3.dylib": {
+      "executable": true,
+      "sha256": "d120a0b2746f30a0e7014757be459c67debc1e1291f95f6e0afdff99f0960dfe"
+    },
+    "lib/plugin/libfido2.1.dylib": {
+      "executable": true,
+      "sha256": "9e0404672e6a54f12de618159cb2b035c8fb630a6330b42091175b61c32d87ff"
+    },
+    "lib/plugin/libgssapi_krb5.2.2.dylib": {
+      "executable": true,
+      "sha256": "c5cd164cd1928d9aa08d0dc3d37f53ce3c5bea5eabf4368336ded4cbdd89bcb9"
+    },
+    "lib/plugin/libk5crypto.3.1.dylib": {
+      "executable": true,
+      "sha256": "2d4945e89f2dff047e32374072d2e8a4812964103e35a4a6b55d16651b44b868"
+    },
+    "lib/plugin/libkrb5.3.3.dylib": {
+      "executable": true,
+      "sha256": "ccf3abc5d15213b5291ce493bf616cc72c2e6bfb0c3b4c0184459c56ed602069"
+    },
+    "lib/plugin/libkrb5support.1.1.dylib": {
+      "executable": true,
+      "sha256": "cc6ecd3cb4e87ff084fa10d2aea8e9277d89a7fdabee4e75450e3e74c05a124f"
+    },
+    "lib/plugin/libpluginmecab.so": {
+      "executable": true,
+      "sha256": "9fd97cb043be8abf2b76a3f8ebf19430468518451dd828b830ab66c28fd4e647"
+    },
+    "lib/plugin/libprotobuf-lite.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "4b15755de9688cce04e90115273a2097914c4472699ecc31364c263d489783f4"
+    },
+    "lib/plugin/libprotobuf.24.4.0.dylib": {
+      "executable": true,
+      "sha256": "df4ff8194c0eae238efa892d16798224a9234a6a1a7e38af709eea71f676f286"
+    },
+    "lib/plugin/libssl.3.dylib": {
+      "executable": true,
+      "sha256": "105ad5458312a75a6befed08ab8f60f2bd3d14323865eb51eee69e8c4ce1f73b"
+    },
+    "lib/plugin/locking_service.so": {
+      "executable": true,
+      "sha256": "ed163ed229fd78564b7fadb9574cd109ebc332a4349aaab09470023ee85601c6"
+    },
+    "lib/plugin/mypluglib.so": {
+      "executable": true,
+      "sha256": "7b69d864b7e14a6b03822f16e0159e6f4169b5c81783c0e02ed8b5a7cb1e4e68"
+    },
+    "lib/plugin/mysql_clone.so": {
+      "executable": true,
+      "sha256": "8185dd22dc25db9446d874797dfeb98f1b480a65871e77e7f4ae7999834a38b2"
+    },
+    "lib/plugin/mysql_no_login.so": {
+      "executable": true,
+      "sha256": "4dc94a778e835156e6d8dc05f8c9ec929e9c2703c434db5577720c7b1a3f19d7"
+    },
+    "lib/plugin/rewrite_example.so": {
+      "executable": true,
+      "sha256": "a5311f5a520476b5e8047d558aad9a3c0f3c76bd11855b250bba872200346338"
+    },
+    "lib/plugin/rewriter.so": {
+      "executable": true,
+      "sha256": "bf8d451fa7b280b862464edd3a5d200b62d0e239ed1c44cb65db8721ce593827"
+    },
+    "lib/plugin/semisync_master.so": {
+      "executable": true,
+      "sha256": "10e4460aa87a9f4663232e7634f3fadb1a4397d33c3346c925ebbd773522ee0a"
+    },
+    "lib/plugin/semisync_replica.so": {
+      "executable": true,
+      "sha256": "8566af224aac025191dcf7f65251c6df663213f193f602e38ae8c258c3807db2"
+    },
+    "lib/plugin/semisync_slave.so": {
+      "executable": true,
+      "sha256": "e2592c72d3c9a2103cb036f3d84bf9c0bf2d85980827b6e6960fee7789894f3a"
+    },
+    "lib/plugin/semisync_source.so": {
+      "executable": true,
+      "sha256": "22f5d7acfad4ed84abb496611f87d0710e571b2dc16341bcccd796f08b79207b"
+    },
+    "lib/plugin/validate_password.so": {
+      "executable": true,
+      "sha256": "98902fd3bdf929e1e392403f67c5f8524f4356ae9a1e88bd58d6477713f07a32"
+    },
+    "lib/plugin/version_token.so": {
+      "executable": true,
+      "sha256": "fd4c180cc24253a1d82dc1b2165064b1c0de0d87dd41ee92376fe2571e4c2ffd"
+    },
+    "lib/private/icudt77l/brkitr/burmesedict.dict": {
+      "executable": false,
+      "sha256": "99f1b2afe6672bc495a872e85dd5ed2be5ffc4d9b8377deff2dbc18a2b4538e5"
+    },
+    "lib/private/icudt77l/brkitr/char.brk": {
+      "executable": false,
+      "sha256": "2a0e1730d20a0dde9611149e9fcf12a0f945cb22bfaa681a8fd6091f71796251"
+    },
+    "lib/private/icudt77l/brkitr/cjdict.dict": {
+      "executable": false,
+      "sha256": "3850478c713b2004cbb96ef4b9f049caf16d6faf32a883d2e63c09659d0c59c7"
+    },
+    "lib/private/icudt77l/brkitr/de.res": {
+      "executable": false,
+      "sha256": "a08312a9303b1373f7129bdb6ebd798cb39073476f75d30f1602c0c6a99c05b2"
+    },
+    "lib/private/icudt77l/brkitr/el.res": {
+      "executable": false,
+      "sha256": "de0af623cf2c0440bfd567bb89116f02c78dc666b7fe3f62baaa47315937ebe3"
+    },
+    "lib/private/icudt77l/brkitr/en.res": {
+      "executable": false,
+      "sha256": "74c5fbfbfc3517d5383a84f9cbfbd0e3ab7c47fbdd09320d0429938fdb6ca984"
+    },
+    "lib/private/icudt77l/brkitr/en_US.res": {
+      "executable": false,
+      "sha256": "ee066818c0bfc2e92c9f4486f3087c3669b998786b0363a04467136d80c00d8b"
+    },
+    "lib/private/icudt77l/brkitr/en_US_POSIX.res": {
+      "executable": false,
+      "sha256": "f0b36c871bf8cde086d24478f43c465de47a62ad267922022f0b2cf29bc5f94c"
+    },
+    "lib/private/icudt77l/brkitr/es.res": {
+      "executable": false,
+      "sha256": "4db4b3ef626368fa010b546855296c5fa1556e5843d62fa5647e19bbe25cfdc6"
+    },
+    "lib/private/icudt77l/brkitr/fi.res": {
+      "executable": false,
+      "sha256": "ee066818c0bfc2e92c9f4486f3087c3669b998786b0363a04467136d80c00d8b"
+    },
+    "lib/private/icudt77l/brkitr/fr.res": {
+      "executable": false,
+      "sha256": "d95b1d5e778b175096289618ba726c7f31844609cdd1a69b5bb6748873f2d7ce"
+    },
+    "lib/private/icudt77l/brkitr/it.res": {
+      "executable": false,
+      "sha256": "86b433f7a2456522c6c9310e6a23d7783e414f72c66dd5d4643096225caeec6a"
+    },
+    "lib/private/icudt77l/brkitr/ja.res": {
+      "executable": false,
+      "sha256": "2cf394b51397cf3bc8f172275e1a956ee243658caa1120ef13c809ba276aeb5a"
+    },
+    "lib/private/icudt77l/brkitr/khmerdict.dict": {
+      "executable": false,
+      "sha256": "080582d61636c7f9039d65bc37452d100faa07f3ba7f5e21aa32aa1672441413"
+    },
+    "lib/private/icudt77l/brkitr/ko.res": {
+      "executable": false,
+      "sha256": "7af4ffd62b4dffaf18f453701fd37361f6c3c2d05a1edce201c45f37949f882c"
+    },
+    "lib/private/icudt77l/brkitr/laodict.dict": {
+      "executable": false,
+      "sha256": "b044d4232c2fea926b88f6047c4efcd683e7cf0573cf9f60990aa7500c60ef0c"
+    },
+    "lib/private/icudt77l/brkitr/line.brk": {
+      "executable": false,
+      "sha256": "f8cd15f438d9fa65ff49de922d15affa9ce265d1abf80a73138801015c57de4c"
+    },
+    "lib/private/icudt77l/brkitr/line_cj.brk": {
+      "executable": false,
+      "sha256": "c87df2dae2f91152dc730c8ef67db90893b2bc03257be8e740002f7ac4bb2746"
+    },
+    "lib/private/icudt77l/brkitr/line_loose.brk": {
+      "executable": false,
+      "sha256": "9fced216b2c859c83b0ed5bdb383d4e966d83b96efba1c70a89e0106ddc1e107"
+    },
+    "lib/private/icudt77l/brkitr/line_loose_cj.brk": {
+      "executable": false,
+      "sha256": "82178ed973312864aab2c54beff3e58f7c4b0c5c50bb40e5a0b6a0f59cf6b38c"
+    },
+    "lib/private/icudt77l/brkitr/line_loose_phrase_cj.brk": {
+      "executable": false,
+      "sha256": "5768526c010a78a2b8f5d19ed8db15a08b0490652343d82cd8c50e169640d527"
+    },
+    "lib/private/icudt77l/brkitr/line_normal.brk": {
+      "executable": false,
+      "sha256": "66069ccbc23cb0f63ed965a87f393af791fe66cc8f873ca400a6fcd2c92bfeab"
+    },
+    "lib/private/icudt77l/brkitr/line_normal_cj.brk": {
+      "executable": false,
+      "sha256": "e85343e49ff4b1e13c9ffd5c940798e5f115ef5a90d30fce3921bd06de24b055"
+    },
+    "lib/private/icudt77l/brkitr/line_normal_phrase_cj.brk": {
+      "executable": false,
+      "sha256": "cd6160b0fcbe651952a4ace22c3b969cacb4cc98d9fefde14c43391ed842ebf5"
+    },
+    "lib/private/icudt77l/brkitr/line_phrase_cj.brk": {
+      "executable": false,
+      "sha256": "154ba9a8ab4b3b3183bcbf758fc5aca5f10cac9efb80eb584a41a876db5ee30e"
+    },
+    "lib/private/icudt77l/brkitr/pt.res": {
+      "executable": false,
+      "sha256": "200c5c8d1a5d1ef45a57b40517cb966842ce9fa63d0147f8f6fb210a8a8dbefe"
+    },
+    "lib/private/icudt77l/brkitr/res_index.res": {
+      "executable": false,
+      "sha256": "0ef57bf600536ec93b119a45e72df7033a41e790e9693dfc27ec307d4fbd806e"
+    },
+    "lib/private/icudt77l/brkitr/root.res": {
+      "executable": false,
+      "sha256": "49a4511b6d9430b5d0c8938e4f7275a35723fb48febd6e6aa198367cfcc6681a"
+    },
+    "lib/private/icudt77l/brkitr/ru.res": {
+      "executable": false,
+      "sha256": "9e934ecf7041a7aead1c5aa813582e36b21565fb626e762cf6247c709d936614"
+    },
+    "lib/private/icudt77l/brkitr/sent.brk": {
+      "executable": false,
+      "sha256": "201c63fbd84e3068f4a9f87c40d1acee56e98d55ce9c13d49aca1efccee45e59"
+    },
+    "lib/private/icudt77l/brkitr/sent_el.brk": {
+      "executable": false,
+      "sha256": "99b68579f3d559d89df07fbb5d7d750369a229be068bc8b7615b39a752e59e37"
+    },
+    "lib/private/icudt77l/brkitr/sv.res": {
+      "executable": false,
+      "sha256": "ee066818c0bfc2e92c9f4486f3087c3669b998786b0363a04467136d80c00d8b"
+    },
+    "lib/private/icudt77l/brkitr/thaidict.dict": {
+      "executable": false,
+      "sha256": "ea47ae521cea65077bf047a75d1e9d28c495ec2f8cf4d2734fcb65a888229be9"
+    },
+    "lib/private/icudt77l/brkitr/title.brk": {
+      "executable": false,
+      "sha256": "db249734898a13360e54e00e21bcf67aa1f2b16b355ceff5d1ca65a3a7c38083"
+    },
+    "lib/private/icudt77l/brkitr/word.brk": {
+      "executable": false,
+      "sha256": "c866c32a0b51947d331281dc555f8e3c979f8f292045a17165e42bc03d977224"
+    },
+    "lib/private/icudt77l/brkitr/word_POSIX.brk": {
+      "executable": false,
+      "sha256": "d0c1f161990711c689546b72304a11a793806ec2313f98faec25097ac2be3733"
+    },
+    "lib/private/icudt77l/brkitr/zh.res": {
+      "executable": false,
+      "sha256": "35e7c34f5b94dda401bfc8d79c88dacc80a6985d821df44b5b8b667eacfe3646"
+    },
+    "lib/private/icudt77l/brkitr/zh_Hant.res": {
+      "executable": false,
+      "sha256": "35e7c34f5b94dda401bfc8d79c88dacc80a6985d821df44b5b8b667eacfe3646"
+    },
+    "lib/private/icudt77l/cnvalias.icu": {
+      "executable": false,
+      "sha256": "e833f51cb0a0874388cfef50c165af672cf2178c497b9d1bc70270744becf24b"
+    },
+    "lib/private/icudt77l/uemoji.icu": {
+      "executable": false,
+      "sha256": "011733fe9b3401dabc6ec4c87cce8503a81fbe8b1c8548353fade634b95c99f5"
+    },
+    "lib/private/icudt77l/ulayout.icu": {
+      "executable": false,
+      "sha256": "e3c39ae4966544703e89ac80fc64ed3b55f00a2ef67d810635dc010245ba154b"
+    },
+    "lib/private/icudt77l/unames.icu": {
+      "executable": false,
+      "sha256": "262483b0171456733567fd1e3d2a7768373c181463a26ceb092fc250f081ad36"
+    },
+    "share/aclocal/mysql.m4": {
+      "executable": false,
+      "sha256": "e1ac0875fe42f7e6a29bb583c81e65babea3af3cd55233616cc96e9c29344d89"
+    },
+    "share/bulgarian/errmsg.sys": {
+      "executable": false,
+      "sha256": "a62dd4d595f14ac54004b18a4d41c6bf76f2d623f354e4cec208aadd372cae58"
+    },
+    "share/charsets/Index.xml": {
+      "executable": false,
+      "sha256": "610942fc8428f982b4212b516d4127e7904261d43c9fd5f7c8ea0f2693f0f2e8"
+    },
+    "share/charsets/README": {
+      "executable": false,
+      "sha256": "0af62ce1ae651e980006f2e9d29bd2f24e1cd18c6a0b1914e9c437cc80e990ab"
+    },
+    "share/charsets/armscii8.xml": {
+      "executable": false,
+      "sha256": "d9350c8967f6d5cac862e7d263e36166235a8899eb874f37cbfb56c48feab687"
+    },
+    "share/charsets/ascii.xml": {
+      "executable": false,
+      "sha256": "4f4183f7c6482d28541627854849e80697233fa8f14a6d17a65432dd2472b5f2"
+    },
+    "share/charsets/cp1250.xml": {
+      "executable": false,
+      "sha256": "36d50fa4b2f002b14a0cba2c0af4ba8fe327ac2ccac249647e93ee2c6f033964"
+    },
+    "share/charsets/cp1251.xml": {
+      "executable": false,
+      "sha256": "fce7f7197770f0b1e64dd3ddf91edca9ba30d4411e14ddd4781b00c5d2d62fc3"
+    },
+    "share/charsets/cp1256.xml": {
+      "executable": false,
+      "sha256": "be476c400c55faad610505c9811e5aef4a6bf8d173cd92f5febc84320081c69d"
+    },
+    "share/charsets/cp1257.xml": {
+      "executable": false,
+      "sha256": "182c37fd78e7a56b7578c738e7aa6336bb3222d831b98b5c41c547ff371d2357"
+    },
+    "share/charsets/cp850.xml": {
+      "executable": false,
+      "sha256": "b477edfa7c38579fd445dd6aa6ac320bdccbfdacfd8df3be1b01144396cb8744"
+    },
+    "share/charsets/cp852.xml": {
+      "executable": false,
+      "sha256": "4bfcc35a63ee96b979e433fbf9ac65ab8eecc063cca74bd9e8d2ff9367e22dc3"
+    },
+    "share/charsets/cp866.xml": {
+      "executable": false,
+      "sha256": "86a0348753ce1acea14a52a205d499a0f8920b293b11bc107d532dcc6c677f2c"
+    },
+    "share/charsets/dec8.xml": {
+      "executable": false,
+      "sha256": "a40d3f923313b881512830228e3d162766497ea19dca53432faf3b82f6f07695"
+    },
+    "share/charsets/geostd8.xml": {
+      "executable": false,
+      "sha256": "25d51ded5d8cd437250ebe4441c6baad0b84877a61523718f1914d73f8cbf21c"
+    },
+    "share/charsets/greek.xml": {
+      "executable": false,
+      "sha256": "e50f290ebbb194d3b5b9eeaddd54e4df16996ee4ce095bef574675e86f8b82bf"
+    },
+    "share/charsets/hebrew.xml": {
+      "executable": false,
+      "sha256": "c5ec1e30390bb4abb80f7b2e45e40b03a8121d91a99fbf27fb9ca5498c797fa0"
+    },
+    "share/charsets/hp8.xml": {
+      "executable": false,
+      "sha256": "b744eeb5dbe430c280b6adbb741eb1e770720eb403adba6fd48069dbe3126180"
+    },
+    "share/charsets/keybcs2.xml": {
+      "executable": false,
+      "sha256": "fa0bd1b6b8d7c6bdbf4b27ac5416eb2e8d367c556de53c9334fe5212a17ce15a"
+    },
+    "share/charsets/koi8r.xml": {
+      "executable": false,
+      "sha256": "3ed078c3a348050e9478ac6c3354e85dc1464dd8bb4031efbc8afc179326f936"
+    },
+    "share/charsets/koi8u.xml": {
+      "executable": false,
+      "sha256": "bff681bddc3035c3597fb25bd0886cff5a584b50893e87d140675663a13a5da9"
+    },
+    "share/charsets/latin1.xml": {
+      "executable": false,
+      "sha256": "8b624470fd4de341b5cd4d45073f763116ff610ca0480f5630ad9ae06a11fea5"
+    },
+    "share/charsets/latin2.xml": {
+      "executable": false,
+      "sha256": "90dc04a5b03985ca70857d835ed154f619139b56e7aa7ca2bc27ae920baa15c0"
+    },
+    "share/charsets/latin5.xml": {
+      "executable": false,
+      "sha256": "10abc670fd6eefef5c0024d18e0df2faa88a43ee4497be6bfc916d060ee98dbe"
+    },
+    "share/charsets/latin7.xml": {
+      "executable": false,
+      "sha256": "17344a68c87f0fb4db5cf6966bbaf12fb9e398bbcbd63d169c7795c24b341919"
+    },
+    "share/charsets/macce.xml": {
+      "executable": false,
+      "sha256": "7aea20421e5926b329af00e52d0b309a00bc70e982ce107a2107528f08ae3ed7"
+    },
+    "share/charsets/macroman.xml": {
+      "executable": false,
+      "sha256": "1bb8872b21a052cc0d3abc55c09642ec5bc1bd5542fb5b46d95c7c4728ba72a7"
+    },
+    "share/charsets/swe7.xml": {
+      "executable": false,
+      "sha256": "b603c8791b7962d165d359bf4decd3a702375115011bee00cab46363fa267640"
+    },
+    "share/czech/errmsg.sys": {
+      "executable": false,
+      "sha256": "b7b76c710c7cb9c596144a7f388a4fb4dbdb11ba78aa30b71534e7698edcb0c3"
+    },
+    "share/danish/errmsg.sys": {
+      "executable": false,
+      "sha256": "a46e1d5a3ff0859a68fc2b72e028aec8decdc69af2ce2dbe9b642f457cf40571"
+    },
+    "share/dictionary.txt": {
+      "executable": false,
+      "sha256": "d031a0f90d77595abe02112adf69a86560e3168ba379fd450176a8e070763077"
+    },
+    "share/dutch/errmsg.sys": {
+      "executable": false,
+      "sha256": "2d83d08e6c92348caa3ec98bb29dd0b79c233ad39231fe53e82c5f716a337473"
+    },
+    "share/english/errmsg.sys": {
+      "executable": false,
+      "sha256": "f115353d47fa8301b2dc46de5a6a570f32658e40a1f43c50176058d1d074bfea"
+    },
+    "share/estonian/errmsg.sys": {
+      "executable": false,
+      "sha256": "1ac8d5999d9b043f5de4ad7ad736f404310fe53f41492d705ad86a0650de91eb"
+    },
+    "share/french/errmsg.sys": {
+      "executable": false,
+      "sha256": "03c10c9eb380b6ab248bf724cd572641fd9a58e2c0f8eeeb102d2263672e90ae"
+    },
+    "share/german/errmsg.sys": {
+      "executable": false,
+      "sha256": "c79d16116f22e33c8cad2e5cdb8d1bcc43ed01ccc5e5668c1c034dd2dba5894c"
+    },
+    "share/greek/errmsg.sys": {
+      "executable": false,
+      "sha256": "766fdea9f1b98a5508d60995d85e014a1ec59fafa9387df504792a8e38857090"
+    },
+    "share/hungarian/errmsg.sys": {
+      "executable": false,
+      "sha256": "e01e04a5a125e19b9a315417838b5cf4972730d195dcaa4d919c59d312bb8062"
+    },
+    "share/install_rewriter.sql": {
+      "executable": false,
+      "sha256": "66665248d327ee30345bb72b6a6001c6c3c15e1c958f2a9a931a112881d18f89"
+    },
+    "share/italian/errmsg.sys": {
+      "executable": false,
+      "sha256": "aaff28d2cb22112d280ba6cd3d14d1e102327f38c6c6f776a8caaea5006c944c"
+    },
+    "share/japanese/errmsg.sys": {
+      "executable": false,
+      "sha256": "95eac260831fcec0f51a9434bb2ad6d77b62e927178f2e191a9db158f668d296"
+    },
+    "share/korean/errmsg.sys": {
+      "executable": false,
+      "sha256": "a4f9b35d44d605a3a64447011ec8beab3962f1a0ca9336fa66d7e6b6dade92d6"
+    },
+    "share/messages_to_clients.txt": {
+      "executable": false,
+      "sha256": "e331fe816f3dfe9f8382baadc60a1f45dd8f3409f24752030c6d858593f5379c"
+    },
+    "share/messages_to_error_log.txt": {
+      "executable": false,
+      "sha256": "d55f651263ddac73e607af69186cd78f804a43f329ec87a1172ccff63d0266fd"
+    },
+    "share/norwegian-ny/errmsg.sys": {
+      "executable": false,
+      "sha256": "a3af012ddf76759caba6a3fa45f4fd91e5fe0e15c2604b6cd0c287c6060c9877"
+    },
+    "share/norwegian/errmsg.sys": {
+      "executable": false,
+      "sha256": "02fb05414d5c80c59ef2badffec232abd97095b468169ad8d7a8a07cb6717886"
+    },
+    "share/polish/errmsg.sys": {
+      "executable": false,
+      "sha256": "8949dbe3971ae486086d9407e018feef03981d221e6b6613942598d5d3e4a731"
+    },
+    "share/portuguese/errmsg.sys": {
+      "executable": false,
+      "sha256": "f4c882f876ee4318718f031e4f51342547800af7510e2b5233f1b6a1cd19eb1a"
+    },
+    "share/romanian/errmsg.sys": {
+      "executable": false,
+      "sha256": "cd76831685b311344546cfef364861cb3016601991ea77566b38ad7f5e37da4a"
+    },
+    "share/russian/errmsg.sys": {
+      "executable": false,
+      "sha256": "25e1137a4e36a991ed269b368aaf4c56044e30246d7793fba13b8ab8282c6c45"
+    },
+    "share/serbian/errmsg.sys": {
+      "executable": false,
+      "sha256": "7e873ee65b8eae2012576d602374aba04f5cfbbc29f684308616715f62f801a0"
+    },
+    "share/slovak/errmsg.sys": {
+      "executable": false,
+      "sha256": "607139a81d35f7b4e8eed355ebd152b86970a39d7f0e200cd3fddf8c96317239"
+    },
+    "share/spanish/errmsg.sys": {
+      "executable": false,
+      "sha256": "3989d03dac5b271ca4f51d4647effba1b4052092211b5c5262efff76713d6b95"
+    },
+    "share/swedish/errmsg.sys": {
+      "executable": false,
+      "sha256": "eabbe970728738f7f8926f8a1335a00f8177a7f6f920134050068e16165fac06"
+    },
+    "share/ukrainian/errmsg.sys": {
+      "executable": false,
+      "sha256": "e1555e2035b10d88d35071613cdf97730344b219344c7ef8addeda4e20f0135d"
+    },
+    "share/uninstall_rewriter.sql": {
+      "executable": false,
+      "sha256": "01f5b950efcdf134641ffe5e63bf9ab5895ff435af306c91e2be93b145d88439"
+    }
+  },
+  "schemaVersion": 1
+}

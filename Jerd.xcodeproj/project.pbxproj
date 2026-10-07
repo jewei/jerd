@@ -7,45 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		06B53C2D44B5D9AD8B775AE0 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D637D66C7860EB546D18B6 /* DashboardView.swift */; };
-		0BFD3A9698997849109D65B7 /* RuntimeUpdatesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B0A4D2353D4B935237F656 /* RuntimeUpdatesModel.swift */; };
-		0F347D589536CF6C6EF0B267 /* MailServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9979C8D3F34EF611EBC00FE /* MailServiceView.swift */; };
-		0FC70F2CF2CCD0345C0BAA96 /* RuntimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 161E0193BF583E1AD1A41010 /* RuntimeSettingsView.swift */; };
-		11F939BA838A0CCB8900BE60 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 38AE69F26CB31A360537396B /* JerdCore */; };
-		18C063A2871135AA44078DC1 /* Icon-elephant.png in Resources */ = {isa = PBXBuildFile; fileRef = ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */; };
-		1AA787B76FC83A73B93E05EF /* DatabaseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72ECF43F0C1D33CBCE03163A /* DatabaseModel.swift */; };
-		2B0979E5C00C17DB8871C01E /* StorageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251EC6CC703F3A2C6C835F8C /* StorageModel.swift */; };
+		11F939BA838A0CCB8900BE60 /* JerdLive in Frameworks */ = {isa = PBXBuildFile; productRef = FA863BECC93FE597F1F1D616 /* JerdLive */; };
+		251ADC86164ECAACB2B56504 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8DE71F9416999A9BB6A4D7B /* main.swift */; };
+		2B195B3A1F5EBDEAE923C7AB /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73809E761D5077FF47D840D6 /* main.swift */; };
 		2E6F168E36EDD6A605BFD223 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = F2183DA64A85F317C55D7145 /* Sparkle */; };
-		33FBA2CF7DA2380659B1D087 /* Icon-monogram.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C2CC4D7EE1FBDB5D3F18651 /* Icon-monogram.png */; };
-		387DEBBAA5FD736D86B8AEDA /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFFB6C42F9034C9F250DB4E /* AppAppearance.swift */; };
-		3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13AA2674D69717280670C24F /* JerdCore */; };
-		4014B5844FDE4881C7907F5D /* TunnelEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */; };
-		4478ED35B219193FBAF51EA7 /* Icon-rainbow.png in Resources */ = {isa = PBXBuildFile; fileRef = C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */; };
-		4A5F2D95DEF91D5029967E35 /* DatabaseServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */; };
-		5067AA2A270DC0936D3C27BE /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACF72C27741CBD6AF7B3579 /* AboutView.swift */; };
-		524FFBC474E758E5D64A4A2F /* AppearanceAndAdvancedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43830ED1CB2333FBB74FFBD4 /* AppearanceAndAdvancedViews.swift */; };
-		5AFA917B4882B91A2B98F97C /* Icon-lock.png in Resources */ = {isa = PBXBuildFile; fileRef = 13C74847BEFCD2F127DDA191 /* Icon-lock.png */; };
-		7084885347076BEF908848F6 /* JerdUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED712700FBFF27CD2877AD8 /* JerdUI.swift */; };
-		75F2EF6DCF6B1BC0570AC2C8 /* AppUpdatesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */; };
-		7AB59428F147D88E55BA87A9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF95E7C2A01AA02E3962277 /* ContentView.swift */; };
-		7C7531536DBA920CCAACC47A /* Icon-stack.png in Resources */ = {isa = PBXBuildFile; fileRef = 24073687C0540B2D250490FC /* Icon-stack.png */; };
-		A03C966697016758C9731910 /* MailModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393B28D7BFE55969E235ABAA /* MailModel.swift */; };
-		A3F50488AC0746D224D3D51C /* TrustConsentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF9F1BE123BCEEA3A2EF531 /* TrustConsentService.swift */; };
-		A8F4F1F0D04531FC07C02EB7 /* Sparkle-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */; };
-		ACD57C8FB967DB947905D60B /* JerdCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1EAD8E59C6255FC977CB98B0 /* JerdCore */; };
-		AF8C0E62CEA972166453DA30 /* SystemCertificateTrust.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */; };
-		B49308341EC4D118888113A1 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865CEFB3A891D39F06E5172E /* main.swift */; };
-		B521BF8C9655452AEFA67658 /* JerdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB21B0CC4F9DCD13C7E94F2 /* JerdApp.swift */; };
-		BCE199D2943B4A3780168276 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 55E20C93B6EF0787FDBCA0F7 /* Assets.xcassets */; };
-		CD185446028D36783E05372C /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BCC5D6DDA4C86990D41DCC /* HelperService.swift */; };
-		D04A445E53E90087DAEFEBD8 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8346E110A794E2E6A64F8F /* main.swift */; };
-		DF791BC611566ACF4D017073 /* TrustConsentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CED13C4F5EB4F20B0E4333D /* TrustConsentClient.swift */; };
-		E05BA7F70AB07DBB75B86187 /* TunnelModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */; };
-		E37099F9894404B9E2C75F01 /* TunnelDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */; };
-		E39579947E4969D76140A8D5 /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D26362B1DF3FA4FF7963C7A2 /* HelperClient.swift */; };
-		ECC47E3F34D2BCFDAF74DE4F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A6C945C5B467316C6E8BB1 /* AppModel.swift */; };
-		F0839D894CA9343AA1D14C22 /* Icon-dots.png in Resources */ = {isa = PBXBuildFile; fileRef = 3EA233A2BE2D9AFAB712696D /* Icon-dots.png */; };
-		F4B30B3C09B622704392D320 /* StorageServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E6A7AF932BDCC2FD452E55 /* StorageServicesView.swift */; };
+		30E2ECACDAE996487C7D548E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6638E1660FB2B2ACBD04A0C /* AppDelegate.swift */; };
+		3ACA1C5FC2FE837085969027 /* JerdHelperCore in Frameworks */ = {isa = PBXBuildFile; productRef = 846474874C14004289D494B2 /* JerdHelperCore */; };
+		5AC88ED54189F03130680E51 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B957944CAFB12A2BB6504DD8 /* Assets.xcassets */; };
+		79126642F591B0BB7865056F /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7FA9E5A860B336E493CB74 /* MenuBarLabel.swift */; };
+		81C98739577D0488500180F8 /* Sparkle-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = DCB2DA0B195497E195909CE9 /* Sparkle-LICENSE.txt */; };
+		94E49B4539BD81C9E01F9FC5 /* JerdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C9C5B8C851632B909422F9 /* JerdApp.swift */; };
+		9ABBD782D35EBC186880A98F /* AppIcons in Resources */ = {isa = PBXBuildFile; fileRef = B7089C1005B11A19C18235AE /* AppIcons */; };
+		A1F72367B37FB62612630C36 /* View+MainWindowConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA3CBBC4F91956DF4DC78926 /* View+MainWindowConnection.swift */; };
+		ACD57C8FB967DB947905D60B /* JerdCLICore in Frameworks */ = {isa = PBXBuildFile; productRef = 8570D1C59C98749090B22DAC /* JerdCLICore */; };
+		F6107A76163977EBBE9988E8 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F543199C52026D739A18289 /* SparkleUpdater.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,46 +41,24 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		13C74847BEFCD2F127DDA191 /* Icon-lock.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-lock.png"; sourceTree = "<group>"; };
-		161E0193BF583E1AD1A41010 /* RuntimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeSettingsView.swift; sourceTree = "<group>"; };
-		18E6A7AF932BDCC2FD452E55 /* StorageServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageServicesView.swift; sourceTree = "<group>"; };
-		24073687C0540B2D250490FC /* Icon-stack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-stack.png"; sourceTree = "<group>"; };
-		251EC6CC703F3A2C6C835F8C /* StorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModel.swift; sourceTree = "<group>"; };
-		28A6C945C5B467316C6E8BB1 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelEditor.swift; sourceTree = "<group>"; };
-		393B28D7BFE55969E235ABAA /* MailModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailModel.swift; sourceTree = "<group>"; };
-		3C8346E110A794E2E6A64F8F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		3CF9F1BE123BCEEA3A2EF531 /* TrustConsentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentService.swift; sourceTree = "<group>"; };
-		3EA233A2BE2D9AFAB712696D /* Icon-dots.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-dots.png"; sourceTree = "<group>"; };
-		43830ED1CB2333FBB74FFBD4 /* AppearanceAndAdvancedViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceAndAdvancedViews.swift; sourceTree = "<group>"; };
-		55E20C93B6EF0787FDBCA0F7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		66B0A4D2353D4B935237F656 /* RuntimeUpdatesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeUpdatesModel.swift; sourceTree = "<group>"; };
-		6ACF72C27741CBD6AF7B3579 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
-		6CED13C4F5EB4F20B0E4333D /* TrustConsentClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustConsentClient.swift; sourceTree = "<group>"; };
-		72ECF43F0C1D33CBCE03163A /* DatabaseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseModel.swift; sourceTree = "<group>"; };
-		75BCC5D6DDA4C86990D41DCC /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
-		7AF95E7C2A01AA02E3962277 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1855E2B63A03C7BD7DEF3C07 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
+		43DF68BFD5C9387784DC55E1 /* Helper.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Helper.xcconfig; sourceTree = "<group>"; };
+		4E7FA9E5A860B336E493CB74 /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
+		6F543199C52026D739A18289 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
+		73809E761D5077FF47D840D6 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		76DC75D7BB5274400123980A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8289025B679952540B924F89 /* JerdCLI */ = {isa = PBXFileReference; includeInIndex = 0; path = JerdCLI; sourceTree = BUILT_PRODUCTS_DIR; };
-		865CEFB3A891D39F06E5172E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		880B86DF1F5C9D720C65859F /* JerdHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = JerdHelper; sourceTree = BUILT_PRODUCTS_DIR; };
-		8C2CC4D7EE1FBDB5D3F18651 /* Icon-monogram.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-monogram.png"; sourceTree = "<group>"; };
-		8CFFB6C42F9034C9F250DB4E /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
-		8EB21B0CC4F9DCD13C7E94F2 /* JerdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdApp.swift; sourceTree = "<group>"; };
-		A1166F2EE5762E02A30C7102 /* JerdCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = JerdCore; path = Packages/JerdCore; sourceTree = SOURCE_ROOT; };
-		AFF9D466C3ECDBA618840327 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelDetailView.swift; sourceTree = "<group>"; };
-		BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Sparkle-LICENSE.txt"; sourceTree = "<group>"; };
-		BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCertificateTrust.swift; sourceTree = "<group>"; };
-		C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-rainbow.png"; sourceTree = "<group>"; };
-		C9979C8D3F34EF611EBC00FE /* MailServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailServiceView.swift; sourceTree = "<group>"; };
-		D26362B1DF3FA4FF7963C7A2 /* HelperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperClient.swift; sourceTree = "<group>"; };
-		D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseServicesView.swift; sourceTree = "<group>"; };
+		97C9C5B8C851632B909422F9 /* JerdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdApp.swift; sourceTree = "<group>"; };
+		A032044BD3D0128C3CD1E53F /* CLI.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CLI.xcconfig; sourceTree = "<group>"; };
+		B7089C1005B11A19C18235AE /* AppIcons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AppIcons; path = Apps/Jerd/Resources/AppIcons; sourceTree = SOURCE_ROOT; };
+		B957944CAFB12A2BB6504DD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D3FCAA0733515A1222E2C1C2 /* Jerd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jerd.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdatesModel.swift; sourceTree = "<group>"; };
-		E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelModel.swift; sourceTree = "<group>"; };
-		ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-elephant.png"; sourceTree = "<group>"; };
-		F3D637D66C7860EB546D18B6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
-		FED712700FBFF27CD2877AD8 /* JerdUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JerdUI.swift; sourceTree = "<group>"; };
+		DA3CBBC4F91956DF4DC78926 /* View+MainWindowConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+MainWindowConnection.swift"; sourceTree = "<group>"; };
+		DCB2DA0B195497E195909CE9 /* Sparkle-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Sparkle-LICENSE.txt"; sourceTree = "<group>"; };
+		E6638E1660FB2B2ACBD04A0C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		E71853DAD153E82DB6BC1216 /* JerdKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = JerdKit; path = Packages/JerdKit; sourceTree = SOURCE_ROOT; };
+		E8DE71F9416999A9BB6A4D7B /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,7 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3ACA1C5FC2FE837085969027 /* JerdCore in Frameworks */,
+				3ACA1C5FC2FE837085969027 /* JerdHelperCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,7 +74,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				11F939BA838A0CCB8900BE60 /* JerdCore in Frameworks */,
+				11F939BA838A0CCB8900BE60 /* JerdLive in Frameworks */,
 				2E6F168E36EDD6A605BFD223 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -130,146 +83,58 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ACD57C8FB967DB947905D60B /* JerdCore in Frameworks */,
+				ACD57C8FB967DB947905D60B /* JerdCLICore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0571DC145E1A19C743A3B7F0 /* Features */ = {
+		0E6DC03BDD378BA8EC46BE94 /* JerdHelper */ = {
 			isa = PBXGroup;
 			children = (
-				93360E37B6D2CCCDDF092017 /* Dashboard */,
-				9946278122FD3C608A9C1F1F /* Databases */,
-				BD0DBF40511F44BDF8EA8843 /* Mail */,
-				1CFC9C43E819F502CF75969B /* Sites */,
-				C3B7EDF189E0B0CFC4B02141 /* Storage */,
-				A0336895246A56A98BEC14E6 /* Tunnels */,
+				E8DE71F9416999A9BB6A4D7B /* main.swift */,
 			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		060E24CE7682887F6BA7FA13 /* Application */ = {
-			isa = PBXGroup;
-			children = (
-				28A6C945C5B467316C6E8BB1 /* AppModel.swift */,
-				8EB21B0CC4F9DCD13C7E94F2 /* JerdApp.swift */,
-			);
-			path = Application;
-			sourceTree = "<group>";
-		};
-		0F7DEAE491F31D66AEE63CAE /* JerdHelper */ = {
-			isa = PBXGroup;
-			children = (
-				75BCC5D6DDA4C86990D41DCC /* HelperService.swift */,
-				865CEFB3A891D39F06E5172E /* main.swift */,
-				BE8C51A54DED49BBBDEC2379 /* SystemCertificateTrust.swift */,
-				6CED13C4F5EB4F20B0E4333D /* TrustConsentClient.swift */,
-			);
-			name = JerdHelper;
-			path = Sources/JerdHelper;
-			sourceTree = "<group>";
-		};
-		1CFC9C43E819F502CF75969B /* Sites */ = {
-			isa = PBXGroup;
-			children = (
-				7AF95E7C2A01AA02E3962277 /* ContentView.swift */,
-			);
-			path = Sites;
-			sourceTree = "<group>";
-		};
-		27842452671FD902C6C06EB8 /* AppIcons */ = {
-			isa = PBXGroup;
-			children = (
-				3EA233A2BE2D9AFAB712696D /* Icon-dots.png */,
-				ECCFBDFFF7AC62BC0D5357C5 /* Icon-elephant.png */,
-				13C74847BEFCD2F127DDA191 /* Icon-lock.png */,
-				8C2CC4D7EE1FBDB5D3F18651 /* Icon-monogram.png */,
-				C0CCE8655A1C45A9D277A6AA /* Icon-rainbow.png */,
-				24073687C0540B2D250490FC /* Icon-stack.png */,
-			);
-			path = AppIcons;
-			sourceTree = "<group>";
-		};
-		2FEF1DD0B8DB963902771352 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				FED712700FBFF27CD2877AD8 /* JerdUI.swift */,
-			);
-			path = Shared;
+			path = JerdHelper;
 			sourceTree = "<group>";
 		};
 		31869F0D9834F9EB9C64A502 = {
 			isa = PBXGroup;
 			children = (
-				F4BA46D364A6B40435C0C9A4 /* Jerd */,
-				3E9D568540960F43198142F8 /* JerdCLI */,
-				0F7DEAE491F31D66AEE63CAE /* JerdHelper */,
+				F9C4CD3360B3E73F26CB6179 /* Apps */,
+				E586EA58717F91177ECFE2C9 /* Configuration */,
 				DD3BEA3CA8633A9FFBAED54C /* Packages */,
 				B6A5065FCAB422B071AFD382 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		3966AF47E1F2F101E0662624 /* Resources */ = {
+		39C531B8EB161A9D52E9E6B3 /* JerdCLI */ = {
 			isa = PBXGroup;
 			children = (
-				55E20C93B6EF0787FDBCA0F7 /* Assets.xcassets */,
-				AFF9D466C3ECDBA618840327 /* Info.plist */,
-				27842452671FD902C6C06EB8 /* AppIcons */,
-				B2842AECF1B655E17E607A20 /* Licenses */,
+				73809E761D5077FF47D840D6 /* main.swift */,
 			);
-			path = Resources;
+			path = JerdCLI;
 			sourceTree = "<group>";
 		};
-		3E9D568540960F43198142F8 /* JerdCLI */ = {
+		59345A10AE69AA5CDB4EAB00 /* Licenses */ = {
 			isa = PBXGroup;
 			children = (
-				3C8346E110A794E2E6A64F8F /* main.swift */,
-			);
-			name = JerdCLI;
-			path = Sources/JerdCLI;
-			sourceTree = "<group>";
-		};
-		93360E37B6D2CCCDDF092017 /* Dashboard */ = {
-			isa = PBXGroup;
-			children = (
-				6ACF72C27741CBD6AF7B3579 /* AboutView.swift */,
-				8CFFB6C42F9034C9F250DB4E /* AppAppearance.swift */,
-				43830ED1CB2333FBB74FFBD4 /* AppearanceAndAdvancedViews.swift */,
-				D5574D6A3E8147F5FE5DE47A /* AppUpdatesModel.swift */,
-				F3D637D66C7860EB546D18B6 /* DashboardView.swift */,
-				161E0193BF583E1AD1A41010 /* RuntimeSettingsView.swift */,
-				66B0A4D2353D4B935237F656 /* RuntimeUpdatesModel.swift */,
-			);
-			path = Dashboard;
-			sourceTree = "<group>";
-		};
-		9946278122FD3C608A9C1F1F /* Databases */ = {
-			isa = PBXGroup;
-			children = (
-				72ECF43F0C1D33CBCE03163A /* DatabaseModel.swift */,
-				D2B2EB57A4E0707CBB0663CC /* DatabaseServicesView.swift */,
-			);
-			path = Databases;
-			sourceTree = "<group>";
-		};
-		A0336895246A56A98BEC14E6 /* Tunnels */ = {
-			isa = PBXGroup;
-			children = (
-				B24999CF3C89DB416C68C5C7 /* TunnelDetailView.swift */,
-				2A809FBFB06A4C6686AAF952 /* TunnelEditor.swift */,
-				E17936EB557F76EEBEBC9FD4 /* TunnelModel.swift */,
-			);
-			path = Tunnels;
-			sourceTree = "<group>";
-		};
-		B2842AECF1B655E17E607A20 /* Licenses */ = {
-			isa = PBXGroup;
-			children = (
-				BBE7F26ACBB182DFD2DCEA42 /* Sparkle-LICENSE.txt */,
+				DCB2DA0B195497E195909CE9 /* Sparkle-LICENSE.txt */,
 			);
 			path = Licenses;
+			sourceTree = "<group>";
+		};
+		651C49674A13D488589D1D69 /* Jerd */ = {
+			isa = PBXGroup;
+			children = (
+				E6638E1660FB2B2ACBD04A0C /* AppDelegate.swift */,
+				97C9C5B8C851632B909422F9 /* JerdApp.swift */,
+				4E7FA9E5A860B336E493CB74 /* MenuBarLabel.swift */,
+				6F543199C52026D739A18289 /* SparkleUpdater.swift */,
+				DA3CBBC4F91956DF4DC78926 /* View+MainWindowConnection.swift */,
+				BAE6A216ADF7FD798F636332 /* Resources */,
+			);
+			path = Jerd;
 			sourceTree = "<group>";
 		};
 		B6A5065FCAB422B071AFD382 /* Products */ = {
@@ -282,52 +147,43 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		BD0DBF40511F44BDF8EA8843 /* Mail */ = {
+		BAE6A216ADF7FD798F636332 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				393B28D7BFE55969E235ABAA /* MailModel.swift */,
-				C9979C8D3F34EF611EBC00FE /* MailServiceView.swift */,
+				B7089C1005B11A19C18235AE /* AppIcons */,
+				B957944CAFB12A2BB6504DD8 /* Assets.xcassets */,
+				76DC75D7BB5274400123980A /* Info.plist */,
+				59345A10AE69AA5CDB4EAB00 /* Licenses */,
 			);
-			path = Mail;
-			sourceTree = "<group>";
-		};
-		C3B7EDF189E0B0CFC4B02141 /* Storage */ = {
-			isa = PBXGroup;
-			children = (
-				251EC6CC703F3A2C6C835F8C /* StorageModel.swift */,
-				18E6A7AF932BDCC2FD452E55 /* StorageServicesView.swift */,
-			);
-			path = Storage;
-			sourceTree = "<group>";
-		};
-		DC7EB55A6475D4D7252DD4A4 /* SystemIntegration */ = {
-			isa = PBXGroup;
-			children = (
-				D26362B1DF3FA4FF7963C7A2 /* HelperClient.swift */,
-				3CF9F1BE123BCEEA3A2EF531 /* TrustConsentService.swift */,
-			);
-			path = SystemIntegration;
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		DD3BEA3CA8633A9FFBAED54C /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				A1166F2EE5762E02A30C7102 /* JerdCore */,
+				E71853DAD153E82DB6BC1216 /* JerdKit */,
 			);
 			path = Packages;
 			sourceTree = "<group>";
 		};
-		F4BA46D364A6B40435C0C9A4 /* Jerd */ = {
+		E586EA58717F91177ECFE2C9 /* Configuration */ = {
 			isa = PBXGroup;
 			children = (
-				060E24CE7682887F6BA7FA13 /* Application */,
-				0571DC145E1A19C743A3B7F0 /* Features */,
-				3966AF47E1F2F101E0662624 /* Resources */,
-				2FEF1DD0B8DB963902771352 /* Shared */,
-				DC7EB55A6475D4D7252DD4A4 /* SystemIntegration */,
+				1855E2B63A03C7BD7DEF3C07 /* App.xcconfig */,
+				A032044BD3D0128C3CD1E53F /* CLI.xcconfig */,
+				43DF68BFD5C9387784DC55E1 /* Helper.xcconfig */,
 			);
-			name = Jerd;
-			path = Sources/Jerd;
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		F9C4CD3360B3E73F26CB6179 /* Apps */ = {
+			isa = PBXGroup;
+			children = (
+				651C49674A13D488589D1D69 /* Jerd */,
+				39C531B8EB161A9D52E9E6B3 /* JerdCLI */,
+				0E6DC03BDD378BA8EC46BE94 /* JerdHelper */,
+			);
+			path = Apps;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -346,7 +202,7 @@
 			);
 			name = JerdCLI;
 			packageProductDependencies = (
-				1EAD8E59C6255FC977CB98B0 /* JerdCore */,
+				8570D1C59C98749090B22DAC /* JerdCLICore */,
 			);
 			productName = JerdCLI;
 			productReference = 8289025B679952540B924F89 /* JerdCLI */;
@@ -357,7 +213,7 @@
 			buildConfigurationList = 2FE4D94F84D3A2D58FA9423C /* Build configuration list for PBXNativeTarget "Jerd" */;
 			buildPhases = (
 				57FD94AA6B9C23E61561F065 /* Sources */,
-				4B1CEBCD4C361B9E30AFF822 /* Embed approved helper and development runtimes */,
+				AC559CCEE26E002FF23745C3 /* Embed helper, launcher, and runtime payloads */,
 				30B02CC92790BA93E6B91F6D /* Resources */,
 				8C236E15DD47D7FEC9892F67 /* Frameworks */,
 			);
@@ -369,7 +225,7 @@
 			);
 			name = Jerd;
 			packageProductDependencies = (
-				38AE69F26CB31A360537396B /* JerdCore */,
+				FA863BECC93FE597F1F1D616 /* JerdLive */,
 				F2183DA64A85F317C55D7145 /* Sparkle */,
 			);
 			productName = Jerd;
@@ -389,7 +245,7 @@
 			);
 			name = JerdHelper;
 			packageProductDependencies = (
-				13AA2674D69717280670C24F /* JerdCore */,
+				846474874C14004289D494B2 /* JerdHelperCore */,
 			);
 			productName = JerdHelper;
 			productReference = 880B86DF1F5C9D720C65859F /* JerdHelper */;
@@ -402,8 +258,11 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+					1DFF9FF6673E813BB09945CF = {
+						ProvisioningStyle = Automatic;
+					};
 					BDD9FED0F347515A6765CE99 = {
 						ProvisioningStyle = Automatic;
 					};
@@ -423,7 +282,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				228EAD53163022E2D1D5BE2A /* XCRemoteSwiftPackageReference "Sparkle" */,
-				6FDE9D7470A04AE8429B70D8 /* XCLocalSwiftPackageReference "Packages/JerdCore" */,
+				7BE12542AA6CE0C7E677C5DC /* XCLocalSwiftPackageReference "Packages/JerdKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B6A5065FCAB422B071AFD382 /* Products */;
@@ -431,8 +290,8 @@
 			projectRoot = "";
 			targets = (
 				BDD9FED0F347515A6765CE99 /* Jerd */,
-				1DFF9FF6673E813BB09945CF /* JerdCLI */,
 				F92BE6E76E9806FCBDABA5B3 /* JerdHelper */,
+				1DFF9FF6673E813BB09945CF /* JerdCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -442,21 +301,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BCE199D2943B4A3780168276 /* Assets.xcassets in Resources */,
-				F0839D894CA9343AA1D14C22 /* Icon-dots.png in Resources */,
-				18C063A2871135AA44078DC1 /* Icon-elephant.png in Resources */,
-				5AFA917B4882B91A2B98F97C /* Icon-lock.png in Resources */,
-				33FBA2CF7DA2380659B1D087 /* Icon-monogram.png in Resources */,
-				4478ED35B219193FBAF51EA7 /* Icon-rainbow.png in Resources */,
-				7C7531536DBA920CCAACC47A /* Icon-stack.png in Resources */,
-				A8F4F1F0D04531FC07C02EB7 /* Sparkle-LICENSE.txt in Resources */,
+				9ABBD782D35EBC186880A98F /* AppIcons in Resources */,
+				5AC88ED54189F03130680E51 /* Assets.xcassets in Resources */,
+				81C98739577D0488500180F8 /* Sparkle-LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		4B1CEBCD4C361B9E30AFF822 /* Embed approved helper and development runtimes */ = {
+		AC559CCEE26E002FF23745C3 /* Embed helper, launcher, and runtime payloads */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -466,14 +320,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Embed approved helper and development runtimes";
+			name = "Embed helper, launcher, and runtime payloads";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices\"\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncp \"$BUILT_PRODUCTS_DIR/JerdHelper\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchServices/JerdHelper\"\ncp \"$BUILT_PRODUCTS_DIR/JerdCLI\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/JerdCLI\"\ncp \"$SRCROOT/Sources/JerdHelper/dev.jerd.helper.plist\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/dev.jerd.helper.plist\"\n/usr/bin/python3 \"$SRCROOT/Scripts/Runtimes/embed-development-runtimes.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DevelopmentRuntimes\"\n/usr/bin/python3 \"$SRCROOT/Scripts/Runtimes/embed-database-runtimes.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/DatabaseRuntimes\"\n/usr/bin/python3 \"$SRCROOT/Scripts/Runtimes/embed-mail-runtime.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MailRuntime\"\n/usr/bin/python3 \"$SRCROOT/Scripts/Runtimes/embed-storage-runtime.py\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/StorageRuntime\"\n";
+			shellScript = "exec \"$SRCROOT/Tools/Scripts/embed-app-contents.sh\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -482,10 +336,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CD185446028D36783E05372C /* HelperService.swift in Sources */,
-				AF8C0E62CEA972166453DA30 /* SystemCertificateTrust.swift in Sources */,
-				DF791BC611566ACF4D017073 /* TrustConsentClient.swift in Sources */,
-				B49308341EC4D118888113A1 /* main.swift in Sources */,
+				251ADC86164ECAACB2B56504 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -493,7 +344,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D04A445E53E90087DAEFEBD8 /* main.swift in Sources */,
+				2B195B3A1F5EBDEAE923C7AB /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -501,28 +352,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5067AA2A270DC0936D3C27BE /* AboutView.swift in Sources */,
-				387DEBBAA5FD736D86B8AEDA /* AppAppearance.swift in Sources */,
-				ECC47E3F34D2BCFDAF74DE4F /* AppModel.swift in Sources */,
-				75F2EF6DCF6B1BC0570AC2C8 /* AppUpdatesModel.swift in Sources */,
-				524FFBC474E758E5D64A4A2F /* AppearanceAndAdvancedViews.swift in Sources */,
-				7AB59428F147D88E55BA87A9 /* ContentView.swift in Sources */,
-				06B53C2D44B5D9AD8B775AE0 /* DashboardView.swift in Sources */,
-				1AA787B76FC83A73B93E05EF /* DatabaseModel.swift in Sources */,
-				4A5F2D95DEF91D5029967E35 /* DatabaseServicesView.swift in Sources */,
-				E39579947E4969D76140A8D5 /* HelperClient.swift in Sources */,
-				B521BF8C9655452AEFA67658 /* JerdApp.swift in Sources */,
-				7084885347076BEF908848F6 /* JerdUI.swift in Sources */,
-				A03C966697016758C9731910 /* MailModel.swift in Sources */,
-				0F347D589536CF6C6EF0B267 /* MailServiceView.swift in Sources */,
-				0FC70F2CF2CCD0345C0BAA96 /* RuntimeSettingsView.swift in Sources */,
-				0BFD3A9698997849109D65B7 /* RuntimeUpdatesModel.swift in Sources */,
-				2B0979E5C00C17DB8871C01E /* StorageModel.swift in Sources */,
-				F4B30B3C09B622704392D320 /* StorageServicesView.swift in Sources */,
-				A3F50488AC0746D224D3D51C /* TrustConsentService.swift in Sources */,
-				E37099F9894404B9E2C75F01 /* TunnelDetailView.swift in Sources */,
-				4014B5844FDE4881C7907F5D /* TunnelEditor.swift in Sources */,
-				E05BA7F70AB07DBB75B86187 /* TunnelModel.swift in Sources */,
+				30E2ECACDAE996487C7D548E /* AppDelegate.swift in Sources */,
+				94E49B4539BD81C9E01F9FC5 /* JerdApp.swift in Sources */,
+				79126642F591B0BB7865056F /* MenuBarLabel.swift in Sources */,
+				F6107A76163977EBBE9988E8 /* SparkleUpdater.swift in Sources */,
+				A1F72367B37FB62612630C36 /* View+MainWindowConnection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,48 +378,26 @@
 /* Begin XCBuildConfiguration section */
 		2BE048537D5E3A4A93FE5D3B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 43DF68BFD5C9387784DC55E1 /* Helper.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.helper;
-				PRODUCT_NAME = JerdHelper;
 				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
 		83337C94FAC4092153260607 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1855E2B63A03C7BD7DEF3C07 /* App.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Sources/Jerd/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Jerd;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Jerd contributors";
-				JERD_UPDATE_FEED_URL = "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml";
-				JERD_UPDATE_PUBLIC_KEY = "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=";
+				INFOPLIST_FILE = Apps/Jerd/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.app;
-				PRODUCT_NAME = Jerd;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -642,88 +454,58 @@
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
 		B7166F850B0CE73EB9E106C4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A032044BD3D0128C3CD1E53F /* CLI.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.cli;
-				PRODUCT_NAME = JerdCLI;
 				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
 		DA465EC3649889A24AD244AB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 43DF68BFD5C9387784DC55E1 /* Helper.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.helper;
-				PRODUCT_NAME = JerdHelper;
 				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
 		DB6AC6BD0969AF818535D9FA /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A032044BD3D0128C3CD1E53F /* CLI.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.cli;
-				PRODUCT_NAME = JerdCLI;
 				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
 		F029945752A4194D5FF51B71 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1855E2B63A03C7BD7DEF3C07 /* App.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Sources/Jerd/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Jerd;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Jerd contributors";
-				JERD_UPDATE_FEED_URL = "https://raw.githubusercontent.com/jewei/jerd/main/appcast.xml";
-				JERD_UPDATE_PUBLIC_KEY = "FjYzr89ynpNrTtI8Me8zqA88YYJrRmloo4bj6dLbAJA=";
+				INFOPLIST_FILE = Apps/Jerd/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jerd.app;
-				PRODUCT_NAME = Jerd;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -787,7 +569,7 @@
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -833,9 +615,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		6FDE9D7470A04AE8429B70D8 /* XCLocalSwiftPackageReference "Packages/JerdCore" */ = {
+		7BE12542AA6CE0C7E677C5DC /* XCLocalSwiftPackageReference "Packages/JerdKit" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/JerdCore;
+			relativePath = Packages/JerdKit;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -851,22 +633,22 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		13AA2674D69717280670C24F /* JerdCore */ = {
+		846474874C14004289D494B2 /* JerdHelperCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = JerdCore;
+			productName = JerdHelperCore;
 		};
-		1EAD8E59C6255FC977CB98B0 /* JerdCore */ = {
+		8570D1C59C98749090B22DAC /* JerdCLICore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = JerdCore;
-		};
-		38AE69F26CB31A360537396B /* JerdCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = JerdCore;
+			productName = JerdCLICore;
 		};
 		F2183DA64A85F317C55D7145 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 228EAD53163022E2D1D5BE2A /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		FA863BECC93FE597F1F1D616 /* JerdLive */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = JerdLive;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

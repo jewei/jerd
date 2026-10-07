@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "tag": "2.10.3",
+  "archiveSHA256": "7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6",
+  "fileSHA256": {
+    "composer.phar": "7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6",
+    "LICENSE": "7855ac293067aebe7e51afdd23b9dea54b8be24187dbecc9b9142581c37f596c"
+  },
+  "metadataURL": "https://getcomposer.org/download/2.10.3/composer.phar.sha256sum",
+  "authentication": "Official Composer HTTPS download and reviewed digest pins",
+  "publisherSignatureVerified": false
+}

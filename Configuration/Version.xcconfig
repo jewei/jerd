@@ -1,0 +1,3 @@
+// The app version. `./dev release` reads and changes only this file.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 2

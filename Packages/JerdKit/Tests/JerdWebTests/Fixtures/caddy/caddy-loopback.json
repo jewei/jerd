@@ -1,0 +1,319 @@
+{
+  "admin" : {
+    "disabled" : true
+  },
+  "apps" : {
+    "http" : {
+      "http_port" : 18080,
+      "https_port" : 18443,
+      "servers" : {
+        "http" : {
+          "automatic_https" : {
+            "disable" : true
+          },
+          "listen" : [
+            "127.0.0.1:18080"
+          ],
+          "protocols" : [
+            "h1"
+          ],
+          "routes" : [
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "headers" : {
+                    "Location" : [
+                      "https://jerd-smoke.test:18443{http.request.uri}"
+                    ]
+                  },
+                  "status_code" : 308
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "jerd-smoke.test"
+                  ]
+                }
+              ]
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "status_code" : 421
+                }
+              ]
+            }
+          ]
+        },
+        "https" : {
+          "automatic_https" : {
+            "disable_redirects" : true
+          },
+          "listen" : [
+            "127.0.0.1:18443"
+          ],
+          "protocols" : [
+            "h1",
+            "h2"
+          ],
+          "routes" : [
+            {
+              "handle" : [
+                {
+                  "handler" : "subroute",
+                  "routes" : [
+                    {
+                      "handle" : [
+                        {
+                          "body" : "Jerd is ready.",
+                          "handler" : "static_response",
+                          "status_code" : 200
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path" : [
+                            "/.jerd/ready"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "vars",
+                          "root" : "/tmp/project space 项目"
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
+                            "*.phtml",
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path}"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
+                              }
+                            },
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "vars",
+                          "jerd_path_info" : "{http.matchers.file.remainder}"
+                        },
+                        {
+                          "handler" : "rewrite",
+                          "uri" : "{http.matchers.file.relative}"
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "split_path" : [
+                              ".php"
+                            ],
+                            "try_files" : [
+                              "{http.request.uri.path}",
+                              "{http.request.uri.path}/index.php",
+                              "index.php"
+                            ],
+                            "try_policy" : "first_exist_fallback"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "reverse_proxy",
+                          "transport" : {
+                            "dial_timeout" : 3000000000,
+                            "env" : {
+                              "PATH_INFO" : "{http.vars.jerd_path_info}"
+                            },
+                            "protocol" : "fastcgi",
+                            "read_timeout" : 35000000000,
+                            "root" : "/tmp/project space 项目",
+                            "split_path" : [
+                              ".php"
+                            ]
+                          },
+                          "upstreams" : [
+                            {
+                              "dial" : "unix//tmp/jerd-test/php-0.sock"
+                            }
+                          ]
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "file" : {
+                            "try_files" : [
+                              "{http.request.uri.path.dir}{http.request.uri.path.file.base}.ph[p]"
+                            ],
+                            "try_policy" : "first_exist"
+                          },
+                          "not" : [
+                            {
+                              "path_regexp" : {
+                                "pattern" : "(?i)^/storage/"
+                              }
+                            }
+                          ],
+                          "path_regexp" : {
+                            "pattern" : "\\.php$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "static_response",
+                          "status_code" : 404
+                        }
+                      ],
+                      "match" : [
+                        {
+                          "path_regexp" : {
+                            "pattern" : "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "handle" : [
+                        {
+                          "handler" : "file_server",
+                          "hide" : [
+                            ".git",
+                            ".env",
+                            "*.php",
+                            "*.PHP",
+                            "*.php[0-9]",
+                            "*.pht",
+                            "*.phtml",
+                            "*.phar",
+                            "*.phps",
+                            "*.phpt",
+                            "*.inc"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match" : [
+                {
+                  "host" : [
+                    "jerd-smoke.test"
+                  ]
+                }
+              ],
+              "terminal" : true
+            },
+            {
+              "handle" : [
+                {
+                  "handler" : "static_response",
+                  "status_code" : 421
+                }
+              ]
+            }
+          ],
+          "strict_sni_host" : true,
+          "tls_connection_policies" : [
+            {
+
+            }
+          ]
+        }
+      }
+    },
+    "pki" : {
+      "certificate_authorities" : {
+        "jerd-test" : {
+          "install_trust" : false,
+          "name" : "Jerd isolated test CA",
+          "root_common_name" : "Jerd isolated test CA"
+        }
+      }
+    },
+    "tls" : {
+      "automation" : {
+        "policies" : [
+          {
+            "issuers" : [
+              {
+                "ca" : "jerd-test",
+                "module" : "internal"
+              }
+            ],
+            "subjects" : [
+              "jerd-smoke.test"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "storage" : {
+    "module" : "file_system",
+    "root" : "/tmp/run café/certificates"
+  }
+}

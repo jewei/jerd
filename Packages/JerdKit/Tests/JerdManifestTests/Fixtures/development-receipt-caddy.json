@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "repository": "caddyserver/caddy",
+  "tag": "v2.11.4",
+  "assetID": 436912311,
+  "metadataURL": "https://api.github.com/repos/caddyserver/caddy/releases/tags/v2.11.4",
+  "archiveSHA256": "9efb0af2d6cf09cfb5053c0e51721b9b3d4956d346234f39368d943d25a3c9a7",
+  "fileSHA256": {
+    "caddy": "e9ebf99dfd4b72259debe1830c83e86c63fb89a88e28b4e7c5e78a35fa76c92d",
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "README.md": "683b36b940bb617a0209ca443c8027566204911997fbaf9e433d87d9235b753f"
+  },
+  "verifiedAt": "2026-10-01T07:14:07.062591+00:00",
+  "authentication": "GitHub release API over verified HTTPS and reviewed local digest pin",
+  "publisherSignatureVerified": false
+}

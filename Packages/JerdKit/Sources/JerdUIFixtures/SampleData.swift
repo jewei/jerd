@@ -1,0 +1,65 @@
+import Foundation
+import JerdManifest
+import JerdRuntimes
+import JerdUI
+
+/// Realistic, deterministic sample values. Dates are fixed; nothing depends on the Mac.
+public enum SampleData {
+    /// 6 October 2026, 09:41 GMT.
+    public static let now = Date(timeIntervalSince1970: 1_791_279_660)
+    public static let digest = "3f7c2a9b41d8e6f0a5c4b3d2e1f09876543210fedcba9876543210fedcba98"
+    public static let php84ID = UUID(uuidString: "8A4C2E10-1D3F-4B5A-9C6E-7F8091A2B3C4") ?? UUID()
+    public static let php83ID = UUID(uuidString: "3B5D7F90-2E4A-4C6B-8D0F-1A2B3C4D5E6F") ?? UUID()
+
+    /// A URL from a literal that is known to be valid.
+    public static func url(_ text: String) -> URL {
+        URL(string: text) ?? URL(fileURLWithPath: "/")
+    }
+
+    public static let user = "/Users/developer"
+
+    /// The installed runtimes of a set-up Mac.
+    public static let inventory = RuntimeInventorySnapshot(
+        versions: [
+            .php: ["8.4.12", "8.3.24"], .caddy: ["2.10.2"], .composer: ["2.8.11"], .laravel: ["5.18.0"],
+            .mysql: ["8.4.6"], .postgresql: ["17.6"], .redis: ["8.2.1"], .mailpit: ["1.27.7"], .rustfs: ["1.0.0"],
+            .cloudflared: ["2025.9.1"],
+        ],
+        phpBuildDigests: [php84ID: digest],
+        builds: [InstalledBuild(kind: .caddy, version: "2.10.2", releaseVersion: "2.10.2", archiveSHA256: digest)])
+
+    /// A release with a stated digest.
+    public static func release(
+        _ kind: RuntimeKind, _ version: String, digest: String? = SampleData.digest, signed: Bool = false
+    ) -> RuntimeRelease {
+        RuntimeRelease(
+            kind: kind, version: version,
+            artifact: .archive(url("https://example.com/\(kind.rawValue)-\(version).tar.gz"), size: .exact(48_000_000)),
+            archiveSHA256: digest,
+            signatureURL: signed ? url("https://example.com/\(kind.rawValue)-\(version).asc") : nil,
+            releasePage: url("https://example.com/\(kind.rawValue)/releases/\(version)"))
+    }
+
+    /// A check result, checked at `now`.
+    public static func check(
+        _ kind: RuntimeKind, _ releases: [RuntimeRelease], error: String? = nil
+    )
+        -> RuntimeUpdateCheck
+    {
+        RuntimeUpdateCheck(kind: kind, releases: releases, checkedAt: now, error: error)
+    }
+
+    /// Check results for every kind: new releases, an installed release, and a failed source.
+    public static let checks: [RuntimeKind: RuntimeUpdateCheck] = [
+        .php: check(.php, [release(.php, "8.5.0"), release(.php, "8.4.13"), release(.php, "8.3.26")]),
+        .caddy: check(.caddy, [release(.caddy, "2.10.2")]),
+        .composer: check(.composer, [release(.composer, "2.8.12")]),
+        .laravel: check(.laravel, [release(.laravel, "5.19.0", digest: nil)]),
+        .mysql: check(.mysql, [release(.mysql, "8.4.7", digest: nil, signed: true)]),
+        .postgresql: check(.postgresql, [release(.postgresql, "2.9.1")]),
+        .redis: check(.redis, [], error: "The Redis release list could not be read. Try again later."),
+        .mailpit: check(.mailpit, [release(.mailpit, "1.28.0")]),
+        .rustfs: check(.rustfs, [release(.rustfs, "1.0.1")]),
+        .cloudflared: check(.cloudflared, [release(.cloudflared, "2025.10.0")]),
+    ]
+}

@@ -1,0 +1,2 @@
+# Composer writes this folder when a developer installs the locked tool by hand.
+laravel-installer/vendor/

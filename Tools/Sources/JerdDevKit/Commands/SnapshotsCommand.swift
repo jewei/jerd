@@ -1,0 +1,23 @@
+import ArgumentParser
+
+/// `./dev snapshots`: renders UI pages with fixtures to PNG files.
+struct SnapshotsCommand: DevSubcommand {
+    static let configuration = CommandConfiguration(
+        commandName: "snapshots",
+        abstract: "Render UI pages to PNG files in .build/snapshots.")
+
+    @Argument(help: ArgumentHelp("Pages to render. Default: all pages.", valueName: "page"))
+    var pages: [String] = []
+
+    @Flag(help: "List the page names and sizes, and render nothing.")
+    var list = false
+
+    @OptionGroup var options: GlobalOptions
+
+    func run() async throws {
+        let context = try options.context()
+        try await StepSequence.runSingle("Snapshots", console: context.console) {
+            try await SnapshotStep.run(context, pages: pages, listOnly: list)
+        }
+    }
+}

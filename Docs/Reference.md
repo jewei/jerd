@@ -1,108 +1,163 @@
-# Data and components
+# Data reference
 
-## Source components
+Jerd keeps user data in `~/Library/Application Support/Jerd` (the data root,
+mode 0700). The helper keeps its records in `/Library/Application Support/JerdHelper`.
+`DataLayout` in `JerdFoundation` names every path below. Each path is part of the
+compatibility contract with installed copies. Do not change a path without a
+migration and a test that reads the old form. `DataReferenceTests` checks that
+this page names every path of `DataLayout`.
 
-The source separates the SwiftUI app, shared core logic, and privileged helper.
+`<UUID>` is an uppercase UUID. Files are private (mode 0600) and folders are
+private (mode 0700).
 
-`Sources/Jerd/` contains `Application`, `Features`, `SystemIntegration`, and
-`Resources`. `Sources/JerdCLI/` and `Sources/JerdHelper/` contain the other app
-targets. The Swift package keeps its normal `Sources` and `Tests` layout.
-Within `Packages/JerdCore/Sources/JerdCore/`, code is grouped into `Common`,
-`Web`, `Runtimes`, `Services`, and `SystemIntegration`.
-
-`Runtimes/` stores repository inputs for Development, Database, Mail, Storage,
-and Support. `Scripts/` groups tools under `Runtimes`, `Release`, `Checks`,
-`Development`, and `Tests`. App bundle resource names and installed data paths
-are separate from these repository paths.
-
-| Component | Responsibility |
-| --- | --- |
-| `Models`, `Sites`, `SiteRegistry`, `Persistence` | Validation, hostname suggestions, runtime selections, serialized atomic storage |
-| `Runtimes`, `BundledRuntimes` | Actual binary inspection; verified app-owned development payload installation |
-| `Configuration`, `Processes`, `ServingEngine` | Caddy/FPM configuration; owned process groups; startup, TLS checks, and cleanup |
-| `SiteConfigurationOperation` | Candidate preparation, approval, persistence, activation, and rollback |
-| `LocalEnvironment` | All enabled sites; stable CA identity; normal macOS HTTPS trust check for every hostname |
-| `HelperClient`, `SystemIntegration` | SMAppService registration and typed authenticated XPC |
-| `HelperService`, `ListeningSockets` | Exclusive loopback socket lease per client; descriptor transfer |
-| `PrivilegedSetupStore`, `AtomicHostsFile`, `HostsDocument` | Owned host section, certificate ownership, rollback, and recovery records |
-| `SystemCertificateTrust`, `CertificateTrustSettings` | System keychain and explicit TLS trust policies through Security.framework |
-| `TrustConsentClient`, `TrustConsentService`, `TrustConsentScope` | App-side macOS consent for the exact approved certificate, setup hosts, and trust policy |
-| `JerdCLI`, `CLIRuntimeSelection` | Project-aware PHP selection and direct execution of PHP/Composer/Laravel |
-| `PHPConfigurationPolicy`, `PHPTrustBundle` | PHP defaults, explicit CLI overrides, and private CA bundles from approved server-TLS trust |
-| `DatabaseModel`, `DatabaseServicesView` | Database list, connection details, and independent service controls |
-| `DatabaseManager`, `DatabaseDriver` | Data initialization, engine arguments, readiness, owned processes, and graceful stop |
-| `MailManager`, `MailDriver`, `MailStore` | Independent Mailpit inbox, SMTP/HTTP checks, persistent settings, and graceful stop |
-| `LocalServicePorts` | Shared wildcard-port detection and exact listener ownership checks for data services |
-| `DatabaseStore`, `BundledDatabaseRuntimes` | Separate versioned service records and verified native runtime installation |
-| `StorageManager`, `StorageS3Client` | RustFS lifecycle, signed S3 requests, and bucket checks |
-| `RuntimeUpdateCatalog`, `RuntimeInstaller` | Release lookup, bounded downloads, verification, and runtime installation |
-| `AppUpdatesModel`, `AppUpdateConfiguration` | Sparkle lifecycle, app update preferences, and bundled feed validation |
-
-
-## Data paths
-
-The following paths are relative to `~/Library/Application Support/Jerd`, unless
-an absolute path is shown. This table lists the main persisted records.
+## Top level and web environment
 
 | Path | Contents |
 | --- | --- |
-| `configuration.json`, `configuration.previous.json` | Site records and PHP/Caddy selections |
-| `runtimes/` | PHP/Caddy binaries, receipts, licenses, and `cli-tools.json` |
-| `bin/`, `shell-backups/` | Optional CLI launcher, command links, and shell backups |
-| `database-runtimes/` | Database binaries, libraries, receipts, and notices |
-| `databases/services.json` | Database service and runtime records; a previous copy is retained |
-| `databases/instances/<UUID>/` | Database files, credentials, runtime identity, initialization marker, log, and active process record |
-| `mail-runtimes/`, `mail/` | Mailpit runtimes, settings, log, active process record, and SQLite inbox |
-| `storage-runtimes/`, `storage/` | RustFS runtimes, settings, credentials, log, active process record, and object data |
-| `mail/runtime-backups/`, `storage/runtime-backups/` | Data and settings saved before runtime changes |
-| `environment/installation-id` | Stable identity for the installation CA |
-| `environment/configuration/` | Generated Caddy, FPM, and PHP settings |
-| `environment/certificates/` | Private CA keys and issued certificates |
-| `environment/logs/` | Bounded web environment output |
-| `environment/processes/` | Verified process identities for web recovery |
-| `runtimes/configuration/` | Generated CLI INI, private PHP CA bundle, and empty INI scan directory |
-| `runtime-updates/<kind>-<version>-<architecture>-<SHA256>/` | Separate verified runtime builds |
-| `/Library/Application Support/JerdHelper/registration.json` | Owner UID, hostnames, installation ID, CA certificate, and trust policy |
-| `/Library/Application Support/JerdHelper/hosts.previous` | Host-file backup for a system transaction |
-| `/Library/Application Support/JerdHelper/pending.json` | Incomplete system transaction record |
+| `configuration.json` | Sites and PHP runtimes (pretty, sorted keys) |
+| `configuration.previous.json` | The bytes of `configuration.json` before the last save |
+| `bin` | The optional `php`, `composer`, and `laravel` launcher links |
+| `shell-backups` | Shell file backups, one folder per change |
+| `environment/installation-id` | The installation ID: an uppercase UUID without a newline |
+| `environment/configuration/caddy.json` | The Caddy configuration |
+| `environment/configuration/prepare-ca.json` | The Caddy configuration that creates the installation CA |
+| `environment/configuration/php-ca.pem` | The CA bundle of PHP-FPM |
+| `environment/configuration/empty-ini` | An empty `PHP_INI_SCAN_DIR` |
+| `environment/configuration/php-fpm.conf` | Legacy layout only: the first pool of old builds. Removed when Jerd wrote it |
+| `environment/configuration/php.ini` | Legacy layout only: the `php.ini` of that pool. Removed when Jerd wrote it |
+| `environment/certificates/pki/authorities/jerd/root.crt` | The installation CA certificate (Caddy storage) |
+| `environment/logs/caddy.log` | The Caddy log |
+| `environment/logs/fpm.log` | Legacy layout only: the log of the old first pool. Removed |
+| `environment/php/<UUID>` | The FPM pool of one PHP runtime: `configuration/php-fpm.conf`, `configuration/php.ini`, `logs/fpm.log` |
+| `environment/preflight-<UUID>` | A transient preflight folder, deleted after use |
+| `environment/processes/<UUID>.json` | The run record of one web process |
+| `environment/processes/recovery.lock` | The lock of the web run records |
 
-FPM sockets use a new private temporary directory for each run.
-Preferences use the `dev.jerd.app` UserDefaults domain.
-The Sparkle signing key uses the `dev.jerd.sparkle` account in the local Keychain.
-The repository contains only its public key.
+## Runtimes
 
-## Data preservation and recovery limits
+| Path | Contents |
+| --- | --- |
+| `runtimes` | Bundled development payloads, one folder per payload |
+| `runtimes/cli-tools.json` | The selected Composer and Laravel installer |
+| `runtimes/configuration/cli.ini` | The `php.ini` of the `php` command |
+| `runtimes/configuration/cli-local-tls.ini` | The local TLS settings of the `php` command |
+| `runtimes/configuration/php-ca.pem` | The CA bundle of the `php` command |
+| `runtimes/configuration/empty-ini` | An empty `PHP_INI_SCAN_DIR` for the `php` command |
+| `runtimes/inspection/empty-ini` | The PHP inspection folder during a payload installation |
+| `runtime-inspection/empty-ini` | The PHP inspection folder during activation and import |
+| `runtime-updates` | Managed runtime builds |
+| `database-runtimes` | Installed database payloads |
+| `mail-runtimes` | Installed Mailpit payloads |
+| `storage-runtimes` | Installed RustFS payloads |
 
-Configuration writes are atomic and retain a valid backup. Corrupt records block
-changes and remain available for inspection. Jerd does not reset them to empty records.
-Database removal retains the instance directory, credentials, and removed registration metadata.
-The Databases restore action requires the original runtime identity.
-Stop and Quit retain database, mail, and storage data.
+## Databases
 
-Database startup rejects a different runtime identity, incomplete initialization,
-missing credentials, and an instance already in use. Mail and storage enforce
-corresponding checks for their initialized data and saved credentials.
-A surviving process blocks startup until it stops safely. Advanced can inspect and
-recover saved processes with verified boot/start identity, executable, UID, and
-kernel audit token. PID reuse clears a stale record without signalling its new
-owner. Missing audit support, legacy records, and uncertain child ownership need
-manual inspection. Normal Quit still stops owned services.
+| Path | Contents |
+| --- | --- |
+| `databases/services.json` | The database registry (pretty, sorted keys) |
+| `databases/services.previous.json` | The registry before the last save |
+| `databases/instances/<UUID>/service.lock` | The lock of the instance |
+| `databases/instances/<UUID>/active-run.json` | The run record of the server |
+| `databases/instances/<UUID>/runtime.json` | The runtime identity that owns the data |
+| `databases/instances/<UUID>/initialized.json` | The marker of completed initialization |
+| `databases/instances/<UUID>/credentials.json` | The generated password |
+| `databases/instances/<UUID>/removed-registration.json` | The registration kept after Remove, for Restore |
+| `databases/instances/<UUID>/server.log` | The server output |
+| `databases/instances/<UUID>/server.previous.log` | The output of the previous run |
+| `databases/instances/<UUID>/data` | The database files |
 
-The helper's `pending.json` records an interrupted operation and its last known
-stage. Advanced offers approved restore or removal when the evidence permits it.
-Recovery modifies only the tracked host section and preserves unrelated current
-entries. It retains the original journal and host backup for inspection.
+## Mail
 
-While Jerd runs, process output above 8 MiB is trimmed once per second to the
-latest 4 MiB. A write burst can exceed the threshold between checks. Command
-logs also retain the first 1 MiB for parsers. Live trimming keeps the same file
-inode; a concurrent write can be lost or reordered at that boundary. These are
-diagnostic logs, not service data. Stopping a process also trims its log. An
-orphan process can keep writing while Jerd is closed; inspect it in Advanced.
+| Path | Contents |
+| --- | --- |
+| `mail/settings.json` | Mail settings |
+| `mail/settings.previous.json` | The settings before the last save |
+| `mail/service.lock` | The lock of the mail service |
+| `mail/active-run.json` | The run record of Mailpit |
+| `mail/server.log` | The Mailpit output |
+| `mail/server.previous.log` | The output of the previous run |
+| `mail/inbox/messages.sqlite` | Captured mail |
+| `mail/inbox/runtime.json` | The runtime identity that owns the inbox |
+| `mail/inbox/initialized.json` | The marker of completed initialization |
+| `mail/runtime-update.json` | The journal of an unfinished runtime update |
+| `mail/runtime-backups` | Copies made before runtime updates |
 
-Mail and storage runtime backups remain until explicit deletion. Advanced shows
-size and purpose. A pending recovery journal, including a corrupt journal,
-protects every backup for that service. Cleanup takes the service lock and
-rejects a saved live process. It never deletes current service data.
+## Storage
 
-For the reasons behind these limits, see [Architecture](Architecture.md).
+| Path | Contents |
+| --- | --- |
+| `storage/settings.json` | Storage settings |
+| `storage/settings.previous.json` | The settings before the last save |
+| `storage/service.lock` | The lock of the storage service |
+| `storage/active-run.json` | The run record of RustFS |
+| `storage/server.log` | The RustFS output |
+| `storage/server.previous.log` | The output of the previous run |
+| `storage/runtime.json` | The runtime identity that owns the data |
+| `storage/initialized.json` | The marker of completed initialization |
+| `storage/credentials.json` | The credentials; its exact bytes are hashed in `initialized.json` |
+| `storage/access-key` | The access key, without a newline |
+| `storage/secret-key` | The secret key, without a newline |
+| `storage/data` | Buckets and objects |
+| `storage/data/.rustfs.sys/format.json` | The RustFS volume format |
+| `storage/runtime-update.json` | The journal of an unfinished runtime update |
+| `storage/runtime-backups` | Copies made before runtime updates |
+
+## Tunnels
+
+| Path | Contents |
+| --- | --- |
+| `tunnels/settings.json` | Tunnel registrations (no token) |
+| `tunnels/settings.previous.json` | The registrations before the last save |
+| `tunnels/instances/<UUID>/service.lock` | The lock of the connector |
+| `tunnels/instances/<UUID>/active-run.json` | The run record of cloudflared |
+| `tunnels/instances/<UUID>/config.yml` | The empty cloudflared configuration (`{}`) |
+| `tunnels/instances/<UUID>/server.log` | The output of the current connector run |
+| `tunnels/instances/<UUID>/server.previous.log` | The output of earlier runs (at most 4 MiB) |
+| `tunnels/instances/<UUID>/home` | The private `HOME` of cloudflared |
+
+## Locks
+
+Every lock is an exclusive, non-blocking `flock` on a private file. Old and new
+builds use the same lock files, so they exclude each other during an upgrade.
+A run record is written or deleted only while its lock is held.
+
+## Helper records
+
+The helper keeps these files in `/Library/Application Support/JerdHelper`. The
+folder has mode 0700 and the owner root. `RootRecordDirectory` in JerdSystem is
+their one reader and writer. `HelperRecordReferenceTests` checks this list.
+
+| File | Contents |
+| --- | --- |
+| `registration.json` | The committed setup: hostnames, the CA, and its trust. Versions 1 to 3 are read; version 3 is written |
+| `pending.json` | The journal of an unfinished setup change, for recovery |
+| `hosts.previous` | The hosts file bytes before the latest change (evidence only) |
+| `recovery.previous.json` | The journal bytes from the first recovery attempt of a change |
+
+The helper edits only the lines between `# BEGIN JERD` and `# END JERD` in
+`/etc/hosts`.
+
+## Defaults
+
+The app keeps these keys in the `dev.jerd.app` defaults domain.
+`AppearanceDefaults` in JerdUI is their one reader and writer.
+`AppearanceDefaultsReferenceTests` checks this list.
+
+| Key | Value |
+| --- | --- |
+| `showMenuBar` | Bool. Show the menu bar item. Missing means true |
+| `showDock` | Bool. Show the Dock icon. Missing means true |
+| `appIcon` | String: `rainbow`, `monogram`, `elephant`, or `dots`. Old values (`original`, `stack`, `lock`), unknown values, and a missing value read as `rainbow` without a rewrite |
+
+Sparkle keeps its own `SU…` keys in the same domain, for example the choice of
+automatic update checks. Jerd does not write them directly.
+
+A Debug run with another data root uses the domain
+`dev.jerd.app.debug.<16 hex digits>`, so it never changes these choices.
+
+## Keychain
+
+| Item | Name |
+| --- | --- |
+| Tunnel token | Generic password, service `dev.jerd.cloudflared.tunnel-token`, account = the registration UUID in upper case. `TunnelKeychainReferenceTests` checks the service |
+| Installation CA | Certificate `Jerd Local CA <installation ID>` in the System keychain, with admin trust settings for TLS. The helper adds and removes it |

@@ -1,0 +1,21 @@
+import JerdWeb
+import SwiftUI
+
+/// Start Site or Stop Site for one site. Start ends with "…" when the site still needs HTTPS
+/// approval, because it then opens the approval sheet.
+struct SiteRunButton: View {
+    let model: SitesModel
+    let site: Site
+
+    var body: some View {
+        if model.environment.siteIDs.contains(site.id) {
+            Button("Stop Site", systemImage: "stop.fill") { model.stop(site) }
+                .disabled(!model.canChange)
+        } else {
+            Button(SiteNextStep.start(needsApproval: !model.isApproved(site)).title, systemImage: "play.fill") {
+                model.start(site)
+            }
+            .disabled(!model.canChange || !site.isEnabled)
+        }
+    }
+}

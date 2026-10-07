@@ -1,0 +1,3 @@
+import JerdHelperCore
+
+HelperDaemon.run()
