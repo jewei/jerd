@@ -48,6 +48,8 @@ import Testing
         let binary = installed.appendingPathComponent("bin/mysqld")
         try AtomicFile.write(Data("changed".utf8), to: binary)
         #expect(try await onDemand(folder).reusablePayload(for: .mysql, layout: layout(folder)) == nil)
+        // The cheap probe for the dialog reads receipts only; the install still refuses the folder.
+        #expect(try await onDemand(folder).hasReusablePayload(for: .mysql, layout: layout(folder)))
         #expect(try Data(contentsOf: binary) == Data("changed".utf8))
     }
 
@@ -66,6 +68,20 @@ import Testing
         let reusable = try await onDemand(folder).reusablePayload(for: .mysql, layout: layout(folder))
         #expect(reusable?.id == "mysql-8.4.11-arm64" && reusable?.version == "8.4.11")
         #expect(reusable?.directory.standardizedFileURL == legacy.standardizedFileURL)
+    }
+
+    @Test func linkedGroupFolderIsNeverFollowed() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        // Another data root holds a valid earlier payload; this root links its group folder there.
+        let other = DataLayout(root: folder.path("other"))
+        let earlier = BundledRuntimeBootstrap(
+            resources: try bundle(folder, name: "earlier", embedded: nil), layout: other, architecture: .arm64)
+        _ = try await earlier.installDatabases()
+        try OwnedDirectory.create(folder.path("data"))
+        try FileManager.default.createSymbolicLink(
+            at: folder.path("data/database-runtimes"), withDestinationURL: other.runtimes.databaseRuntimesDirectory)
+        #expect(try await onDemand(folder).reusablePayload(for: .mysql, layout: layout(folder)) == nil)
     }
 
     @Test func nothingInstalledMeansNothingToReuse() async throws {
