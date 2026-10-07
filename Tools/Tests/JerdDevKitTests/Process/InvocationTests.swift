@@ -32,6 +32,17 @@ struct InvocationTests {
         #expect(try result.checked() == result)
     }
 
+    @Test("a command log calls a successful command a success and a failed command a failure")
+    func commandLogNamesTheOutcome() {
+        let success = FailureLog.text(of: InvocationResult(commandLine: "/bin/true", status: 0))
+        #expect(success.contains("Result: succeeded with exit status 0"))
+        #expect(!success.contains("failed"))
+        let failure = FailureLog.text(of: InvocationResult(commandLine: "/bin/false", status: 1))
+        #expect(failure.contains("Result: failed with exit status 1"))
+        let timeout = InvocationResult(commandLine: "/bin/sleep 9", status: 0, exceededTimeLimit: .seconds(5))
+        #expect(FailureLog.text(of: timeout).contains("Result: stopped at the time limit of 5 s"))
+    }
+
     @Test("a failed result throws with the command line, the status, and the end of standard error")
     func failedResultThrows() {
         let errors = (1...30).map { "line \($0)" }.joined(separator: "\n")

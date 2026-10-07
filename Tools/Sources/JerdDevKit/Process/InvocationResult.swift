@@ -32,6 +32,11 @@ struct InvocationResult: Equatable, Sendable {
         return "failed with exit status \(status)"
     }
 
+    /// How the command ended, for a log that records successful and failed commands alike.
+    var outcomeSummary: String {
+        succeeded ? "succeeded with exit status 0" : failureSummary
+    }
+
     /// Returns `self` when the command succeeded, otherwise throws the typed failure.
     func checked() throws(InvocationFailure) -> InvocationResult {
         if let limit = exceededTimeLimit {

@@ -98,6 +98,13 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   server…"), a digest mismatch ("…does not match its expected SHA-256. Jerd installed
   nothing."), a full disk (`DiskSpace.outOfSpace`), and a Redis update without a compiler
   (`RedisSourceBuilder.missingCompiler`).
+- The Laravel installer payload (pinned and managed) leaves out what the installer never reads at
+  run time (`ComposerVendorRule`, applied by `ComposerVendorPruner` after Composer): documentation,
+  changelogs, and repository, CI, and static-analysis settings at a package root; the `.github`,
+  `.gitlab`, `doc`, `docs`, `example`, `examples`, `test`, and `tests` folders of a package;
+  Windows programs (`.bat`, `.cmd`, `.exe`); and every Carbon translation except `en.php`, because
+  the installer never sets a Carbon locale. License, copyright, and notice files always stay, and
+  `vendor/composer` and `vendor/bin` are never touched. Composer already installs with `--no-dev`.
 - A release without a digest (MySQL, Laravel) matches its build by kind and version, so it
   shows as installed and is not downloaded again.
 - Finder's `.DS_Store` is the only file that verification ignores, on both sides.

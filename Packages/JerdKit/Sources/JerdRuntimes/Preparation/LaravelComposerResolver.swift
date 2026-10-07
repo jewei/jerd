@@ -6,7 +6,8 @@ import JerdFoundation
 /// A managed update resolves `laravel/installer` at the release version (`composer update`).
 /// A pinned payload installs exactly the committed lock (`composer install`). Composer, its
 /// cache, and `HOME` live in the staging folder, so no tool can write into the payload's
-/// receipt-listed files by accident.
+/// receipt-listed files by accident. Then `ComposerVendorPruner` removes the files that the
+/// installer never reads at run time (`ComposerVendorRule`), for both forms.
 package struct LaravelComposerResolver: RuntimePreparing {
     package static let timeout: Duration = .seconds(900)
 
@@ -47,6 +48,8 @@ package struct LaravelComposerResolver: RuntimePreparing {
                 "PHP_INI_SCAN_DIR": "", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
             ],
             timeout: Self.timeout)
+        let vendor = context.payload.appendingPathComponent("vendor", isDirectory: true)
+        _ = try await BlockingWork.run { try ComposerVendorPruner.prune(vendor: vendor) }
     }
 
     /// Writes the project files. Returns true for a locked (pinned) project.
