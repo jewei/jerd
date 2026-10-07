@@ -20,10 +20,16 @@ Jerd is a native macOS app for local PHP development. It does these tasks:
 - An administrator account, to approve the HTTPS setup one time.
 - An internet connection the first time you add MySQL or PostgreSQL. The app
   includes Redis, but not MySQL and PostgreSQL. Jerd downloads one of them only
-  when you select Install or Add Database: MySQL 8.4.11 is about 168 MB, and
-  PostgreSQL 18.6 about 123 MB (about 291 MB for both). Jerd installs an engine
-  only when the download matches its reviewed checksum (and, for MySQL, the
-  publisher signature).
+  when you select Install or Add Database:
+
+  | Engine | Download | Installed | Free space during the install |
+  | --- | --- | --- | --- |
+  | MySQL 8.4.11 | 168 MB | 360.5 MB | 528.5 MB |
+  | PostgreSQL 18.6 | 122.5 MB | 753.4 MB | 876 MB |
+
+  Jerd installs an engine only when the download matches its reviewed checksum
+  (and, for MySQL, the publisher signature). It checks the free space before
+  the download.
 
 ## Install and update
 

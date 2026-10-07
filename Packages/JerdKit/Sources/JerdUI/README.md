@@ -53,8 +53,10 @@ Postgres.app release), download size, and source host. Redis never shows an inst
 downloaded without a user action.
 
 - The Databases page without a selected service lists every engine (`DatabaseEnginesSection`):
-  installed with its versions, or "Install MySQL…" with the download size. Install asks first
-  (title, size, source, and checks), then shows the step, a progress bar, and Cancel in the row.
+  installed with its versions, or "Install MySQL…" with the download size. Its Add buttons are
+  only for installed engines, so the default button never starts a download and no engine has
+  two entry points there. Install asks first (title, size, source, checks, and the free disk
+  space), then shows the step, a progress bar, and Cancel in the row.
   A service page shows a running installation as a banner with Cancel. A failure or a cancel
   shows once, as a dismissible banner, with the reason (offline, checksum, disk space).
 - Add Database lists every engine. For an engine without a runtime it shows the pinned version
@@ -63,8 +65,13 @@ downloaded without a user action.
   creates nothing; a failure stays in the sheet.
 - The Dashboard card and the empty page offer Add Database at first launch. They say "Install it
   in Runtimes" only when the app has no pins at all.
-- Runtimes shows a pinned engine without an installed version as "Available" with Install.
-- One installation runs at a time. Quit cancels a running installation before its final rename.
+- Add Database for an engine that gets a runtime while the sheet is open (from the page,
+  Runtimes, or another sheet) takes that runtime and can save.
+- Runtimes shows a pinned engine without an installed version as "Available" with Install…,
+  which asks first with the same words (`RuntimeInstallCopy`).
+- One installation runs at a time. The two pages share one installer, so each page turns off
+  its Install while the other one installs (`runtimeInstallElsewhere`). Quit cancels a running
+  installation before its final rename.
 
 ## Dashboard cards
 

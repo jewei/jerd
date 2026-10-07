@@ -38,7 +38,8 @@ calls. Pure mappings are `package static` functions with their own tests.
   reports it through `runtimeSetupFailure()`, and the service page shows it in its
   missing-runtime banner. A later successful setup clears it.
 - `LiveDomain` has one `URLSessionFetcher` and one `RuntimeInstaller`. The Runtimes page and the
-  on-demand database installation (`DatabaseRuntimeInstaller` in `LiveDatabasesPort`) share them,
+  on-demand database installation (`DatabaseRuntimeInstaller` in `LiveDatabasesPort`; it first
+  reuses a verified earlier payload, then checks the free space with `FreeSpaceReading`) share them,
   so one installation runs at a time. `DatabaseRuntimeInstaller` takes the pinned release from
   `OnDemandRuntimes` (the catalog in the bundle), installs it, and registers the build with the
   database manager. The launch never calls it: only Install and Add Database do. The Runtimes

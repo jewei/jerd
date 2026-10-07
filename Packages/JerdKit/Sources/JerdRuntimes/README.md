@@ -47,7 +47,12 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   names the release (`PostgreSQL 18.6`); the app installs it only after a user
   action, with `RuntimeInstaller` into `runtime-updates/`. `./dev runtimes prepare` uses the
   same mapping (`RuntimePin.release(architecture:catalogDirectory:)`), pipeline, and preparers.
-  A download that does not match its pin installs nothing.
+  A download that does not match its pin installs nothing. The download progress names the
+  bytes of the exact size (`Downloading MySQL 8.4.11… 70.6 MB of 168 MB`); `ByteText` is the
+  one byte format of the app.
+- `OnDemandRuntimes.reusablePayload(for:layout:)` finds a payload folder of an on-demand pin that
+  an earlier copy installed from its bundle (current or legacy form), verified file by file, so
+  Jerd registers it again instead of a download. A folder that does not match stays as it is.
 - Failures name the step that fixes them: no network ("Jerd cannot reach the download
   server…"), a digest mismatch ("…does not match its expected SHA-256. Jerd installed
   nothing."), a full disk (`DiskSpace.outOfSpace`), and a Redis update without a compiler
