@@ -47,6 +47,17 @@ struct PayloadInventory: Sendable {
         }
     }
 
+    /// The pins that the app bundle embeds, with their groups, in catalog order. The app installs
+    /// the other pins (`"embedded": false`) on demand; `./dev runtimes prepare` still prepares all.
+    var embeddedPayloads: [(pin: RuntimePin, group: PayloadGroup)] {
+        pins(in: PayloadGroup.allCases).filter { $0.pin.isEmbedded }
+    }
+
+    /// The state of every embedded payload, in catalog order.
+    func embeddedEntries(verifiesFiles: Bool = true) -> [Entry] {
+        embeddedPayloads.map { entry(for: $0.pin, group: $0.group, verifiesFiles: verifiesFiles) }
+    }
+
     /// The folder of a pin: `<root>/<group>/<payload ID>`.
     func folder(for pin: RuntimePin, group: PayloadGroup) -> URL {
         root.appending(path: group.rawValue).appending(path: pin.id, directoryHint: .isDirectory)

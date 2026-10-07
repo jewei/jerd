@@ -23,6 +23,10 @@ public final class RuntimesModel {
     /// Page-level work and failures: loading and the default PHP change.
     public internal(set) var operation: OperationState = .idle
     public internal(set) var isShuttingDown = false
+    /// The pinned release that waits for the install confirmation (a database engine on demand).
+    public var pendingOnDemandInstall: RuntimeRelease?
+    /// The runtime that the Databases page installs now, or nil. `AppState` sets it.
+    @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
 
     @ObservationIgnored let port: any RuntimeInventory
     /// The registered PHP runtimes and the default PHP, shared with Advanced and the dashboard.
@@ -73,6 +77,31 @@ public final class RuntimesModel {
     /// installation runs, and no other work holds the shared lock.
     public var canChangeRuntimes: Bool {
         installation == nil && !isShuttingDown && !operation.isWorking && lock.isFree
+    }
+
+    /// True when an install can start now. The installer is shared with the Databases page, so an
+    /// install also waits for a database download there; the default PHP change does not.
+    public var canInstallRuntimes: Bool {
+        canChangeRuntimes && runtimeInstallElsewhere?() == nil
+    }
+
+    /// True when installing `release` reuses a copy on this Mac, so nothing is downloaded.
+    public func reusesInstalledCopy(_ release: RuntimeRelease?) -> Bool {
+        release.map { inventory.reusableOnDemand.contains($0.kind) } ?? false
+    }
+
+    /// Asks to confirm the download of a pinned release, as the Databases page does.
+    public func requestOnDemandInstall(_ release: RuntimeRelease) {
+        guard canInstallRuntimes, inventory.installableRelease(release.kind) == release else { return }
+        pendingOnDemandInstall = release
+    }
+
+    /// Installs the confirmed pinned release.
+    @discardableResult
+    public func confirmOnDemandInstall() -> Task<Void, Never>? {
+        guard let release = pendingOnDemandInstall else { return nil }
+        pendingOnDemandInstall = nil
+        return install(release)
     }
 
     /// Makes a registered PHP runtime the default.

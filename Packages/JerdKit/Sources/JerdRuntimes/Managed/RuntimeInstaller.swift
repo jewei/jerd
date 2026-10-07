@@ -44,6 +44,20 @@ public actor RuntimeInstaller {
         guard !isInstalling else { throw JerdError.unavailable("Wait for the current runtime installation to finish.") }
         isInstalling = true
         defer { isInstalling = false }
+        do {
+            let runtime = try await installNew(release, tools: tools, progress: progress)
+            progress(RuntimeInstallProgress("Installed \(release.kind.title) \(runtime.version).", 1))
+            return runtime
+        } catch  where DiskSpace.isOutOfSpace(error) {
+            // Any step can meet a full volume: the folders, the download, the extraction, the copy.
+            throw DiskSpace.outOfSpace
+        }
+    }
+
+    private func installNew(
+        _ release: RuntimeRelease, tools: PreparationTools,
+        progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> ManagedRuntime {
         let store = store
         try OwnedDirectory.create(store.directory)
         if let installed = try await BlockingWork.run({ try store.existing(release) }) { return installed }
@@ -52,9 +66,7 @@ public actor RuntimeInstaller {
         let prepared = try await pipeline.prepare(release, tools: tools, staging: staging, progress: progress)
         // The last point where cancellation stops the installation: the rename below is final.
         try Task.checkCancellation()
-        let runtime = try await BlockingWork.run { try Self.commit(prepared, store: store) }
-        progress(RuntimeInstallProgress("Installed \(release.kind.title) \(runtime.version).", 1))
-        return runtime
+        return try await BlockingWork.run { try Self.commit(prepared, store: store) }
     }
 
     /// Writes the receipt and renames the payload into its final folder (I7, I13, I20).

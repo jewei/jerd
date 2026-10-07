@@ -16,9 +16,16 @@ package struct PostgresAppPreparer: RuntimePreparing {
     package init() {}
 
     /// True for files that the payload keeps.
+    /// ICU tool libraries that nothing in the payload loads. They name their ICU dependencies by
+    /// bare file name (`libicuuc.77.dylib`), which dyld cannot resolve inside the payload.
+    package static let unusedICULibraries = ["libicuio", "libicutest", "libicutu"]
+
     package static func selects(_ path: RelativePath) -> Bool {
         let name = path.components.last ?? ""
         if name.hasSuffix(".a") { return false }
+        if path.components.first == "lib", unusedICULibraries.contains(where: { name.hasPrefix("\($0).") }) {
+            return false
+        }
         if path.components.first == "lib", pythonModules.contains(where: { name.hasPrefix("\($0).") }) { return false }
         let isExtensionFile = path.components.count >= 2 && path.components.dropLast().last == "extension"
         return !(isExtensionFile && pythonModules.contains { name.hasPrefix("\($0)u.") || name.hasPrefix("\($0)u--") })

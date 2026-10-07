@@ -2,14 +2,16 @@ import Foundation
 import JerdManifest
 import JerdRuntimes
 
-/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared payloads into the
-/// app. It verifies every payload receipt (pin, file set, SHA-256, executable flags) before it copies,
-/// so an app never contains a payload that its receipt does not describe.
+/// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared embedded
+/// payloads into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
+/// flags) before it copies, so an app never contains a payload that its receipt does not describe.
+/// Pins that the catalog marks `"embedded": false` (MySQL and PostgreSQL) stay out of the app; the
+/// app installs them on demand from the same pins.
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.
     static let destinationName = BundledPayloadSource.folderName
 
-    /// - Parameter requiresAll: Release: every pinned payload must be present.
+    /// - Parameter requiresAll: Release: every embedded payload must be present.
     static func run(_ context: DevContext, destination: URL, requiresAll: Bool) async throws {
         guard destination.lastPathComponent == destinationName, destination.path.contains(".app/") else {
             throw DevFailure.usage("The embed destination must be <app>/Contents/Resources/\(destinationName).")
@@ -17,7 +19,8 @@ enum RuntimesEmbedStep {
         let start = ContinuousClock.now
         let catalogBytes = try RepositoryPolicy.read("Runtimes/runtimes.json", in: context.repository)
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
-        let entries = PayloadInventory(root: context.repository.payloads, catalog: catalog).entries()
+        let inventory = PayloadInventory(root: context.repository.payloads, catalog: catalog)
+        let entries = inventory.embeddedEntries()
         let payloads = try checked(entries, requiresAll: requiresAll, context: context)
         let manager = FileManager.default
         guard !payloads.isEmpty else {
@@ -61,7 +64,8 @@ enum RuntimesEmbedStep {
             let list = missing.joined(separator: ", ")
             guard !requiresAll else {
                 throw DevFailure.checkFailed(
-                    "A Release build needs every runtime payload. Missing: \(list). Run ./dev runtimes prepare.")
+                    "A Release build needs every embedded runtime payload. Missing: \(list). Run ./dev runtimes prepare."
+                )
             }
             if missing.count < entries.count {
                 context.console.warning("The app builds without these payloads: \(list).")

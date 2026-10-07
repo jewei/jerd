@@ -11,7 +11,7 @@ It depends only on JerdFoundation. It does no network work.
 | --- | --- |
 | `RuntimeKind`, `RuntimeVersion`, `CPUArchitecture` | The runtime values. Raw values are saved in files and folder names. |
 | `PayloadGroup`, `PayloadIdentifier` | The first-launch groups and the one identifier rule. |
-| `RuntimePinCatalog`, `RuntimePin` | The pin catalog `Runtimes/runtimes.json`: one reviewed artifact per bundled kind. |
+| `RuntimePinCatalog`, `RuntimePin` | The pin catalog `Runtimes/runtimes.json`: one reviewed artifact per pinned kind. |
 | `PayloadReceipt`, `PayloadFileRecord`, `PayloadSigning` | The one receipt of a bundled payload: `payload-receipt.json`. |
 | `PayloadFolderID` | The one formula for the folder name of an installed bundled payload. |
 | `BuildReceipt` | The receipt of a managed build: `runtime-updates/<folder>/update-receipt.json`. |
@@ -21,6 +21,12 @@ It depends only on JerdFoundation. It does no network work.
 
 ## Rules
 
+- `embeddedPins` are copied into the app; `onDemandPins` (today MySQL and PostgreSQL) are not,
+  so the database group is partly embedded (Redis stays). An on-demand pin must name an archive.
+  The installed runtime must report a pinned `engineVersion`. `installedSize` (1 byte to 8 GB)
+  is the approximate size of the installed runtime, for the free-space check and the install
+  dialog. The keys are optional, are omitted when nil, and earlier readers ignore them; the
+  installed folder layout does not change.
 - A pin names one archive by URL, exact size, and SHA-256. The MySQL pin also names its
   signature file by URL, size limit, and SHA-256; JerdRuntimes enforces all three before the
   OpenPGP check. The Laravel installer pin names the committed `composer.lock` instead.
@@ -43,8 +49,11 @@ It depends only on JerdFoundation. It does no network work.
 ## Pin catalog
 
 `Runtimes/runtimes.json` has `schemaVersion`, `architecture`, `pins`, and
-`supportSources` (the XZ source that the release tool builds for RustFS). Each pin has `id`,
-`kind`, `version` (the Postgres.app version for PostgreSQL), `releasePage`, and one of
+`supportSources` (the XZ source that the release tool builds for RustFS; a build input that is
+never embedded). Each pin has `id`, `kind`, `version` (the Postgres.app version for PostgreSQL),
+`releasePage`, the optional `embedded` (false: the app installs the pin on demand; absent:
+embedded), `engineVersion` (the version that the runtime reports, when it differs from
+`version`: `18.6` for PostgreSQL), and `installedSize` (approximate bytes), and one of
 `archive {url, size, sha256, assetID?}` or `composerProject {directory, lockSHA256}`, plus
 `signature {url, sizeLimit, sha256}` for MySQL. The build copies the catalog into the app
 bundle as `RuntimePayloads/runtimes.json`.

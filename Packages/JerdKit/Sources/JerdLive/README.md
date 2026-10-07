@@ -37,6 +37,16 @@ calls. Pure mappings are `package static` functions with their own tests.
   (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`. The port
   reports it through `runtimeSetupFailure()`, and the service page shows it in its
   missing-runtime banner. A later successful setup clears it.
+- `LiveDomain` has one `URLSessionFetcher` and one `RuntimeInstaller`. The Runtimes page and the
+  on-demand database installation share them. Both pages install a pinned database engine through
+  one flow (`OnDemandInstallFlow`, used by `DatabaseRuntimeInstaller` in `LiveDatabasesPort` and in
+  `LiveRuntimeInventory`): a verified earlier payload is reused; an installed build of the pin in
+  `runtime-updates/` is reused; only a real download first checks the free space
+  (`FreeSpaceReading`). The dialogs say "Nothing is downloaded" when a copy is reused. One
+  installation runs at a time. `DatabaseRuntimeInstaller` takes the pinned release from
+  `OnDemandRuntimes` (the catalog in the bundle), installs it, and registers the build with the
+  database manager. The launch never calls it: only Install and Add Database do. The Runtimes
+  snapshot lists the same pins (`onDemand`), so Runtimes offers them too.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated

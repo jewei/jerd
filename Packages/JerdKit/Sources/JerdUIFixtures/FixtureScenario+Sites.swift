@@ -79,8 +79,8 @@ extension FixtureScenario {
     /// and tunnel pages with tinted banners and badges, also render with Increase Contrast.
     package var snapshotAppearances: [SnapshotAppearance] {
         switch self {
-        case .dashboard, .appearance, .runtimesChecked, .advanced, .about, .sitesEmpty, .sitesRunning, .sitesDisabled,
-            .sitesSetupRequired, .sitesRecovery, .tunnelFailed, .tunnelConnected:
+        case .dashboard, .appearance, .runtimesChecked, .runtimesOnDemand, .advanced, .about, .sitesEmpty,
+            .sitesRunning, .sitesDisabled, .sitesSetupRequired, .sitesRecovery, .tunnelFailed, .tunnelConnected:
             SnapshotAppearance.allCases
         default: SnapshotAppearance.standard
         }

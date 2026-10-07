@@ -1,4 +1,5 @@
 import Foundation
+import JerdManifest
 import Testing
 
 @testable import JerdDevKit
@@ -102,12 +103,41 @@ struct CandidateFilesTests {
         defer { workspace.remove() }
         let layout = CandidateLayout(root: workspace.path("candidate"))
         try PayloadFixture.write(to: layout.appPayloads)
+        try PayloadFixture.write(to: workspace.repository.payloads)
         let environment = try ReleaseRuntimeTests(shell: workspace.shell(), layout: layout).environment()
         #expect(environment["JERD_PHP_CLI"]?.hasSuffix("/development/php-8.5.11-arm64/bin/tool") == true)
         #expect(environment["JERD_PHP_FPM"]?.hasSuffix("/bin/php-fpm") == true)
         #expect(environment["JERD_STORAGE_INTEGRATION"] == "1" && environment["JERD_DATABASE_INTEGRATION"] == "1")
         #expect(environment["JERD_DATABASE_RUNTIMES"] == layout.integration.appending(path: "database").path)
         #expect(environment["PATH"] == "/usr/bin")
+    }
+
+    @Test("Runtime tests take the on-demand payloads from the prepared payloads, not from the app")
+    func runtimeTestsUseThePreparedOnDemandPayloads() throws {
+        let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
+        let layout = CandidateLayout(root: workspace.path("candidate"))
+        try PayloadFixture.write(to: layout.appPayloads)
+        let catalog = try RuntimePinCatalog.decode(PayloadFixture.catalogData())
+        for pin in catalog.onDemandPins {
+            try FileManager.default.removeItem(at: layout.appPayloads.appending(path: "database/\(pin.id)"))
+        }
+        let tests = ReleaseRuntimeTests(shell: try workspace.shell(), layout: layout)
+        let missing = try #require(catalog.onDemandPins.first)
+        #expect {
+            try tests.environment()
+        } throws: { error in
+            let message = (error as? DevFailure)?.message ?? ""
+            return message.contains(missing.id) && message.contains(workspace.repository.payloads.path)
+        }
+        try PayloadFixture.write(to: workspace.repository.payloads)
+        let environment = try tests.environment()
+        let index = try #require(environment["JERD_DATABASE_RUNTIMES"])
+        for pin in catalog.pins(in: .database) {
+            let link = try FileManager.default.destinationOfSymbolicLink(atPath: "\(index)/\(pin.id)")
+            let root = pin.isEmbedded ? layout.appPayloads : workspace.repository.payloads
+            #expect(link.hasPrefix(root.path), "\(pin.id) -> \(link)")
+        }
     }
 
     @Test("Status shows the stage, the history, and the next action")

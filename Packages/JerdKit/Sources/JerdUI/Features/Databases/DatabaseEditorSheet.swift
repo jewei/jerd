@@ -15,30 +15,56 @@ package struct DatabaseEditorSheet: View {
         SheetScaffold(
             draft.isAdding ? "Add Database" : "Edit Database", message: message,
             confirmation: SheetConfirmation(
-                draft.isAdding ? "Create and Start" : "Save",
-                isEnabled: draft.service(in: model.configuration) != nil && model.canChangeRegistry && !isQuitting,
-                identifier: "database-editor"
+                draft.isAdding ? DatabaseRuntimeCopy.addTitle(installsRuntime: offer != nil) : "Save",
+                isEnabled: model.canSaveEditor && !isQuitting, identifier: "database-editor"
             ) { model.saveEditor() },
             workingMessage: model.editorOperation.workingMessage, cancel: model.closeEditor
         ) {
             Section {
                 Picker("Engine", selection: engine) {
-                    ForEach(model.availableEngines, id: \.self) { Text($0.title).tag($0) }
+                    ForEach(engines, id: \.self) { engine in
+                        Text(
+                            DatabaseRuntimeCopy.engineLabel(
+                                engine, isInstalled: model.availableEngines.contains(engine))
+                        )
+                        .tag(engine)
+                    }
                 }
-                .disabled(!draft.isAdding)
-                Picker("Version", selection: runtimeID) {
-                    ForEach(runtimes) { Text($0.version).tag(Optional($0.id)) }
+                .disabled(!draft.isAdding || isInstalling)
+                if let offer {
+                    ValueRow("Version", value: offer.versionLabel)
+                } else {
+                    Picker("Version", selection: runtimeID) {
+                        ForEach(runtimes) { Text($0.version).tag(Optional($0.id)) }
+                    }
+                    .disabled(!draft.isAdding)
                 }
-                .disabled(!draft.isAdding)
                 TextField("Name", text: name)
                     .accessibilityIdentifier("database-editor.name")
                 TextField("Port", text: port, prompt: Text(PortInput.prompt))
                     .accessibilityIdentifier("database-editor.port")
-                if let issue = draft.issue(in: model.configuration) {
+                if let issue = draft.issue(in: model.configuration, installsRuntime: offer != nil) {
                     InlineMessage(issue, kind: .warning, identifier: "database-editor.issue")
                 }
             } footer: {
                 FormFooter("The service listens only on 127.0.0.1. Jerd suggests the first free port.")
+            }
+            // After a failure, the error below replaces the note, so the sheet stays short.
+            if let offer, model.editorOperation.failureMessage == nil {
+                Section {
+                    if let installation = model.runtimeInstallation, installation.addsService {
+                        DatabaseRuntimeProgressRow(installation: installation, cancel: nil)
+                    } else if let other = model.runtimeInstallation {
+                        InlineMessage(
+                            "Wait for the \(other.engine.title) installation to finish.", kind: .info,
+                            identifier: "database-editor.install-waits")
+                    } else {
+                        InlineMessage(
+                            DatabaseRuntimeCopy.addNote(offer), kind: .info, identifier: "database-editor.install-note")
+                    }
+                } header: {
+                    Text("Runtime")
+                }
             }
             if let failure = model.editorOperation.failureMessage {
                 Section {
@@ -51,10 +77,22 @@ package struct DatabaseEditorSheet: View {
     private var draft: DatabaseDraft { model.editor ?? .add(.mysql, in: model.configuration) }
 
     private var message: String {
-        draft.isAdding
+        if let offer {
+            return
+                "Jerd installs \(offer.engine.title), creates a separate data folder and password, then starts the service."
+        }
+        return draft.isAdding
             ? "Jerd creates a separate data folder and password, then starts the service."
             : "The engine and version stay fixed because the data folder uses them."
     }
+
+    /// The pinned runtime that Save installs first, or nil when the engine has a runtime.
+    private var offer: DatabaseRuntimeOffer? { model.editorRuntimeOffer }
+
+    private var isInstalling: Bool { model.runtimeInstallation?.addsService == true }
+
+    /// Add lists every engine that it can create; Edit shows only the service's own engine.
+    private var engines: [DatabaseEngine] { draft.isAdding ? model.addableEngines : [draft.engine] }
 
     private var runtimes: [DatabaseRuntime] {
         model.configuration.runtimes.filter { $0.engine == draft.engine }

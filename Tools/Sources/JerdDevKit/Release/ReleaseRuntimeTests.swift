@@ -2,7 +2,9 @@ import Foundation
 import JerdManifest
 
 /// Runs the JerdKit tests with every integration group against the signed payloads inside the
-/// candidate app. The paths come from the receipts, not from file names.
+/// candidate app. The paths come from the receipts, not from file names. The app does not embed the
+/// pins that it installs on demand (MySQL and PostgreSQL), so those come from the verified payloads
+/// of `./dev runtimes prepare`.
 struct ReleaseRuntimeTests: Sendable {
     let shell: ReleaseShell
     let layout: CandidateLayout
@@ -13,7 +15,8 @@ struct ReleaseRuntimeTests: Sendable {
         let root = layout.appPayloads
         let catalog = try PayloadInventory.catalog(at: root.appending(path: RuntimePinCatalog.fileName))
         let paths = IntegrationRuntimePaths(
-            inventory: PayloadInventory(root: root, catalog: catalog), indexRoot: layout.integration)
+            inventory: PayloadInventory(root: root, catalog: catalog), indexRoot: layout.integration,
+            onDemandInventory: PayloadInventory(root: shell.repository.payloads, catalog: catalog))
         var environment = shell.context.environment.filter { !$0.key.hasPrefix(TestEnvironment.prefix) }
         for group in IntegrationGroup.allCases {
             environment.merge(group.switchVariables) { _, new in new }

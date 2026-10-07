@@ -45,8 +45,8 @@ private (mode 0700).
 | `runtimes/configuration/empty-ini` | An empty `PHP_INI_SCAN_DIR` for the `php` command |
 | `runtimes/inspection/empty-ini` | The PHP inspection folder during a payload installation |
 | `runtime-inspection/empty-ini` | The PHP inspection folder during activation and import |
-| `runtime-updates` | Managed runtime builds |
-| `database-runtimes` | Installed database payloads |
+| `runtime-updates` | Managed runtime builds, also the database engines that Jerd installs on demand (`<kind>-<release>-arm64-<archive SHA-256>/` with `update-receipt.json`) |
+| `database-runtimes` | Database payloads that earlier versions installed from the app bundle. They stay in use; Jerd never removes them |
 | `mail-runtimes` | Installed Mailpit payloads |
 | `storage-runtimes` | Installed RustFS payloads |
 

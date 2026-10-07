@@ -1,30 +1,53 @@
 import Foundation
 import JerdDatabases
 import JerdFoundation
+import JerdRuntimes
 import JerdUI
 
 /// The Databases port on the one `DatabaseManager`. Its load installs the bundled runtimes of
-/// engines that have none yet; a failed bundled setup leaves the load usable.
+/// engines that have none yet; a failed bundled setup leaves the load usable. An app that does not
+/// embed the database runtimes installs each engine on demand, after a user action.
 package struct LiveDatabasesPort: DatabasesPort {
     let manager: any DatabaseManaging
     let runtimes: any ServiceRuntimeSource
     let layout: DatabasesLayout
     let setup: BundledSetupRecord
+    /// The on-demand installation, or nil in a port without one: it offers nothing then.
+    let onDemand: DatabaseRuntimeInstaller?
 
     package init(
         manager: any DatabaseManaging, runtimes: any ServiceRuntimeSource, layout: DatabasesLayout,
-        setup: BundledSetupRecord = BundledSetupRecord()
+        setup: BundledSetupRecord = BundledSetupRecord(), onDemand: DatabaseRuntimeInstaller? = nil
     ) {
         self.manager = manager
         self.runtimes = runtimes
         self.layout = layout
         self.setup = setup
+        self.onDemand = onDemand
     }
 
     package init(domain: LiveDomain) {
         self.init(
             manager: domain.databases, runtimes: BundledServiceRuntimes(bootstrap: domain.bootstrap),
-            layout: domain.layout.databases)
+            layout: domain.layout.databases,
+            onDemand: DatabaseRuntimeInstaller(
+                releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
+                layout: domain.layout))
+    }
+
+    package func runtimeOffers() async -> [DatabaseRuntimeOffer] {
+        guard let onDemand else { return [] }
+        return await onDemand.offers()
+    }
+
+    package func installRuntime(
+        _ engine: DatabaseEngine, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> DatabaseRuntime {
+        guard let onDemand else {
+            throw JerdError.unavailable("This copy of Jerd cannot install \(engine.title). Install it in Runtimes.")
+        }
+        ServiceActivityLog.request("Install", "the \(engine.title) runtime")
+        return try await onDemand.install(engine, progress: progress)
     }
 
     /// Loads the registry first: a corrupt `services.json` fails here and nothing is installed.

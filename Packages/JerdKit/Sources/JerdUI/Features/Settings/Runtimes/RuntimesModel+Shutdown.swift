@@ -6,6 +6,7 @@ extension RuntimesModel: ShutdownParticipant {
     /// half-updated.
     public func shutdown() async -> Bool {
         isShuttingDown = true
+        pendingOnDemandInstall = nil
         checkTask?.cancel()
         if installation?.canCancel != false {
             installTask?.cancel()

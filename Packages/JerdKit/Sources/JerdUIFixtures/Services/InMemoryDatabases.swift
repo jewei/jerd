@@ -1,6 +1,7 @@
 import Foundation
 import JerdDatabases
 import JerdFoundation
+import JerdRuntimes
 import JerdServiceKit
 import JerdUI
 
@@ -19,11 +20,17 @@ public actor InMemoryDatabases: DatabasesPort {
     public var stopBehavior = ServiceBehavior.succeed
     /// When set, registry changes throw this message.
     public var failure: String?
-    public var suggestion: UInt16 = 3307
+    /// The suggested port; nil suggests the engine default plus one (3307, 5433, 6380), as for a
+    /// Mac where the default port is taken.
+    public var suggestion: UInt16?
     /// When set, add, edit, and restore wait here before they change anything.
     public var gate: FixtureGate?
     /// When set, the connection read waits here.
     public var connectionGate: FixtureGate?
+    /// The engines that `installRuntime` can install.
+    public var offers: [DatabaseRuntimeOffer] = []
+    /// How `installRuntime` answers.
+    public var installBehavior = InstallBehavior.succeed
     public private(set) var calls: [String] = []
 
     public init(
@@ -50,6 +57,32 @@ public actor InMemoryDatabases: DatabasesPort {
         setupFailure
     }
 
+    public func runtimeOffers() async -> [DatabaseRuntimeOffer] {
+        offers
+    }
+
+    /// Registers a sample runtime of the offered version, like the live installer.
+    public func installRuntime(
+        _ engine: DatabaseEngine, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> DatabaseRuntime {
+        calls.append("install \(engine.rawValue)")
+        guard let offer = offers.first(where: { $0.engine == engine }) else {
+            throw JerdError.unavailable("This copy of Jerd has no pinned \(engine.title) runtime.")
+        }
+        switch installBehavior {
+        case .succeed:
+            progress(RuntimeInstallProgress("Downloading \(offer.title)…", 0.5))
+            let runtime = SampleServices.installedRuntime(offer)
+            configuration.runtimes.append(runtime)
+            return runtime
+        case .fail(let message):
+            throw JerdError.unavailable(message)
+        case .suspend(let report):
+            progress(report)
+            try await ServiceBehavior.waitForCancellation()
+        }
+    }
+
     public func snapshot() async -> DatabaseSnapshot {
         DatabaseSnapshot(configuration: configuration, states: states)
     }
@@ -58,7 +91,9 @@ public actor InMemoryDatabases: DatabasesPort {
         SampleServices.files("databases/instances/\(id.uuidString)", hasData: started.contains(id))
     }
 
-    public func suggestedPort(for engine: DatabaseEngine) async throws -> UInt16 { suggestion }
+    public func suggestedPort(for engine: DatabaseEngine) async throws -> UInt16 {
+        suggestion ?? engine.defaultPort + 1
+    }
 
     public func add(name: String, runtimeID: String, port: UInt16) async throws -> DatabaseService {
         await gate?.pass()

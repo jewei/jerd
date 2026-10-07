@@ -7,7 +7,9 @@ extension ServiceScenario {
     public func prepare(_ fixture: AppFixture) async {
         let state = fixture.state
         await configurePorts(fixture.services)
+        await configureOnDemand(fixture.services.databases)
         await state.launch()
+        if await prepareOnDemand(state) { return }
         switch self {
         case .databaseEditor:
             state.databases.beginAdd(.postgresql)
@@ -59,6 +61,7 @@ extension ServiceScenario {
     public func isReady(_ fixture: AppFixture) -> Bool {
         let state = fixture.state
         guard state.isLaunched else { return false }
+        if let ready = isOnDemandReady(state) { return ready }
         switch self {
         case .databaseEditor: return state.databases.editor?.portText.isEmpty == false
         case .databaseStarting: return !state.databases.busyServices.isEmpty
@@ -105,7 +108,7 @@ extension ServiceScenario {
     }
 
     @MainActor
-    private func waitForPort(_ model: DatabasesModel) async {
+    func waitForPort(_ model: DatabasesModel) async {
         for _ in 0..<1_000 where model.editor?.portText.isEmpty != false {
             await Task.yield()
         }

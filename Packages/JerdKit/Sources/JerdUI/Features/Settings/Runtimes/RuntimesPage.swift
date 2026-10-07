@@ -17,6 +17,11 @@ struct RuntimesPage: View {
                 }
             }
         } messages: {
+            if let elsewhere = model.runtimeInstallElsewhere?() {
+                InlineMessage(
+                    RuntimeCopy.waitsForDatabases(elsewhere), kind: .info, style: .banner,
+                    identifier: "runtimes.databases-installing")
+            }
             if let installation = model.installation {
                 InlineMessage(
                     "Installing \(installation.kind.title). Other runtime changes wait until it finishes.", kind: .info,
@@ -36,6 +41,25 @@ struct RuntimesPage: View {
         }
         // Advanced and the services can change what is installed, so read it each time.
         .task { await model.load() }
+        .confirmationDialog(
+            model.pendingOnDemandInstall.map { RuntimeInstallCopy.confirmationTitle($0.title) } ?? "",
+            isPresented: isConfirmingInstall, titleVisibility: .visible, presenting: model.pendingOnDemandInstall
+        ) { _ in
+            Button(RuntimeInstallCopy.confirmTitle(reuses: model.reusesInstalledCopy(model.pendingOnDemandInstall))) {
+                model.confirmOnDemandInstall()
+            }
+            Button("Cancel", role: .cancel) { model.pendingOnDemandInstall = nil }
+        } message: { release in
+            Text(RuntimeInstallCopy.confirmationMessage(release, reuses: model.reusesInstalledCopy(release)))
+        }
+    }
+
+    private var isConfirmingInstall: Binding<Bool> {
+        Binding {
+            model.pendingOnDemandInstall != nil
+        } set: { isPresented in
+            if !isPresented { model.pendingOnDemandInstall = nil }
+        }
     }
 
     private var checkAction: PageAction {

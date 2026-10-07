@@ -16,17 +16,33 @@ struct DownloadCache: HTTPFetching {
     /// The pinned SHA-256 of each cacheable URL.
     let digests: [URL: String]
 
-    /// The archive digests of every pin and support source of `catalog`.
+    /// The archive digests of every pin and support source of `catalog`, and the digest of the
+    /// pinned MySQL signature file, so the on-demand test can serve both without the internet.
     static func digests(of catalog: RuntimePinCatalog) -> [URL: String] {
         var digests: [URL: String] = [:]
         for archive in catalog.pins.compactMap(\.archive) + catalog.supportSources.values.map(\.archive) {
             digests[archive.url] = archive.sha256
         }
+        for signature in catalog.pins.compactMap(\.signature) {
+            digests[signature.url] = signature.sha256
+        }
         return digests
     }
 
+    /// A small pinned file (the MySQL signature) is cached like a download.
     func data(from url: URL, limit: Int) async throws -> Data {
-        try await upstream.data(from: url, limit: limit)
+        guard let digest = digests[url] else { return try await upstream.data(from: url, limit: limit) }
+        let cached = folder.appending(path: digest)
+        if try Self.isValid(cached, digest: digest) { return try Data(contentsOf: cached) }
+        let data = try await upstream.data(from: url, limit: limit)
+        if FileDigest.hexSHA256(of: data) == digest {
+            let staged = folder.appending(path: ".\(digest).\(UUID().uuidString).data")
+            try OwnedDirectory.create(folder)
+            try data.write(to: staged)
+            defer { try? FileManager.default.removeItem(at: staged) }
+            try store(staged, as: cached)
+        }
+        return data
     }
 
     func download(

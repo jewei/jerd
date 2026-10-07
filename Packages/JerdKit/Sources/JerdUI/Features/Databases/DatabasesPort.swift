@@ -1,9 +1,20 @@
 import Foundation
 import JerdDatabases
+import JerdRuntimes
 
 /// The registered MySQL, PostgreSQL, and Redis services. JerdLive implements it with
 /// `DatabaseManager`; the live `load()` first installs the bundled runtimes of missing engines.
+/// An app that does not embed the database runtimes installs each engine on demand.
 public protocol DatabasesPort: Sendable {
+    /// The engines that Jerd can download and install, from the reviewed pins of the app. Empty
+    /// when the app carries no pins; it never touches the network.
+    func runtimeOffers() async -> [DatabaseRuntimeOffer]
+    /// Downloads, verifies, prepares, and installs the pinned runtime of `engine`, then registers
+    /// it. A download that does not match its pin installs nothing. Cancellation stops it until
+    /// the final rename; after that the runtime is installed and registered.
+    func installRuntime(
+        _ engine: DatabaseEngine, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> DatabaseRuntime
     /// Reads `databases/services.json` once and returns the first snapshot.
     /// - Throws: when the settings cannot be read. The file stays as it is.
     func load() async throws -> DatabaseSnapshot
