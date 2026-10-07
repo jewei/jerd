@@ -74,10 +74,10 @@ public enum SampleServices {
     public static let offers = [
         DatabaseRuntimeOffer(
             engine: .mysql, versionLabel: "8.4.11", downloadSize: 167_977_240, source: "cdn.mysql.com",
-            installedSize: 360_498_219, isSigned: true),
+            installedSize: 321_049_835, isSigned: true),
         DatabaseRuntimeOffer(
             engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005, source: "github.com",
-            installedSize: 753_446_725),
+            installedSize: 750_547_900),
     ]
 
     /// The Redis that the app embeds, as the first launch registers it.

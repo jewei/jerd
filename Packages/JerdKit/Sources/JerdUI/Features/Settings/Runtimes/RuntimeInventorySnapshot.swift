@@ -14,6 +14,8 @@ public struct RuntimeInventorySnapshot: Hashable, Sendable {
     public var builds: [InstalledBuild]
     /// The pinned releases that the app does not embed and installs on demand (the database engines).
     public var onDemand: [RuntimeRelease]
+    /// The on-demand kinds whose install reuses a copy on this Mac, so nothing is downloaded.
+    public var reusableOnDemand: Set<RuntimeKind> = []
 
     public init(
         versions: [RuntimeKind: [String]] = [:], phpBuildDigests: [UUID: String] = [:], builds: [InstalledBuild] = [],

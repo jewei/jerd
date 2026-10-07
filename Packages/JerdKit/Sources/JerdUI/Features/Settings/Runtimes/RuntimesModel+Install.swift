@@ -6,7 +6,7 @@ extension RuntimesModel {
     /// - Parameter useAsDefault: For PHP: also make it the default. "Install Only" passes false.
     @discardableResult
     public func install(_ release: RuntimeRelease, useAsDefault: Bool = true) -> Task<Void, Never>? {
-        guard canChangeRuntimes else { return nil }
+        guard canInstallRuntimes else { return nil }
         let kind = release.kind
         installation = RuntimeInstallation(kind: kind)
         errors[kind] = nil

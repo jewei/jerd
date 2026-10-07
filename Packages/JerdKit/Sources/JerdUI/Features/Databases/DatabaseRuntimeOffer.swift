@@ -17,11 +17,14 @@ public struct DatabaseRuntimeOffer: Hashable, Sendable {
     public let installedSize: Int64?
     /// True when Jerd also checks the publisher signature (MySQL).
     public let isSigned: Bool
+    /// True when the install reuses a copy on this Mac (an earlier payload or build): no download.
+    public let reusesInstalledCopy: Bool
 
     public init(
         engine: DatabaseEngine, versionLabel: String, downloadSize: Int64, source: String, installedSize: Int64? = nil,
-        isSigned: Bool = false
+        isSigned: Bool = false, reusesInstalledCopy: Bool = false
     ) {
+        self.reusesInstalledCopy = reusesInstalledCopy
         self.engine = engine
         self.versionLabel = versionLabel
         self.downloadSize = downloadSize
@@ -36,6 +39,7 @@ public struct DatabaseRuntimeOffer: Hashable, Sendable {
     /// The download size for the user, for example `168 MB` (`ByteText`).
     public var sizeText: String { ByteText.format(downloadSize) }
 
-    /// The free disk space that the installation needs: the download and the installed copy.
-    public var requiredSpace: Int64 { downloadSize + (installedSize ?? 0) }
+    /// The free disk space that the installation needs: the download and the installed copy, or
+    /// nothing when it reuses a copy on this Mac.
+    public var requiredSpace: Int64 { reusesInstalledCopy ? 0 : downloadSize + (installedSize ?? 0) }
 }

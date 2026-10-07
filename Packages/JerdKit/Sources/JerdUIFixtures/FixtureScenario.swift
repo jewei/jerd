@@ -16,6 +16,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case runtimesChecked = "runtimes-checked"
     /// An app without the database runtimes: the page offers the pinned engines.
     case runtimesOnDemand = "runtimes-on-demand"
+    /// The Databases page downloads MySQL: Runtimes says why its installs wait.
+    case runtimesWaiting = "runtimes-waiting"
     case advancedEmpty = "advanced-empty"
     case advanced
     case about
@@ -76,7 +78,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         switch self {
         case .dashboardEmpty, .dashboard, .dashboardBusy, .dashboardLong, .quitting: .dashboard(.overview)
         case .appearance, .appearanceHidden: .dashboard(.appearance)
-        case .runtimes, .runtimesChecked, .runtimesOnDemand: .dashboard(.runtimes)
+        case .runtimes, .runtimesChecked, .runtimesOnDemand, .runtimesWaiting: .dashboard(.runtimes)
         case .advancedEmpty, .advanced: .dashboard(.advanced)
         case .about, .aboutUpdateError: .dashboard(.about)
         default: sitesDestination
@@ -90,7 +92,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         let inventory =
             empty
             ? RuntimeInventorySnapshot()
-            : self == .runtimesOnDemand ? SampleData.onDemandInventory : SampleData.inventory
+            : [.runtimesOnDemand, .runtimesWaiting].contains(self) ? SampleData.onDemandInventory : SampleData.inventory
         return InMemoryRuntimeInventory(
             inventory: inventory, results: SampleData.checks,
             installBehavior: self == .runtimesChecked ? .suspend(report) : .succeed)

@@ -3,8 +3,13 @@ import JerdRuntimes
 /// The words of a pinned runtime installation that the Databases page and Runtimes share, so both
 /// ask the same question with the same facts.
 enum RuntimeInstallCopy {
-    /// The confirm button of the install dialog.
-    static let confirmTitle = "Download and Install"
+    /// The confirm button of the install dialog: "Install" when nothing is downloaded.
+    static func confirmTitle(reuses: Bool) -> String { reuses ? "Install" : "Download and Install" }
+
+    /// The dialog text when the install reuses a copy on this Mac.
+    static func reuseMessage(_ name: String) -> String {
+        "\(name) is already on this Mac. Jerd checks its files and uses it. Nothing is downloaded."
+    }
 
     /// `Install MySQL 8.4.11?`
     static func confirmationTitle(_ name: String) -> String { "Install \(name)?" }
@@ -24,8 +29,9 @@ enum RuntimeInstallCopy {
     }
 
     /// The confirmation of a pinned release on the Runtimes page.
-    static func confirmationMessage(_ release: RuntimeRelease) -> String {
-        confirmationMessage(
+    static func confirmationMessage(_ release: RuntimeRelease, reuses: Bool) -> String {
+        if reuses { return reuseMessage(release.title) }
+        return confirmationMessage(
             source: release.artifact.downloadURL?.host ?? "its publisher", downloadSize: release.downloadSize ?? 0,
             requiredSpace: release.requiredSpace, isSigned: release.pinnedSignature != nil)
     }

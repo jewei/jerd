@@ -41,14 +41,14 @@ public enum SampleData {
         pinned(
             .mysql, "8.4.11", "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz",
             167_977_240,
-            installed: 360_498_219,
+            installed: 321_049_835,
             signature: PinnedFile(
                 url: url("https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz.asc"),
                 sizeLimit: 16_384, sha256: digest)),
         pinned(
             .postgresql, "2.9.6",
             "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
-            122_517_005, installed: 753_446_725, engineVersion: "18.6"),
+            122_517_005, installed: 750_547_900, engineVersion: "18.6"),
     ]
 
     private static func pinned(

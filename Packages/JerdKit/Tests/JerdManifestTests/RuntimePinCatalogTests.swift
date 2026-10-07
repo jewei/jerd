@@ -99,8 +99,8 @@ import Testing
 
     @Test func onDemandPinsStateTheirInstalledSize() throws {
         let catalog = try committedCatalog()
-        #expect(catalog.pin(for: .mysql)?.installedSize == 360_498_219)
-        #expect(catalog.pin(for: .postgresql)?.installedSize == 753_446_725)
+        #expect(catalog.pin(for: .mysql)?.installedSize == 321_049_835)
+        #expect(catalog.pin(for: .postgresql)?.installedSize == 750_547_900)
         let page = try #require(URL(string: "https://example.com"))
         let url = try #require(URL(string: "https://example.com/a.tar.gz"))
         for size in [Int64(0), RuntimePin.installedSizeLimit + 1] {

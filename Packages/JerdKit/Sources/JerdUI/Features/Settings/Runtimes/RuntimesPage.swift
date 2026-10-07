@@ -17,6 +17,11 @@ struct RuntimesPage: View {
                 }
             }
         } messages: {
+            if let elsewhere = model.runtimeInstallElsewhere?() {
+                InlineMessage(
+                    RuntimeCopy.waitsForDatabases(elsewhere), kind: .info, style: .banner,
+                    identifier: "runtimes.databases-installing")
+            }
             if let installation = model.installation {
                 InlineMessage(
                     "Installing \(installation.kind.title). Other runtime changes wait until it finishes.", kind: .info,
@@ -40,10 +45,12 @@ struct RuntimesPage: View {
             model.pendingOnDemandInstall.map { RuntimeInstallCopy.confirmationTitle($0.title) } ?? "",
             isPresented: isConfirmingInstall, titleVisibility: .visible, presenting: model.pendingOnDemandInstall
         ) { _ in
-            Button(RuntimeInstallCopy.confirmTitle) { model.confirmOnDemandInstall() }
+            Button(RuntimeInstallCopy.confirmTitle(reuses: model.reusesInstalledCopy(model.pendingOnDemandInstall))) {
+                model.confirmOnDemandInstall()
+            }
             Button("Cancel", role: .cancel) { model.pendingOnDemandInstall = nil }
         } message: { release in
-            Text(RuntimeInstallCopy.confirmationMessage(release))
+            Text(RuntimeInstallCopy.confirmationMessage(release, reuses: model.reusesInstalledCopy(release)))
         }
     }
 

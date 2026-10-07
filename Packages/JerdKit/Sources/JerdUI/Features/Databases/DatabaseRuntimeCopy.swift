@@ -4,7 +4,9 @@ import JerdRuntimes
 /// The words of the on-demand runtime installation, as pure functions so tests can pin them.
 enum DatabaseRuntimeCopy {
     /// The confirm button of the install dialog.
-    static let confirmTitle = RuntimeInstallCopy.confirmTitle
+    static func confirmTitle(_ offer: DatabaseRuntimeOffer) -> String {
+        RuntimeInstallCopy.confirmTitle(reuses: offer.reusesInstalledCopy)
+    }
 
     /// The action of an engine that has no runtime, for example `Install MySQL…`.
     static func installTitle(_ engine: DatabaseEngine) -> String {
@@ -17,19 +19,27 @@ enum DatabaseRuntimeCopy {
 
     /// What the download is, where it comes from, how Jerd checks it, and the disk space it needs.
     static func confirmationMessage(_ offer: DatabaseRuntimeOffer) -> String {
-        RuntimeInstallCopy.confirmationMessage(
+        if offer.reusesInstalledCopy { return RuntimeInstallCopy.reuseMessage(offer.title) }
+        return RuntimeInstallCopy.confirmationMessage(
             source: offer.source, downloadSize: offer.downloadSize, requiredSpace: offer.requiredSpace,
             isSigned: offer.isSigned)
     }
 
     /// The row detail of an engine that Jerd can install.
     static func notInstalledDetail(_ offer: DatabaseRuntimeOffer) -> String {
-        "Not installed. \(offer.versionLabel), \(offer.sizeText) download."
+        offer.reusesInstalledCopy
+            ? "Not in use. \(offer.versionLabel) is already on this Mac."
+            : "Not installed. \(offer.versionLabel), \(offer.sizeText) download."
     }
 
     /// The note of the Add sheet when the selected engine is not installed yet.
     static func addNote(_ offer: DatabaseRuntimeOffer) -> String {
-        "\(offer.engine.title) is not installed yet. Jerd first downloads \(offer.title) (\(offer.sizeText)) from "
+        if offer.reusesInstalledCopy {
+            return "\(offer.engine.title) is not in use yet. Jerd first uses the \(offer.title) that is already on "
+                + "this Mac, then creates the service. Nothing is downloaded."
+        }
+        return
+            "\(offer.engine.title) is not installed yet. Jerd first downloads \(offer.title) (\(offer.sizeText)) from "
             + "\(offer.source) and checks it, then creates the service. It needs about "
             + "\(ByteText.format(offer.requiredSpace)) of free disk space."
     }

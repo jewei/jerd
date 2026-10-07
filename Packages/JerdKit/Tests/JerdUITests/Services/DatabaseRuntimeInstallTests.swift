@@ -214,10 +214,30 @@ struct DatabaseRuntimeInstallTests {
         state.databases.requestRuntimeInstall(.mysql)
         let databasesTask = state.databases.confirmRuntimeInstall()
         await waitUntil { state.databases.runtimeInstallation?.progress != nil }
-        #expect(!state.runtimes.canChangeRuntimes)
+        #expect(!state.runtimes.canInstallRuntimes)
+        // The default PHP change does not use the installer, so it stays on.
+        #expect(state.runtimes.canChangeRuntimes)
+        #expect(state.runtimes.runtimeInstallElsewhere?() == "MySQL 8.4.11")
         state.databases.cancelRuntimeInstall()
         await databasesTask?.value
-        #expect(state.runtimes.canChangeRuntimes)
+        #expect(state.runtimes.canInstallRuntimes)
+    }
+
+    @Test("An install that reuses a copy on this Mac says so and asks for no space or download")
+    func reuseCopy() throws {
+        let base = try #require(SampleServices.offers.first)
+        let reused = DatabaseRuntimeOffer(
+            engine: base.engine, versionLabel: base.versionLabel, downloadSize: base.downloadSize, source: base.source,
+            installedSize: base.installedSize, isSigned: true, reusesInstalledCopy: true)
+        #expect(DatabaseRuntimeCopy.confirmTitle(reused) == "Install")
+        #expect(DatabaseRuntimeCopy.confirmTitle(base) == "Download and Install")
+        #expect(DatabaseRuntimeCopy.confirmationMessage(reused).contains("Nothing is downloaded"))
+        #expect(!DatabaseRuntimeCopy.confirmationMessage(reused).contains("168"))
+        #expect(DatabaseRuntimeCopy.notInstalledDetail(reused).contains("already on this Mac"))
+        #expect(DatabaseRuntimeCopy.addNote(reused).contains("Nothing is downloaded"))
+        let release = try #require(SampleData.onDemandReleases.first)
+        #expect(RuntimeInstallCopy.confirmationMessage(release, reuses: true).contains("Nothing is downloaded"))
+        #expect(RuntimeCopy.waitsForDatabases("MySQL 8.4.11").contains("Databases page"))
     }
 
     @Test("Runtimes asks first before it installs a pinned engine, with the same words")
@@ -231,8 +251,8 @@ struct DatabaseRuntimeInstallTests {
         model.requestOnDemandInstall(mysql)
         #expect(model.pendingOnDemandInstall == mysql)
         #expect(await runtimes.installed.isEmpty)
-        let message = RuntimeInstallCopy.confirmationMessage(mysql)
-        #expect(message.contains("publisher signature") && message.contains("528.5\u{00A0}MB of free disk space"))
+        let message = RuntimeInstallCopy.confirmationMessage(mysql, reuses: false)
+        #expect(message.contains("publisher signature") && message.contains("489\u{00A0}MB of free disk space"))
         await model.confirmOnDemandInstall()?.value
         #expect(await runtimes.installed == [mysql])
         // An installed kind is not offered again.
@@ -261,8 +281,8 @@ struct DatabaseRuntimeInstallTests {
         #expect(message.contains("publisher signature"))
         // Redis is embedded; the on-demand engines need no compiler.
         #expect(!DatabaseRuntimeCopy.confirmationMessage(postgres).contains("Xcode"))
-        #expect(DatabaseRuntimeCopy.confirmationMessage(postgres).contains("876\u{00A0}MB of free disk space"))
-        #expect(DatabaseRuntimeCopy.addNote(mysql).contains("528.5\u{00A0}MB"))
+        #expect(DatabaseRuntimeCopy.confirmationMessage(postgres).contains("873.1\u{00A0}MB of free disk space"))
+        #expect(DatabaseRuntimeCopy.addNote(mysql).contains("489\u{00A0}MB"))
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: true) == "Install and Create")
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: false) == "Create and Start")
     }

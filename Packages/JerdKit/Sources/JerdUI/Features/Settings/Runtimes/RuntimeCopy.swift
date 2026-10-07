@@ -63,6 +63,16 @@ enum RuntimeCopy {
 
     /// The detail of the pinned release that the app installs on demand, for example
     /// `8.4.11, 168 MB download. Jerd checks it against its reviewed checksum.`
+    /// Why runtime installs are off while the Databases page installs an engine.
+    static func waitsForDatabases(_ name: String) -> String {
+        "The Databases page is installing \(name). Runtime installs wait until it finishes."
+    }
+
+    /// The detail of a pinned release whose install reuses a copy on this Mac.
+    static func reuseDetail(_ release: RuntimeRelease) -> String {
+        "\(release.versionLabel) is already on this Mac. Installing it downloads nothing."
+    }
+
     static func onDemandDetail(_ release: RuntimeRelease) -> String {
         let size = release.downloadSize.map { ", \(ByteText.format($0)) download" }
         let checks = RuntimeInstallCopy.checks(isSigned: release.pinnedSignature != nil)

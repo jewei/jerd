@@ -1,5 +1,6 @@
 import JerdDesign
 import JerdManifest
+import JerdRuntimes
 import SwiftUI
 
 /// The section of one runtime kind: installed versions, the check result, the installation
@@ -19,9 +20,10 @@ struct RuntimeSection: View {
                 ValueRow("Version", value: versionsText)
             }
             if let release = model.inventory.installableRelease(kind) {
-                ActionRow("Available", detail: RuntimeCopy.onDemandDetail(release)) {
+                ActionRow("Available", detail: availableDetail(release)) {
                     Button("Install…") { model.requestOnDemandInstall(release) }
-                        .disabled(!model.canChangeRuntimes)
+                        .disabled(!model.canInstallRuntimes)
+                        .help(model.runtimeInstallElsewhere?().map(RuntimeCopy.waitsForDatabases) ?? "")
                         .accessibilityLabel("Install \(release.title)")
                         .accessibilityIdentifier(AccessibilityIdentifier.make("runtimes", kind.rawValue, "install"))
                 }
@@ -50,6 +52,10 @@ struct RuntimeSection: View {
                 FormFooter(footer)
             }
         }
+    }
+
+    private func availableDetail(_ release: RuntimeRelease) -> String {
+        model.reusesInstalledCopy(release) ? RuntimeCopy.reuseDetail(release) : RuntimeCopy.onDemandDetail(release)
     }
 
     private var versionsText: String {

@@ -34,8 +34,10 @@ struct DatabasesPage: View {
                 model.pendingRuntimeInstall.map(DatabaseRuntimeCopy.confirmationTitle) ?? "",
                 isPresented: isConfirmingInstall, titleVisibility: .visible, presenting: model.pendingRuntimeInstall
             ) { _ in
-                Button(DatabaseRuntimeCopy.confirmTitle) { model.confirmRuntimeInstall() }
-                    .disabled(isQuitting)
+                Button(model.pendingRuntimeInstall.map(DatabaseRuntimeCopy.confirmTitle) ?? "Install") {
+                    model.confirmRuntimeInstall()
+                }
+                .disabled(isQuitting)
                 Button("Cancel", role: .cancel) { model.pendingRuntimeInstall = nil }
             } message: { offer in
                 Text(DatabaseRuntimeCopy.confirmationMessage(offer))

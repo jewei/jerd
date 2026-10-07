@@ -77,12 +77,22 @@ public final class RuntimesModel {
     /// installation runs, and no other work holds the shared lock.
     public var canChangeRuntimes: Bool {
         installation == nil && !isShuttingDown && !operation.isWorking && lock.isFree
-            && runtimeInstallElsewhere?() == nil
+    }
+
+    /// True when an install can start now. The installer is shared with the Databases page, so an
+    /// install also waits for a database download there; the default PHP change does not.
+    public var canInstallRuntimes: Bool {
+        canChangeRuntimes && runtimeInstallElsewhere?() == nil
+    }
+
+    /// True when installing `release` reuses a copy on this Mac, so nothing is downloaded.
+    public func reusesInstalledCopy(_ release: RuntimeRelease?) -> Bool {
+        release.map { inventory.reusableOnDemand.contains($0.kind) } ?? false
     }
 
     /// Asks to confirm the download of a pinned release, as the Databases page does.
     public func requestOnDemandInstall(_ release: RuntimeRelease) {
-        guard canChangeRuntimes, inventory.installableRelease(release.kind) == release else { return }
+        guard canInstallRuntimes, inventory.installableRelease(release.kind) == release else { return }
         pendingOnDemandInstall = release
     }
 
