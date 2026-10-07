@@ -12,6 +12,9 @@ extension UpdateCaseRun {
             let written = try bundle.write(
                 in: app.deletingLastPathComponent(), executable: fixture.binary, sparkleSettings: settings)
             try await context.runChecked(plan.copyFramework(into: written), output: .capture)
+            // Sparkle gets the signatures of a release, so the update proves them; then the app itself.
+            try await AppSigner(shell: ReleaseShell(context: context), identity: fixture.identity)
+                .signSparkle(in: written)
             try await context.runChecked(plan.sign(written, identity: fixture.identity), output: .capture)
         }
         try await context.runChecked(plan.zip(folder.newApp, to: folder.archive), output: .capture)

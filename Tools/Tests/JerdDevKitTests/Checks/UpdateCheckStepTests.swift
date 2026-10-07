@@ -81,8 +81,14 @@ struct UpdateCheckStepTests {
         let runner = run.runner
         let context = TestFixtures.context(repository: Repository(root: run.root), runner: runner)
         try await UpdateCheckStep.run(context, identity: "Developer ID", effects: run.effects())
-        let signing = runner.recorded.filter { $0.executable == SystemProgram.codesign }
-        #expect(signing.count == 10 && signing.allSatisfy { $0.arguments.contains("Developer ID") })
+        let signing = runner.recorded.filter {
+            $0.executable == SystemProgram.codesign && $0.arguments.first == "--force"
+        }
+        // Ten test apps: five Sparkle parts with the release signer, then the app.
+        #expect(signing.count == 60 && signing.allSatisfy { $0.arguments.contains("Developer ID") })
+        let autoupdate = signing.map(\.arguments).filter { $0.last?.hasSuffix("/Autoupdate") == true }
+        #expect(autoupdate.count == 10)
+        #expect(autoupdate.allSatisfy { $0.contains("org.sparkle-project.Sparkle.Autoupdate") })
         let sparkle = runner.recorded.filter { $0.executable.lastPathComponent == "sign_update" }
         #expect(sparkle.count == 10 && sparkle.allSatisfy { $0.arguments.first == "--ed-key-file" })
     }

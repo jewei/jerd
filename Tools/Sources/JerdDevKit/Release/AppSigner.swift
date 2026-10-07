@@ -22,9 +22,19 @@ struct AppSigner: Sendable {
     ]
 
     let shell: ReleaseShell
-    let signing: SigningIdentity
+    /// The certificate (SHA-1 or name) that signs everything.
+    let identity: String
 
     func run(app: URL) async throws {
+        try await signSparkle(in: app)
+        for code in Self.ownCode {
+            try await sign(code.path.isEmpty ? app : app.appending(path: code.path), identifier: code.identifier)
+        }
+    }
+
+    /// Signs Sparkle's nested code of `app`, innermost first. `./dev check updates` signs its test apps
+    /// with this function too, so a real Sparkle update proves these signatures.
+    func signSparkle(in app: URL) async throws {
         let framework = app.appending(path: Self.sparkleFramework)
         for part in Self.sparkleParts {
             let path = part == "." ? framework : framework.appending(path: part)
@@ -32,14 +42,11 @@ struct AppSigner: Sendable {
             let preserve = part.hasSuffix("Downloader.xpc") ? ["--preserve-metadata=entitlements"] : []
             try await sign(path, identifier: identifier, extra: preserve)
         }
-        for code in Self.ownCode {
-            try await sign(code.path.isEmpty ? app : app.appending(path: code.path), identifier: code.identifier)
-        }
     }
 
     func sign(_ path: URL, identifier: String, extra: [String] = []) async throws {
         let arguments =
-            ["--force", "--sign", signing.identity, "--options", "runtime", "--timestamp", "--identifier", identifier]
+            ["--force", "--sign", identity, "--options", "runtime", "--timestamp", "--identifier", identifier]
             + extra + [path.path]
         try await shell.run(SystemProgram.codesign, arguments, limit: TimeLimit.codeSigning)
     }

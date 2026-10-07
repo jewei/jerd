@@ -22,7 +22,8 @@ struct AppSigningTests {
             let name = URL(filePath: invocation.arguments.last!).lastPathComponent
             return .init(standardError: "Identifier=org.sparkle-project.\(name)\n")
         }
-        try await AppSigner(shell: workspace.shell(), signing: Self.signing).run(app: URL(filePath: "/c/Jerd.app"))
+        try await AppSigner(shell: workspace.shell(), identity: Self.signing.identity).run(
+            app: URL(filePath: "/c/Jerd.app"))
         let signed = workspace.runner.calls("codesign", ["--force"])
         let names = signed.map { URL(filePath: $0.last!).lastPathComponent }
         #expect(
@@ -46,7 +47,8 @@ struct AppSigningTests {
             let identifier = name == "Autoupdate" ? "Autoupdate-55554944f723d84042cd352fbb0485760ff7597a" : name
             return .init(standardError: "Identifier=\(identifier)\n")
         }
-        try await AppSigner(shell: workspace.shell(), signing: Self.signing).run(app: URL(filePath: "/c/Jerd.app"))
+        try await AppSigner(shell: workspace.shell(), identity: Self.signing.identity).run(
+            app: URL(filePath: "/c/Jerd.app"))
         let signed = workspace.runner.calls("codesign", ["--force"])
         let autoupdate = try #require(signed.first { $0.last!.hasSuffix("/Autoupdate") })
         #expect(autoupdate[autoupdate.firstIndex(of: "--identifier")! + 1] == "org.sparkle-project.Sparkle.Autoupdate")

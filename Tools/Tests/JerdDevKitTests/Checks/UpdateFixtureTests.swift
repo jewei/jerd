@@ -84,7 +84,7 @@ struct UpdateFixtureTests {
         let app = URL(filePath: "/w/new/Updater Test.app")
         #expect(
             plan.sign(app, identity: "ID").arguments == [
-                "--force", "--deep", "--options", "runtime", "--sign", "ID", "/w/new/Updater Test.app",
+                "--force", "--options", "runtime", "--sign", "ID", "/w/new/Updater Test.app",
             ])
         let key = URL(filePath: "/w/test-key")
         let archive = URL(filePath: "/w/update.zip")

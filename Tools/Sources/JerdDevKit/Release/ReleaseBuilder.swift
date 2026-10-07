@@ -38,7 +38,7 @@ struct ReleaseBuilder: Sendable {
     /// Signs every embedded payload, Sparkle, and the app, checks every signature, and zips the symbols.
     func signApp() async throws {
         _ = try await PayloadSigner(shell: shell, signing: inputs.signing, layout: layout).run()
-        try await AppSigner(shell: shell, signing: inputs.signing).run(app: layout.app)
+        try await AppSigner(shell: shell, identity: inputs.signing.identity).run(app: layout.app)
         let info = AppInfoCheck(minimumMacOS: inputs.minimumMacOS, version: inputs.version, build: inputs.build)
         try await AppVerifier(shell: shell, team: inputs.signing.team, info: info).verify(layout.app, notarized: false)
         try await SymbolArchive(shell: shell).create(layout: layout, zip: layout.file(inputs.symbolsName))
