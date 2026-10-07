@@ -14,14 +14,13 @@ extension ServiceScenario {
     func onDemandDatabases() -> InMemoryDatabases? {
         switch self {
         case .databasesOnDemand, .dashboardDatabasesOnDemand, .databasesInstallFailed, .databaseEditorInstall,
-            .databaseEditorInstalling, .databaseEditorInstallFailed:
-            return InMemoryDatabases()
-        case .databasesInstalling:
-            return InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.mysql]))
+            .databaseEditorInstalling, .databaseEditorInstallFailed, .databasesInstalling:
+            // Redis is embedded, so the first launch installed it.
+            return InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.redis]))
         case .databaseRuntimeInstalling:
             return InMemoryDatabases(
                 configuration: DatabaseConfiguration(
-                    runtimes: [SampleServices.mysql], services: [SampleServices.studio]),
+                    runtimes: [SampleServices.mysql, SampleServices.redis], services: [SampleServices.studio]),
                 states: [SampleServices.studioID: .running(pid: 4101)], started: [SampleServices.studioID])
         default:
             return nil
@@ -33,10 +32,12 @@ extension ServiceScenario {
         guard onDemandDatabases() != nil else { return }
         let behavior: InstallBehavior =
             switch self {
-            case .databasesInstalling, .databaseRuntimeInstalling:
-                .suspend(RuntimeInstallProgress("Downloading Redis 8.8.3… 1.9 MB of 4.5 MB", 0.42))
+            case .databasesInstalling:
+                .suspend(RuntimeInstallProgress("Downloading MySQL 8.4.11… 70.6 MB of 168 MB", 0.42))
+            case .databaseRuntimeInstalling:
+                .suspend(RuntimeInstallProgress("Downloading PostgreSQL 18.6… 51.5 MB of 122.5 MB", 0.42))
             case .databaseEditorInstalling:
-                .suspend(RuntimeInstallProgress("Downloading Postgres.app 2.9.6… 75 MB of 122.5 MB", 0.61))
+                .suspend(RuntimeInstallProgress("Downloading PostgreSQL 18.6… 75 MB of 122.5 MB", 0.61))
             case .databasesInstallFailed: .fail(Self.offlineMessage)
             case .databaseEditorInstallFailed: .fail(Self.diskFullMessage)
             default: .succeed
@@ -53,7 +54,7 @@ extension ServiceScenario {
         let model = state.databases
         switch self {
         case .databasesInstalling, .databaseRuntimeInstalling:
-            model.requestRuntimeInstall(.redis)
+            model.requestRuntimeInstall(self == .databasesInstalling ? .mysql : .postgresql)
             model.confirmRuntimeInstall()
         case .databasesInstallFailed:
             model.requestRuntimeInstall(.mysql)

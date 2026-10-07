@@ -31,7 +31,7 @@ public enum SampleData {
     /// A Mac with an app that installs the database engines on demand: none is installed yet.
     public static let onDemandInventory: RuntimeInventorySnapshot = {
         var snapshot = inventory
-        for kind in [RuntimeKind.mysql, .postgresql, .redis] { snapshot.versions[kind] = [] }
+        for kind in [RuntimeKind.mysql, .postgresql] { snapshot.versions[kind] = [] }
         snapshot.onDemand = onDemandReleases
         return snapshot
     }()
@@ -44,15 +44,15 @@ public enum SampleData {
         pinned(
             .postgresql, "2.9.6",
             "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
-            122_517_005),
-        pinned(.redis, "8.8.3", "https://download.redis.io/releases/redis-8.8.3.tar.gz", 4_496_813),
+            122_517_005, engineVersion: "18.6"),
     ]
 
-    private static func pinned(_ kind: RuntimeKind, _ version: String, _ link: String, _ size: Int64) -> RuntimeRelease
-    {
+    private static func pinned(
+        _ kind: RuntimeKind, _ version: String, _ link: String, _ size: Int64, engineVersion: String? = nil
+    ) -> RuntimeRelease {
         RuntimeRelease(
             kind: kind, version: version, artifact: .archive(url(link), size: .exact(size)), archiveSHA256: digest,
-            releasePage: url("https://github.com/jewei/jerd"))
+            releasePage: url("https://github.com/jewei/jerd"), engineVersion: engineVersion)
     }
 
     /// A release with a stated digest.

@@ -12,9 +12,10 @@ import Testing
 @Suite("Database runtimes on demand")
 @MainActor
 struct DatabaseRuntimeInstallTests {
-    /// An app without database runtimes that offers every pinned engine.
+    /// An app that installed its embedded Redis at first launch and offers MySQL and PostgreSQL.
     private func launched(
-        configuration: DatabaseConfiguration = DatabaseConfiguration(), behavior: InstallBehavior = .succeed
+        configuration: DatabaseConfiguration = DatabaseConfiguration(runtimes: [SampleServices.redis]),
+        behavior: InstallBehavior = .succeed
     ) async -> (AppFixture, InMemoryDatabases) {
         let databases = InMemoryDatabases(configuration: configuration)
         await databases.configure {
@@ -29,12 +30,14 @@ struct DatabaseRuntimeInstallTests {
 
     private static let waiting = InstallBehavior.suspend(RuntimeInstallProgress("Downloading MySQL 8.4.11…", 0.25))
 
-    @Test("First launch offers every engine, downloads nothing, and the card offers Add Database")
-    func firstLaunchOffersEveryEngine() async {
+    @Test("First launch has Redis, offers MySQL and PostgreSQL, downloads nothing, and offers Add Database")
+    func firstLaunchOffersTheOnDemandEngines() async {
         let (fixture, databases) = await launched()
         defer { fixture.removeDefaults() }
         let model = fixture.state.databases
-        #expect(model.availableEngines.isEmpty)
+        #expect(model.availableEngines == [.redis])
+        #expect(model.offer(for: .redis) == nil)
+        #expect(model.runtimeOffers.map(\.engine) == [.mysql, .postgresql])
         #expect(model.addableEngines == DatabaseEngine.allCases)
         #expect(await databases.calls == ["load"])
         let summary = model.summary
@@ -49,7 +52,9 @@ struct DatabaseRuntimeInstallTests {
         defer { fixture.removeDefaults() }
         let model = fixture.state.databases
         #expect(model.offer(for: .mysql) == nil)
-        #expect(model.offer(for: .redis)?.versionLabel == "8.8.3")
+        // The engine version, not the Postgres.app version, before the install.
+        #expect(model.offer(for: .postgresql)?.versionLabel == "18.6")
+        #expect(model.offer(for: .postgresql)?.title == "PostgreSQL 18.6")
         model.requestRuntimeInstall(.mysql)
         #expect(model.pendingRuntimeInstall == nil)
     }
@@ -59,12 +64,12 @@ struct DatabaseRuntimeInstallTests {
         let (fixture, databases) = await launched()
         defer { fixture.removeDefaults() }
         let model = fixture.state.databases
-        model.requestRuntimeInstall(.redis)
-        #expect(model.pendingRuntimeInstall?.engine == .redis)
+        model.requestRuntimeInstall(.postgresql)
+        #expect(model.pendingRuntimeInstall?.engine == .postgresql)
         #expect(await databases.calls == ["load"])
         await model.confirmRuntimeInstall()?.value
-        #expect(await databases.calls.contains("install redis"))
-        #expect(model.availableEngines == [.redis])
+        #expect(await databases.calls.contains("install postgresql"))
+        #expect(model.availableEngines == [.postgresql, .redis])
         #expect(model.runtimeInstallation == nil && model.runtimeNotice == nil)
     }
 
@@ -77,7 +82,7 @@ struct DatabaseRuntimeInstallTests {
         model.requestRuntimeInstall(.mysql)
         await model.confirmRuntimeInstall()?.value
         #expect(model.runtimeNotice == DatabaseRuntimeNotice(engine: .mysql, message: offline, isFailure: true))
-        #expect(model.availableEngines.isEmpty && model.runtimeInstallation == nil)
+        #expect(model.availableEngines == [.redis] && model.runtimeInstallation == nil)
         model.dismissRuntimeNotice()
         #expect(model.runtimeNotice == nil)
     }
@@ -94,7 +99,7 @@ struct DatabaseRuntimeInstallTests {
         #expect(!model.canInstallRuntime && model.isBusy)
         model.cancelRuntimeInstall()
         await task?.value
-        #expect(model.runtimeInstallation == nil && model.availableEngines.isEmpty)
+        #expect(model.runtimeInstallation == nil && model.availableEngines == [.redis])
         #expect(model.runtimeNotice?.isFailure == false)
     }
 
@@ -103,16 +108,17 @@ struct DatabaseRuntimeInstallTests {
         let (fixture, databases) = await launched()
         defer { fixture.removeDefaults() }
         let model = fixture.state.databases
-        model.beginAdd(.redis)
+        model.beginAdd(.postgresql)
         await waitUntil { model.editor?.portText.isEmpty == false }
-        #expect(model.editorRuntimeOffer?.engine == .redis)
+        #expect(model.editorRuntimeOffer?.engine == .postgresql)
         #expect(model.canSaveEditor)
         await model.saveEditor()?.value
         await waitUntil { model.busyServices.isEmpty && model.services.count == 1 }
         let service = try #require(model.services.first)
-        #expect(model.runtime(of: service)?.engine == .redis)
+        #expect(model.runtime(of: service)?.engine == .postgresql)
+        #expect(model.runtime(of: service)?.version == "18.6")
         let calls = await databases.calls
-        #expect(calls.firstIndex(of: "install redis") ?? 99 < calls.firstIndex { $0.hasPrefix("add ") } ?? 0)
+        #expect(calls.firstIndex(of: "install postgresql") ?? 99 < calls.firstIndex { $0.hasPrefix("add ") } ?? 0)
         #expect(calls.contains { $0.hasPrefix("start ") })
         #expect(model.sheet == nil)
     }
@@ -156,7 +162,7 @@ struct DatabaseRuntimeInstallTests {
         model.confirmRuntimeInstall()
         await waitUntil { model.runtimeInstallation?.progress != nil }
         #expect(await model.shutdown())
-        #expect(model.runtimeInstallation == nil && model.availableEngines.isEmpty)
+        #expect(model.runtimeInstallation == nil && model.availableEngines == [.redis])
     }
 
     @Test("A draft without a runtime is valid only when Save installs the engine first")
@@ -169,15 +175,17 @@ struct DatabaseRuntimeInstallTests {
     @Test("The install words name the size, the source, and the checks")
     func installCopy() throws {
         let mysql = try #require(SampleServices.offers.first { $0.engine == .mysql })
-        let redis = try #require(SampleServices.offers.first { $0.engine == .redis })
         let postgres = try #require(SampleServices.offers.first { $0.engine == .postgresql })
         #expect(DatabaseRuntimeCopy.installTitle(.mysql) == "Install MySQL…")
         #expect(DatabaseRuntimeCopy.confirmationTitle(mysql) == "Install MySQL 8.4.11?")
-        #expect(DatabaseRuntimeCopy.confirmationTitle(postgres) == "Install PostgreSQL (Postgres.app 2.9.6)?")
+        #expect(DatabaseRuntimeCopy.confirmationTitle(postgres) == "Install PostgreSQL 18.6?")
+        #expect(DatabaseRuntimeCopy.notInstalledDetail(postgres).contains("18.6"))
+        #expect(DatabaseRuntimeCopy.addNote(postgres).contains("PostgreSQL 18.6"))
         let message = DatabaseRuntimeCopy.confirmationMessage(mysql)
         #expect(message.contains("168\u{00A0}MB") && message.contains("cdn.mysql.com"))
         #expect(message.contains("publisher signature"))
-        #expect(DatabaseRuntimeCopy.confirmationMessage(redis).contains("Xcode Command Line Tools"))
+        // Redis is embedded; the on-demand engines need no compiler.
+        #expect(!DatabaseRuntimeCopy.confirmationMessage(postgres).contains("Xcode"))
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: true) == "Install and Create")
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: false) == "Create and Start")
     }
@@ -191,5 +199,7 @@ struct DatabaseRuntimeInstallTests {
         snapshot.versions[.mysql] = ["8.4.3"]
         #expect(snapshot.installableRelease(.mysql) == nil)
         #expect(RuntimeCopy.onDemandDetail(release).hasPrefix("8.4.11, 168"))
+        let postgres = try #require(SampleData.onDemandReleases.first { $0.kind == .postgresql })
+        #expect(RuntimeCopy.onDemandDetail(postgres).hasPrefix("18.6, 122.5"))
     }
 }

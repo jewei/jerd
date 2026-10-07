@@ -5,7 +5,8 @@ import JerdDatabases
 /// the app carries. JerdLive builds it from the pinned release.
 public struct DatabaseRuntimeOffer: Hashable, Sendable {
     public let engine: DatabaseEngine
-    /// The pinned release, for example `8.4.11`, or `Postgres.app 2.9.6` for PostgreSQL.
+    /// The version that the engine reports, for example `8.4.11`, or `18.6` for PostgreSQL (not the
+    /// Postgres.app release that carries it).
     public let versionLabel: String
     /// The exact download size in bytes.
     public let downloadSize: Int64
@@ -19,10 +20,8 @@ public struct DatabaseRuntimeOffer: Hashable, Sendable {
         self.source = source
     }
 
-    /// The engine and its release, for example `MySQL 8.4.11` or `PostgreSQL (Postgres.app 2.9.6)`.
-    public var title: String {
-        engine == .postgresql ? "\(engine.title) (\(versionLabel))" : "\(engine.title) \(versionLabel)"
-    }
+    /// The engine and its version, for example `MySQL 8.4.11` or `PostgreSQL 18.6`.
+    public var title: String { "\(engine.title) \(versionLabel)" }
 
     /// The download size for the user, for example `168 MB`, with a no-break space so the
     /// number and its unit stay on one line.

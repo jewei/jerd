@@ -69,21 +69,20 @@ public enum SampleServices {
             bytes: nil, problem: "Its MySQL 5.7 runtime is not installed. Install it to restore this folder."),
     ]
 
-    /// The pinned engines of the committed catalog, as the live port offers them.
+    /// The engines that the committed catalog installs on demand, as the live port offers them.
+    /// Redis is embedded, so it is never offered.
     public static let offers = [
         DatabaseRuntimeOffer(
             engine: .mysql, versionLabel: "8.4.11", downloadSize: 167_977_240, source: "cdn.mysql.com"),
         DatabaseRuntimeOffer(
-            engine: .postgresql, versionLabel: "Postgres.app 2.9.6", downloadSize: 122_517_005, source: "github.com"),
-        DatabaseRuntimeOffer(
-            engine: .redis, versionLabel: "8.8.3", downloadSize: 4_496_813, source: "download.redis.io"),
+            engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005, source: "github.com"),
     ]
 
     /// The runtime that an installed offer registers, named like a managed build folder.
     public static func installedRuntime(_ offer: DatabaseRuntimeOffer) -> DatabaseRuntime {
-        let version = offer.engine == .postgresql ? "18.6" : offer.versionLabel
-        let id = "\(offer.engine.rawValue)-\(version)-arm64-1f3a"
-        return DatabaseRuntime(id: id, engine: offer.engine, version: version, path: "\(root)/runtime-updates/\(id)")
+        let id = "\(offer.engine.rawValue)-\(offer.versionLabel)-arm64-1f3a"
+        return DatabaseRuntime(
+            id: id, engine: offer.engine, version: offer.versionLabel, path: "\(root)/runtime-updates/\(id)")
     }
 
     public static let mailRuntime = MailRuntime(

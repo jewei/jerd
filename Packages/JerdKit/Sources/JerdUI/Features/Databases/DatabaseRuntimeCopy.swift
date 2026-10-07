@@ -18,7 +18,6 @@ enum DatabaseRuntimeCopy {
     static func confirmationMessage(_ offer: DatabaseRuntimeOffer) -> String {
         "Jerd downloads \(offer.sizeText) from \(offer.source) and installs it only when it matches its reviewed "
             + "checksum\(offer.engine == .mysql ? " and the publisher signature" : "")."
-            + (offer.engine == .redis ? " Jerd builds Redis from its source with the Xcode Command Line Tools." : "")
     }
 
     /// The row detail of an engine that Jerd can install.

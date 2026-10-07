@@ -24,11 +24,13 @@ struct DatabaseRuntimeInstallerTests {
     static let redisBuild = SettingsSamples.build(.redis, version: "8.8.3", digest: "13db")
 
     static func pinned(
-        _ kind: RuntimeKind, _ version: String, digest: String, link: String, size: Int64
+        _ kind: RuntimeKind, _ version: String, digest: String, link: String, size: Int64,
+        engineVersion: String? = nil
     ) -> RuntimeRelease {
         RuntimeRelease(
             kind: kind, version: version, artifact: .archive(URL(string: link)!, size: .exact(size)),
-            archiveSHA256: digest, releasePage: URL(string: "https://download.redis.io/")!)
+            archiveSHA256: digest, releasePage: URL(string: "https://download.redis.io/")!,
+            engineVersion: engineVersion)
     }
 
     static let redis = pinned(
@@ -36,7 +38,7 @@ struct DatabaseRuntimeInstallerTests {
     static let postgres = pinned(
         .postgresql, "2.9.6", digest: "9fc7",
         link: "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
-        size: 122_517_005)
+        size: 122_517_005, engineVersion: "18.6")
 
     @Test func offersMapEachPinnedEngineWithItsSizeAndSource() {
         let installer = DatabaseRuntimeInstaller(
@@ -47,7 +49,7 @@ struct DatabaseRuntimeInstallerTests {
                 DatabaseRuntimeOffer(
                     engine: .redis, versionLabel: "8.8.3", downloadSize: 4_496_813, source: "download.redis.io"),
                 DatabaseRuntimeOffer(
-                    engine: .postgresql, versionLabel: "Postgres.app 2.9.6", downloadSize: 122_517_005,
+                    engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005,
                     source: "github.com"),
             ])
     }

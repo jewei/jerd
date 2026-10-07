@@ -15,8 +15,8 @@ import Testing
 /// URLSession, so the test needs no internet.
 ///
 /// `JERD_ON_DEMAND_INTEGRATION=1`, `JERD_RUNTIME_DOWNLOADS=<folder of files named by SHA-256>` (for
-/// example `.build/runtimes/downloads`), and optionally `JERD_ON_DEMAND_ENGINE` (`redis` by default;
-/// MySQL also needs its signature file in the folder).
+/// example `.build/runtimes/downloads`), and optionally `JERD_ON_DEMAND_ENGINE` (`postgresql` by
+/// default; `mysql` also needs its signature file in the folder).
 @Suite(
     "On-demand database runtime integration", .serialized,
     .enabled(if: ProcessInfo.processInfo.environment["JERD_ON_DEMAND_INTEGRATION"] == "1"))
@@ -24,7 +24,7 @@ struct OnDemandRuntimeIntegrationTests {
     private var environment: [String: String] { ProcessInfo.processInfo.environment }
 
     private var engine: DatabaseEngine {
-        DatabaseEngine(rawValue: environment["JERD_ON_DEMAND_ENGINE"] ?? "redis") ?? .redis
+        DatabaseEngine(rawValue: environment["JERD_ON_DEMAND_ENGINE"] ?? "postgresql") ?? .postgresql
     }
 
     /// A bundle with only the committed catalog, as in an app without database payloads.
@@ -72,11 +72,12 @@ struct OnDemandRuntimeIntegrationTests {
             onDemand: DatabaseRuntimeInstaller(
                 releases: domain.onDemandRuntimes, installer: installer, manager: domain.databases))
 
-        // The launch installs nothing and downloads nothing.
+        // The launch downloads nothing. The test bundle holds only the catalog, so the setup of the
+        // embedded Redis finds no payload and installs nothing; it never falls back to a download.
         #expect(try await port.load().configuration.runtimes.isEmpty)
-        #expect(await port.runtimeSetupFailure() == nil)
         #expect(LocalDownloadProtocol.requests.isEmpty)
-        #expect(await port.runtimeOffers().map(\.engine) == [.mysql, .postgresql, .redis])
+        #expect(await port.runtimeOffers().map(\.engine) == [.mysql, .postgresql])
+        #expect(await port.runtimeOffers().first { $0.engine == .postgresql }?.versionLabel == "18.6")
 
         let runtime = try await port.installRuntime(engine) { _ in }
         #expect(

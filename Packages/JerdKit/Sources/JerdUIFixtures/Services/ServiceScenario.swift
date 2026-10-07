@@ -24,7 +24,7 @@ public enum ServiceScenario: String, CaseIterable, Sendable {
     case databaseQuitting = "database-quitting"
     /// First launch of an app without database runtimes: Jerd offers every engine.
     case databasesOnDemand = "databases-on-demand"
-    /// MySQL is installed, Redis downloads, and PostgreSQL waits for its Install action.
+    /// Redis is embedded, MySQL downloads, and PostgreSQL waits for its Install action.
     case databasesInstalling = "databases-installing"
     /// The last installation failed because the Mac is offline.
     case databasesInstallFailed = "databases-install-failed"
