@@ -29,6 +29,11 @@ struct RepositoryPolicy: Sendable {
         RepositoryPolicy(title: "appcast.xml") { repository in
             try AppcastPolicy.findings(feed: read(AppcastPolicy.file, in: repository))
         },
+        RepositoryPolicy(title: "CI runtime cache key") { repository in
+            try RuntimeCacheKeyPolicy.findings(workflow: readText(RuntimeCacheKeyPolicy.file, in: repository)) {
+                FileManager.default.fileExists(atPath: repository.path($0).path)
+            }
+        },
         RepositoryPolicy(title: "Source file length") { repository in
             try SourceLengthPolicy.findings(files: swiftSources(in: repository))
         },

@@ -120,7 +120,9 @@ jobs:
             .build/runtimes/downloads
             .build/runtimes/payloads
             .build/runtimes/support
-          key: runtimes-${{ runner.os }}-${{ hashFiles('Runtimes/runtimes.json', 'Runtimes/laravel-installer/composer.lock') }}
+          # The key hashes every input that changes the prepared bytes: the catalog, the deployment
+          # target, and the preparation code. `./dev lint` checks this list (RuntimeCacheKeyPolicy).
+          key: runtimes-${{ runner.os }}-${{ hashFiles('Runtimes/**', 'Configuration/Base.xcconfig', 'Packages/JerdKit/Sources/JerdManifest/**', 'Packages/JerdKit/Sources/JerdRuntimes/Preparation/**', 'Packages/JerdKit/Sources/JerdRuntimes/Installation/**', 'Packages/JerdKit/Sources/JerdRuntimes/Payloads/**', 'Packages/JerdKit/Sources/JerdRuntimes/Releases/**', 'Packages/JerdKit/Sources/JerdRuntimes/Bundled/PinnedPayloadPreparer.swift', 'Packages/JerdKit/Sources/JerdRuntimes/Bundled/RuntimePin+Release.swift', 'Tools/Sources/JerdDevKit/Runtimes/**') }}
 
       - name: Prepare runtimes
         run: ./dev runtimes prepare

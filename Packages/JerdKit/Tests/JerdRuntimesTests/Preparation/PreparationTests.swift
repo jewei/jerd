@@ -63,6 +63,51 @@ import os
         #expect(commands.commandLines == [["xcrun", "--find", "clang"]])
     }
 
+    @Test func redisNoticesKeepTheSourceFilesButNoBuildOutput() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        var tar = TarBuilder()
+        tar.file("redis-8.8.3/src/server.c", "int main(void) { return 0; }")
+        tar.file("redis-8.8.3/COPYING", "license")
+        tar.file("redis-8.8.3/deps/lua/COPYRIGHT", "Lua license")
+        tar.file("redis-8.8.3/deps/lua/src/lua.c", "int main(void) { return 0; }")
+        tar.file("redis-8.8.3/deps/hiredis/test.sh", "#!/bin/sh", mode: "0000755")
+        tar.file("redis-8.8.3/deps/xxhash/LICENSE", "xxHash license")
+        tar.file("redis-8.8.3/deps/prebuilt.a", "archive")
+        try tar.write(to: folder.path("download"))
+        // The fake build writes what the Redis build writes: the binaries, the Lua tools, objects, and
+        // dependency files.
+        let commands = ScriptedCommandRunner { request in
+            guard request.executable.lastPathComponent == "make" else { return CommandResult(status: 0, output: "") }
+            let src = request.workingDirectory
+            let deps = src.deletingLastPathComponent().appendingPathComponent("deps")
+            let outputs = [
+                src.appendingPathComponent("redis-server"), src.appendingPathComponent("redis-cli"),
+                deps.appendingPathComponent("lua/src/lua"), deps.appendingPathComponent("lua/src/luac"),
+                deps.appendingPathComponent("lua/src/lua.o"), deps.appendingPathComponent("lua/src/liblua.a"),
+                deps.appendingPathComponent("xxhash/cachedObjs/1a2b/xxhash.d"),
+            ]
+            for file in outputs {
+                try FileManager.default.createDirectory(
+                    at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try Data([0xCF, 0xFA, 0xED, 0xFE]).write(to: file)
+            }
+            return CommandResult(status: 0, output: "")
+        }
+        let context = try context(
+            folder, kind: .redis, version: "8.8.3", artifact: folder.path("download"), commands: commands)
+        try await RedisSourceBuilder().prepare(context)
+        let notices = context.payload.appendingPathComponent(RedisSourceBuilder.dependencyNoticesFolder)
+        let files = try #require(FileManager.default.subpaths(atPath: notices.path)).filter { path in
+            var isFolder: ObjCBool = false
+            FileManager.default.fileExists(atPath: notices.appendingPathComponent(path).path, isDirectory: &isFolder)
+            return !isFolder.boolValue
+        }
+        #expect(files.sorted() == ["hiredis/test.sh", "lua/COPYRIGHT", "lua/src/lua.c", "xxhash/LICENSE"])
+        let payload = try FileManager.default.contentsOfDirectory(atPath: context.payload.path).sorted()
+        #expect(payload == ["COPYING", "bin", RedisSourceBuilder.dependencyNoticesFolder])
+    }
+
     @Test func laravelNeedsPHPAndComposer() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

@@ -1,4 +1,4 @@
-/// The exact feed that `AppcastWriter` makes from the committed `appcast.xml` and `AppcastWriterTests.item`.
+/// The exact feed that `AppcastWriter` makes from `FeedFixtures.signedChannel` and `AppcastWriterTests.item`.
 /// `sign_update` signs these bytes, so a change of the format must be deliberate.
 enum GoldenFeed {
     static let withItem = """

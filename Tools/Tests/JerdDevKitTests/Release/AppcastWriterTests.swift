@@ -6,9 +6,10 @@ import Testing
 
 @Suite("Appcast writer")
 struct AppcastWriterTests {
-    /// The committed feed of the repository: a signed channel without items.
+    /// A signed channel without items. The repository feed gains an item at each release, so the exact
+    /// expectations use this fixed feed.
     static func committedFeed() throws -> Data {
-        try Data(contentsOf: ReleaseFixtures.repositoryRoot.appending(path: "appcast.xml"))
+        Data(FeedFixtures.signedChannel.utf8)
     }
 
     static let item = AppcastWriter.Item(
@@ -48,6 +49,17 @@ struct AppcastWriterTests {
         next.build = 4
         let second = try Appcast.parse(AppcastWriter.feed(from: first, adding: next))
         #expect(second.items.map(\.bundleVersion) == ["4", "3"])
+    }
+
+    @Test("Adds a newer item before the items of the repository feed")
+    func addsToTheRepositoryFeed() throws {
+        let repository = try FeedFixtures.repositoryFeed()
+        let builds = try Appcast.parse(repository).items.map(\.bundleVersion)
+        var next = Self.item
+        next.build = (builds.compactMap { Int($0) }.max() ?? 0) + 1
+        let written = try Appcast.parse(AppcastWriter.feed(from: repository, adding: next))
+        #expect(written.title == "Jerd updates")
+        #expect(written.items.map(\.bundleVersion) == ["\(next.build)"] + builds)
     }
 
     @Test("Formats the publication date in RFC 2822 GMT")
