@@ -15,6 +15,7 @@ package struct RedisSourceBuilder: RuntimePreparing {
     package static let makeTimeout: Duration = .seconds(900)
     package static let licenseFiles = ["COPYING", "LICENSE.txt", "REDISCONTRIBUTIONS.txt"]
     package static let objectExtensions: Set<String> = ["o", "a", "so", "dylib"]
+    package static let dependencyNoticesFolder = "build-dependency-notices"
     /// The message when this Mac has no compiler: the step that fixes it.
     package static let missingCompiler = JerdError.unavailable(
         "Redis is built from its source on this Mac, and the build needs the Xcode Command Line Tools. Install them with xcode-select --install, then try again."
@@ -56,13 +57,14 @@ package struct RedisSourceBuilder: RuntimePreparing {
         } catch let error as JerdError where error.kind == .processFailed {
             throw Self.missingCompiler
         }
+        let payload = context.payload
+        try await BlockingWork.run { try Self.copyDependencyNotices(from: source, into: payload) }
         try await context.run(
             "/usr/bin/make", Self.makeArguments(processors: ProcessInfo.processInfo.activeProcessorCount),
             in: source.appendingPathComponent("src"),
             environment: Self.makeEnvironment(
                 staging: context.staging, minimum: context.minimumMacOS, architecture: context.release.architecture),
             timeout: Self.makeTimeout)
-        let payload = context.payload
         try await BlockingWork.run { try Self.collect(from: source, into: payload) }
     }
 
@@ -76,9 +78,15 @@ package struct RedisSourceBuilder: RuntimePreparing {
             try FileManager.default.copyItem(
                 at: source.appendingPathComponent(name), to: payload.appendingPathComponent(name))
         }
+    }
+
+    /// Copies `deps` before `make` runs, so the notices hold only files of the verified source
+    /// tarball: license texts, notices, and sources, never an executable or object file of the build
+    /// (for example the Lua `lua` and `luac` tools). Prebuilt objects in the tarball are left out too.
+    private static func copyDependencyNotices(from source: URL, into payload: URL) throws {
         try ContainedTreeCopier.copy(
             from: source.appendingPathComponent("deps"),
-            to: payload.appendingPathComponent("build-dependency-notices"), root: source
+            to: payload.appendingPathComponent(dependencyNoticesFolder), root: source
         ) { !objectExtensions.contains($0.url(in: source).pathExtension) }
     }
 }

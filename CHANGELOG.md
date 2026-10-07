@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+- The app is a little smaller: the Redis runtime no longer includes the Lua build tools and other build output that Redis does not use.
+
 ## [0.1.0] - 2026-10-07
 
 - Jerd is rebuilt from the ground up. Your sites, PHP selections, databases, mail, buckets, tunnels, and settings stay where they are.
