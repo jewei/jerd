@@ -51,6 +51,15 @@ struct ReleasePreconditionsTests {
         Refusal(description: "a draft release", message: "A draft release named v0.2.0") {
             $0.runner.on("gh", ["api", "repos/jewei/jerd/releases"], output: #"{"tag":"v0.2.0","draft":true}"#)
         },
+        Refusal(description: "a public release", message: "A release named v0.2.0 exists on GitHub") {
+            $0.runner.on("gh", ["api", "repos/jewei/jerd/releases"], output: #"{"tag":"v0.2.0","draft":false}"#)
+        },
+        Refusal(description: "a detached HEAD", message: "not a detached HEAD") {
+            $0.runner.on("git", ["branch", "--show-current"], output: "\n")
+        },
+        Refusal(description: "a version that the feed has", message: "VERSION 0.2.0 must exceed the version 0.2.0") {
+            try ReleasePreconditionsTests.writeFeed(build: 2, version: "0.2.0", in: $0)
+        },
         Refusal(description: "no unreleased notes", message: "Add release notes") {
             try $0.write("# Changelog\n\n## [Unreleased]\n\n", to: "CHANGELOG.md")
         },

@@ -172,52 +172,77 @@ local work comes first:
    app that contains any other payload. Then it signs Sparkle, the launcher, the
    helper, and the app, and checks every signature, the Info.plist, arm64, and the
    debug symbols.
-4. **Notarize the app** and staple it.
-5. **Build and notarize the disk image** with `Jerd.app` and a link to
+4. **Run the signed runtimes.** It runs each embedded executable once from the
+   signed app with a version argument (PHP also with `-m`; Composer and the Laravel
+   installer with the embedded PHP). Each command has a time limit, a private
+   temporary home, and a minimal environment, and none uses the network. A fault that
+   only the signed form has, for example a missing entitlement, stops the release.
+5. **Notarize the app** and staple it.
+6. **Build and notarize the disk image** with `Jerd.app` and a link to
    `/Applications`, then staple it.
-6. **Sign the disk image and the feed.** `sign_update` signs the disk image for
+7. **Sign the disk image and the feed.** `sign_update` signs the disk image for
    Sparkle, and the candidate feed gets one new item. The item uses
    `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the
    text as it is. `sign_update` then signs the whole feed.
-7. **Validate the candidate.** It checks everything again on the final files, the
+8. **Validate the candidate.** It checks everything again on the final files, the
    app inside the mounted disk image, and that HEAD and the tree did not change.
 
 With `--prepare-only` the command stops here. It allows any branch, changes no
 tracked file, and never contacts GitHub. Without it, it continues:
 
-8. **Commit and tag the release.** It writes the version and build into
-   `Configuration/Version.xcconfig`, moves the notes under `## [VERSION] - date` in
-   `CHANGELOG.md`, copies the candidate feed to `appcast.xml`, commits
-   `Release vVERSION`, and makes an annotated tag.
-9. **Push the tag.**
-10. **Publish the GitHub release** with the disk image and the symbols zip.
-11. **Publish the feed.** It pushes `main`. Installed apps read the feed from
+9. **Check the source again.** HEAD and the tree are as before the build, and a new
+   fetch shows that `main` on GitHub did not move. Nothing changed yet.
+10. **Commit and tag the release.** It writes the version and build into
+    `Configuration/Version.xcconfig`, moves the notes under `## [VERSION] - date` in
+    `CHANGELOG.md`, copies the candidate feed to `appcast.xml`, commits
+    `Release vVERSION`, and makes an annotated tag.
+11. **Push the tag.**
+12. **Publish the GitHub release** with the disk image and the symbols zip.
+13. **Check the uploaded assets.** GitHub must report both assets with the size and
+    the SHA-256 of the candidate files.
+14. **Publish the feed.** It pushes `main`. Installed apps read the feed from
     `main`, so they see the new item only after the disk image is on GitHub.
 
-The release does not run the runtime integration tests. CI runs them weekly and on a
-manual run of the workflow; see [Integration tests](#integration-tests).
+The release does not run the full runtime integration tests. CI runs them weekly and
+on a manual run of the workflow; see [Integration tests](#integration-tests).
 
 ### Recovery
 
 A failed step stops the run. The command then names the step, says what is public,
-and prints the exact commands for that phase. A stop by Ctrl-C prints the same text.
+and prints the exact commands for that step, with absolute paths and the folder to
+run them in. A stop by Ctrl-C prints the same text. The commands undo only what the
+release did: they restore only the three release files, and they move HEAD only with
+`git reset --keep` from the release commit, so edits that are not committed and other
+commits stay.
 
-- **Steps 1 to 7.** Nothing was published, and no tracked file changed. Correct the
-  cause and run the command again.
-- **Step 8 or 9.** The release commit and the tag exist only on this Mac. Undo them
-  with `git tag -d vVERSION; git reset --hard <source commit>`, then run the command
-  again. If `git ls-remote --tags origin vVERSION` prints a line, the tag is public:
-  continue as for step 10.
-- **Step 10.** The tag is on GitHub, but the release and the feed are not. Run
+- **Steps 1 to 9.** Nothing was published, and no tracked file changed. Correct the
+  cause and run the command again. If `main` moved, pull it and wait for CI first.
+- **Commit and tag the release.** Undo the changes of the release:
+  `git tag -d vVERSION` (if it exists); if `git log -1 --format=%s` prints
+  `Release vVERSION`, `git reset --keep <source commit>`; then
+  `git restore --source=<source commit> --staged --worktree -- Configuration/Version.xcconfig CHANGELOG.md appcast.xml`.
+- **Push the tag.** If `git ls-remote --tags origin vVERSION` prints a line, the tag
+  is public: continue as for a failed **Publish the GitHub release** step. Otherwise
+  undo the commit and the tag as above, and run the command again.
+- **Publish the GitHub release.** The tag is on GitHub. Run
   `gh release view vVERSION --repo jewei/jerd --json isDraft,assets`. Without a
-  release, run the printed `gh release create` command, then `git push origin HEAD:main`.
-  For a draft, upload what is missing, publish it with
-  `gh release edit vVERSION --draft=false`, and push `main`. To cancel, run
-  `git push origin :refs/tags/vVERSION`, then the reset of step 8.
-- **Step 11.** The release is public, but installed apps do not see it yet. Run
-  `git push origin HEAD:main` again. If `main` moved, merge with
-  `git pull --no-rebase origin main` (the tag must stay on a commit of `main`), check
-  that the new item is the first item of `appcast.xml`, and push.
+  release, run the printed `gh release create` command. For a draft, run
+  `gh release upload vVERSION <disk image> <symbols> --repo jewei/jerd --clobber` and
+  `gh release edit vVERSION --repo jewei/jerd --draft=false`. For a public release with
+  both assets, do nothing more here. Then run `git push origin HEAD:main`. To cancel,
+  run `gh release delete vVERSION --repo jewei/jerd --yes` (if a release or draft
+  exists) and `git push origin :refs/tags/vVERSION`, and undo the commit and the tag
+  as above.
+- **Check the uploaded assets.** Upload the files again with
+  `gh release upload vVERSION <disk image> <symbols> --repo jewei/jerd --clobber`,
+  compare them with `gh release view vVERSION --repo jewei/jerd --json assets`, then run
+  `git push origin HEAD:main`.
+- **Publish the feed.** The release is public, but installed apps do not see it yet.
+  Run `git push origin HEAD:main` again. If `main` moved, merge with
+  `git pull --no-rebase origin main` (the tag must stay on a commit of `main`). A
+  conflict in `CHANGELOG.md` comes from new notes under `## [Unreleased]`: keep the
+  section of the release and put the new notes under `## [Unreleased]` above it.
+  Check that the new item is the first item of `appcast.xml`, and push.
 
 Each candidate takes about 2.5 GB. Remove an old one by hand, for example
 `rm -rf .build/releases/Jerd-0.1.0-6`. Keep the folder of a release whose

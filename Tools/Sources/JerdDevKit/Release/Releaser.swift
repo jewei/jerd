@@ -9,6 +9,9 @@ struct Releaser: Sendable {
     let request: ReleaseRequest
     /// The local steps. Tests replace them, so nothing is built or sent to Apple.
     var localSteps: @Sendable (ReleaseBuilder) -> [ReleaseStep] = { $0.steps }
+    /// Sets the text that a stop by signal prints. A stop by signal ends `./dev` at once, so the text
+    /// of each phase is set before its step runs. Tests record it.
+    var setInterruptNote: @Sendable (String?) -> Void = SignalForwarder.setInterruptNote
 
     var console: Console { environment.console }
 
@@ -28,10 +31,9 @@ struct Releaser: Sendable {
             steps += ReleasePublication(environment: environment, inputs: inputs, source: source, layout: layout).steps
         }
         var phase = ReleasePhase.local
-        Self.noteForInterrupt(phase, facts: facts)
         for step in steps {
             if let start = step.startPhase { phase = start }
-            Self.noteForInterrupt(phase, facts: facts)
+            setInterruptNote(phase.recovery(facts).joined(separator: "\n"))
             await sequence.run(step.title) { try await step.run() }
             guard sequence.exitStatus == .success else { break }
             if let end = step.endPhase { phase = end }
@@ -62,7 +64,7 @@ struct Releaser: Sendable {
 
     /// Prints the summary, and after a failure what is public and the recovery commands.
     func finish(_ sequence: StepSequence, phase: ReleasePhase, facts: ReleasePhase.Facts?) throws {
-        SignalForwarder.setInterruptNote(nil)
+        setInterruptNote(nil)
         do {
             try sequence.finish()
         } catch {
@@ -73,11 +75,6 @@ struct Releaser: Sendable {
         }
     }
 
-    /// A stop by signal ends `./dev` at once, so the recovery text of the phase is set in advance.
-    static func noteForInterrupt(_ phase: ReleasePhase, facts: ReleasePhase.Facts) {
-        SignalForwarder.setInterruptNote(phase.recovery(facts).joined(separator: "\n"))
-    }
-
     private static let noFacts = ReleasePhase.Facts(
-        tag: "", title: "", sourceCommit: "", diskImage: "", symbols: "", notes: "")
+        tag: "", title: "", sourceCommit: "", repositoryRoot: "", diskImage: "", symbols: "", notes: "")
 }

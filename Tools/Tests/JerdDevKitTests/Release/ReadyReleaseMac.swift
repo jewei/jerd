@@ -1,4 +1,5 @@
 import Foundation
+import JerdFoundation
 import JerdManifest
 
 @testable import JerdDevKit
@@ -9,6 +10,16 @@ import JerdManifest
 enum ReadyReleaseMac {
     static let checkRuns = "repos/jewei/jerd/commits/\(ReleaseFixtures.commit)/check-runs?per_page=100"
     static let success = #"{"name":"./dev check","status":"completed","conclusion":"success"}"#
+
+    static let diskImage = Data("disk image".utf8)
+    static let symbols = Data("symbols".utf8)
+
+    /// The asset answer of GitHub for the files that the fake local step writes.
+    static var assets: String {
+        [("Jerd-0.2.0.dmg", diskImage), ("Jerd-0.2.0-3.dSYMs.zip", symbols)].map { name, data in
+            #"{"name":"\#(name)","size":\#(data.count),"digest":"sha256:\#(FileDigest.hexSHA256(of: data))"}"#
+        }.joined(separator: "\n")
+    }
 
     static func workspace() throws -> ReleaseWorkspace {
         let workspace = try ReleaseWorkspace()
@@ -25,6 +36,7 @@ enum ReadyReleaseMac {
         runner.on("gh", ["api", checkRuns], output: success + "\n")
         runner.on("generate_keys", output: AppUpdateSettings.officialPublicKey + "\n")
         runner.on("security", ["find-identity"], output: ReleaseFixtures.identities)
+        runner.on("gh", ["api", "repos/jewei/jerd/releases/tags/v0.2.0"], output: assets)
         return workspace
     }
 
@@ -47,14 +59,15 @@ enum ReadyReleaseMac {
                 ReleaseStep("Build the candidate") {
                     try builder.makeFolder()
                     let layout = builder.layout
-                    try Data("disk image".utf8).write(to: layout.file(builder.inputs.diskImageName))
-                    try Data("symbols".utf8).write(to: layout.file(builder.inputs.symbolsName))
+                    try diskImage.write(to: layout.file(builder.inputs.diskImageName))
+                    try symbols.write(to: layout.file(builder.inputs.symbolsName))
                     try Data(builder.source.notes.utf8).write(to: layout.notes)
                     try Data("signed candidate feed\n".utf8).write(to: layout.feed)
                     if failLocal { throw DevFailure.checkFailed("Apple did not accept app (Invalid).") }
                 }
             ]
         }
+        releaser.setInterruptNote = { _ in }
         return releaser
     }
 

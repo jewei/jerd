@@ -102,6 +102,19 @@ struct ReleaseParserTests {
         #expect(throws: DevFailure.self) { try GitHubLookup.release("v0.1.0", in: "not json") }
     }
 
+    @Test("Uploaded assets pass only with the same name, size, and digest")
+    func assets() throws {
+        let wanted = ["a.dmg": GitHubLookup.Asset(name: "a.dmg", size: 3, digest: "sha256:ab")]
+        let good = #"{"name":"a.dmg","size":3,"digest":"sha256:AB"}"#
+        #expect(try GitHubLookup.assetProblem(expected: wanted, in: good) == nil)
+        for bad in [
+            #"{"name":"a.dmg","size":4,"digest":"sha256:ab"}"#, #"{"name":"a.dmg","size":3,"digest":"sha256:cd"}"#,
+            #"{"name":"a.dmg","size":3,"digest":null}"#, #"{"name":"b.dmg","size":3,"digest":"sha256:ab"}"#, "",
+        ] {
+            #expect(try GitHubLookup.assetProblem(expected: wanted, in: bad) != nil, "\(bad)")
+        }
+    }
+
     @Test("One successful ./dev check run is enough; other jobs and other states are not")
     func checkRuns() throws {
         let success = #"{"name":"./dev check","status":"completed","conclusion":"success"}"#

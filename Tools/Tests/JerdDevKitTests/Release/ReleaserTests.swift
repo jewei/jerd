@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import os
 
 @testable import JerdDevKit
 
@@ -34,6 +35,35 @@ struct ReleaserTests {
         #expect(create[3].hasSuffix(".build/releases/Jerd-0.2.0-3/Jerd-0.2.0.dmg"))
         #expect(create[4].hasSuffix("Jerd-0.2.0-3.dSYMs.zip"))
         #expect(workspace.output.all.contains("Released Jerd 0.2.0"))
+    }
+
+    @Test("Uploaded assets that differ from the candidate stop the release before the feed")
+    func assetMismatch() async throws {
+        let workspace = try ReadyReleaseMac.workspace()
+        defer { workspace.remove() }
+        let changed = ReadyReleaseMac.assets.replacingOccurrences(of: #""size":10"#, with: #""size":11"#)
+        workspace.runner.on("gh", ["api", "repos/jewei/jerd/releases/tags/v0.2.0"], output: changed)
+        await #expect(throws: DevFailure.self) { try await ReadyReleaseMac.releaser(workspace).run() }
+        #expect(workspace.output.all.contains("has an asset Jerd-0.2.0.dmg that differs from the candidate"))
+        #expect(!Self.publicCalls(workspace.runner).contains("push HEAD:main"))
+    }
+
+    @Test("The text for a stop by signal is the recovery of the phase of each step, and is cleared at the end")
+    func interruptNotes() async throws {
+        let workspace = try ReadyReleaseMac.workspace()
+        defer { workspace.remove() }
+        let notes = OSAllocatedUnfairLock(initialState: [String?]())
+        var releaser = try ReadyReleaseMac.releaser(workspace)
+        releaser.setInterruptNote = { note in notes.withLock { $0.append(note) } }
+        try await releaser.run()
+        let facts = ReleasePublication.facts(
+            inputs: try ReleaseFixtures.inputs(), commit: ReleaseFixtures.commit,
+            layout: CandidateLayout(
+                releases: workspace.repository.releases, version: ReleaseVersion.release("0.2.0")!, build: 3),
+            repository: workspace.repository)
+        let phases: [ReleasePhase] = [.local, .local, .committing, .committed, .tagged, .released, .released]
+        let expected: [String?] = phases.map { $0.recovery(facts).joined(separator: "\n") } + [nil]
+        #expect(notes.withLock { $0 } == expected)
     }
 
     @Test("The release commit writes the version, the promoted changelog, and the candidate feed")
@@ -90,15 +120,19 @@ struct ReleaserTests {
             description: "the tag push", program: "git", prefix: ["push", "--quiet", "origin", "refs/tags/v0.2.0"],
             calls: 3,
             recovery: [
-                "exist only on this Mac", "git ls-remote --tags origin v0.2.0", "git tag -d v0.2.0; git reset --hard",
+                "exist only on this Mac", "git ls-remote --tags origin v0.2.0", "git tag -d v0.2.0; if git log -1",
             ]
         ),
         PublicFailure(
             description: "the GitHub release", program: "gh", prefix: ["release", "create"], calls: 4,
             recovery: [
-                "The tag v0.2.0 is on GitHub", "gh release view v0.2.0", "--verify-tag --title \"Jerd 0.2.0\"",
-                "git push origin :refs/tags/v0.2.0",
+                "The tag v0.2.0 is on GitHub", "gh release view v0.2.0 --repo jewei/jerd",
+                "--verify-tag --title \"Jerd 0.2.0\"", "A public release with both assets", "gh release delete v0.2.0",
             ]),
+        PublicFailure(
+            description: "the asset check", program: "gh", prefix: ["api", "repos/jewei/jerd/releases/tags/v0.2.0"],
+            calls: 4,
+            recovery: ["The GitHub release v0.2.0 is public, but the feed is not", "--repo jewei/jerd --clobber"]),
         PublicFailure(
             description: "the push of main", program: "git", prefix: ["push", "--quiet", "origin", "HEAD:main"],
             calls: 5, recovery: ["The GitHub release v0.2.0 is public, but the feed is not", "git pull --no-rebase"]),
@@ -116,8 +150,29 @@ struct ReleaserTests {
         }
     }
 
-    @Test("A commit that changed during the build stops before any file changes")
-    func sourceChanged() async throws {
+    /// A change that happens during the build, and a part of the message that the stop must give.
+    struct SourceChange: CustomStringConvertible, Sendable {
+        var description: String
+        var message: String
+        var change: @Sendable (FakeReleaseRunner) -> Void
+    }
+
+    static let sourceChanges: [SourceChange] = [
+        SourceChange(description: "an edit of a file", message: "clean worktree") {
+            $0.on("git", ["status"], output: " M Sources/Other.swift\n")
+        },
+        SourceChange(description: "a new local commit", message: "source commit or the tree changed") {
+            $0.on("git", ["rev-parse", "HEAD"], output: String(repeating: "c", count: 40) + "\n")
+        },
+        SourceChange(description: "a merge on GitHub", message: "main moved on GitHub during the build") {
+            $0.on("git", ["rev-parse", "refs/remotes/origin/main"], output: String(repeating: "d", count: 40) + "\n")
+        },
+    ]
+
+    @Test(
+        "A change during the build stops before any file changes, and the text never discards work",
+        arguments: sourceChanges)
+    func sourceChanged(_ change: SourceChange) async throws {
         let workspace = try ReadyReleaseMac.workspace()
         defer { workspace.remove() }
         let before = try ReadyReleaseMac.trackedFiles(workspace)
@@ -125,14 +180,17 @@ struct ReleaserTests {
         let local = releaser.localSteps
         let runner = workspace.runner
         releaser.localSteps = { builder in
-            local(builder) + [
-                ReleaseStep("Move HEAD") {
-                    runner.on("git", ["rev-parse", "HEAD"], output: String(repeating: "c", count: 40) + "\n")
-                }
-            ]
+            local(builder) + [ReleaseStep("Change the source") { change.change(runner) }]
         }
         await #expect(throws: DevFailure.self) { try await releaser.run() }
         #expect(Self.publicCalls(workspace.runner).isEmpty)
         #expect(try ReadyReleaseMac.trackedFiles(workspace) == before)
+        let output = workspace.output.all
+        #expect(output.contains(change.message), "\(output)")
+        #expect(output.contains("Nothing was published, and no tracked file changed."))
+        for destructive in ["reset", "restore", "tag -d", "checkout"] {
+            #expect(!output.contains("git \(destructive)"), "\(destructive) in \(output)")
+        }
+        #expect(workspace.runner.calls("git", ["fetch"]).count == (change.description == "a merge on GitHub" ? 2 : 1))
     }
 }

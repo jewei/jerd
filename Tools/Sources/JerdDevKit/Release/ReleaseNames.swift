@@ -29,7 +29,8 @@ enum ReleaseNames {
     static func diskImage(_ version: ReleaseVersion) -> String { "Jerd-\(version).dmg" }
     static func symbols(_ version: ReleaseVersion, build: Int) -> String { "Jerd-\(version)-\(build).dSYMs.zip" }
     static func releaseTitle(_ version: ReleaseVersion) -> String { "Jerd \(version)" }
-    static func commitMessage(_ version: ReleaseVersion) -> String { "Release \(tag(version))" }
+    static func commitMessage(_ version: ReleaseVersion) -> String { commitMessage(tag: tag(version)) }
+    static func commitMessage(tag: String) -> String { "Release \(tag)" }
 
     /// The public download URL of the disk image, which the feed item names.
     static func diskImageURL(_ version: ReleaseVersion) -> URL {

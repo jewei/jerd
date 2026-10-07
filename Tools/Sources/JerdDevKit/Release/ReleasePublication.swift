@@ -1,10 +1,21 @@
 import Foundation
 import JerdFoundation
 
-/// The public steps of a release, in their fixed order: the release commit and tag on this Mac, the
-/// tag on GitHub, the GitHub release with the disk image and symbols, and last `main` with the feed.
-/// `main` has the feed that installed apps read, so it goes public only after the disk image exists.
+/// The last checks and the public steps of a release, in their fixed order: the source check again,
+/// the release commit and tag on this Mac, the tag on GitHub, the GitHub release with the disk image and
+/// symbols, the check of the uploaded assets, and last `main` with the feed. `main` has the feed that
+/// installed apps read, so it goes public only after the disk image exists.
 struct ReleasePublication: Sendable {
+    /// The step titles, also in the recovery texts and in Tools/README.md.
+    enum Title {
+        static let checkSource = "Check the source again"
+        static let commit = "Commit and tag the release"
+        static let pushTag = "Push the tag"
+        static let createRelease = "Publish the GitHub release"
+        static let checkAssets = "Check the uploaded assets"
+        static let pushFeed = "Publish the feed"
+    }
+
     let environment: ReleaseEnvironment
     let inputs: ReleaseInputs
     let source: ReleaseSource
@@ -14,14 +25,14 @@ struct ReleasePublication: Sendable {
 
     var steps: [ReleaseStep] {
         [
-            ReleaseStep("Commit and tag the release", startPhase: .committing, endPhase: .committed) {
-                try await commit()
-            },
-            ReleaseStep("Push the tag", endPhase: .tagged) {
+            ReleaseStep(Title.checkSource) { try await checkSource() },
+            ReleaseStep(Title.commit, startPhase: .committing, endPhase: .committed) { try await commit() },
+            ReleaseStep(Title.pushTag, endPhase: .tagged) {
                 try await shell.git(["push", "--quiet", "origin", "refs/tags/\(inputs.tag)"])
             },
-            ReleaseStep("Publish the GitHub release", endPhase: .released) { try await createRelease() },
-            ReleaseStep("Publish the feed", endPhase: .published) {
+            ReleaseStep(Title.createRelease, endPhase: .released) { try await createRelease() },
+            ReleaseStep(Title.checkAssets) { try await checkAssets() },
+            ReleaseStep(Title.pushFeed, endPhase: .published) {
                 try await shell.git(["push", "--quiet", "origin", "HEAD:\(ReleaseNames.mainBranch)"])
                 environment.console.success(
                     "Released Jerd \(inputs.version): https://github.com/\(ReleaseNames.repository)/releases/tag/\(inputs.tag)"
@@ -30,10 +41,22 @@ struct ReleasePublication: Sendable {
         ]
     }
 
-    /// Writes the version, the promoted changelog, and the signed feed, commits exactly these files,
-    /// and makes an annotated tag. It stops first when HEAD or the tree changed during the build.
-    func commit() async throws {
+    /// Nothing is public and no file changed yet. HEAD and the tree are as before the build, and `main`
+    /// on GitHub did not move, so the tag goes on a commit that CI checked and `main` can fast-forward.
+    func checkSource() async throws {
         try await SourceCheck(shell: shell).requireClean(at: source.commit)
+        try await shell.git(["fetch", "--quiet", "origin", ReleaseNames.mainBranch])
+        let remote = try await shell.git(["rev-parse", "refs/remotes/origin/\(ReleaseNames.mainBranch)"])
+        guard remote == source.commit else {
+            throw DevFailure.checkFailed(
+                "main moved on GitHub during the build. Nothing was published. Pull main, wait for CI, "
+                    + "and run the release again.")
+        }
+    }
+
+    /// Writes the version, the promoted changelog, and the signed feed, commits exactly these files,
+    /// and makes an annotated tag.
+    func commit() async throws {
         let files = try ReleaseCommitFiles(
             source: source, feed: try Data(contentsOf: layout.feed), version: inputs.version, build: inputs.build,
             date: environment.clock.now())
@@ -56,7 +79,25 @@ struct ReleasePublication: Sendable {
             ], limit: TimeLimit.transfer)
     }
 
-    /// The facts of the recovery commands, with paths relative to the repository.
+    /// GitHub has both assets with the size and the SHA-256 of the candidate files, so the feed never
+    /// names a disk image that differs from the one that Sparkle signed.
+    func checkAssets() async throws {
+        let output = try await shell.gh([
+            "api", "repos/\(ReleaseNames.repository)/releases/tags/\(inputs.tag)", "--jq", GitHubLookup.assetFilter,
+        ])
+        var expected: [String: GitHubLookup.Asset] = [:]
+        for name in [inputs.diskImageName, inputs.symbolsName] {
+            let file = layout.file(name)
+            let size = try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber
+            expected[name] = GitHubLookup.Asset(
+                name: name, size: size?.int64Value ?? -1, digest: "sha256:" + (try FileDigest.hexSHA256(of: file)))
+        }
+        if let problem = try GitHubLookup.assetProblem(expected: expected, in: output) {
+            throw DevFailure.checkFailed("The GitHub release \(inputs.tag) \(problem).")
+        }
+    }
+
+    /// The facts of the recovery commands, with absolute paths.
     static func facts(
         inputs: ReleaseInputs, commit: String, layout: CandidateLayout, repository: Repository
     )
@@ -64,8 +105,7 @@ struct ReleasePublication: Sendable {
     {
         ReleasePhase.Facts(
             tag: inputs.tag, title: ReleaseNames.releaseTitle(inputs.version), sourceCommit: commit,
-            diskImage: repository.relativePath(of: layout.file(inputs.diskImageName)),
-            symbols: repository.relativePath(of: layout.file(inputs.symbolsName)),
-            notes: repository.relativePath(of: layout.notes))
+            repositoryRoot: repository.root.path, diskImage: layout.file(inputs.diskImageName).path,
+            symbols: layout.file(inputs.symbolsName).path, notes: layout.notes.path)
     }
 }
