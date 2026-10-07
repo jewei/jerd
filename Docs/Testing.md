@@ -30,6 +30,14 @@ database` keeps the MySQL signature file there too. `JERD_RUNTIME_DOWNLOADS`
 names another folder of files named by SHA-256, and `JERD_ON_DEMAND_ENGINE`
 selects engines (`mysql,postgresql` by default).
 
+`--integration storage` also installs RustFS on demand the same way
+(`OnDemandStorageIntegrationTests`): the test app bundle holds the committed
+catalog and the prepared XZ library (`.build/runtimes/support/xz`, passed as
+`JERD_XZ_SUPPORT`). It checks that the installed RustFS loads
+`@loader_path/liblzma.5.dylib` and no Homebrew path, then starts storage,
+creates a bucket, and stops. `JERD_ON_DEMAND_STORAGE_INTEGRATION=1` switches it
+on.
+
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 
