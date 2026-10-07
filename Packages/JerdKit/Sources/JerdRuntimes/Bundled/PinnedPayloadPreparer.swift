@@ -34,18 +34,7 @@ public struct PinnedPayloadPreparer: Sendable {
 
     /// The release that a pin names: the exact archive, its digest, and the MySQL signature.
     public func release(for pin: RuntimePin, architecture: CPUArchitecture) throws -> RuntimeRelease {
-        let artifact: ReleaseArtifact
-        if let archive = pin.archive {
-            artifact = .archive(archive.url, size: .exact(archive.size))
-        } else if let project = pin.composerProject {
-            artifact = .lockedComposerProject(project.directory.url(in: catalogDirectory))
-        } else {
-            throw JerdError.invalid("The pin \(pin.id) names no artifact.")
-        }
-        return RuntimeRelease(
-            kind: pin.kind, version: pin.version, artifact: artifact, archiveSHA256: pin.artifactSHA256,
-            signatureURL: pin.signature?.url, releasePage: pin.releasePage, architecture: architecture,
-            pinnedSignature: pin.signature)
+        try pin.release(architecture: architecture, catalogDirectory: catalogDirectory)
     }
 
     /// The folder of a prepared pin.

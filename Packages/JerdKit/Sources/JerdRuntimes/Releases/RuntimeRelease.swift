@@ -48,6 +48,12 @@ public struct RuntimeRelease: Identifiable, Hashable, Sendable {
         kind == .postgresql ? "Postgres.app \(version)" : "\(kind.title) \(version)"
     }
 
+    /// The exact download size in bytes, when the publisher or the pin states it.
+    public var downloadSize: Int64? {
+        if case .archive(_, .exact(let size)) = artifact { return size }
+        return nil
+    }
+
     /// How Jerd verifies this release, for the user.
     public var verification: ReleaseVerification {
         if let archiveSHA256 { return .digest(archiveSHA256) }

@@ -15,6 +15,8 @@ struct BundleBuilder {
 
     let root: URL
     var architecture = CPUArchitecture.arm64
+    /// The group settings of the catalog; nil writes a catalog of an older build.
+    var groups: [String: PayloadGroupSettings]?
     private(set) var pins: [RuntimePin] = []
 
     init(root: URL) { self.root = root }
@@ -62,7 +64,7 @@ struct BundleBuilder {
     }
 
     func writeCatalog() throws {
-        let catalog = RuntimePinCatalog(architecture: architecture, pins: pins)
+        let catalog = RuntimePinCatalog(architecture: architecture, pins: pins, groups: groups)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try JSONEncoder().encode(catalog).write(to: root.appendingPathComponent(RuntimePinCatalog.fileName))
     }

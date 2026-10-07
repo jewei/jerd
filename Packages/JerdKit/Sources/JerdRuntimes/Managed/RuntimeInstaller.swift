@@ -49,10 +49,15 @@ public actor RuntimeInstaller {
         if let installed = try await BlockingWork.run({ try store.existing(release) }) { return installed }
         let staging = try StagingFolder(in: store.directory)
         defer { staging.remove() }
-        let prepared = try await pipeline.prepare(release, tools: tools, staging: staging, progress: progress)
-        // The last point where cancellation stops the installation: the rename below is final.
-        try Task.checkCancellation()
-        let runtime = try await BlockingWork.run { try Self.commit(prepared, store: store) }
+        let runtime: ManagedRuntime
+        do {
+            let prepared = try await pipeline.prepare(release, tools: tools, staging: staging, progress: progress)
+            // The last point where cancellation stops the installation: the rename below is final.
+            try Task.checkCancellation()
+            runtime = try await BlockingWork.run { try Self.commit(prepared, store: store) }
+        } catch  where DiskSpace.isOutOfSpace(error) {
+            throw DiskSpace.outOfSpace
+        }
         progress(RuntimeInstallProgress("Installed \(release.kind.title) \(runtime.version).", 1))
         return runtime
     }

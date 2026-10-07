@@ -10,6 +10,10 @@ package struct RedisSourceBuilder: RuntimePreparing {
     package static let makeTimeout: Duration = .seconds(900)
     package static let licenseFiles = ["COPYING", "LICENSE.txt", "REDISCONTRIBUTIONS.txt"]
     package static let objectExtensions: Set<String> = ["o", "a", "so", "dylib"]
+    /// The message when this Mac has no compiler: the step that fixes it.
+    package static let missingCompiler = JerdError.unavailable(
+        "Redis is built from its source on this Mac, and the build needs the Xcode Command Line Tools. Install them with xcode-select --install, then try again."
+    )
 
     package init() {}
 
@@ -28,7 +32,11 @@ package struct RedisSourceBuilder: RuntimePreparing {
         try await RuntimePreparers.extract(
             try context.requireArtifact(), to: source,
             policy: ExtractionPolicy(stripsRoot: true, selects: Self.selectsSource))
-        try await context.run("/usr/bin/xcrun", ["--find", "clang"], in: context.staging)
+        do {
+            try await context.run("/usr/bin/xcrun", ["--find", "clang"], in: context.staging)
+        } catch let error as JerdError where error.kind == .processFailed {
+            throw Self.missingCompiler
+        }
         try await context.run(
             "/usr/bin/make", Self.makeArguments(processors: ProcessInfo.processInfo.activeProcessorCount),
             in: source.appendingPathComponent("src"),

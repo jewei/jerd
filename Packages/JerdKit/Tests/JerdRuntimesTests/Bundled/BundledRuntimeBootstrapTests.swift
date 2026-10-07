@@ -144,6 +144,27 @@ import Testing
         }
     }
 
+    @Test func databasesThatTheCatalogDoesNotEmbedAreNeverInstalledAtLaunch() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        var builder = BundleBuilder(root: folder.path("bundle"))
+        builder.groups = [
+            "development": PayloadGroupSettings(embedded: true), "database": PayloadGroupSettings(embedded: false),
+            "mail": PayloadGroupSettings(embedded: true), "storage": PayloadGroupSettings(embedded: true),
+        ]
+        try builder.add(
+            .redis, id: "redis-8.8.3-arm64", version: "8.8.3",
+            files: [.init(path: "bin/redis-server", text: "r", executable: true)])
+        try builder.add(
+            .mailpit, id: "mailpit-1.31.3-arm64", version: "1.31.3",
+            files: [.init(path: "mailpit", text: "m", executable: true)])
+        try builder.writeCatalog()
+        let bootstrap = bootstrap(folder.path("bundle"), folder)
+        #expect(try await bootstrap.installDatabases().isEmpty)
+        #expect(FileProbe.presence(at: folder.path("data/database-runtimes")) == .absent)
+        #expect(try await bootstrap.installMail().version == "1.31.3")
+    }
+
     @Test func databasesCanSkipInstalledEngines() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

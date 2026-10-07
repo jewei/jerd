@@ -111,11 +111,24 @@ final class TransferDelegate: NSObject, URLSessionDataDelegate, Sendable {
         return response.expectedContentLength > limit ? .tooLarge : nil
     }
 
+    /// The user message of a failed transfer. A Mac without a network connection gets the step
+    /// that fixes it, not only the system text.
+    package static func transferError(_ error: any Error) -> JerdError {
+        let offline: Set<URLError.Code> = [
+            .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost,
+            .dnsLookupFailed, .timedOut, .dataNotAllowed, .internationalRoamingOff,
+        ]
+        if let code = (error as? URLError)?.code, offline.contains(code) {
+            return .unavailable("Jerd cannot reach the download server. Check the network connection, then try again.")
+        }
+        return .unavailable("The download failed: \(error.localizedDescription)")
+    }
+
     private static func outcome(of state: TransferState, error: (any Error)?) -> Result<TransferResult, any Error> {
         if let failure = state.failure { return .failure(failure.error) }
         if let error {
             if (error as? URLError)?.code == .cancelled { return .failure(CancellationError()) }
-            return .failure(JerdError.unavailable("The download failed: \(error.localizedDescription)"))
+            return .failure(transferError(error))
         }
         guard state.received > 0 else { return .failure(TransferFailure.empty.error) }
         return .success(TransferResult(data: state.memory, count: state.received))

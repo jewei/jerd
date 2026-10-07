@@ -51,7 +51,9 @@ import os
         let wrong = RuntimeRelease(
             kind: .cloudflared, version: "2026.9.3", artifact: fixture.release.artifact, archiveSHA256: digest("e"),
             releasePage: fixture.release.releasePage, architecture: .arm64)
-        await #expect(throws: JerdError.invalid("The runtime download failed its SHA-256 check.")) {
+        let message =
+            "The Cloudflare Tunnel 2026.9.3 download does not match its expected SHA-256. Jerd installed nothing."
+        await #expect(throws: JerdError.invalid(message)) {
             try await fixture.installer(directory: folder.url).install(wrong)
         }
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)

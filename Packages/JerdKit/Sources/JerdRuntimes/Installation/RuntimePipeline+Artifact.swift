@@ -27,7 +27,8 @@ extension RuntimePipeline {
         progress(RuntimeInstallProgress("Verifying download…"))
         let sha256 = try await BlockingWork.run { try FileDigest.hexSHA256(of: file) }
         if let expected = release.archiveSHA256, sha256 != expected {
-            throw JerdError.invalid("The runtime download failed its SHA-256 check.")
+            throw JerdError.invalid(
+                "The \(release.title) download does not match its expected SHA-256. Jerd installed nothing.")
         }
         if let signatureURL = release.signatureURL {
             try await verifySignature(of: file, at: signatureURL, release: release)
