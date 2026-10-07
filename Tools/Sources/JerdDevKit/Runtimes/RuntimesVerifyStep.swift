@@ -6,17 +6,20 @@ import JerdRuntimes
 /// and its receipt, file by file.
 enum RuntimesVerifyStep {
     /// Reports each payload and fails when one is missing or invalid, or when a Mach-O file of it
-    /// needs a library that the payload does not contain.
+    /// needs a library that the payload does not contain, or, in an embedded payload, a newer macOS
+    /// than the deployment target of the app.
     static func verify(_ context: DevContext, groups: [PayloadGroup]) async throws {
         let inventory = PayloadInventory(
             root: context.repository.payloads,
             catalog: try PayloadInventory.catalog(at: context.repository.runtimeCatalog))
         var failed: [String] = []
         let dependencies = PayloadDependencyCheck(context: context)
+        let minimum = try context.repository.runtimeMinimumMacOS()
         for entry in inventory.entries(in: groups) {
             switch entry.state {
             case .valid(let payload):
-                let problems = try await dependencies.problems(in: payload)
+                let problems = try await dependencies.problems(
+                    in: payload, minimumMacOS: entry.pin.isEmbedded ? minimum : nil)
                 guard problems.isEmpty else {
                     failed.append(entry.pin.id)
                     for problem in problems { context.console.error("\(entry.pin.id): \(problem)") }
@@ -26,7 +29,8 @@ enum RuntimesVerifyStep {
                     continue
                 }
                 context.console.success(
-                    "\(entry.pin.id): \(payload.receipt.files.count) files match the receipt; every library resolves.")
+                    "\(entry.pin.id): \(payload.receipt.files.count) files match the receipt; every library resolves"
+                        + (entry.pin.isEmbedded ? "; every file runs on macOS \(minimum)." : "."))
             case .missing:
                 failed.append(entry.pin.id)
                 context.console.error(missingMessage(entry))

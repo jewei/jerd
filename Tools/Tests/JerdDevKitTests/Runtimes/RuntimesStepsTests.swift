@@ -58,7 +58,7 @@ struct RuntimesStepsTests {
         let entry = try #require(
             PayloadInventory(root: repository.payloads, catalog: try PayloadFixtures.catalog())
                 .entry(for: pin, group: .database).payload)
-        #expect(try await PayloadDependencyCheck(context: passing).problems(in: entry).isEmpty)
+        #expect(try await PayloadDependencyCheck(context: passing).problems(in: entry, minimumMacOS: nil).isEmpty)
     }
 
     @Test("Prepare keeps an existing MySQL payload offline: a cached signature needs no network")
