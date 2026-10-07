@@ -57,3 +57,8 @@ small HTTP server on a loopback port. The opt-in test starts a real RustFS:
 JERD_STORAGE_INTEGRATION=1 JERD_STORAGE_RUNTIME=<folder with rustfs 1.0.0> \
   swift test --package-path Packages/JerdKit --filter StorageIntegrationTests
 ```
+
+The app does not embed RustFS. JerdLive installs it on demand and calls `registerRuntime`, which
+adds the runtime record only: an existing record is never replaced, and buckets, objects, and
+credentials are never read or changed. `./dev test --integration storage` also runs the
+on-demand install with a real RustFS (`OnDemandStorageIntegrationTests` in JerdLive).

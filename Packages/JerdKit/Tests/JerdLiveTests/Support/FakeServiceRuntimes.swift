@@ -17,9 +17,12 @@ actor FakeServiceRuntimes: ServiceRuntimeSource {
     private(set) var mailRequests = 0
     private(set) var storageRequests = 0
     let failure: JerdError?
+    /// False for an app that installs RustFS on demand: it embeds no storage runtime.
+    let embedsStorage: Bool
 
-    init(failure: JerdError? = nil) {
+    init(failure: JerdError? = nil, embedsStorage: Bool = true) {
         self.failure = failure
+        self.embedsStorage = embedsStorage
     }
 
     func databaseRuntimes(excluding: Set<RuntimeKind>) throws -> [DatabaseRuntime] {
@@ -34,9 +37,9 @@ actor FakeServiceRuntimes: ServiceRuntimeSource {
         return Self.mail
     }
 
-    func storageRuntime() throws -> StorageRuntime {
+    func storageRuntime() throws -> StorageRuntime? {
         storageRequests += 1
         if let failure { throw failure }
-        return Self.storage
+        return embedsStorage ? Self.storage : nil
     }
 }

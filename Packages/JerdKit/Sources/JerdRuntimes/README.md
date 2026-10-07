@@ -17,7 +17,8 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 | `PinnedLicense`, `CodeRequirement` | Hash-pinned license texts and the Postgres.app signing requirement. |
 | `RuntimeInstaller`, `ManagedRuntimeStore`, `ManagedRuntime` | Managed builds in `runtime-updates/`. |
 | `BundledRuntimeBootstrap`, `VerifiedPayloadInstaller` | First-launch installation of the embedded payloads. |
-| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (the database engines), for `RuntimeInstaller`. |
+| `OnDemandRuntimes`, `RuntimePin.release(...)` | The pinned releases that the app does not embed (MySQL, PostgreSQL, and RustFS), for `RuntimeInstaller`. |
+| `BundledSupportLibrary` | The XZ library that the app embeds on its own (`RuntimePayloads/support/xz`), verified against its receipt and the pinned XZ source. |
 | `DiskSpace` | Recognizes a full volume in any step, for one clear message. |
 | `LegacyPayloadVerifier`, `LegacyInstalledPayload` | Verifies a payload folder that an older Jerd installed, before use. |
 | `PinnedPayloadPreparer` | Prepares the pinned payloads for the app bundle (`./dev runtimes prepare`). |
@@ -40,7 +41,11 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   folders and registered services stay valid, because reuse and `runtime-updates/` match by pin
   and digest, not by file set.
 - Managed updates and bundled payloads use the same preparers and version probes. PHP
-  names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's.
+  names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's:
+  `LZMALinker` copies `liblzma.5.dylib` and its license into the installed runtime, so the
+  runtime keeps the library it loads. `bundledLZMA()` takes it from `support/xz` of the app
+  (checked against `SupportReceipt` and the pinned source), or from an embedded RustFS payload
+  of an older catalog; nil in a development build without it.
   Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G). Its disk image is
   always ejected with `diskutil eject`, the replacement that macOS 27 names for the deprecated
   `hdiutil detach`. `hdiutil attach` stays until its replacement is known to work on macOS 14.
@@ -58,8 +63,8 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder
   is never replaced. One installation runs at a time. Cancellation stops it before the rename.
 - A listing reports each build folder on its own. A bad folder does not hide the others.
-- The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL and
-  PostgreSQL; Redis stays embedded). `BundledPayloadSource` skips it and
+- The app does not embed a pin that the catalog marks `"embedded": false` (today MySQL,
+  PostgreSQL, and RustFS; Redis and Mailpit stay embedded). `installStorage()` returns nil then. `BundledPayloadSource` skips it and
   `BundledRuntimeBootstrap` installs nothing of it and downloads nothing. `OnDemandRuntimes`
   turns each such pin into a `RuntimeRelease` with the exact URL, size, SHA-256, the reviewed
   MySQL signature file, and the pinned `engineVersion`, which the probe must report and which

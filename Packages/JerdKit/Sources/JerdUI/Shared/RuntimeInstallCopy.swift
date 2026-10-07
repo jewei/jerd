@@ -1,8 +1,14 @@
 import JerdRuntimes
 
-/// The words of a pinned runtime installation that the Databases page and Runtimes share, so both
-/// ask the same question with the same facts.
+/// The words of a pinned runtime installation that the Databases page, the Storage page, and
+/// Runtimes share, so all ask the same question with the same facts.
 enum RuntimeInstallCopy {
+    /// Why an install waits: the one shared installer runs for another page, for example
+    /// `The Databases page is installing MySQL 8.4.11. Installs wait until it finishes.`
+    static func waits(for place: String, installing name: String) -> String {
+        "\(place) is installing \(name). Installs wait until it finishes."
+    }
+
     /// The confirm button of the install dialog: "Install" when nothing is downloaded.
     static func confirmTitle(reuses: Bool) -> String { reuses ? "Install" : "Download and Install" }
 

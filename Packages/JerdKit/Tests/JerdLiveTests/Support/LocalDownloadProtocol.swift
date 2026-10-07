@@ -1,4 +1,5 @@
 import Foundation
+import JerdRuntimes
 import os
 
 /// A local file server inside URLSession: it answers each registered pinned URL with a local file,
@@ -13,6 +14,13 @@ final class LocalDownloadProtocol: URLProtocol, @unchecked Sendable {
 
     /// The URLs that a session requested, in order.
     static var requests: [String] { served.withLock { $0 } }
+
+    /// How many requests named one of the URLs of `release` (its archive and its signature file).
+    /// The on-demand suites may run at the same time, so each counts only its own downloads.
+    static func requests(for release: RuntimeRelease) -> Int {
+        let own = Set([release.artifact.downloadURL, release.pinnedSignature?.url].compactMap { $0?.absoluteString })
+        return requests.filter(own.contains).count
+    }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
 

@@ -34,9 +34,15 @@ are arm64 only, so `Configuration/Base.xcconfig` sets `ARCHS = arm64`.
 The Xcode phase `Scripts/embed-app-contents.sh` calls `./dev runtimes embed`.
 That command copies only the embedded payloads (`EmbeddedPayloads.pins`, which reads
 `PayloadInventory.embeddedPayloads`; `./dev release` uses the same rule): every pin except those that `Runtimes/runtimes.json` marks
-`"embedded": false`, today MySQL and PostgreSQL. Redis stays in the `database`
-folder of the app. The app installs MySQL and PostgreSQL on demand from the same
-pins. The command verifies every embedded payload before it copies. The receipt must
+`"embedded": false`, today MySQL, PostgreSQL, and RustFS. Redis stays in the `database`
+folder of the app. The app installs MySQL, PostgreSQL, and RustFS on demand from the same
+pins. The RustFS preparation needs the reviewed XZ library, so the command also copies
+`.build/runtimes/support/xz` into `RuntimePayloads/support/xz` (`EmbeddedSupport`): about
+180 KB with `support-receipt.json`. The receipt must name the pinned XZ source and the
+deployment target of the app, and every file must match it. A Release build refuses a
+missing library; a Debug build warns and cannot install RustFS. `./dev release` signs the
+library, records the new digests and a signing record in its receipt, checks its minimum
+macOS and its libraries, and refuses any other support folder. The command verifies every embedded payload before it copies. The receipt must
 match its pin in `Runtimes/runtimes.json`. Every file must match its SHA-256
 and executable flag. It copies with `rsync --delete`, so an unchanged payload is
 not copied again, and it removes folders that no embedded pin names. The script calls
@@ -64,8 +70,10 @@ Groups: `development` (PHP, Caddy, Composer, Laravel installer), `database`
 reviewed XZ library of RustFS; `storage` selects it too). Names ignore case,
 and `Support/XZ` names the library.
 
-`prepare` prepares every pin, also MySQL and PostgreSQL, which the app does not
-embed: CI and the integration tests use those payloads. It uses
+`prepare` prepares every pin, also MySQL, PostgreSQL, and RustFS, which the app does not
+embed: CI and the integration tests use those payloads. `verify` with the `storage` or
+`xz` group (or no group) also checks `support/xz`: its receipt, its files, its libraries,
+and that every file runs on the minimum macOS of the app. It uses
 `PinnedPayloadPreparer`, the same pipeline as managed runtime updates and the
 on-demand database installation in the app. The output is `.build/runtimes/payloads/<group>/<payload
 ID>/` with `payload-receipt.json`, and a copy of the catalog. A payload that
@@ -117,8 +125,10 @@ file cached, prepare verifies an existing payload without the network. Offline
 and without the file, prepare still verifies the payload and warns that one
 small download is needed for the on-demand test. The
 release runtime tests take the embedded payloads from the candidate app and the
-on-demand payloads (MySQL and PostgreSQL) from `.build/runtimes/payloads`, each
-verified file by file.
+on-demand payloads (MySQL, PostgreSQL, and RustFS) from `.build/runtimes/payloads`, each
+verified file by file. The `storage` group also sets `JERD_XZ_SUPPORT` and
+`JERD_ON_DEMAND_STORAGE_INTEGRATION=1` when `.build/runtimes/support/xz` exists, so the
+on-demand RustFS test runs too.
 Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
 `storage` groups also set their own switch, for example
 `JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`

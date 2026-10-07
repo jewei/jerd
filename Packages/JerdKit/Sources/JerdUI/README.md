@@ -73,6 +73,24 @@ downloaded without a user action.
   its Install while the other one installs (`runtimeInstallElsewhere`). Quit cancels a running
   installation before its final rename.
 
+## RustFS on demand
+
+The app does not include RustFS; `StoragePort.runtimeOffer()` gives the pinned version, the
+download size, the installed size, the source host, and whether a copy on this Mac is reused.
+Nothing is downloaded without a user action.
+
+- The Storage page without RustFS shows a RustFS section: "Not installed. RustFS 1.0.0, 87 MB
+  download." with Install RustFS…, or the running installation with the bytes, a bar, and
+  Cancel. A failure or a cancel shows once, as a dismissible banner.
+- Start Storage (header, card, menu bar) without RustFS asks first, with the same words and
+  "Then Jerd starts storage.", installs, then starts storage in one flow. The card and the menu
+  bar show the Storage page in the front window for the question.
+- The words come from `RuntimeInstallCopy`, as for the database engines and Runtimes:
+  "Download and Install" or "Install" when a copy is reused ("Nothing is downloaded").
+- One installation runs at a time: the Databases, Storage, and Runtimes pages each turn off
+  their Install while another page installs (`runtimeInstallElsewhere` gives the reason). Quit
+  cancels a running installation before its final rename.
+
 ## Dashboard cards
 
 Every card follows one button rule (`CardActionRule`, tested per card and state in

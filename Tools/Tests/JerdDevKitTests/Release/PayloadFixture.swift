@@ -17,7 +17,11 @@ enum PayloadFixture {
 
     /// Writes `<root>/runtimes.json` and `<root>/<group>/<id>/` with a receipt for each bundled pin:
     /// every pin for the prepared payloads, or only the embedded pins for the payloads of an app.
+    /// It also writes the XZ support library: `<root>/support/xz` in an app, and the prepared
+    /// `<root>/../support/xz` beside `.build/runtimes/payloads`.
     static func write(to root: URL, embeddedOnly: Bool = false) throws {
+        let support = embeddedOnly ? root : root.deletingLastPathComponent()
+        try writeSupport(in: support.appending(path: "support/xz"))
         let data = try catalogData()
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try data.write(to: root.appending(path: RuntimePinCatalog.fileName))
@@ -26,6 +30,21 @@ enum PayloadFixture {
         for (pin, group) in pins {
             try writePayload(pin, in: root.appending(path: "\(group.rawValue)/\(pin.id)"))
         }
+    }
+
+    /// Writes the XZ library (a fake Mach-O file), its license, and a receipt for the pinned source.
+    static func writeSupport(in folder: URL) throws {
+        let catalog = try RuntimePinCatalog.decode(try catalogData())
+        let source = catalog.supportSources["xz"]!
+        let files = ["liblzma.5.dylib": Data(machO + Array("lzma".utf8)), "XZ-LICENSE.txt": Data("0BSD".utf8)]
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for (name, data) in files {
+            try data.write(to: folder.appending(path: name))
+        }
+        let receipt = SupportReceipt(
+            name: "xz", version: source.version, archiveSHA256: source.archive.sha256, deploymentTarget: "14.0",
+            files: files.mapValues { FileDigest.hexSHA256(of: $0) })
+        try receipt.encoded().write(to: folder.appending(path: SupportReceipt.fileName))
     }
 
     static func writePayload(_ pin: RuntimePin, in folder: URL) throws {

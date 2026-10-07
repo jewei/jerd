@@ -3,11 +3,13 @@ import JerdFoundation
 import JerdManifest
 import JerdRuntimes
 
-/// The one installation flow of a pinned on-demand runtime, for the Databases page and Runtimes.
+/// The one installation flow of a pinned on-demand runtime, for the Databases page, the Storage
+/// page, and Runtimes.
 ///
 /// In order: a verified payload that an earlier copy installed is reused; an installed build of
 /// the same pin in `runtime-updates/` is reused by `RuntimeInstaller`; only a real download first
-/// needs room for the download and the installed copy.
+/// needs room for the download and the installed copy. The caller passes the tools that the
+/// preparation needs (the XZ library for RustFS); a reuse needs none.
 package struct OnDemandInstallFlow: Sendable {
     /// What the flow installed.
     package enum Outcome: Equatable, Sendable {
@@ -42,15 +44,23 @@ package struct OnDemandInstallFlow: Sendable {
         return (try? await releases.hasReusablePayload(for: release.kind, layout: layout)) ?? false
     }
 
+    /// - Parameter tools: Reads the preparation tools only when the flow builds the pin.
     package func install(
-        _ release: RuntimeRelease, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+        _ release: RuntimeRelease, tools: () async throws -> PreparationTools = { PreparationTools() },
+        progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> Outcome {
         if let payload = try await releases.reusablePayload(for: release.kind, layout: layout) {
             progress(RuntimeInstallProgress("Using the \(release.title) that is already on this Mac.", 1))
             return .reused(payload)
         }
         if !(await hasBuild(of: release)) { try checkFreeSpace(for: release) }
-        return .built(try await installer.install(release, tools: PreparationTools(), progress: progress))
+        return .built(try await installer.install(release, tools: try await tools(), progress: progress))
+    }
+
+    /// The pinned on-demand release of `kind`, or nil when the app has none.
+    /// - Throws: when the catalog of the app bundle cannot be read.
+    package func release(of kind: RuntimeKind) throws -> RuntimeRelease? {
+        try releases.releases().first { $0.kind == kind }
     }
 
     /// The download and the installed copy exist at the same time, so both must fit.

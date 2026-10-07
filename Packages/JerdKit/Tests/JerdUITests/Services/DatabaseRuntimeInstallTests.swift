@@ -202,7 +202,7 @@ struct DatabaseRuntimeInstallTests {
         await fixture.state.launch()
         let state = fixture.state
         await state.runtimes.load()
-        let postgres = try #require(SampleData.onDemandReleases.last)
+        let postgres = try #require(SampleData.onDemandReleases.first { $0.kind == .postgresql })
         let runtimesTask = state.runtimes.install(postgres)
         await waitUntil { state.runtimes.installation?.progress != nil }
         #expect(!state.databases.canInstallRuntime)
@@ -217,7 +217,9 @@ struct DatabaseRuntimeInstallTests {
         #expect(!state.runtimes.canInstallRuntimes)
         // The default PHP change does not use the installer, so it stays on.
         #expect(state.runtimes.canChangeRuntimes)
-        #expect(state.runtimes.runtimeInstallElsewhere?() == "MySQL 8.4.11")
+        #expect(
+            state.runtimes.runtimeInstallElsewhere?()
+                == "The Databases page is installing MySQL 8.4.11. Installs wait until it finishes.")
         state.databases.cancelRuntimeInstall()
         await databasesTask?.value
         #expect(state.runtimes.canInstallRuntimes)
@@ -237,7 +239,6 @@ struct DatabaseRuntimeInstallTests {
         #expect(DatabaseRuntimeCopy.addNote(reused).contains("Nothing is downloaded"))
         let release = try #require(SampleData.onDemandReleases.first)
         #expect(RuntimeInstallCopy.confirmationMessage(release, reuses: true).contains("Nothing is downloaded"))
-        #expect(RuntimeCopy.waitsForDatabases("MySQL 8.4.11").contains("Databases page"))
     }
 
     @Test("Runtimes asks first before it installs a pinned engine, with the same words")

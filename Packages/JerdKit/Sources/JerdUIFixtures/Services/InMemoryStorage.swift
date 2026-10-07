@@ -1,4 +1,5 @@
 import JerdFoundation
+import JerdRuntimes
 import JerdServiceKit
 import JerdStorage
 import JerdUI
@@ -20,6 +21,10 @@ public actor InMemoryStorage: StoragePort {
     public var failure: String?
     /// When set, Add Bucket and the port change wait here before they change anything.
     public var gate: FixtureGate?
+    /// The pinned RustFS that `runtimeOffer()` reports, or nil.
+    public var offer: StorageRuntimeOffer?
+    /// How `installRuntime` answers.
+    public var installBehavior = InstallBehavior.succeed
     public private(set) var calls: [String] = []
 
     public init(
@@ -44,6 +49,33 @@ public actor InMemoryStorage: StoragePort {
 
     public func runtimeSetupFailure() async -> String? {
         setupFailure
+    }
+
+    public func runtimeOffer() async -> StorageRuntimeOffer? {
+        settings.runtime == nil ? offer : nil
+    }
+
+    /// Registers a sample runtime of the offered version, like the live installer. Buckets,
+    /// objects, and credentials stay as they are.
+    public func installRuntime(
+        progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> StorageRuntime {
+        calls.append("install rustfs")
+        guard let offer else { throw JerdError.unavailable("This copy of Jerd has no pinned RustFS runtime.") }
+        switch installBehavior {
+        case .succeed:
+            progress(RuntimeInstallProgress("Downloading \(offer.title)…", 0.5))
+            let runtime = StorageRuntime(
+                id: "rustfs-\(offer.versionLabel)-arm64-0123456789abcdef", version: offer.versionLabel,
+                path: "/Users/sample/Library/Application Support/Jerd/runtime-updates/rustfs")
+            settings.runtime = runtime
+            return runtime
+        case .fail(let message):
+            throw JerdError.unavailable(message)
+        case .suspend(let report):
+            progress(report)
+            try await ServiceBehavior.waitForCancellation()
+        }
     }
 
     public func snapshot() async -> StorageSnapshot {

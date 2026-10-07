@@ -59,9 +59,11 @@ public actor BundledRuntimeBootstrap {
         try await single(.mail, into: layout.runtimes.mailRuntimesDirectory)
     }
 
-    /// Installs RustFS (with its XZ library in release builds).
-    public func installStorage() async throws -> InstalledPayload {
-        try await single(.storage, into: layout.runtimes.storageRuntimesDirectory)
+    /// Installs the embedded RustFS, or returns nil when the app installs RustFS on demand
+    /// (`"embedded": false` on its pin). Then nothing is installed and nothing is downloaded; a
+    /// RustFS that an earlier copy installed stays registered and in use.
+    public func installStorage() async throws -> InstalledPayload? {
+        try await install(.storage, into: layout.runtimes.storageRuntimesDirectory).first
     }
 
     /// Removes the staging folders that a crash or a kill left in the four group folders.
@@ -76,9 +78,13 @@ public actor BundledRuntimeBootstrap {
         }
     }
 
-    /// The reviewed XZ library of the bundled RustFS payload, for managed RustFS updates.
-    /// Nil when the bundled payload has none (development builds).
+    /// The reviewed XZ library of the app, for the RustFS preparation (on-demand installs and
+    /// managed updates): the separate support folder, or, in an app that embeds RustFS, the copy in
+    /// its payload. Nil when the bundle has neither (development builds without runtimes).
     public func bundledLZMA() throws -> SupportLibrary? {
+        if let library = try BundledSupportLibrary(root: source.root).xz(catalog: try source.catalog()) {
+            return library
+        }
         guard let payload = try source.payloads(in: .storage).first else { return nil }
         let files = payload.receipt.fileRecords.keys.map(\.string)
         guard files.contains(LZMALinker.libraryName), files.contains(LZMALinker.licenseName) else { return nil }

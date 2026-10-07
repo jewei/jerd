@@ -8,7 +8,8 @@ import JerdRuntimes
 /// All payloads are verified before any file changes. Each receipt then gets the new SHA-256 of every
 /// signed file through `PayloadReceipt.replacingFiles`, and a signing record with the team and the
 /// digest of the prepared receipt. The new digests give a new payload folder ID, so a signed payload
-/// installs beside an earlier one. The XZ library of RustFS is signed here too.
+/// installs beside an earlier one. The XZ support library (`support/xz`) is signed here too, with
+/// the same kind of signing record in its receipt.
 struct PayloadSigner: Sendable {
     /// What one payload got.
     struct Report: Equatable, Sendable {
@@ -28,6 +29,7 @@ struct PayloadSigner: Sendable {
             shell.console.detail("Signed \(payload.pin.id): \(count) files.")
             reports.append(Report(payloadID: payload.pin.id, signedFiles: count))
         }
+        reports += try await signSupport()
         let resigned = try Self.verifiedPayloads(in: layout.appPayloads)
         guard resigned.allSatisfy({ $0.receipt.signing?.teamID == signing.team }) else {
             throw DevFailure.checkFailed("A signed payload receipt has no signing record.")

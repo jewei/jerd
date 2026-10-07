@@ -31,7 +31,9 @@ calls. Pure mappings are `package static` functions with their own tests.
 - The PHP CA bundle trusts the local CA only while macOS trusts it (`SystemTrustDecision`).
 - Each feature load installs its bundled runtimes before it reads its services: PHP and Caddy
   in the first site load (`DevelopmentRuntimeSetup`, shared with Advanced), the database
-  engines without a runtime, Mailpit and RustFS when none is saved. A corrupt settings file
+  engines without a runtime, Mailpit and an embedded RustFS when none is saved. RustFS is not
+  embedded, so the storage load installs nothing and records no failure; a saved runtime (also
+  one in `storage-runtimes/`) stays in use. A corrupt settings file
   fails the load before anything is installed. A failed bundled setup does not fail the load:
   the site setup message shows it in Advanced. The service setups write it to the unified log
   (`subsystem == "dev.jerd.app"`) and keep its reason in a `BundledSetupRecord`. The port
@@ -47,6 +49,12 @@ calls. Pure mappings are `package static` functions with their own tests.
   `OnDemandRuntimes` (the catalog in the bundle), installs it, and registers the build with the
   database manager. The launch never calls it: only Install and Add Database do. The Runtimes
   snapshot lists the same pins (`onDemand`), so Runtimes offers them too.
+- `StorageRuntimeInstaller` (in `LiveStoragePort` and `LiveRuntimeInventory`) installs the pinned
+  RustFS through the same `OnDemandInstallFlow`. The preparation gets the XZ library of the app
+  (`LZMAProviding`, the bootstrap); without it the install stops before the download. It
+  registers the runtime with `StorageManager.registerRuntime`, which never replaces a saved
+  runtime and never touches buckets, objects, or credentials. Only Install RustFS…, Start, and
+  Runtimes › Install… call it.
 - The Tunnels model calls `connectStartupTunnels()` after a successful `load()`. `stopAll()`
   throws while a connector still runs, so Quit is cancelled.
 - At launch, before the features load: abandoned staging folders are removed, and an outdated

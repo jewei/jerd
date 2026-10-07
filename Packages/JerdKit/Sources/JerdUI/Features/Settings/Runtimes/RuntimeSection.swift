@@ -23,7 +23,7 @@ struct RuntimeSection: View {
                 ActionRow("Available", detail: availableDetail(release)) {
                     Button("Install…") { model.requestOnDemandInstall(release) }
                         .disabled(!model.canInstallRuntimes)
-                        .help(model.runtimeInstallElsewhere?().map(RuntimeCopy.waitsForDatabases) ?? "")
+                        .help(model.runtimeInstallElsewhere?() ?? "")
                         .accessibilityLabel("Install \(release.title)")
                         .accessibilityIdentifier(AccessibilityIdentifier.make("runtimes", kind.rawValue, "install"))
                 }

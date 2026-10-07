@@ -18,9 +18,7 @@ struct RuntimesPage: View {
             }
         } messages: {
             if let elsewhere = model.runtimeInstallElsewhere?() {
-                InlineMessage(
-                    RuntimeCopy.waitsForDatabases(elsewhere), kind: .info, style: .banner,
-                    identifier: "runtimes.databases-installing")
+                InlineMessage(elsewhere, kind: .info, style: .banner, identifier: "runtimes.installing-elsewhere")
             }
             if let installation = model.installation {
                 InlineMessage(

@@ -2,9 +2,15 @@ import Foundation
 import JerdStorage
 
 extension StorageModel {
+    /// Starts storage. Without a runtime it asks to install the pinned RustFS first; the confirmed
+    /// installation then starts storage in the same flow.
     @discardableResult
     public func start() -> Task<Void, Never>? {
         guard canStart else { return nil }
+        if startInstallsRuntime {
+            requestRuntimeInstall(startsStorage: true)
+            return nil
+        }
         return perform("Starting storage…") { try await $0.port.start() }
     }
 

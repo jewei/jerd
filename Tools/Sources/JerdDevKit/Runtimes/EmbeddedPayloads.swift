@@ -16,10 +16,12 @@ enum EmbeddedPayloads {
         return pins(inventory).map { inventory.entry(for: $0.pin, group: $0.group) }
     }
 
-    /// `root` holds only the catalog and the folders of the embedded pins, so no payload goes out unsigned.
+    /// `root` holds only the catalog, the folders of the embedded pins, and the embedded support
+    /// folders, so no payload goes out unsigned.
     static func requireNoOthers(in root: URL, catalog: RuntimePinCatalog) throws {
         let extra = try PayloadSyncPlan.extraneous(
-            in: root, keeping: pins(PayloadInventory(root: root, catalog: catalog)))
+            in: root, keeping: pins(PayloadInventory(root: root, catalog: catalog)),
+            support: EmbeddedSupport.names(catalog))
         guard extra.isEmpty else {
             throw DevFailure.checkFailed(
                 "The app contains payloads that a release does not embed: \(extra.joined(separator: ", ")).")

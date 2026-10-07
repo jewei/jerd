@@ -9,7 +9,7 @@ import JerdStorage
 package protocol RuntimeOwning: Sendable {
     /// Every saved runtime record, including the site configuration.
     func records() async throws -> RuntimeRecords
-    /// The reviewed XZ library of the bundled RustFS, or nil in builds without it.
+    /// The reviewed XZ library of the app bundle, or nil in builds without it.
     func bundledLZMA() async throws -> SupportLibrary?
     func registerDatabaseRuntime(_ runtime: DatabaseRuntime) async throws
     func updateMailRuntime(_ runtime: MailRuntime) async throws

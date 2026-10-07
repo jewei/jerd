@@ -1,6 +1,13 @@
 import Foundation
 
 extension AppState {
+    /// The pages that install pinned runtimes through the one shared installer.
+    enum RuntimeInstallPage {
+        case runtimes
+        case databases
+        case storage
+    }
+
     /// Lets the service models show another place in the window, for example Runtimes or a
     /// new database, and read the selected database, without a reference to the whole app state.
     func connectServiceNavigation() {
@@ -13,13 +20,34 @@ extension AppState {
             return id
         }
         storage.navigate = show
+        // The card and the menu bar ask to install RustFS on the Storage page, in the front window.
+        storage.presentPage = { [weak self] in
+            self?.open(.section(.storage))
+        }
         mail.navigate = show
-        // One installer serves both pages, so each page waits while the other one installs.
+        // One installer serves the three pages, so each page waits while another one installs.
         databases.runtimeInstallElsewhere = { [weak self] in
-            self?.runtimes.installation.map(\.kind.title)
+            self?.runtimeInstallReason(excluding: .databases)
+        }
+        storage.runtimeInstallElsewhere = { [weak self] in
+            self?.runtimeInstallReason(excluding: .storage)
         }
         runtimes.runtimeInstallElsewhere = { [weak self] in
-            self?.databases.runtimeInstallation.map(\.offer.title)
+            self?.runtimeInstallReason(excluding: .runtimes)
         }
+    }
+
+    /// Why an install on `page` waits: another page installs a runtime now. Nil when none does.
+    func runtimeInstallReason(excluding page: RuntimeInstallPage) -> String? {
+        if page != .runtimes, let installation = runtimes.installation {
+            return RuntimeInstallCopy.waits(for: "Runtimes", installing: installation.kind.title)
+        }
+        if page != .databases, let installation = databases.runtimeInstallation {
+            return RuntimeInstallCopy.waits(for: "The Databases page", installing: installation.offer.title)
+        }
+        if page != .storage, let installation = storage.runtimeInstallation {
+            return RuntimeInstallCopy.waits(for: "The Storage page", installing: installation.offer.title)
+        }
+        return nil
     }
 }

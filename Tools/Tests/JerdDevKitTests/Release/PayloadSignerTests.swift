@@ -38,8 +38,16 @@ struct PayloadSignerTests {
         let (workspace, layout) = try Self.setUp()
         defer { workspace.remove() }
         let before = try PayloadSigner.verifiedPayloads(in: layout.appPayloads)
+        let xz = layout.appPayloads.appending(path: "support/xz")
+        let unsigned = try Data(contentsOf: xz.appending(path: SupportReceipt.fileName))
         let reports = try await Self.signer(workspace, layout).run()
-        #expect(reports.count == before.count)
+        // Every embedded payload and the XZ support library.
+        #expect(reports.count == before.count + 1)
+        #expect(reports.last == PayloadSigner.Report(payloadID: "support/xz", signedFiles: 1))
+        let support = try #require(try SupportReceipt.read(from: xz))
+        #expect(support.signing?.teamID == ReleaseFixtures.team)
+        #expect(support.signing?.sourceReceiptSHA256 == FileDigest.hexSHA256(of: unsigned))
+        try support.verify(in: xz)
         #expect(reports.first { $0.payloadID.hasPrefix("php-") }?.signedFiles == 2)
         let after = try PayloadSigner.verifiedPayloads(in: layout.appPayloads)
         for (old, new) in zip(before, after) {
@@ -108,7 +116,7 @@ struct PayloadSignerTests {
         let catalog = try PayloadInventory.catalog(at: layout.appPayloads.appending(path: RuntimePinCatalog.fileName))
         let expected = EmbeddedPayloads.pins(PayloadInventory(root: layout.appPayloads, catalog: catalog)).map(\.pin.id)
         let reports = try await Self.signer(workspace, layout).run()
-        #expect(reports.map(\.payloadID) == expected)
+        #expect(reports.map(\.payloadID) == expected + ["support/xz"])
         #expect(!expected.isEmpty)
     }
 

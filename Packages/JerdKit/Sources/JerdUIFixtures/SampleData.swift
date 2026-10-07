@@ -31,12 +31,12 @@ public enum SampleData {
     /// A Mac with an app that installs the database engines on demand: none is installed yet.
     public static let onDemandInventory: RuntimeInventorySnapshot = {
         var snapshot = inventory
-        for kind in [RuntimeKind.mysql, .postgresql] { snapshot.versions[kind] = [] }
+        for kind in [RuntimeKind.mysql, .postgresql, .rustfs] { snapshot.versions[kind] = [] }
         snapshot.onDemand = onDemandReleases
         return snapshot
     }()
 
-    /// The pinned database releases of the committed catalog.
+    /// The pinned on-demand releases of the committed catalog: MySQL, PostgreSQL, and RustFS.
     public static let onDemandReleases = [
         pinned(
             .mysql, "8.4.11", "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz",
@@ -49,6 +49,10 @@ public enum SampleData {
             .postgresql, "2.9.6",
             "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
             122_517_005, installed: 750_547_900, engineVersion: "18.6"),
+        pinned(
+            .rustfs, "1.0.0",
+            "https://github.com/rustfs/rustfs/releases/download/1.0.0/rustfs-macos-aarch64-v1.0.0.zip",
+            87_018_416, installed: 223_534_901),
     ]
 
     private static func pinned(

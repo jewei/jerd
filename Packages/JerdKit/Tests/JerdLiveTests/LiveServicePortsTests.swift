@@ -162,6 +162,59 @@ struct LiveServicePortsTests {
         #expect(await runtimes.storageRequests == 1)
     }
 
+    @Test func storageLoadOfAnAppWithoutRustFSRegistersNothingAndReportsNoFailure() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let manager = RecordingStorageManager()
+        let runtimes = FakeServiceRuntimes(embedsStorage: false)
+        let port = LiveStoragePort(manager: manager, runtimes: runtimes, layout: temporary.layout.storage)
+
+        #expect(try await port.load().settings.runtime == nil)
+        #expect(await port.runtimeSetupFailure() == nil)
+        #expect(await manager.calls == ["load"])
+        // A port without on-demand installation offers nothing and installs nothing.
+        #expect(await port.runtimeOffer() == nil)
+        await #expect(throws: JerdError.self) { try await port.installRuntime { _ in } }
+    }
+
+    @Test func storageThatAnEarlierCopyRegisteredKeepsItsRuntime() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        var settings = StorageSettings()
+        settings.runtime = StorageRuntime(
+            id: "rustfs-1.0.0-arm64-0123456789abcdef", version: "1.0.0",
+            path: temporary.path("storage-runtimes/rustfs-1.0.0-arm64-0123456789abcdef").path)
+        let manager = RecordingStorageManager(settings)
+        let runtimes = FakeServiceRuntimes(embedsStorage: false)
+        let port = LiveStoragePort(manager: manager, runtimes: runtimes, layout: temporary.layout.storage)
+
+        #expect(try await port.load().settings.runtime == settings.runtime)
+        #expect(await runtimes.storageRequests == 0)
+        #expect(await manager.calls == ["load"])
+    }
+
+    @Test func storagePortInstallsThroughTheOnDemandFlow() async throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let manager = RecordingStorageManager()
+        let managed = FakeManagedInstaller([StorageRuntimeInstallerTests.rustfsBuild])
+        let onDemand = StorageRuntimeInstaller(
+            flow: OnDemandInstallFlow(
+                releases: FakeOnDemandReleases(list: [StorageRuntimeInstallerTests.rustfs]), installer: managed,
+                layout: temporary.layout, freeSpace: FakeFreeSpace(bytes: nil)),
+            manager: manager, lzma: FakeLZMA(library: StorageRuntimeInstallerTests.lzma))
+        let port = LiveStoragePort(
+            manager: manager, runtimes: FakeServiceRuntimes(embedsStorage: false), layout: temporary.layout.storage,
+            onDemand: onDemand)
+
+        _ = try await port.load()
+        // The build exists already, so the offer says that nothing is downloaded.
+        #expect(await port.runtimeOffer()?.reusesInstalledCopy == true)
+        let runtime = try await port.installRuntime { _ in }
+        #expect(await port.snapshot().settings.runtime == runtime)
+        #expect(await manager.calls == ["load", "register \(runtime.id)"])
+    }
+
     @Test func corruptStorageSettingsFailTheLoadBeforeAnyInstall() async throws {
         let temporary = try TemporaryDirectory()
         defer { temporary.remove() }

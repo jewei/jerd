@@ -72,12 +72,12 @@ struct OnDemandRuntimeIntegrationTests {
         try serve(release)
         let installer = domain.runtimeInstaller
         let port = LiveDatabasesPort(domain: domain)
-        let before = LocalDownloadProtocol.requests.count
+        let before = LocalDownloadProtocol.requests(for: release)
 
         // The launch downloads nothing. The test bundle holds only the catalog, so the setup of the
         // embedded Redis finds no payload and installs nothing; it never falls back to a download.
         #expect(try await port.load().configuration.runtimes.isEmpty)
-        #expect(LocalDownloadProtocol.requests.count == before)
+        #expect(LocalDownloadProtocol.requests(for: release) == before)
         #expect(await port.runtimeOffers().map(\.engine) == [.mysql, .postgresql])
         #expect(await port.runtimeOffers().first { $0.engine == .postgresql }?.versionLabel == "18.6")
 
@@ -93,9 +93,9 @@ struct OnDemandRuntimeIntegrationTests {
         #expect(await port.snapshot().configuration.runtimes == [runtime])
 
         // A second install of the same pin uses the verified build without a download.
-        let requests = LocalDownloadProtocol.requests.count
+        let requests = LocalDownloadProtocol.requests(for: release)
         #expect(try await installer.install(release).folderName == runtime.id)
-        #expect(LocalDownloadProtocol.requests.count == requests)
+        #expect(LocalDownloadProtocol.requests(for: release) == requests)
 
         let service = try await port.add(
             name: "On demand", runtimeID: runtime.id, port: try await port.suggestedPort(for: engine))

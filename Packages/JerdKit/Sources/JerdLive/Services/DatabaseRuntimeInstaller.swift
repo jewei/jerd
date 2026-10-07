@@ -57,7 +57,7 @@ package struct DatabaseRuntimeInstaller: Sendable {
         _ engine: DatabaseEngine, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> DatabaseRuntime {
         let kind = BundledRuntimeMapping.kind(of: engine)
-        guard let release = try flow.releases.releases().first(where: { $0.kind == kind }) else {
+        guard let release = try flow.release(of: kind) else {
             throw JerdError.unavailable("This copy of Jerd cannot install \(engine.title). Install it in Runtimes.")
         }
         return try await install(release, progress: progress)

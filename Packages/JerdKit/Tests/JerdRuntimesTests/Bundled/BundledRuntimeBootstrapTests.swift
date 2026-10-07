@@ -221,7 +221,7 @@ import Testing
         try builder.writeCatalog()
         let library = try #require(try await bootstrap(folder.path("bundle"), folder).bundledLZMA())
         #expect(library.library.lastPathComponent == "liblzma.5.dylib")
-        let storage = try await bootstrap(folder.path("bundle"), folder).installStorage()
+        let storage = try #require(try await bootstrap(folder.path("bundle"), folder).installStorage())
         #expect(FileProbe.presence(at: storage.directory.appendingPathComponent("liblzma.5.dylib")) == .present)
     }
 }

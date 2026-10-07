@@ -8,7 +8,9 @@ extension ServiceScenario {
         let state = fixture.state
         await configurePorts(fixture.services)
         await configureOnDemand(fixture.services.databases)
+        await configureStorageOnDemand(fixture.services.storage)
         await state.launch()
+        if await prepareStorageOnDemand(state) { return }
         if await prepareOnDemand(state) { return }
         switch self {
         case .databaseEditor:
@@ -61,6 +63,7 @@ extension ServiceScenario {
     public func isReady(_ fixture: AppFixture) -> Bool {
         let state = fixture.state
         guard state.isLaunched else { return false }
+        if let ready = isStorageOnDemandReady(state) { return ready }
         if let ready = isOnDemandReady(state) { return ready }
         switch self {
         case .databaseEditor: return state.databases.editor?.portText.isEmpty == false

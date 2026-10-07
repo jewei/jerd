@@ -34,15 +34,15 @@ struct DatabaseEnginesSection: View {
         if let installation = model.runtimeInstallation, installation.engine == engine {
             VStack(alignment: .leading, spacing: Spacing.tight) {
                 Text(engine.title).textRole(.rowTitle)
-                DatabaseRuntimeProgressRow(
-                    installation: installation, cancel: installation.addsService ? nil : model.cancelRuntimeInstall)
+                RuntimeInstallProgressRow(
+                    installation, cancel: installation.addsService ? nil : model.cancelRuntimeInstall)
             }
         } else if let offer = model.offer(for: engine) {
             ActionRow(engine.title, detail: DatabaseRuntimeCopy.notInstalledDetail(offer)) {
                 Button(DatabaseRuntimeCopy.installTitle(engine)) { model.requestRuntimeInstall(engine) }
                     .disabled(isQuitting || !model.canInstallRuntime)
                     .help(
-                        model.runtimeInstallElsewhere?().map(DatabaseRuntimeCopy.waitsForRuntimes)
+                        model.runtimeInstallElsewhere?()
                             ?? DatabaseRuntimeCopy.confirmationMessage(offer)
                     )
                     .accessibilityIdentifier(AccessibilityIdentifier.make("databases", engine.rawValue, "install"))

@@ -41,10 +41,17 @@ struct RuntimesEmbedStepTests {
         try TestFixtures.write(
             "old", to: "products/Jerd.app/Contents/Resources/RuntimePayloads/DevelopmentRuntimes/x",
             in: setup.repository.root)
+        try PayloadFixture.writeSupport(in: setup.repository.runtimeSupport.appending(path: "xz"))
         try await setup.embed(requiresAll: true)
         let mail = try PayloadFixtures.pin(.mailpit).id
         let names = try FileManager.default.contentsOfDirectory(atPath: setup.destination.path).sorted()
-        #expect(names == ["database", "development", "mail", "runtimes.json", "storage"])
+        // No storage folder: RustFS installs on demand. Its XZ library has its own folder.
+        #expect(names == ["database", "development", "mail", "runtimes.json", "support"])
+        let xz = setup.destination.appending(path: "support/xz")
+        #expect(
+            try FileManager.default.contentsOfDirectory(atPath: xz.path).sorted() == [
+                "XZ-LICENSE.txt", "liblzma.5.dylib", "support-receipt.json",
+            ])
         let redis = try PayloadFixtures.pin(.redis).id
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: setup.destination.appending(path: "database").path) == [
@@ -60,13 +67,13 @@ struct RuntimesEmbedStepTests {
         #expect(catalog == (try Data(contentsOf: setup.repository.runtimeCatalog)))
     }
 
-    @Test("The embedded payloads come from the catalog: every pin except MySQL and PostgreSQL")
+    @Test("The embedded payloads come from the catalog: every pin except MySQL, PostgreSQL, and RustFS")
     func embeddedPayloadsComeFromTheCatalog() throws {
-        let inventory = PayloadInventory(root: URL(filePath: "/nonexistent"), catalog: try PayloadFixtures.catalog())
-        #expect(
-            inventory.embeddedPayloads.map(\.pin.kind) == [
-                .php, .caddy, .composer, .laravel, .redis, .mailpit, .rustfs,
-            ])
+        let catalog = try PayloadFixtures.catalog()
+        let inventory = PayloadInventory(root: URL(filePath: "/nonexistent"), catalog: catalog)
+        #expect(inventory.embeddedPayloads.map(\.pin.kind) == [.php, .caddy, .composer, .laravel, .redis, .mailpit])
+        // The XZ library that the RustFS preparation needs is embedded on its own.
+        #expect(EmbeddedSupport.names(catalog) == ["xz"])
         #expect(inventory.embeddedPayloads.first { $0.pin.kind == .redis }?.group == .database)
     }
 
@@ -76,6 +83,7 @@ struct RuntimesEmbedStepTests {
         defer { try? FileManager.default.removeItem(at: setup.repository.root) }
         try PayloadFixtures.writePayloads([.development, .mail, .storage], in: setup.repository.payloads)
         try PayloadFixtures.writePayload(.redis, in: setup.repository.payloads)
+        try PayloadFixture.writeSupport(in: setup.repository.runtimeSupport.appending(path: "xz"))
         try await setup.embed(requiresAll: true)
         let database = setup.destination.appending(path: "database")
         #expect(
@@ -93,6 +101,32 @@ struct RuntimesEmbedStepTests {
         try await setup.embed(requiresAll: false)
         #expect(setup.output.all.contains("warning: The app builds without these payloads:"))
         #expect(FileManager.default.fileExists(atPath: setup.destination.appending(path: "mail").path))
+    }
+
+    @Test("Release refuses a missing or changed XZ library; Debug builds without it with a warning")
+    func supportLibraryRules() async throws {
+        let setup = try setup()
+        defer { try? FileManager.default.removeItem(at: setup.repository.root) }
+        try PayloadFixtures.writePayloads([.development, .mail], in: setup.repository.payloads)
+        try PayloadFixtures.writePayload(.redis, in: setup.repository.payloads)
+        await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: true) }
+        try await setup.embed(requiresAll: false)
+        #expect(setup.output.all.contains("without the xz support library"))
+        #expect(!FileManager.default.fileExists(atPath: setup.destination.appending(path: "support").path))
+
+        let xz = setup.repository.runtimeSupport.appending(path: "xz")
+        try PayloadFixture.writeSupport(in: xz)
+        try Data("changed".utf8).write(to: xz.appending(path: "XZ-LICENSE.txt"))
+        await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: false) }
+
+        // A build for another deployment target is refused too.
+        try PayloadFixture.writeSupport(in: xz)
+        let receipt = try #require(try SupportReceipt.read(from: xz))
+        let other = SupportReceipt(
+            name: "xz", version: receipt.version, archiveSHA256: receipt.archiveSHA256, deploymentTarget: "15.0",
+            files: receipt.files)
+        try other.encoded().write(to: xz.appending(path: SupportReceipt.fileName))
+        await #expect(throws: DevFailure.self) { try await setup.embed(requiresAll: false) }
     }
 
     @Test("A changed payload fails the build before anything is copied")

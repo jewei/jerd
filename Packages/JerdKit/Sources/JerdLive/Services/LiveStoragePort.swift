@@ -1,36 +1,58 @@
 import JerdFoundation
+import JerdRuntimes
 import JerdStorage
 import JerdUI
 
-/// The Storage port on the one `StorageManager`. Its load installs the bundled RustFS when no
-/// runtime is saved; a failed bundled setup leaves the load usable.
+/// The Storage port on the one `StorageManager`. Its load installs an embedded RustFS when no
+/// runtime is saved; a failed bundled setup leaves the load usable. An app that does not embed
+/// RustFS installs it on demand, only after a user action, and its load downloads nothing.
 package struct LiveStoragePort: StoragePort {
     let manager: any StorageManaging
     let runtimes: any ServiceRuntimeSource
     let layout: StorageLayout
     let setup: BundledSetupRecord
+    /// The on-demand installation, or nil in a port without one: it offers nothing then.
+    let onDemand: StorageRuntimeInstaller?
 
     package init(
         manager: any StorageManaging, runtimes: any ServiceRuntimeSource, layout: StorageLayout,
-        setup: BundledSetupRecord = BundledSetupRecord()
+        setup: BundledSetupRecord = BundledSetupRecord(), onDemand: StorageRuntimeInstaller? = nil
     ) {
         self.manager = manager
         self.runtimes = runtimes
         self.layout = layout
         self.setup = setup
+        self.onDemand = onDemand
     }
 
     package init(domain: LiveDomain) {
         self.init(
             manager: domain.storage, runtimes: BundledServiceRuntimes(bootstrap: domain.bootstrap),
-            layout: domain.layout.storage)
+            layout: domain.layout.storage, onDemand: StorageRuntimeInstaller(domain: domain))
     }
 
-    /// Loads the settings first: corrupt settings fail here and nothing is installed.
+    package func runtimeOffer() async -> StorageRuntimeOffer? {
+        await onDemand?.offer()
+    }
+
+    package func installRuntime(
+        progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> StorageRuntime {
+        guard let onDemand else {
+            throw JerdError.unavailable("This copy of Jerd cannot install RustFS. Install it in Runtimes.")
+        }
+        ServiceActivityLog.request("Install", "the RustFS runtime")
+        return try await onDemand.install(progress: progress)
+    }
+
+    /// Loads the settings first: corrupt settings fail here and nothing is installed. A saved
+    /// runtime (also one that an earlier copy installed in `storage-runtimes/`) stays in use.
     package func load() async throws -> StorageSnapshot {
         if try await manager.load().runtime == nil {
             do {
-                try await manager.registerRuntime(try await runtimes.storageRuntime())
+                if let embedded = try await runtimes.storageRuntime() {
+                    try await manager.registerRuntime(embedded)
+                }
                 await setup.record(nil)
             } catch {
                 BundledServiceRuntimes.report(error, service: "storage")
