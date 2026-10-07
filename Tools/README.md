@@ -82,6 +82,14 @@ the run; remove `.build/runtimes/payloads` and prepare again. Downloads are kept
 in `.build/runtimes/downloads/<sha256>`; only a file with the pinned digest goes
 into or comes out of that cache.
 
+The preparation removes the local symbols (`/usr/bin/strip -x`) of the PHP CLI and FPM,
+`mailpit`, `redis-server`, and `redis-cli` before it writes the receipt (`SymbolStripping` in
+JerdRuntimes). This removes about 9.8 MB before compression (3.8 MB from each PHP 8.5 file,
+1.7 MB from Mailpit, and 0.4 MB from Redis) and changes nothing at run time. Each stripped file
+must keep a valid signature and pass its version probe. A stripped payload has new file digests,
+so its folder ID changes; to strip a payload that an older `./dev` prepared, remove its folder
+and prepare it again.
+
 Prerequisites: an arm64 Mac and Xcode. Redis and XZ build with the Xcode
 compiler. Both target the `MACOSX_DEPLOYMENT_TARGET` of
 `Configuration/Base.xcconfig`, not the macOS of the build Mac: each build gets
@@ -219,7 +227,9 @@ local work comes first:
    only the signed form has, for example a missing entitlement, stops the release.
 5. **Notarize the app** and staple it.
 6. **Build and notarize the disk image** with `Jerd.app` and a link to
-   `/Applications`, then staple it.
+   `/Applications`, then staple it. The image uses `ULMO` (LZMA) compression, which macOS
+   opens since 10.15. For Jerd 0.1.1 it is 87 MB, not 122 MB with `UDZO` (zlib) or 120 MB
+   with `ULFO` (LZFSE). It takes about a minute to build, and it opens in a few seconds.
 7. **Sign the disk image and the feed.** `sign_update` signs the disk image for
    Sparkle, and the candidate feed gets one new item. The item uses
    `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the
