@@ -1,3 +1,4 @@
+import Foundation
 import JerdManifest
 import JerdRuntimes
 
@@ -24,7 +25,7 @@ enum RuntimeCopy {
     static func installTitle(_ kind: RuntimeKind, hasInstalledVersion: Bool) -> String {
         switch kind {
         case .php: "Install and Use"
-        case .mysql, .postgresql, .redis: "Install Version"
+        case .mysql, .postgresql, .redis: hasInstalledVersion ? "Install Version" : "Install"
         default: hasInstalledVersion ? "Update" : "Install"
         }
     }
@@ -59,6 +60,15 @@ enum RuntimeCopy {
 
     /// The one page line before the first check.
     static let notCheckedMessage = "Updates have not been checked. Select \(checkTitle) to see new versions."
+
+    /// The detail of the pinned release that the app installs on demand, for example
+    /// `8.4.11, 168 MB download. Jerd checks it against its reviewed checksum.`
+    static func onDemandDetail(_ release: RuntimeRelease) -> String {
+        let size = release.downloadSize.map {
+            ", \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)) download"
+        }
+        return "\(release.versionLabel)\(size ?? ""). Jerd checks it against its reviewed checksum."
+    }
 
     /// How the release is verified, for the Release row.
     static func verificationDetail(_ release: RuntimeRelease) -> String {

@@ -28,6 +28,33 @@ public enum SampleData {
         phpBuildDigests: [php84ID: digest],
         builds: [InstalledBuild(kind: .caddy, version: "2.10.2", releaseVersion: "2.10.2", archiveSHA256: digest)])
 
+    /// A Mac with an app that installs the database engines on demand: none is installed yet.
+    public static let onDemandInventory: RuntimeInventorySnapshot = {
+        var snapshot = inventory
+        for kind in [RuntimeKind.mysql, .postgresql, .redis] { snapshot.versions[kind] = [] }
+        snapshot.onDemand = onDemandReleases
+        return snapshot
+    }()
+
+    /// The pinned database releases of the committed catalog.
+    public static let onDemandReleases = [
+        pinned(
+            .mysql, "8.4.11", "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz", 167_977_240
+        ),
+        pinned(
+            .postgresql, "2.9.6",
+            "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
+            122_517_005),
+        pinned(.redis, "8.8.3", "https://download.redis.io/releases/redis-8.8.3.tar.gz", 4_496_813),
+    ]
+
+    private static func pinned(_ kind: RuntimeKind, _ version: String, _ link: String, _ size: Int64) -> RuntimeRelease
+    {
+        RuntimeRelease(
+            kind: kind, version: version, artifact: .archive(url(link), size: .exact(size)), archiveSHA256: digest,
+            releasePage: url("https://github.com/jewei/jerd"))
+    }
+
     /// A release with a stated digest.
     public static func release(
         _ kind: RuntimeKind, _ version: String, digest: String? = SampleData.digest, signed: Bool = false

@@ -14,6 +14,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case appearanceHidden = "appearance-hidden"
     case runtimes
     case runtimesChecked = "runtimes-checked"
+    /// An app without the database runtimes: the page offers the pinned engines.
+    case runtimesOnDemand = "runtimes-on-demand"
     case advancedEmpty = "advanced-empty"
     case advanced
     case about
@@ -38,7 +40,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     /// Long pages also render at a tall size, so every section can be reviewed.
     public var showsFullPage: Bool {
         switch self {
-        case .runtimesChecked, .advanced, .about, .appearance, .sitesRunning, .tunnelConnected: true
+        case .runtimesChecked, .runtimesOnDemand, .advanced, .about, .appearance, .sitesRunning, .tunnelConnected: true
         default: false
         }
     }
@@ -74,7 +76,7 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
         switch self {
         case .dashboardEmpty, .dashboard, .dashboardBusy, .dashboardLong, .quitting: .dashboard(.overview)
         case .appearance, .appearanceHidden: .dashboard(.appearance)
-        case .runtimes, .runtimesChecked: .dashboard(.runtimes)
+        case .runtimes, .runtimesChecked, .runtimesOnDemand: .dashboard(.runtimes)
         case .advancedEmpty, .advanced: .dashboard(.advanced)
         case .about, .aboutUpdateError: .dashboard(.about)
         default: sitesDestination
@@ -85,8 +87,12 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     private func runtimeInventory() -> InMemoryRuntimeInventory {
         let empty = self == .dashboardEmpty
         let report = RuntimeInstallProgress("Downloading Mailpit 1.28.0… 12.4 MB of 19.8 MB", 0.63)
+        let inventory =
+            empty
+            ? RuntimeInventorySnapshot()
+            : self == .runtimesOnDemand ? SampleData.onDemandInventory : SampleData.inventory
         return InMemoryRuntimeInventory(
-            inventory: empty ? RuntimeInventorySnapshot() : SampleData.inventory, results: SampleData.checks,
+            inventory: inventory, results: SampleData.checks,
             installBehavior: self == .runtimesChecked ? .suspend(report) : .succeed)
     }
 

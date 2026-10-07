@@ -28,6 +28,14 @@ public final class DatabasesModel {
     public internal(set) var restoreOperation: OperationState = .idle
     /// The service that waits for the remove confirmation.
     public var pendingRemoval: DatabaseService?
+    /// The engines that Jerd can download and install, from the reviewed pins of the app.
+    public internal(set) var runtimeOffers: [DatabaseRuntimeOffer] = []
+    /// The one runtime installation that runs, or nil.
+    public internal(set) var runtimeInstallation: DatabaseRuntimeInstallation?
+    /// Why the last runtime installation of the page failed, or that it was cancelled.
+    public internal(set) var runtimeNotice: DatabaseRuntimeNotice?
+    /// The engine that waits for the install confirmation.
+    public var pendingRuntimeInstall: DatabaseRuntimeOffer?
 
     /// Shows another place in the window, for example a new service. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
@@ -42,6 +50,8 @@ public final class DatabasesModel {
     @ObservationIgnored var editorTask: Task<Void, Never>?
     /// The save of the restore sheet, with the same rule as `editorTask`.
     @ObservationIgnored var restoreTask: Task<Void, Never>?
+    /// The runtime installation of the page. Cancel and Quit stop it before its final rename.
+    @ObservationIgnored var runtimeInstallTask: Task<Void, Never>?
 
     public init(port: any DatabasesPort, clipboard: Clipboard, workspace: any WorkspaceOpening) {
         self.port = port
@@ -63,6 +73,17 @@ public final class DatabasesModel {
         DatabaseEngine.allCases.filter { engine in configuration.runtimes.contains { $0.engine == engine } }
     }
 
+    /// The engines that Add Database offers: installed ones, and the ones that Jerd installs first.
+    public var addableEngines: [DatabaseEngine] {
+        DatabaseEngine.allCases.filter { availableEngines.contains($0) || offer(for: $0) != nil }
+    }
+
+    /// The pinned runtime of an engine that has no installed runtime yet.
+    public func offer(for engine: DatabaseEngine) -> DatabaseRuntimeOffer? {
+        guard !availableEngines.contains(engine) else { return nil }
+        return runtimeOffers.first { $0.engine == engine }
+    }
+
     /// The failed bundled setup while an engine still has no runtime. An engine installed later
     /// in Runtimes ends the problem, so the banner goes away with it.
     public var visibleRuntimeSetupFailure: String? {
@@ -72,6 +93,7 @@ public final class DatabasesModel {
     /// True while any database work runs, so other pages and Quit can wait for it.
     public var isBusy: Bool {
         operation.isWorking || editorOperation.isWorking || restoreOperation.isWorking || !busyServices.isEmpty
+            || runtimeInstallation != nil
     }
 
     /// True when a registry change can start now.
@@ -80,7 +102,7 @@ public final class DatabasesModel {
             && !restoreOperation.isWorking
     }
 
-    public var canAdd: Bool { canChangeRegistry && !availableEngines.isEmpty }
+    public var canAdd: Bool { canChangeRegistry && !addableEngines.isEmpty }
 
     /// True when `id` can start or stop now.
     public func canControl(_ id: UUID) -> Bool {
@@ -106,6 +128,7 @@ public final class DatabasesModel {
         do {
             apply(try await port.load())
             runtimeSetupFailure = await port.runtimeSetupFailure()
+            runtimeOffers = await port.runtimeOffers()
             loadState = .loaded
             await refreshFiles()
         } catch {

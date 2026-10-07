@@ -4,8 +4,10 @@ import JerdDatabases
 extension DatabaseDraft {
     /// The first rule that the fields break, as the inline message, or nil. The port must be
     /// free among the registered services; the manager checks the system listeners on Save.
-    public func issue(in configuration: DatabaseConfiguration) -> String? {
-        guard runtimeID != nil else { return "Install a \(engine.title) runtime in Runtimes first." }
+    /// - Parameter installsRuntime: True when Save installs the engine's pinned runtime first, so
+    ///   a draft without a runtime is valid.
+    public func issue(in configuration: DatabaseConfiguration, installsRuntime: Bool = false) -> String? {
+        guard runtimeID != nil || installsRuntime else { return "Install a \(engine.title) runtime in Runtimes first." }
         let trimmed = DatabaseConfiguration.trimmed(name)
         if trimmed.isEmpty { return "Enter a name." }
         guard DatabaseConfiguration.isValidName(name) else {

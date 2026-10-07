@@ -43,7 +43,7 @@ struct SnapshotCoverageTests {
     @Test("Every sheet renders in light, dark, and both Increase Contrast variants")
     func everySheetHasContrast() {
         let sheets = catalog.entries.filter { $0.chrome == .content }
-        #expect(sheets.count == SitesSheetScenario.allCases.count + 3 + 8)
+        #expect(sheets.count == SitesSheetScenario.allCases.count + 3 + 11)
         for sheet in sheets {
             #expect(Set(sheet.appearances) == Set(SnapshotAppearance.allCases), "\(sheet.name) lacks an appearance")
         }

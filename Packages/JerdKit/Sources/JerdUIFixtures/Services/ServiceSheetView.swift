@@ -8,7 +8,9 @@ struct ServiceSheetView: View {
 
     var body: some View {
         switch scenario {
-        case .databaseEditor, .databaseEditorInvalid: DatabaseEditorSheet(model: state.databases)
+        case .databaseEditor, .databaseEditorInvalid, .databaseEditorInstall, .databaseEditorInstalling,
+            .databaseEditorInstallFailed:
+            DatabaseEditorSheet(model: state.databases)
         case .retainedDatabases: RetainedDatabasesSheet(model: state.databases)
         case .restoreDatabase: RestoreDatabaseSheet(model: state.databases)
         case .addBucket, .addBucketInvalid: AddBucketSheet(model: state.storage)

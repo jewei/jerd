@@ -11,29 +11,29 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     let installer: any ManagedRuntimeInstalling
     let owners: any RuntimeOwning
     let activator: RuntimeActivator
+    /// The pinned releases that the app installs on demand, or nil without them.
+    let onDemand: (any OnDemandRuntimeProviding)?
 
     package init(
         catalog: any RuntimeCatalogChecking, installer: any ManagedRuntimeInstalling, owners: any RuntimeOwning,
-        activator: RuntimeActivator
+        activator: RuntimeActivator, onDemand: (any OnDemandRuntimeProviding)? = nil
     ) {
         self.catalog = catalog
         self.installer = installer
         self.owners = owners
         self.activator = activator
+        self.onDemand = onDemand
     }
 
-    /// The live inventory. Every request of the catalog and the installer names the app
-    /// version in its user agent.
+    /// The live inventory, on the app's one fetcher and installer. Every request of the
+    /// catalog and the installer names the app version in its user agent.
     package init(domain: LiveDomain) {
-        let fetcher = URLSessionFetcher(
-            userAgent: URLSessionFetcher.userAgent(appVersion: domain.configuration.appVersion))
         let owners = DomainRuntimeOwners(domain: domain)
         self.init(
-            catalog: RuntimeCatalog(fetcher: fetcher),
-            installer: RuntimeInstaller(directory: domain.layout.runtimes.managedRuntimesDirectory, fetcher: fetcher),
-            owners: owners,
+            catalog: RuntimeCatalog(fetcher: domain.fetcher), installer: domain.runtimeInstaller, owners: owners,
             activator: RuntimeActivator(
-                owners: owners, sites: domain.web.transaction, inspector: ExecutableInspector(layout: domain.layout)))
+                owners: owners, sites: domain.web.transaction, inspector: ExecutableInspector(layout: domain.layout)),
+            onDemand: domain.onDemandRuntimes)
     }
 
     /// Removes the staging folders of `runtime-updates/` that a crash left. The app calls it
@@ -44,9 +44,13 @@ package struct LiveRuntimeInventory: RuntimeInventory {
         await installer.removeAbandonedStaging()
     }
 
+    /// The installed runtimes and the pinned releases that the app installs on demand. A bad
+    /// catalog in the bundle offers nothing; it never fails the page.
     package func snapshot() async throws -> RuntimeInventorySnapshot {
         let records = try await owners.records()
-        return records.snapshot(managed: await installer.list().compactMap(\.runtime))
+        var snapshot = records.snapshot(managed: await installer.list().compactMap(\.runtime))
+        snapshot.onDemand = (try? onDemand?.releases()) ?? []
+        return snapshot
     }
 
     package func check(_ kind: RuntimeKind) async -> RuntimeUpdateCheck {

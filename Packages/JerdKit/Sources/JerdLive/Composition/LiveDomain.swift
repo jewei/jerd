@@ -19,6 +19,13 @@ package struct LiveDomain: Sendable {
     package let effects: ServiceEffects
     package let helper: any HelperControlling
     package let bootstrap: BundledRuntimeBootstrap
+    /// The one fetcher of runtime downloads and catalogs. Every request names the app version.
+    package let fetcher: URLSessionFetcher
+    /// The one installer of `runtime-updates/`: Runtimes updates and on-demand database engines
+    /// share it, so only one installation runs at a time.
+    package let runtimeInstaller: RuntimeInstaller
+    /// The pinned runtimes that the app does not embed, from the catalog in the bundle.
+    package let onDemandRuntimes: OnDemandRuntimes
     package let web: WebDomain
     package let developmentRuntimes: DevelopmentRuntimeSetup
     package let databases: DatabaseManager
@@ -37,6 +44,9 @@ package struct LiveDomain: Sendable {
         self.helper = helper
         effects = ServiceEffects(processes: processes)
         bootstrap = BundledRuntimeBootstrap(resources: configuration.payloads, layout: layout)
+        fetcher = URLSessionFetcher(userAgent: URLSessionFetcher.userAgent(appVersion: configuration.appVersion))
+        runtimeInstaller = RuntimeInstaller(directory: layout.runtimes.managedRuntimesDirectory, fetcher: fetcher)
+        onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
         web = WebDomain(layout: layout, helper: helper)
         developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)
         databases = DatabaseManager(layout: layout.databases, effects: effects)

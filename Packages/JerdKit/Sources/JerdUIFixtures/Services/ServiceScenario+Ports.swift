@@ -24,6 +24,7 @@ extension ServiceScenario {
     }
 
     private func databases(_ base: InMemoryDatabases) -> InMemoryDatabases {
+        if let onDemand = onDemandDatabases() { return onDemand }
         switch self {
         case .databasesNoRuntimes:
             return InMemoryDatabases()

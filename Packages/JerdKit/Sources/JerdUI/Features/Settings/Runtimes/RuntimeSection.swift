@@ -18,6 +18,11 @@ struct RuntimeSection: View {
             } else {
                 ValueRow("Version", value: versionsText)
             }
+            if let release = model.inventory.installableRelease(kind) {
+                ActionRow("Available", detail: RuntimeCopy.onDemandDetail(release)) {
+                    RuntimeInstallControl(model: model, release: release)
+                }
+            }
             if let check = model.checks[kind] {
                 if let error = check.error {
                     InlineMessage(error, kind: .error)

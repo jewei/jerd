@@ -9,19 +9,26 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
     public var shutdownParticipants: [any ShutdownParticipant] { [self] }
     public var bannerActivity: BannerActivity? { nil }
 
-    /// File › New Database… (⌘N): the Add sheet with the first installed engine. The sheet
-    /// can switch the engine. It is off while a sheet shows, so it never replaces a draft.
+    /// File › New Database… (⌘N): the Add sheet with the first installed engine, or the first
+    /// engine that Jerd can install. The sheet can switch the engine. It is off while a sheet
+    /// shows, so it never replaces a draft.
     public var newItemAction: FeatureAction? {
         FeatureAction(id: "databases.new", title: "New Database…", isEnabled: canAdd && sheet == nil) { [weak self] in
-            guard let self, let engine = availableEngines.first else { return }
+            guard let self, let engine = firstAddableEngine else { return }
             beginAdd(engine)
         }
     }
+
+    /// The engine that Add starts with: an installed one first, so no download starts by default.
+    var firstAddableEngine: DatabaseEngine? { availableEngines.first ?? addableEngines.first }
 
     /// The card status: a problem first, then work, then the running count.
     public var status: DisplayStatus {
         if loadState.failureMessage != nil { return DisplayStatus("Not loaded", tone: .failed) }
         if cardNotice?.isPreparing == true { return ServiceCardNotice.preparingStatus }
+        if let runtimeInstallation {
+            return DisplayStatus("Installing \(runtimeInstallation.engine.title)…", tone: .busy)
+        }
         let states = services.map { state(of: $0.id) }
         if states.contains(where: { if case .failed = $0 { true } else { false } }) {
             return DisplayStatus("Failed", tone: .failed)
@@ -42,7 +49,7 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
             let add = FeatureAction(
                 id: "databases.add", title: "Add Database…", isEnabled: canAdd, unavailableReason: addUnavailableReason
             ) { [weak self] in
-                guard let self, let engine = availableEngines.first else { return }
+                guard let self, let engine = firstAddableEngine else { return }
                 navigate?(.section(.databases))
                 beginAdd(engine)
             }
@@ -55,12 +62,13 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
     }
 
     /// The card text while no database can be added yet: preparing, not loaded, or no runtime.
+    /// An engine that Jerd can install counts as available: Add Database installs it first.
     var cardNotice: ServiceCardNotice? {
         let missing = ServiceCardNotice(
             text: "No database runtime is installed. Install one in Runtimes.",
             reason: "Install MySQL, PostgreSQL, or Redis in Runtimes first.", isPreparing: false)
         return ServiceCardNotice.notice(
-            load: loadState, hasRuntime: !availableEngines.isEmpty, runtime: "database runtimes",
+            load: loadState, hasRuntime: !addableEngines.isEmpty, runtime: "database runtimes",
             settings: "Database", missingRuntime: missing)
     }
 
@@ -110,9 +118,12 @@ extension DatabasesModel: WorkspaceFeature, ShutdownParticipant {
         await load()
     }
 
-    /// Waits for running work, then stops every service in parallel. False keeps Jerd open.
+    /// Cancels a runtime installation before its final rename, waits for running work, then
+    /// stops every service in parallel. False keeps Jerd open.
     public func shutdown() async -> Bool {
         isShuttingDown = true
+        pendingRuntimeInstall = nil
+        cancelRuntimeInstall()
         await running.waitForAll()
         guard loadState.isLoaded, !services.isEmpty else { return true }
         do {
