@@ -28,7 +28,7 @@ struct AppSigner: Sendable {
         let framework = app.appending(path: Self.sparkleFramework)
         for part in Self.sparkleParts {
             let path = part == "." ? framework : framework.appending(path: part)
-            let identifier = try await currentIdentifier(of: path)
+            let identifier = Self.identifier(of: part, current: try await currentIdentifier(of: path))
             let preserve = part.hasSuffix("Downloader.xpc") ? ["--preserve-metadata=entitlements"] : []
             try await sign(path, identifier: identifier, extra: preserve)
         }
@@ -42,6 +42,16 @@ struct AppSigner: Sendable {
             ["--force", "--sign", signing.identity, "--options", "runtime", "--timestamp", "--identifier", identifier]
             + extra + [path.path]
         try await shell.run(SystemProgram.codesign, arguments, limit: TimeLimit.codeSigning)
+    }
+
+    /// Sparkle's own identifier of the `Autoupdate` tool. The Sparkle package ships the tool with an
+    /// ad-hoc signature whose identifier is `Autoupdate-<hash>`, which is not stable across builds.
+    static let autoupdateIdentifier = "org.sparkle-project.Sparkle.Autoupdate"
+
+    /// The identifier of a Sparkle part: its current one, except for `Autoupdate`, which has no bundle
+    /// and gets Sparkle's product identifier.
+    static func identifier(of part: String, current: String) -> String {
+        part.hasSuffix("/Autoupdate") && !current.hasPrefix("org.sparkle-project.") ? autoupdateIdentifier : current
     }
 
     /// The identifier of the current signature, read before the signature is replaced.

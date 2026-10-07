@@ -37,6 +37,25 @@ struct AppSigningTests {
         #expect(signed.filter { $0.contains("--preserve-metadata=entitlements") }.count == 1)
     }
 
+    @Test("Autoupdate gets Sparkle's product identifier instead of the ad-hoc identifier of the package")
+    func autoupdateIdentifier() async throws {
+        let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
+        workspace.runner.on("codesign", ["-d", "--verbose=2"]) { invocation in
+            let name = URL(filePath: invocation.arguments.last!).lastPathComponent
+            let identifier = name == "Autoupdate" ? "Autoupdate-55554944f723d84042cd352fbb0485760ff7597a" : name
+            return .init(standardError: "Identifier=\(identifier)\n")
+        }
+        try await AppSigner(shell: workspace.shell(), signing: Self.signing).run(app: URL(filePath: "/c/Jerd.app"))
+        let signed = workspace.runner.calls("codesign", ["--force"])
+        let autoupdate = try #require(signed.first { $0.last!.hasSuffix("/Autoupdate") })
+        #expect(autoupdate[autoupdate.firstIndex(of: "--identifier")! + 1] == "org.sparkle-project.Sparkle.Autoupdate")
+        #expect(
+            AppSigner.identifier(of: "Versions/B/Autoupdate", current: "org.sparkle-project.Other")
+                == "org.sparkle-project.Other")
+        #expect(AppSigner.identifier(of: "Versions/B/Updater.app", current: "x") == "x")
+    }
+
     @Test("A signature passes with the team, hardened runtime, timestamp, and identifier")
     func verifies() async throws {
         let workspace = try ReleaseWorkspace()
