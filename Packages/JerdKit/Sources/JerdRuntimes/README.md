@@ -29,6 +29,15 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   without user or password. The transfer stops as soon as it exceeds its byte limit.
 - A release needs a SHA-256 or a pinned publisher signature (MySQL). The Laravel installer
   is verified by Composer only, and the Runtimes page says so.
+- The selection rules leave out files whose library references cannot resolve inside the payload,
+  because Jerd never rewrites the load commands of a signed upstream file: for MySQL the debug
+  plugins (`lib/plugin/debug/`) and the WebAuthn client plugin with its private
+  `lib/plugin/libfido2.1.dylib` (an upstream link, so its `@loader_path` breaks as a file); for
+  PostgreSQL the ICU tool libraries `libicuio`, `libicutest`, and `libicutu`, which name their
+  dependencies by bare file name. No server and no default account uses them. `./dev runtimes
+  verify` checks every reference. A changed file set gives a new payload folder ID; installed
+  folders and registered services stay valid, because reuse and `runtime-updates/` match by pin
+  and digest, not by file set.
 - Managed updates and bundled payloads use the same preparers and version probes. PHP
   names come from the version. RustFS gets the reviewed XZ library instead of Homebrew's.
   Postgres.app must satisfy its designated requirement (team ZF84SJ5A3G). Its disk image is
@@ -51,8 +60,14 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   bytes of the exact size (`Downloading MySQL 8.4.11… 70.6 MB of 168 MB`); `ByteText` is the
   one byte format of the app.
 - `OnDemandRuntimes.reusablePayload(for:layout:)` finds a payload folder of an on-demand pin that
-  an earlier copy installed from its bundle (current or legacy form), verified file by file, so
-  Jerd registers it again instead of a download. A folder that does not match stays as it is.
+  an earlier copy installed from its bundle (current or legacy form), so Jerd registers it again
+  instead of a download. A folder that does not match stays as it is. The group folder and the
+  payload folder must be real directories of the user inside the data root; a link is never
+  followed. What the check proves: the folder holds exactly the files of its own receipt, and the
+  receipt names the pin (ID, kind, release, archive digest, architecture, and folder ID). It does
+  not prove the origin, because the receipt is in the folder. The trust boundary is the same user,
+  who owns the data root, as for every installed runtime. `hasReusablePayload` reads receipts
+  only, for the dialog that says "Nothing is downloaded"; the install still verifies the files.
 - Failures name the step that fixes them: no network ("Jerd cannot reach the download
   server…"), a digest mismatch ("…does not match its expected SHA-256. Jerd installed
   nothing."), a full disk (`DiskSpace.outOfSpace`), and a Redis update without a compiler
