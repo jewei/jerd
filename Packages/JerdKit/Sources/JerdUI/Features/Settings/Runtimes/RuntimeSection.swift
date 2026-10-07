@@ -20,7 +20,10 @@ struct RuntimeSection: View {
             }
             if let release = model.inventory.installableRelease(kind) {
                 ActionRow("Available", detail: RuntimeCopy.onDemandDetail(release)) {
-                    RuntimeInstallControl(model: model, release: release)
+                    Button("Install…") { model.requestOnDemandInstall(release) }
+                        .disabled(!model.canChangeRuntimes)
+                        .accessibilityLabel("Install \(release.title)")
+                        .accessibilityIdentifier(AccessibilityIdentifier.make("runtimes", kind.rawValue, "install"))
                 }
             }
             if let check = model.checks[kind] {

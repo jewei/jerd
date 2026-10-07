@@ -54,7 +54,8 @@ extension DatabasesModel {
     public var canSaveEditor: Bool {
         guard let draft = editor, canChangeRegistry else { return false }
         guard editorRuntimeOffer != nil else { return draft.service(in: configuration) != nil }
-        return runtimeInstallation == nil && draft.issue(in: configuration, installsRuntime: true) == nil
+        return runtimeInstallation == nil && runtimeInstallElsewhere?() == nil
+            && draft.issue(in: configuration, installsRuntime: true) == nil
             && PortInput.parse(draft.portText) != nil
     }
 

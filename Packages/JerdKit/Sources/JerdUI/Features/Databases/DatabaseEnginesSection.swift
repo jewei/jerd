@@ -41,7 +41,10 @@ struct DatabaseEnginesSection: View {
             ActionRow(engine.title, detail: DatabaseRuntimeCopy.notInstalledDetail(offer)) {
                 Button(DatabaseRuntimeCopy.installTitle(engine)) { model.requestRuntimeInstall(engine) }
                     .disabled(isQuitting || !model.canInstallRuntime)
-                    .help(DatabaseRuntimeCopy.confirmationMessage(offer))
+                    .help(
+                        model.runtimeInstallElsewhere?().map(DatabaseRuntimeCopy.waitsForRuntimes)
+                            ?? DatabaseRuntimeCopy.confirmationMessage(offer)
+                    )
                     .accessibilityIdentifier(AccessibilityIdentifier.make("databases", engine.rawValue, "install"))
             }
         } else {

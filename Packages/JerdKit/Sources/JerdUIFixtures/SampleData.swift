@@ -39,20 +39,26 @@ public enum SampleData {
     /// The pinned database releases of the committed catalog.
     public static let onDemandReleases = [
         pinned(
-            .mysql, "8.4.11", "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz", 167_977_240
-        ),
+            .mysql, "8.4.11", "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz",
+            167_977_240,
+            installed: 360_498_219,
+            signature: PinnedFile(
+                url: url("https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-macos15-arm64.tar.gz.asc"),
+                sizeLimit: 16_384, sha256: digest)),
         pinned(
             .postgresql, "2.9.6",
             "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
-            122_517_005, engineVersion: "18.6"),
+            122_517_005, installed: 753_446_725, engineVersion: "18.6"),
     ]
 
     private static func pinned(
-        _ kind: RuntimeKind, _ version: String, _ link: String, _ size: Int64, engineVersion: String? = nil
+        _ kind: RuntimeKind, _ version: String, _ link: String, _ size: Int64, installed: Int64,
+        engineVersion: String? = nil, signature: PinnedFile? = nil
     ) -> RuntimeRelease {
         RuntimeRelease(
             kind: kind, version: version, artifact: .archive(url(link), size: .exact(size)), archiveSHA256: digest,
-            releasePage: url("https://github.com/jewei/jerd"), engineVersion: engineVersion)
+            signatureURL: signature?.url, releasePage: url("https://github.com/jewei/jerd"),
+            pinnedSignature: signature, engineVersion: engineVersion, installedSize: installed)
     }
 
     /// A release with a stated digest.

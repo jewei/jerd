@@ -50,6 +50,9 @@ public final class DatabasesModel {
     @ObservationIgnored var editorTask: Task<Void, Never>?
     /// The save of the restore sheet, with the same rule as `editorTask`.
     @ObservationIgnored var restoreTask: Task<Void, Never>?
+    /// The runtime that the Runtimes page installs now, or nil. `AppState` sets it: both pages share
+    /// one installer, so the page waits instead of failing.
+    @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
     /// The runtime installation of the page. Cancel and Quit stop it before its final rename.
     @ObservationIgnored var runtimeInstallTask: Task<Void, Never>?
 
@@ -146,8 +149,13 @@ public final class DatabasesModel {
         if operation.failureMessage != nil { operation = .idle }
     }
 
+    /// Shows a new snapshot. An open Add sheet for an engine that just got a runtime (from this
+    /// page, Runtimes, or another sheet) takes that runtime, so it can save.
     func apply(_ next: DatabaseSnapshot) {
         if next != snapshot { snapshot = next }
+        if editor?.isAdding == true, editor?.runtimeID == nil {
+            editor?.adoptInstalledRuntime(in: configuration)
+        }
     }
 
     private func refreshFiles() async {

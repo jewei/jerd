@@ -31,7 +31,8 @@ struct DatabasesModelTests {
         let model = fixture.state.databases
         model.beginAdd(.postgresql)
         #expect(model.sheet == .editor)
-        await waitUntil { model.editor?.portText == "3307" }
+        // The fixture suggests the engine default plus one: 5433 for PostgreSQL.
+        await waitUntil { model.editor?.portText == "5433" }
         await model.saveEditor()?.value
         await waitUntil {
             model.busyServices.isEmpty && model.services.first.map { model.state(of: $0.id).isRunning } == true

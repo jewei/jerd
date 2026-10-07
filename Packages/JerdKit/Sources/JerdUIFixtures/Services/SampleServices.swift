@@ -73,10 +73,17 @@ public enum SampleServices {
     /// Redis is embedded, so it is never offered.
     public static let offers = [
         DatabaseRuntimeOffer(
-            engine: .mysql, versionLabel: "8.4.11", downloadSize: 167_977_240, source: "cdn.mysql.com"),
+            engine: .mysql, versionLabel: "8.4.11", downloadSize: 167_977_240, source: "cdn.mysql.com",
+            installedSize: 360_498_219, isSigned: true),
         DatabaseRuntimeOffer(
-            engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005, source: "github.com"),
+            engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005, source: "github.com",
+            installedSize: 753_446_725),
     ]
+
+    /// The Redis that the app embeds, as the first launch registers it.
+    public static let embeddedRedis = DatabaseRuntime(
+        id: "redis-8.8.3-arm64-5a1c0e7b9d2f4a61", engine: .redis, version: "8.8.3",
+        path: "\(root)/database-runtimes/redis-8.8.3-arm64-5a1c0e7b9d2f4a61")
 
     /// The runtime that an installed offer registers, named like a managed build folder.
     public static func installedRuntime(_ offer: DatabaseRuntimeOffer) -> DatabaseRuntime {

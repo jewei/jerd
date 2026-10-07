@@ -10,17 +10,25 @@ extension ServiceScenario {
     static let diskFullMessage =
         "There is not enough free disk space to install this runtime. Free some space, then try again."
 
+    /// The download progress that the live pipeline reports for an offer, with its real words.
+    static func progress(of offerIndex: Int, fraction: Double) -> RuntimeInstallProgress {
+        let offer = SampleServices.offers[offerIndex]
+        let message = RuntimePipeline.downloadMessage(
+            offer.title, fraction: fraction, size: .exact(offer.downloadSize))
+        return RuntimeInstallProgress(message, fraction)
+    }
+
     /// The databases of an on-demand scenario, or nil for the other scenarios.
     func onDemandDatabases() -> InMemoryDatabases? {
         switch self {
         case .databasesOnDemand, .dashboardDatabasesOnDemand, .databasesInstallFailed, .databaseEditorInstall,
             .databaseEditorInstalling, .databaseEditorInstallFailed, .databasesInstalling:
             // Redis is embedded, so the first launch installed it.
-            return InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.redis]))
+            return InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.embeddedRedis]))
         case .databaseRuntimeInstalling:
             return InMemoryDatabases(
                 configuration: DatabaseConfiguration(
-                    runtimes: [SampleServices.mysql, SampleServices.redis], services: [SampleServices.studio]),
+                    runtimes: [SampleServices.mysql, SampleServices.embeddedRedis], services: [SampleServices.studio]),
                 states: [SampleServices.studioID: .running(pid: 4101)], started: [SampleServices.studioID])
         default:
             return nil
@@ -33,11 +41,11 @@ extension ServiceScenario {
         let behavior: InstallBehavior =
             switch self {
             case .databasesInstalling:
-                .suspend(RuntimeInstallProgress("Downloading MySQL 8.4.11… 70.6 MB of 168 MB", 0.42))
+                .suspend(Self.progress(of: 0, fraction: 0.42))
             case .databaseRuntimeInstalling:
-                .suspend(RuntimeInstallProgress("Downloading PostgreSQL 18.6… 51.5 MB of 122.5 MB", 0.42))
+                .suspend(Self.progress(of: 1, fraction: 0.42))
             case .databaseEditorInstalling:
-                .suspend(RuntimeInstallProgress("Downloading PostgreSQL 18.6… 75 MB of 122.5 MB", 0.61))
+                .suspend(Self.progress(of: 1, fraction: 0.61))
             case .databasesInstallFailed: .fail(Self.offlineMessage)
             case .databaseEditorInstallFailed: .fail(Self.diskFullMessage)
             default: .succeed

@@ -165,6 +165,81 @@ struct DatabaseRuntimeInstallTests {
         #expect(model.runtimeInstallation == nil && model.availableEngines == [.redis])
     }
 
+    @Test("An open Add sheet takes a runtime that another path installed, and can save")
+    func addSheetAdoptsARuntimeInstalledElsewhere() async throws {
+        let (fixture, databases) = await launched()
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.databases
+        model.beginAdd(.mysql)
+        await waitUntil { model.editor?.portText.isEmpty == false }
+        #expect(model.editorRuntimeOffer?.engine == .mysql)
+        // Runtimes, the page, or another sheet installs MySQL while the sheet is open.
+        await databases.configure { $0.configuration.runtimes.append(SampleServices.mysql) }
+        await model.refresh()
+        #expect(model.editorRuntimeOffer == nil)
+        #expect(model.editor?.runtimeID == SampleServices.mysql.id)
+        #expect(model.canSaveEditor)
+        await model.saveEditor()?.value
+        await waitUntil { model.services.count == 1 }
+        #expect(model.services.first?.runtimeID == SampleServices.mysql.id)
+        #expect(!(await databases.calls).contains("install mysql"))
+    }
+
+    @Test("Each page waits while the other page installs a runtime")
+    func pagesWaitForEachOther() async throws {
+        let databases = InMemoryDatabases(configuration: DatabaseConfiguration(runtimes: [SampleServices.redis]))
+        let waiting = Self.waiting
+        await databases.configure {
+            $0.offers = SampleServices.offers
+            $0.installBehavior = waiting
+        }
+        let runtimes = InMemoryRuntimeInventory(
+            inventory: SampleData.onDemandInventory, installBehavior: .suspend(RuntimeInstallProgress("…", 0.1)))
+        let fixture = AppFixture(
+            runtimes: runtimes,
+            services: InMemoryServicePorts(databases: databases, storage: InMemoryStorage(), mail: InMemoryMail()))
+        defer { fixture.removeDefaults() }
+        await fixture.state.launch()
+        let state = fixture.state
+        await state.runtimes.load()
+        let postgres = try #require(SampleData.onDemandReleases.last)
+        let runtimesTask = state.runtimes.install(postgres)
+        await waitUntil { state.runtimes.installation?.progress != nil }
+        #expect(!state.databases.canInstallRuntime)
+        state.databases.requestRuntimeInstall(.mysql)
+        #expect(state.databases.pendingRuntimeInstall == nil)
+        state.runtimes.cancelInstall()
+        await runtimesTask?.value
+        #expect(state.databases.canInstallRuntime)
+        state.databases.requestRuntimeInstall(.mysql)
+        let databasesTask = state.databases.confirmRuntimeInstall()
+        await waitUntil { state.databases.runtimeInstallation?.progress != nil }
+        #expect(!state.runtimes.canChangeRuntimes)
+        state.databases.cancelRuntimeInstall()
+        await databasesTask?.value
+        #expect(state.runtimes.canChangeRuntimes)
+    }
+
+    @Test("Runtimes asks first before it installs a pinned engine, with the same words")
+    func runtimesAsksFirst() async throws {
+        let runtimes = InMemoryRuntimeInventory(inventory: SampleData.onDemandInventory)
+        let fixture = AppFixture(runtimes: runtimes)
+        defer { fixture.removeDefaults() }
+        let model = fixture.state.runtimes
+        await model.load()
+        let mysql = try #require(SampleData.onDemandReleases.first)
+        model.requestOnDemandInstall(mysql)
+        #expect(model.pendingOnDemandInstall == mysql)
+        #expect(await runtimes.installed.isEmpty)
+        let message = RuntimeInstallCopy.confirmationMessage(mysql)
+        #expect(message.contains("publisher signature") && message.contains("528.5\u{00A0}MB of free disk space"))
+        await model.confirmOnDemandInstall()?.value
+        #expect(await runtimes.installed == [mysql])
+        // An installed kind is not offered again.
+        model.requestOnDemandInstall(mysql)
+        #expect(model.pendingOnDemandInstall == nil)
+    }
+
     @Test("A draft without a runtime is valid only when Save installs the engine first")
     func draftRuleForAMissingRuntime() {
         let draft = DatabaseDraft.add(.mysql, in: DatabaseConfiguration())
@@ -186,6 +261,8 @@ struct DatabaseRuntimeInstallTests {
         #expect(message.contains("publisher signature"))
         // Redis is embedded; the on-demand engines need no compiler.
         #expect(!DatabaseRuntimeCopy.confirmationMessage(postgres).contains("Xcode"))
+        #expect(DatabaseRuntimeCopy.confirmationMessage(postgres).contains("876\u{00A0}MB of free disk space"))
+        #expect(DatabaseRuntimeCopy.addNote(mysql).contains("528.5\u{00A0}MB"))
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: true) == "Install and Create")
         #expect(DatabaseRuntimeCopy.addTitle(installsRuntime: false) == "Create and Start")
     }

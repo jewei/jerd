@@ -44,7 +44,7 @@ struct DatabasesEmptyPage: View {
         } else {
             // One column of equal widths: the widest title sets the width of every button.
             VStack(spacing: Spacing.small) {
-                ForEach(Array(model.addableEngines.enumerated()), id: \.element) { index, engine in
+                ForEach(Array(model.availableEngines.enumerated()), id: \.element) { index, engine in
                     Button {
                         model.beginAdd(engine)
                     } label: {
@@ -77,7 +77,7 @@ struct DatabasesEmptyPage: View {
             } else if model.addableEngines.isEmpty {
                 "Install a MySQL, PostgreSQL, or Redis runtime in Runtimes first."
             } else if model.availableEngines.isEmpty {
-                "Add a MySQL, PostgreSQL, or Redis service. Jerd downloads each engine the first time you add it."
+                "Install an engine below. Add Database also installs the engine of a new service first."
             } else {
                 "Run MySQL, PostgreSQL, and Redis with a separate data folder, port, and password for each service."
             }

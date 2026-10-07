@@ -6,6 +6,7 @@ extension DatabasesModel {
     /// True when a runtime installation can start now: one at a time, and not during a quit.
     public var canInstallRuntime: Bool {
         loadState.isLoaded && runtimeInstallation == nil && !isShuttingDown && !editorOperation.isWorking
+            && runtimeInstallElsewhere?() == nil
     }
 
     /// Asks to confirm the download of an engine that has no runtime yet.

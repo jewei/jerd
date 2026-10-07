@@ -64,10 +64,9 @@ enum RuntimeCopy {
     /// The detail of the pinned release that the app installs on demand, for example
     /// `8.4.11, 168 MB download. Jerd checks it against its reviewed checksum.`
     static func onDemandDetail(_ release: RuntimeRelease) -> String {
-        let size = release.downloadSize.map {
-            ", \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)) download"
-        }
-        return "\(release.versionLabel)\(size ?? ""). Jerd checks it against its reviewed checksum."
+        let size = release.downloadSize.map { ", \(ByteText.format($0)) download" }
+        let checks = RuntimeInstallCopy.checks(isSigned: release.pinnedSignature != nil)
+        return "\(release.versionLabel)\(size ?? ""). Jerd checks it against \(checks)."
     }
 
     /// How the release is verified, for the Release row.

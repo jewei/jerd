@@ -59,6 +59,12 @@ public struct DatabaseDraft: Equatable, Sendable {
         if !hasCustomPort { portText = "" }
     }
 
+    /// An Add draft without a runtime takes the first runtime of its engine once one is installed.
+    public mutating func adoptInstalledRuntime(in configuration: DatabaseConfiguration) {
+        guard isAdding, runtimeID == nil else { return }
+        runtimeID = configuration.runtimes.first { $0.engine == engine }?.id
+    }
+
     /// Fills the port with a suggestion for `engine`, unless the user typed one or the engine
     /// changed while the suggestion ran.
     public mutating func applySuggestedPort(_ port: UInt16, for engine: DatabaseEngine) {
