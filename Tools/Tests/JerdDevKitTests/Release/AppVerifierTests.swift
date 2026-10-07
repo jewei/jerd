@@ -27,7 +27,7 @@ struct AppVerifierTests {
         try workspace.write("text", to: "\(sparkle)/Resources/notes.txt")
         let app = workspace.path("export/Jerd.app")
         let payloads = app.appending(path: "Contents/Resources/RuntimePayloads")
-        try PayloadFixture.write(to: payloads)
+        try PayloadFixture.write(to: payloads, embeddedOnly: true)
         for payload in try PayloadSigner.verifiedPayloads(in: payloads) {
             let signed = payload.receipt.replacingFiles(
                 payload.receipt.fileRecords,

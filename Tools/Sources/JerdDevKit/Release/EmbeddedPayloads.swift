@@ -1,17 +1,18 @@
 import Foundation
 import JerdManifest
 
-/// The payload groups that the app embeds. A release requires, signs, and checks exactly these, and
+/// The pinned payloads that the app embeds. A release requires, signs, and checks exactly these, and
 /// refuses an app that contains any other payload.
 enum EmbeddedPayloads {
-    /// The groups of `catalog` that the app embeds, in catalog order.
-    static func groups(_ catalog: RuntimePinCatalog) -> [PayloadGroup] {
-        PayloadGroup.allCases
+    /// The embedded pins of `inventory`, in catalog order. The only place that reads the catalog rule.
+    static func pins(_ inventory: PayloadInventory) -> [(pin: RuntimePin, group: PayloadGroup)] {
+        inventory.pins(in: PayloadGroup.allCases)
     }
 
-    /// The pinned payloads of the embedded groups in `root`.
+    /// The state of each embedded payload in `root`. Other payloads are not read.
     static func entries(in root: URL, catalog: RuntimePinCatalog) -> [PayloadInventory.Entry] {
-        PayloadInventory(root: root, catalog: catalog).entries(in: groups(catalog))
+        let inventory = PayloadInventory(root: root, catalog: catalog)
+        return pins(inventory).map { inventory.entry(for: $0.pin, group: $0.group) }
     }
 
     /// `root` holds only the catalog and the folders of the embedded pins, so no payload goes out unsigned.
@@ -23,8 +24,7 @@ enum EmbeddedPayloads {
             let isFolder = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
             existing[name] = isFolder ? try manager.contentsOfDirectory(atPath: url.path) : []
         }
-        let inventory = PayloadInventory(root: root, catalog: catalog)
-        let pins = inventory.pins(in: groups(catalog))
+        let pins = pins(PayloadInventory(root: root, catalog: catalog))
         let expected = Dictionary(grouping: pins, by: { $0.group.rawValue }).mapValues { Set($0.map(\.pin.id)) }
         let extra = PayloadSyncPlan.extraneous(
             existing: existing, expected: expected, catalogName: RuntimePinCatalog.fileName)

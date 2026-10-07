@@ -11,7 +11,7 @@ struct PayloadSignerTests {
     static func setUp() throws -> (ReleaseWorkspace, CandidateLayout) {
         let workspace = try ReleaseWorkspace()
         let layout = CandidateLayout(root: workspace.path("candidate"))
-        try PayloadFixture.write(to: layout.appPayloads)
+        try PayloadFixture.write(to: layout.appPayloads, embeddedOnly: true)
         workspace.runner.on("lipo", ["-archs"], output: "arm64\n")
         workspace.runner.on("codesign", ["-d", "--entitlements"], output: "")
         workspace.runner.on(
@@ -106,8 +106,7 @@ struct PayloadSignerTests {
         let (workspace, layout) = try Self.setUp()
         defer { workspace.remove() }
         let catalog = try PayloadInventory.catalog(at: layout.appPayloads.appending(path: RuntimePinCatalog.fileName))
-        let groups = EmbeddedPayloads.groups(catalog)
-        let expected = catalog.pins.filter { $0.group.map(groups.contains) == true }.map(\.id)
+        let expected = EmbeddedPayloads.pins(PayloadInventory(root: layout.appPayloads, catalog: catalog)).map(\.pin.id)
         let reports = try await Self.signer(workspace, layout).run()
         #expect(reports.map(\.payloadID) == expected)
         #expect(!expected.isEmpty)
