@@ -8,87 +8,89 @@ import os
 /// Installs the pinned runtime of a database engine on demand, then registers it.
 ///
 /// It adds no pipeline of its own: the release comes from the reviewed pin in the app bundle, and
-/// the one `RuntimeInstaller` of the app downloads, verifies, prepares, and installs it in
-/// `runtime-updates/`, as for every managed update. So the size, the SHA-256, the MySQL signature,
-/// and the preparation steps are exactly those of `./dev runtimes prepare`. The build gets a new
-/// runtime ID, so no existing database folder ever changes its runtime.
+/// `OnDemandInstallFlow` reuses an earlier copy or lets the one `RuntimeInstaller` of the app
+/// download, verify, prepare, and install it in `runtime-updates/`, as for every managed update. So
+/// the size, the SHA-256, the MySQL signature, and the preparation steps are exactly those of
+/// `./dev runtimes prepare`. The build gets a new runtime ID, so no existing database folder ever
+/// changes its runtime. The Databases page and Runtimes both install through it.
 package struct DatabaseRuntimeInstaller: Sendable {
     static let log = Logger(subsystem: "dev.jerd.app", category: "database-runtimes")
 
-    let releases: any OnDemandRuntimeProviding
-    let installer: any ManagedRuntimeInstalling
+    let flow: OnDemandInstallFlow
     let manager: any DatabaseManaging
-    /// The data root: where earlier payloads may wait for reuse, and whose volume must have room.
-    let layout: DataLayout
-    let freeSpace: any FreeSpaceReading
+
+    package init(flow: OnDemandInstallFlow, manager: any DatabaseManaging) {
+        self.flow = flow
+        self.manager = manager
+    }
 
     package init(
         releases: any OnDemandRuntimeProviding, installer: any ManagedRuntimeInstalling, manager: any DatabaseManaging,
         layout: DataLayout, freeSpace: any FreeSpaceReading = VolumeFreeSpace()
     ) {
-        self.releases = releases
-        self.installer = installer
-        self.manager = manager
-        self.layout = layout
-        self.freeSpace = freeSpace
+        self.init(
+            flow: OnDemandInstallFlow(releases: releases, installer: installer, layout: layout, freeSpace: freeSpace),
+            manager: manager)
     }
 
-    /// The database engines of the pinned on-demand releases. A missing or bad catalog offers
-    /// nothing and is logged; the page then leads to Runtimes.
-    package func offers() -> [DatabaseRuntimeOffer] {
+    /// The database engines of the pinned on-demand releases, and whether each one reuses a copy on
+    /// this Mac. A missing or bad catalog offers nothing and is logged; the page then leads to Runtimes.
+    package func offers() async -> [DatabaseRuntimeOffer] {
+        let releases: [RuntimeRelease]
         do {
-            return try releases.releases().compactMap(Self.offer)
+            releases = try flow.releases.releases()
         } catch {
             Self.log.error(
                 "Database runtimes cannot be offered: \(BundledServiceRuntimes.message(for: error), privacy: .public)")
             return []
         }
+        var offers: [DatabaseRuntimeOffer] = []
+        for release in releases {
+            let reuses = await flow.reusesInstalledCopy(release)
+            if let offer = Self.offer(release, reusesInstalledCopy: reuses) { offers.append(offer) }
+        }
+        return offers
     }
 
-    /// Installs and registers the pinned runtime of `engine`. A verified payload of the same pin
-    /// that an earlier copy installed, and an installed build of the same pin, are used again
-    /// without a download. A volume without room for the download and the installed copy stops it
-    /// before the download.
+    /// Installs and registers the pinned runtime of `engine` through the one flow.
     package func install(
         _ engine: DatabaseEngine, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> DatabaseRuntime {
         let kind = BundledRuntimeMapping.kind(of: engine)
-        guard let release = try releases.releases().first(where: { $0.kind == kind }) else {
+        guard let release = try flow.releases.releases().first(where: { $0.kind == kind }) else {
             throw JerdError.unavailable("This copy of Jerd cannot install \(engine.title). Install it in Runtimes.")
         }
-        if let payload = try await releases.reusablePayload(for: kind, layout: layout) {
-            let runtime = DatabaseRuntime(
-                id: payload.id, engine: engine, version: payload.version, path: payload.directory.path)
-            try await manager.registerRuntimes([runtime])
-            progress(RuntimeInstallProgress("Using the installed \(release.title).", 1))
-            return runtime
+        return try await install(release, progress: progress)
+    }
+
+    /// Installs and registers a pinned database release, also for Runtimes › Install….
+    package func install(
+        _ release: RuntimeRelease, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
+    ) async throws -> DatabaseRuntime {
+        guard let engine = BundledRuntimeMapping.engine(of: release.kind) else {
+            throw JerdError.invalid("\(release.kind.title) is not a database runtime.")
         }
-        try checkFreeSpace(for: release)
-        let build = try await installer.install(release, tools: PreparationTools(), progress: progress)
-        let runtime = try RuntimeActivator.databaseRuntime(build)
+        let runtime: DatabaseRuntime
+        switch try await flow.install(release, progress: progress) {
+        case .reused(let payload):
+            runtime = DatabaseRuntime(
+                id: payload.id, engine: engine, version: payload.version, path: payload.directory.path)
+        case .built(let build):
+            runtime = try RuntimeActivator.databaseRuntime(build)
+        }
         try await manager.registerRuntimes([runtime])
         return runtime
     }
 
-    /// The download and the installed copy exist at the same time, so both must fit.
-    func checkFreeSpace(for release: RuntimeRelease) throws {
-        guard let required = release.requiredSpace,
-            let available = freeSpace.availableBytes(near: layout.runtimes.managedRuntimesDirectory),
-            available < required
-        else { return }
-        throw JerdError.unavailable(
-            "Installing \(release.title) needs about \(ByteText.format(required)) of free disk space, and "
-                + "\(ByteText.format(available)) is free. Free some space, then try again.")
-    }
-
     /// The offer of a pinned database release; nil for another kind or a release without an
     /// exact size.
-    package static func offer(_ release: RuntimeRelease) -> DatabaseRuntimeOffer? {
+    package static func offer(_ release: RuntimeRelease, reusesInstalledCopy: Bool = false) -> DatabaseRuntimeOffer? {
         guard let engine = BundledRuntimeMapping.engine(of: release.kind), let size = release.downloadSize,
             let host = release.artifact.downloadURL?.host
         else { return nil }
         return DatabaseRuntimeOffer(
             engine: engine, versionLabel: release.versionLabel, downloadSize: size, source: host,
-            installedSize: release.installedSize, isSigned: release.pinnedSignature != nil)
+            installedSize: release.installedSize, isSigned: release.pinnedSignature != nil,
+            reusesInstalledCopy: reusesInstalledCopy)
     }
 }

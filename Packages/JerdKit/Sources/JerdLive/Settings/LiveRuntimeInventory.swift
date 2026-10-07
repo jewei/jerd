@@ -11,18 +11,18 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     let installer: any ManagedRuntimeInstalling
     let owners: any RuntimeOwning
     let activator: RuntimeActivator
-    /// The pinned releases that the app installs on demand, or nil without them.
-    let onDemand: (any OnDemandRuntimeProviding)?
+    /// The installation of the pinned database engines, shared with the Databases page, or nil.
+    let databases: DatabaseRuntimeInstaller?
 
     package init(
         catalog: any RuntimeCatalogChecking, installer: any ManagedRuntimeInstalling, owners: any RuntimeOwning,
-        activator: RuntimeActivator, onDemand: (any OnDemandRuntimeProviding)? = nil
+        activator: RuntimeActivator, databases: DatabaseRuntimeInstaller? = nil
     ) {
         self.catalog = catalog
         self.installer = installer
         self.owners = owners
         self.activator = activator
-        self.onDemand = onDemand
+        self.databases = databases
     }
 
     /// The live inventory, on the app's one fetcher and installer. Every request of the
@@ -33,7 +33,9 @@ package struct LiveRuntimeInventory: RuntimeInventory {
             catalog: RuntimeCatalog(fetcher: domain.fetcher), installer: domain.runtimeInstaller, owners: owners,
             activator: RuntimeActivator(
                 owners: owners, sites: domain.web.transaction, inspector: ExecutableInspector(layout: domain.layout)),
-            onDemand: domain.onDemandRuntimes)
+            databases: DatabaseRuntimeInstaller(
+                releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
+                layout: domain.layout))
     }
 
     /// Removes the staging folders of `runtime-updates/` that a crash left. The app calls it
@@ -49,7 +51,12 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     package func snapshot() async throws -> RuntimeInventorySnapshot {
         let records = try await owners.records()
         var snapshot = records.snapshot(managed: await installer.list().compactMap(\.runtime))
-        snapshot.onDemand = (try? onDemand?.releases()) ?? []
+        if let flow = databases?.flow {
+            snapshot.onDemand = (try? flow.releases.releases()) ?? []
+            for release in snapshot.onDemand where await flow.reusesInstalledCopy(release) {
+                snapshot.reusableOnDemand.insert(release.kind)
+            }
+        }
         return snapshot
     }
 
@@ -60,6 +67,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     package func install(
         _ release: RuntimeRelease, progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> InstalledBuild {
+        if let installed = try await installOnDemand(release, progress: progress) { return installed }
         let tools = try await tools(for: release.kind)
         let build = try await installer.install(release, tools: tools, progress: progress)
         return RuntimeRecords.installedBuild(build)
@@ -67,6 +75,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
 
     package func activate(_ build: InstalledBuild, useAsDefault: Bool) async throws {
         let managed = Self.managedRuntime(for: build, in: await installer.list())
+        if managed == nil, try await isRegisteredOnDemand(build) { return }
         guard let managed else {
             throw JerdError.unavailable("The installed \(build.kind.title) build is missing. Install it again.")
         }

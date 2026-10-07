@@ -36,7 +36,8 @@ package struct LiveDatabasesPort: DatabasesPort {
     }
 
     package func runtimeOffers() async -> [DatabaseRuntimeOffer] {
-        onDemand?.offers() ?? []
+        guard let onDemand else { return [] }
+        return await onDemand.offers()
     }
 
     package func installRuntime(

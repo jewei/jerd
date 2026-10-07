@@ -23,6 +23,10 @@ struct FakeOnDemandReleases: OnDemandRuntimeProviding {
     func reusablePayload(for kind: RuntimeKind, layout: DataLayout) async throws -> ReusablePayload? {
         reusable?.kind == kind ? reusable : nil
     }
+
+    func hasReusablePayload(for kind: RuntimeKind, layout: DataLayout) async throws -> Bool {
+        reusable?.kind == kind
+    }
 }
 
 /// A volume with a fixed amount of free space, or one that cannot tell.
@@ -50,7 +54,7 @@ struct DatabaseRuntimeInstallerTests {
     static let postgres = pinned(
         .postgresql, "2.9.6", digest: "9fc7",
         link: "https://github.com/PostgresApp/PostgresApp/releases/download/v2.9.6/Postgres-2.9.6-18.dmg",
-        size: 122_517_005, installedSize: 753_446_725)
+        size: 122_517_005, installedSize: 750_547_900)
 
     private func installer(
         _ releases: FakeOnDemandReleases, installer: FakeManagedInstaller = FakeManagedInstaller(),
@@ -62,15 +66,15 @@ struct DatabaseRuntimeInstallerTests {
     }
 
     @Test("Offers map each pinned engine with its sizes, source, and engine version")
-    func offersMapEachPinnedEngine() {
+    func offersMapEachPinnedEngine() async {
         let engine = Self.pinned(
             .postgresql, "2.9.6", digest: "9fc7", link: Self.postgres.artifact.downloadURL!.absoluteString,
-            size: 122_517_005, engineVersion: "18.6", installedSize: 753_446_725)
+            size: 122_517_005, engineVersion: "18.6", installedSize: 750_547_900)
         #expect(
-            installer(FakeOnDemandReleases(list: [engine])).offers() == [
+            await installer(FakeOnDemandReleases(list: [engine])).offers() == [
                 DatabaseRuntimeOffer(
                     engine: .postgresql, versionLabel: "18.6", downloadSize: 122_517_005, source: "github.com",
-                    installedSize: 753_446_725)
+                    installedSize: 750_547_900)
             ])
     }
 
@@ -86,9 +90,9 @@ struct DatabaseRuntimeInstallerTests {
     }
 
     @Test("A catalog that cannot be read offers nothing")
-    func unreadableCatalogOffersNothing() {
+    func unreadableCatalogOffersNothing() async {
         let releases = FakeOnDemandReleases(failure: .unavailable("The app bundle has no runtimes.json."))
-        #expect(installer(releases).offers().isEmpty)
+        #expect(await installer(releases).offers().isEmpty)
     }
 
     @Test("Install uses the pinned release, then registers the build under a new ID")
@@ -122,7 +126,8 @@ struct DatabaseRuntimeInstallerTests {
 
     @Test("Too little free space stops the installation before the download")
     func tooLittleFreeSpaceStopsTheInstallation() async {
-        let managed = FakeManagedInstaller([Self.postgresBuild])
+        // No build of the pin is installed, so the install would download.
+        let managed = FakeManagedInstaller()
         let manager = RecordingDatabaseManager()
         let installer = installer(
             FakeOnDemandReleases(list: [Self.postgres]), installer: managed, manager: manager, free: 100_000_000)
@@ -130,7 +135,7 @@ struct DatabaseRuntimeInstallerTests {
             try await installer.install(.postgresql) { _ in }
         } throws: { error in
             let message = (error as? JerdError)?.message ?? ""
-            return message.contains("876\u{00A0}MB") && message.contains("100\u{00A0}MB")
+            return message.contains("873.1\u{00A0}MB") && message.contains("100\u{00A0}MB")
         }
         let registered = await manager.registered
         #expect(await managed.tools.isEmpty)
@@ -180,12 +185,56 @@ struct DatabaseRuntimeInstallerTests {
             owners: owners, sites: RecordingSiteChanges(), inspector: FakeExecutableInspector())
         let inventory = LiveRuntimeInventory(
             catalog: installer, installer: installer, owners: owners, activator: activator,
-            onDemand: FakeOnDemandReleases(list: [Self.postgres]))
+            databases: self.installer(FakeOnDemandReleases(list: [Self.postgres]), installer: installer))
         #expect(try await inventory.snapshot().onDemand == [Self.postgres])
+        #expect(try await inventory.snapshot().reusableOnDemand.isEmpty)
         let broken = LiveRuntimeInventory(
             catalog: installer, installer: installer, owners: owners, activator: activator,
-            onDemand: FakeOnDemandReleases(failure: .invalid("bad catalog")))
+            databases: self.installer(FakeOnDemandReleases(failure: .invalid("bad catalog")), installer: installer))
         #expect(try await broken.snapshot().onDemand.isEmpty)
+    }
+
+    @Test("An installed build of the pin skips the free-space check and is offered as a reuse")
+    func installedBuildSkipsTheFreeSpaceCheck() async throws {
+        let managed = FakeManagedInstaller([Self.postgresBuild])
+        let installer = installer(FakeOnDemandReleases(list: [Self.postgres]), installer: managed, free: 1_000)
+        #expect(await installer.offers().first?.reusesInstalledCopy == true)
+        #expect(await installer.offers().first?.requiredSpace == 0)
+        _ = try await installer.install(.postgresql) { _ in }
+        #expect(await managed.tools.count == 1)
+    }
+
+    @Test("Runtimes › Install… of a pinned engine uses the one flow: reuse, free space, registration")
+    func runtimesInstallUsesTheOneFlow() async throws {
+        let folder = URL(fileURLWithPath: "/nonexistent/Jerd/database-runtimes/postgresql-18.6-universal")
+        let earlier = ReusablePayload(
+            id: "postgresql-18.6-universal", kind: .postgresql, version: "18.6", directory: folder)
+        let managed = FakeManagedInstaller()
+        let manager = RecordingDatabaseManager()
+        let registered = DatabaseRuntime(id: earlier.id, engine: .postgresql, version: "18.6", path: folder.path)
+        let owners = RecordingRuntimeOwners(records: RuntimeRecords(databases: [registered]))
+        let inventory = LiveRuntimeInventory(
+            catalog: managed, installer: managed, owners: owners,
+            activator: RuntimeActivator(
+                owners: owners, sites: RecordingSiteChanges(), inspector: FakeExecutableInspector()),
+            databases: installer(
+                FakeOnDemandReleases(list: [Self.postgres], reusable: earlier), installer: managed, manager: manager,
+                free: 0))
+        #expect(try await inventory.snapshot().reusableOnDemand == [.postgresql])
+        let build = try await inventory.install(Self.postgres) { _ in }
+        #expect(build.version == "18.6" && build.kind == .postgresql)
+        #expect(await manager.registered == [[registered]])
+        #expect(await managed.tools.isEmpty)
+        // The flow registered the runtime; activation has nothing left to do.
+        try await inventory.activate(build, useAsDefault: true)
+
+        let tight = LiveRuntimeInventory(
+            catalog: managed, installer: managed, owners: owners,
+            activator: RuntimeActivator(
+                owners: owners, sites: RecordingSiteChanges(), inspector: FakeExecutableInspector()),
+            databases: installer(FakeOnDemandReleases(list: [Self.postgres]), installer: managed, free: 1_000))
+        await #expect(throws: JerdError.self) { try await tight.install(Self.postgres) { _ in } }
+        #expect(await managed.tools.isEmpty)
     }
 
     @Test("The live domain shares one installer between Runtimes and the Databases port")
@@ -197,7 +246,7 @@ struct DatabaseRuntimeInstallerTests {
                 layout: folder.layout, appBundle: folder.url, resources: folder.url, appVersion: "test"))
         let port = LiveDatabasesPort(domain: domain)
         let inventory = LiveRuntimeInventory(domain: domain)
-        let portInstaller = try #require(port.onDemand?.installer as? RuntimeInstaller)
+        let portInstaller = try #require(port.onDemand?.flow.installer as? RuntimeInstaller)
         let inventoryInstaller = try #require(inventory.installer as? RuntimeInstaller)
         #expect(portInstaller === domain.runtimeInstaller && inventoryInstaller === domain.runtimeInstaller)
     }
