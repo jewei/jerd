@@ -28,7 +28,7 @@ enum FailureLog {
     static func text(of result: InvocationResult) -> String {
         """
         $ \(result.commandLine)
-        Result: \(result.failureSummary)
+        Result: \(result.outcomeSummary)
         == Standard output ==
         \(result.standardOutput)
         == Standard error ==
