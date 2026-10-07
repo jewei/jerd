@@ -100,6 +100,11 @@ local runtimes.
 The `database` group also sets `JERD_ON_DEMAND_INTEGRATION=1` and
 `JERD_RUNTIME_DOWNLOADS=.build/runtimes/downloads` when that folder exists, so the
 on-demand installation test runs from the verified downloads without internet.
+The download cache also keeps the pinned MySQL signature file under its SHA-256;
+`./dev runtimes prepare database` adds it when an earlier run did not. The
+release runtime tests take the embedded payloads from the candidate app and the
+on-demand payloads (MySQL and PostgreSQL) from `.build/runtimes/payloads`, each
+verified file by file.
 Each group also sets `JERD_INTEGRATION=1`. The `database`, `mail`, and
 `storage` groups also set their own switch, for example
 `JERD_MAIL_INTEGRATION=1`. The database tests read a folder with `pins.json`

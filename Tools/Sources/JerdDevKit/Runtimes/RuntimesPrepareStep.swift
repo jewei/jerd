@@ -52,6 +52,11 @@ struct RuntimesPrepareStep: Sendable {
                 tools = try Self.tools(for: pin, preparer: preparer, catalog: catalog, lzma: lzma)
             }
             let receipt = try await prepareReportingProgress(pin, preparer: preparer, catalog: catalog, tools: tools)
+            if existed, let signature = pin.signature {
+                // An earlier run may predate the signature cache; keep the reviewed file for the
+                // on-demand integration test. The cache stores it only with its pinned SHA-256.
+                _ = try await fetcher.data(from: signature.url, limit: Int(signature.sizeLimit))
+            }
             let verb = existed ? "Verified the prepared" : "Prepared"
             context.console.success("\(verb) \(pin.id): \(pin.kind.rawValue) \(receipt.version).")
         }
