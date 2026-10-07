@@ -23,10 +23,11 @@ struct RuntimesStepsTests {
         try PayloadFixtures.writePayload(.mailpit, in: repository.payloads)
         let output = RecordingTextOutput()
         let context = TestFixtures.context(repository: repository, output: output)
-        try await RuntimesVerifyStep.verify(context, groups: [.mail])
+        try await RuntimesVerifyStep.verify(context, groups: [.mail], verifiesSupport: false)
         #expect(output.all.contains("files match the receipt"))
         await #expect(throws: DevFailure.self) { try await RuntimesVerifyStep.verify(context, groups: [.storage]) }
         #expect(output.all.contains("is not prepared. Run ./dev runtimes prepare storage."))
+        #expect(output.all.contains("support/xz is not prepared. Run ./dev runtimes prepare xz."))
     }
 
     @Test("Verify fails on a library reference that does not resolve inside the payload")

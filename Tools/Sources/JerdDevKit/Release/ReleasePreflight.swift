@@ -37,16 +37,26 @@ struct ReleasePreflight: Sendable {
         }
     }
 
-    /// Every embedded payload is prepared and matches its receipt, because the archive embeds them.
+    /// Every embedded payload and support library is prepared and matches its receipt, because the
+    /// archive embeds them.
     func checkPayloads() throws {
         let repository = shell.repository
         let catalog = try PayloadInventory.catalog(at: repository.runtimeCatalog)
-        let problems = EmbeddedPayloads.entries(in: repository.payloads, catalog: catalog).compactMap {
+        var problems = EmbeddedPayloads.entries(in: repository.payloads, catalog: catalog).compactMap {
             entry -> String? in
             switch entry.state {
             case .valid: nil
             case .missing: "\(entry.pin.id) is not prepared"
             case .invalid(let message): "\(entry.pin.id): \(message)"
+            }
+        }
+        let target = try repository.runtimeMinimumMacOS().description
+        for name in EmbeddedSupport.names(catalog) {
+            let folder = EmbeddedSupport.preparedFolder(name, in: repository)
+            switch EmbeddedSupport.state(of: name, in: folder, catalog: catalog, deploymentTarget: target) {
+            case .valid: break
+            case .missing: problems.append("the \(name) support library is not prepared")
+            case .invalid(let message): problems.append("the \(name) support library: \(message)")
             }
         }
         guard problems.isEmpty else {

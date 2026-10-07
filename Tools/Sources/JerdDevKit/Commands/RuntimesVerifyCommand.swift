@@ -25,7 +25,7 @@ struct RuntimesVerifyCommand: DevSubcommand {
         let context = try options.context()
         let selection = try RuntimeSelection.parse(groups)
         try await StepSequence.runSingle("Verify runtime payloads", console: context.console) {
-            try await RuntimesVerifyStep.verify(context, groups: selection.groups)
+            try await RuntimesVerifyStep.verify(context, groups: selection.groups, verifiesSupport: selection.buildsXZ)
         }
     }
 }

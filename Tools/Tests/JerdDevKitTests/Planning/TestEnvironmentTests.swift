@@ -16,6 +16,20 @@ struct TestEnvironmentTests {
         #expect(explicit["JERD_RUNTIME_DOWNLOADS"] == "/mine")
         #expect(TestEnvironment.addingOnDemandDownloads(base, groups: [.web], downloads: "/r/downloads") == base)
         #expect(TestEnvironment.addingOnDemandDownloads(base, groups: [.database], downloads: nil) == base)
+        // The database group alone does not run the RustFS case.
+        #expect(added["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == nil)
+    }
+
+    @Test("The storage group also installs the on-demand RustFS with the prepared XZ library")
+    func storageGroupAddsTheRustFSCase() {
+        let base = ["PATH": "/usr/bin"]
+        let added = TestEnvironment.addingOnDemandDownloads(
+            base, groups: [.storage], downloads: "/r/downloads", xzSupport: "/r/support/xz")
+        #expect(added["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == "1" && added["JERD_XZ_SUPPORT"] == "/r/support/xz")
+        #expect(added["JERD_ON_DEMAND_INTEGRATION"] == nil)
+        // Without the XZ library the RustFS case cannot run, so it is not switched on.
+        let noXZ = TestEnvironment.addingOnDemandDownloads(base, groups: [.storage], downloads: "/r/downloads")
+        #expect(noXZ["JERD_ON_DEMAND_STORAGE_INTEGRATION"] == nil)
     }
 
     @Test("removes every inherited JERD_ variable from default tests")

@@ -5,8 +5,9 @@ import JerdRuntimes
 /// `./dev runtimes embed DEST`: the Xcode embed phase calls it to copy the prepared embedded
 /// payloads into the app. It verifies every payload receipt (pin, file set, SHA-256, executable
 /// flags) before it copies, so an app never contains a payload that its receipt does not describe.
-/// Pins that the catalog marks `"embedded": false` (MySQL and PostgreSQL) stay out of the app; the
-/// app installs them on demand from the same pins.
+/// Pins that the catalog marks `"embedded": false` (MySQL, PostgreSQL, and RustFS) stay out of the
+/// app; the app installs them on demand from the same pins. The XZ library that the RustFS
+/// preparation needs goes into `support/xz` with its receipt (`EmbeddedSupport`).
 enum RuntimesEmbedStep {
     /// The destination must be the payload folder of an app bundle, because the step removes files in it.
     static let destinationName = BundledPayloadSource.folderName
@@ -21,6 +22,7 @@ enum RuntimesEmbedStep {
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
         let entries = EmbeddedPayloads.entries(in: context.repository.payloads, catalog: catalog)
         let payloads = try checked(entries, requiresAll: requiresAll, context: context)
+        let support = try checkedSupport(context, catalog: catalog, requiresAll: requiresAll)
         let manager = FileManager.default
         guard !payloads.isEmpty else {
             context.console.warning("No runtime payload is prepared. The app builds without runtimes.")
@@ -28,18 +30,24 @@ enum RuntimesEmbedStep {
             return
         }
         try manager.createDirectory(at: destination, withIntermediateDirectories: true)
-        try removeExtraneous(in: destination, keeping: payloads)
+        try removeExtraneous(in: destination, keeping: payloads, support: support.map(\.name))
         for entry in payloads {
             let target = destination.appending(path: entry.group.rawValue).appending(path: entry.pin.id)
             try manager.createDirectory(at: target, withIntermediateDirectories: true)
             try await context.runChecked(PayloadSyncPlan.copy(entry.folder, to: target), output: .capture)
+        }
+        for library in support {
+            let target = BundledSupportLibrary.folder(library.name, in: destination)
+            try manager.createDirectory(at: target, withIntermediateDirectories: true)
+            try await context.runChecked(PayloadSyncPlan.copy(library.folder, to: target), output: .capture)
         }
         let catalogFile = destination.appending(path: RuntimePinCatalog.fileName)
         if (try? Data(contentsOf: catalogFile)) != catalogBytes {
             try catalogBytes.write(to: catalogFile)
         }
         let seconds = start.duration(to: .now).formattedSeconds
-        context.console.success("Embedded \(payloads.count) verified runtime payloads in \(seconds).")
+        let libraries = support.isEmpty ? "" : " and the \(support.map(\.name).joined(separator: ", ")) support library"
+        context.console.success("Embedded \(payloads.count) verified runtime payloads\(libraries) in \(seconds).")
     }
 
     /// The valid entries. Any invalid payload fails; a missing one fails only when all are required.
@@ -73,8 +81,11 @@ enum RuntimesEmbedStep {
         return entries.filter { $0.payload != nil }
     }
 
-    private static func removeExtraneous(in destination: URL, keeping payloads: [PayloadInventory.Entry]) throws {
-        for path in try PayloadSyncPlan.extraneous(in: destination, keeping: payloads.map { ($0.pin, $0.group) }) {
+    private static func removeExtraneous(
+        in destination: URL, keeping payloads: [PayloadInventory.Entry], support: [String]
+    ) throws {
+        let pins = payloads.map { ($0.pin, $0.group) }
+        for path in try PayloadSyncPlan.extraneous(in: destination, keeping: pins, support: support) {
             try FileManager.default.removeItem(at: destination.appending(path: path))
         }
     }

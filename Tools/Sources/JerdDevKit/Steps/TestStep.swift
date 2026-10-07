@@ -1,4 +1,5 @@
 import Foundation
+import JerdRuntimes
 
 /// Runs the JerdKit tests and the Tools tests with `swift test`.
 enum TestStep {
@@ -15,11 +16,14 @@ enum TestStep {
         groups: [IntegrationGroup]
     ) async throws {
         let downloads = context.repository.runtimeDownloads
+        let xz = EmbeddedSupport.preparedFolder(BundledSupportLibrary.xzName, in: context.repository)
+        let manager = FileManager.default
         let environment = TestEnvironment.addingOnDemandDownloads(
             try TestEnvironment.make(inherited: context.environment, groups: groups) { group in
                 try preparedPaths(context).variables(for: group)
             }, groups: groups,
-            downloads: FileManager.default.fileExists(atPath: downloads.path) ? downloads.path : nil)
+            downloads: manager.fileExists(atPath: downloads.path) ? downloads.path : nil,
+            xzSupport: manager.fileExists(atPath: xz.path) ? xz.path : nil)
         let invocation = TestPlan.kitTests(
             repository: context.repository, toolchain: context.toolchain,
             testTargets: testTargets, filter: filter, environment: environment)

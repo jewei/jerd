@@ -24,6 +24,27 @@ struct AppPayloadCheck: Sendable {
                 code.append(.init(file: file, identifier: .exact(file.lastPathComponent)))
             }
         }
+        return code + (try await verifySupport(root))
+    }
+
+    /// Each embedded support library matches its signed receipt, carries the release team, runs on
+    /// the minimum macOS, and needs only system libraries.
+    func verifySupport(_ root: URL) async throws -> [AppVerifier.SignedCode] {
+        let catalog = try PayloadInventory.catalog(at: root.appending(path: RuntimePinCatalog.fileName))
+        var code: [AppVerifier.SignedCode] = []
+        for library in try EmbeddedSupport.verified(in: root, catalog: catalog) {
+            guard library.receipt.signing?.teamID == team else {
+                throw DevFailure.checkFailed(
+                    "The \(library.name) support receipt has no signing record of team \(team).")
+            }
+            let resolver = DependencyResolver(payload: library.folder)
+            for name in library.receipt.files.keys.sorted() {
+                let file = library.folder.appending(path: name)
+                guard MachOFile.isMachO(file) else { continue }
+                try await checkLoadCommands(file, resolver: resolver)
+                code.append(.init(file: file, identifier: .exact(name)))
+            }
+        }
         return code
     }
 

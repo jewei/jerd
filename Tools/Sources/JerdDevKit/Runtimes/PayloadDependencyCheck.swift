@@ -17,28 +17,34 @@ struct PayloadDependencyCheck: Sendable {
     /// One line for each problem, as `<file>: <reason>`. Empty when all references resolve.
     /// - Parameter minimumMacOS: The minimum that each file must run on, or nil for no check.
     func problems(in payload: BundledPayload, minimumMacOS: MinimumMacOS?) async throws -> [String] {
-        let resolver = DependencyResolver(payload: payload.origin)
+        try await problems(
+            files: payload.receipt.fileRecords.keys.map(\.string), in: payload.origin, minimumMacOS: minimumMacOS)
+    }
+
+    /// The same check for the recorded files of any folder, for example the XZ support library.
+    func problems(files: [String], in folder: URL, minimumMacOS: MinimumMacOS?) async throws -> [String] {
+        let resolver = DependencyResolver(payload: folder)
         var problems: [String] = []
-        for path in payload.receipt.fileRecords.keys.sorted() {
-            let file = path.url(in: payload.origin)
+        for path in files.sorted() {
+            let file = folder.appending(path: path)
             guard MachOFile.isMachO(file) else { continue }
             let invocation = Invocation(
                 executable: SystemProgram.otool, arguments: ["-arch", "arm64", "-l", file.path],
                 timeout: TimeLimit.probe)
             let result = try await context.run(invocation, output: .capture)
             guard result.succeeded else {
-                problems.append("\(path.string): otool cannot read the load commands.")
+                problems.append("\(path): otool cannot read the load commands.")
                 continue
             }
             let info = MachOLoadInfo.parse(result.standardOutput)
             if let minimumMacOS, let problem = Self.minimumProblem(info, minimumMacOS: minimumMacOS) {
-                problems.append("\(path.string): \(problem)")
+                problems.append("\(path): \(problem)")
             }
             for dependency in info.dependencies {
                 do {
                     _ = try resolver.resolve(dependency, of: file, rpaths: info.rpaths)
                 } catch let failure as DevFailure {
-                    problems.append("\(path.string): \(failure.message)")
+                    problems.append("\(path): \(failure.message)")
                 }
             }
         }
