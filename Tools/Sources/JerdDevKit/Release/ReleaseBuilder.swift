@@ -16,6 +16,9 @@ struct ReleaseBuilder: Sendable {
         [
             ReleaseStep("Archive the app") { try await archive() },
             ReleaseStep("Sign and check the app") { try await signApp() },
+            ReleaseStep("Run the signed runtimes") {
+                try await RuntimeSmokeTest(shell: shell, layout: layout).run()
+            },
             ReleaseStep("Notarize the app") { try await notarizeApp() },
             ReleaseStep("Build and notarize the disk image") { try await buildDiskImage() },
             ReleaseStep("Sign the disk image and the feed") { try await signFeed() },

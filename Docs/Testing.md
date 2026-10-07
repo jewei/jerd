@@ -15,7 +15,8 @@ passes through the runtime path variables of those groups. Set each path to an
 absolute path of a trusted local runtime. The variables of each group are in
 [Tools](../Tools/README.md#integration-tests).
 
-`./dev release` does not run the runtime tests. CI runs them: the weekly
+`./dev release` runs each signed embedded runtime once with a version argument,
+but not the runtime integration tests. CI runs them: the weekly
 `runtime-integration` job, or a manual run of the workflow. Before a release
 that changes a pinned runtime, start that job and wait for its result.
 
