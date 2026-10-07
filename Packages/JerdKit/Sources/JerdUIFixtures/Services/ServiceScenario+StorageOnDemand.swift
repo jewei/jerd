@@ -8,7 +8,7 @@ extension ServiceScenario {
     var isStorageOnDemand: Bool {
         switch self {
         case .storageOnDemand, .storageOnDemandReuse, .storageInstalling, .storageInstallFailed,
-            .dashboardStorageOnDemand:
+            .dashboardStorageOnDemand, .dashboardMailOnDemand:
             true
         default: false
         }
@@ -23,12 +23,7 @@ extension ServiceScenario {
     func configureStorageOnDemand(_ storage: InMemoryStorage) async {
         guard isStorageOnDemand else { return }
         let base = SampleServices.storageOffer
-        let offer =
-            self == .storageOnDemandReuse
-            ? StorageRuntimeOffer(
-                versionLabel: base.versionLabel, downloadSize: base.downloadSize, source: base.source,
-                installedSize: base.installedSize, reusesInstalledCopy: true)
-            : base
+        let offer = self == .storageOnDemandReuse ? base.reusing() : base
         let behavior: InstallBehavior =
             switch self {
             case .storageInstalling:
@@ -51,7 +46,7 @@ extension ServiceScenario {
         let model = state.storage
         switch self {
         case .storageInstalling:
-            model.requestRuntimeInstall(startsStorage: true)
+            model.requestRuntimeInstall(startsService: true)
             model.confirmRuntimeInstall()
         case .storageInstallFailed:
             model.requestRuntimeInstall()

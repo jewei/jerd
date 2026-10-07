@@ -102,7 +102,7 @@ struct RuntimesStepsTests {
         #expect(lines.contains { $0.contains("xz-5.8.4") && $0.hasSuffix("missing") })
         let mysql = try PayloadFixtures.pin(.mysql).id
         #expect(lines.contains { $0.contains("database  ") && $0.contains("on demand") && $0.contains(mysql) })
-        #expect(lines.contains { $0.contains("mail  ") && $0.contains(" yes ") })
+        #expect(lines.contains { $0.contains("mail  ") && $0.contains("on demand") && $0.contains(mail) })
         let redis = try PayloadFixtures.pin(.redis).id
         #expect(lines.contains { $0.contains("database  ") && $0.contains(" yes ") && $0.contains(redis) })
     }

@@ -50,7 +50,7 @@ public final class DatabasesModel {
     @ObservationIgnored var editorTask: Task<Void, Never>?
     /// The save of the restore sheet, with the same rule as `editorTask`.
     @ObservationIgnored var restoreTask: Task<Void, Never>?
-    /// Why Install waits: Runtimes or the Storage page installs a runtime now; nil when none does.
+    /// Why Install waits: Runtimes, the Storage page, or the Mail page installs a runtime now; nil when none does.
     /// `AppState` sets it: the pages share one installer, so the page waits instead of failing.
     @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
     /// The runtime installation of the page. Cancel and Quit stop it before its final rename.

@@ -12,7 +12,7 @@ public protocol StoragePort: Sendable {
     /// usable without it; the page shows this reason with the way to install it.
     func runtimeSetupFailure() async -> String?
     /// The pinned RustFS that Jerd can install on demand, or nil when the app has no such pin.
-    func runtimeOffer() async -> StorageRuntimeOffer?
+    func runtimeOffer() async -> ServiceRuntimeOffer?
     /// Installs the pinned RustFS (reuse, free space, download, checks, preparation) and registers
     /// it. It never touches buckets, objects, or credentials. Cancellation stops it before its
     /// final rename.

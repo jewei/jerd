@@ -22,9 +22,25 @@ public final class MailModel {
     /// The open ports sheet, or nil.
     public var portsDraft: PortsDraft?
     public internal(set) var portsOperation: OperationState = .idle
+    /// The pinned Mailpit that Jerd can install on demand, or nil.
+    public internal(set) var runtimeOffer: ServiceRuntimeOffer?
+    /// The one Mailpit installation that runs, or nil.
+    public internal(set) var runtimeInstallation: ServiceRuntimeInstallation?
+    /// Why the last Mailpit installation of the page failed, or that it was cancelled.
+    public internal(set) var runtimeNotice: ServiceRuntimeNotice?
+    /// The installation that waits for the user to confirm it.
+    public var pendingRuntimeInstall: ServiceRuntimeRequest?
 
     /// Shows another place in the window, for example Runtimes. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
+    /// Shows the Mail page in the front window, so a request from the card or the menu bar shows
+    /// its confirmation there. `AppState` sets it.
+    @ObservationIgnored public var presentPage: (@MainActor () -> Void)?
+    /// Why Install waits: another page installs a runtime now; nil when none does. `AppState` sets
+    /// it: the pages share one installer.
+    @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
+    /// The Mailpit installation of the page. Cancel and Quit stop it before its final rename.
+    @ObservationIgnored var runtimeInstallTask: Task<Void, Never>?
     @ObservationIgnored let port: any MailPort
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored let workspace: any WorkspaceOpening
@@ -47,19 +63,34 @@ public final class MailModel {
     public var hasRuntime: Bool { settings.runtime != nil }
 
     /// True while any work of this feature runs, so other pages and Quit can wait for it.
-    public var isBusy: Bool { operation.isWorking || portsOperation.isWorking }
+    public var isBusy: Bool { operation.isWorking || portsOperation.isWorking || runtimeInstallation != nil }
 
     /// True when the user can start a change now.
     public var canChange: Bool {
         loadState.isLoaded && !isBusy && !isShuttingDown && !state.isBusy
     }
 
-    public var canStart: Bool { canChange && hasRuntime && !state.offersStop }
+    /// Start needs a runtime, or a pinned Mailpit that it installs first.
+    public var canStart: Bool {
+        canChange && !state.offersStop && (hasRuntime || (runtimeOffer != nil && runtimeInstallElsewhere?() == nil))
+    }
+
+    /// True when Start installs Mailpit first.
+    public var startInstallsRuntime: Bool { !hasRuntime && runtimeOffer != nil }
     public var canStop: Bool { canChange && state.offersStop }
     public var canOpenInbox: Bool { state.isRunning && !isShuttingDown }
     public var canSendTestEmail: Bool { canChange && state.isRunning }
-    /// Ports change only while no process runs.
-    public var canEditPorts: Bool { canChange && !state.offersStop }
+    /// Why Open Inbox is off, or nil: Mailpit is not installed yet, or mail does not run.
+    public var inboxUnavailableReason: String? {
+        canOpenInbox ? nil : unavailableReason(to: "open the inbox")
+    }
+    /// Why Send Test Email is off, or nil, with the same rule as Open Inbox.
+    public var testEmailUnavailableReason: String? {
+        canSendTestEmail ? nil : unavailableReason(to: "send a test email")
+    }
+    /// The registration of Mailpit chooses the ports, so they change only after it, and only while
+    /// no process runs.
+    public var canEditPorts: Bool { canChange && hasRuntime && !state.offersStop }
     /// The settings come from the saved ports, so the copy never waits for other work.
     public var canCopyEnvironment: Bool { loadState.isLoaded && !isShuttingDown && hasRuntime }
 
@@ -68,6 +99,7 @@ public final class MailModel {
         do {
             apply(try await port.load())
             runtimeSetupFailure = await port.runtimeSetupFailure()
+            runtimeOffer = await port.runtimeOffer()
             loadState = .loaded
             await refreshFiles()
         } catch {
@@ -89,6 +121,12 @@ public final class MailModel {
 
     func apply(_ next: MailSnapshot) {
         if next != snapshot { snapshot = next }
+    }
+
+    /// The step that an inbox action needs first, for example `Start mail to open the inbox.`
+    private func unavailableReason(to action: String) -> String? {
+        if loadState.isLoaded, !hasRuntime { return "Install Mailpit, then start mail to \(action)." }
+        return state.isRunning ? nil : "Start mail to \(action)."
     }
 
     private func refreshFiles() async {

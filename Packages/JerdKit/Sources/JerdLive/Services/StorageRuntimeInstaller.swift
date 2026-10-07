@@ -29,17 +29,8 @@ package struct StorageRuntimeInstaller: Sendable {
 
     /// The pinned RustFS, and whether its install reuses a copy on this Mac. A missing or bad
     /// catalog offers nothing and is logged; the page then leads to Runtimes.
-    package func offer() async -> StorageRuntimeOffer? {
-        let release: RuntimeRelease?
-        do {
-            release = try flow.release(of: .rustfs)
-        } catch {
-            Self.log.error(
-                "RustFS cannot be offered: \(BundledServiceRuntimes.message(for: error), privacy: .public)")
-            return nil
-        }
-        guard let release else { return nil }
-        return Self.offer(release, reusesInstalledCopy: await flow.reusesInstalledCopy(release))
+    package func offer() async -> ServiceRuntimeOffer? {
+        await flow.offer(of: .rustfs, log: Self.log)
     }
 
     /// Installs and registers the pinned RustFS through the one flow.
@@ -79,12 +70,8 @@ package struct StorageRuntimeInstaller: Sendable {
     }
 
     /// The offer of the pinned RustFS release; nil for another kind or a release without an exact size.
-    package static func offer(_ release: RuntimeRelease, reusesInstalledCopy: Bool = false) -> StorageRuntimeOffer? {
-        guard release.kind == .rustfs, let size = release.downloadSize, let host = release.artifact.downloadURL?.host
-        else { return nil }
-        return StorageRuntimeOffer(
-            versionLabel: release.versionLabel, downloadSize: size, source: host, installedSize: release.installedSize,
-            reusesInstalledCopy: reusesInstalledCopy)
+    package static func offer(_ release: RuntimeRelease, reusesInstalledCopy: Bool = false) -> ServiceRuntimeOffer? {
+        OnDemandInstallFlow.offer(release, of: .rustfs, reusesInstalledCopy: reusesInstalledCopy)
     }
 }
 

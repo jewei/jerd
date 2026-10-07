@@ -5,7 +5,8 @@ import JerdRuntimes
 import Testing
 
 @Suite struct OnDemandRuntimesTests {
-    /// A bundle folder with only the committed catalog, as an app without database and RustFS payloads has it.
+    /// A bundle folder with only the committed catalog, as an app without database, Mailpit, and RustFS
+    /// payloads has it.
     private func committedBundle(_ folder: TemporaryFolder) throws -> URL {
         let bundle = folder.path("RuntimePayloads")
         try OwnedDirectory.create(bundle)
@@ -19,11 +20,11 @@ import Testing
         return try #require(try RuntimePinCatalog.decode(data).pin(for: kind))
     }
 
-    @Test func committedCatalogOffersExactlyMySQLPostgreSQLAndRustFS() throws {
+    @Test func committedCatalogOffersExactlyMySQLPostgreSQLMailpitAndRustFS() throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let releases = try OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64).releases()
-        #expect(releases.map(\.kind) == [.mysql, .postgresql, .rustfs])
+        #expect(releases.map(\.kind) == [.mysql, .postgresql, .mailpit, .rustfs])
         for release in releases {
             let pin = try committedPin(release.kind)
             let archive = try #require(pin.archive)
@@ -41,7 +42,7 @@ import Testing
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let source = OnDemandRuntimes(resources: try committedBundle(folder), architecture: .arm64)
-        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .redis, .mailpit, .cloudflared] {
+        for kind in [RuntimeKind.php, .caddy, .composer, .laravel, .redis, .cloudflared] {
             #expect(try source.release(for: kind) == nil, "\(kind)")
         }
         #expect(try source.release(for: .mysql)?.versionLabel == "8.4.11")
@@ -55,6 +56,10 @@ import Testing
         #expect(rustfs.title == "RustFS 1.0.0" && rustfs.pinnedSignature == nil)
         #expect(rustfs.downloadSize == 87_018_416 && rustfs.installedSize == 223_534_901)
         #expect(rustfs.requiredSpace == Int64(87_018_416 + 223_534_901))
+        let mailpit = try #require(try source.release(for: .mailpit))
+        #expect(mailpit.title == "Mailpit 1.31.3" && mailpit.pinnedSignature == nil)
+        #expect(mailpit.downloadSize == 9_848_192 && mailpit.installedSize == 26_328_126)
+        #expect(mailpit.requiredSpace == Int64(9_848_192 + 26_328_126))
     }
 
     @Test func catalogWithoutOnDemandPinsOffersNothing() throws {

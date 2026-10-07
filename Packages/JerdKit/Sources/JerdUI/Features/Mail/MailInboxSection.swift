@@ -11,7 +11,7 @@ struct MailInboxSection: View {
             ActionRow("Test email", detail: "Send a sample message to the local inbox.") {
                 Button("Send Test Email", systemImage: "paperplane", action: { model.sendTestEmail() })
                     .disabled(isQuitting || !model.canSendTestEmail)
-                    .help(model.state.isRunning ? "Send Test Email" : "Start mail to send a test email.")
+                    .help(model.testEmailUnavailableReason ?? "Send Test Email")
                     .accessibilityIdentifier("mail.send-test")
             }
             if let result = model.testResult {

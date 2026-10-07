@@ -25,20 +25,20 @@ public final class StorageModel {
     public var portsDraft: PortsDraft?
     public internal(set) var portsOperation: OperationState = .idle
     /// The pinned RustFS that Jerd can install on demand, or nil.
-    public internal(set) var runtimeOffer: StorageRuntimeOffer?
+    public internal(set) var runtimeOffer: ServiceRuntimeOffer?
     /// The one RustFS installation that runs, or nil.
-    public internal(set) var runtimeInstallation: StorageRuntimeInstallation?
+    public internal(set) var runtimeInstallation: ServiceRuntimeInstallation?
     /// Why the last RustFS installation of the page failed, or that it was cancelled.
-    public internal(set) var runtimeNotice: StorageRuntimeNotice?
+    public internal(set) var runtimeNotice: ServiceRuntimeNotice?
     /// The installation that waits for the user to confirm it.
-    public var pendingRuntimeInstall: StorageRuntimeRequest?
+    public var pendingRuntimeInstall: ServiceRuntimeRequest?
 
     /// Shows another place in the window, for example a new bucket. `AppState` sets it.
     @ObservationIgnored public var navigate: (@MainActor (Destination) -> Void)?
     /// Shows the Storage page in the front window, so a request from the card or the menu bar
     /// shows its confirmation there. `AppState` sets it.
     @ObservationIgnored public var presentPage: (@MainActor () -> Void)?
-    /// Why Install waits: Runtimes or the Databases page installs a runtime now; nil when none does.
+    /// Why Install waits: Runtimes, the Databases page, or the Mail page installs a runtime now; nil when none does.
     /// `AppState` sets it: the pages share one installer.
     @ObservationIgnored public var runtimeInstallElsewhere: (@MainActor () -> String?)?
     /// The RustFS installation of the page. Cancel and Quit stop it before its final rename.

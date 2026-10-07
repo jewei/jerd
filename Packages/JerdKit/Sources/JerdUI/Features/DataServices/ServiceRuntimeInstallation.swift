@@ -1,15 +1,15 @@
 import JerdRuntimes
 
-/// The one RustFS installation that the Storage page runs.
-public struct StorageRuntimeInstallation: Equatable, Sendable {
-    public let offer: StorageRuntimeOffer
-    /// True when Start began it: storage starts after RustFS is installed.
-    public let startsStorage: Bool
+/// The one on-demand runtime installation that a service page (Storage, Mail) runs.
+public struct ServiceRuntimeInstallation: Equatable, Sendable {
+    public let offer: ServiceRuntimeOffer
+    /// True when Start began it: the service starts after its runtime is installed.
+    public let startsService: Bool
     public var progress: RuntimeInstallProgress?
 
-    public init(offer: StorageRuntimeOffer, startsStorage: Bool, progress: RuntimeInstallProgress? = nil) {
+    public init(offer: ServiceRuntimeOffer, startsService: Bool, progress: RuntimeInstallProgress? = nil) {
         self.offer = offer
-        self.startsStorage = startsStorage
+        self.startsService = startsService
         self.progress = progress
     }
 

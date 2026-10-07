@@ -61,6 +61,51 @@ import Testing
         #expect(reusable?.directory == installed && reusable?.version == "1.0.0" && reusable?.kind == .rustfs)
     }
 
+    /// A bundle with only the Mailpit pin, embedded (`nil`) or on demand.
+    private func mailBundle(_ folder: TemporaryFolder, name: String, embedded: Bool?) throws -> URL {
+        var builder = BundleBuilder(root: folder.path(name))
+        try builder.add(
+            .mailpit, id: "mailpit-1.31.3-arm64", version: "1.31.3",
+            files: [.init(path: "mailpit", text: "mailpit", executable: true)], embedded: embedded)
+        try builder.writeCatalog()
+        return folder.path(name)
+    }
+
+    @Test func mailpitThatAnEarlierCopyEmbeddedIsReusedFromMailRuntimes() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let earlier = BundledRuntimeBootstrap(
+            resources: try mailBundle(folder, name: "earlier", embedded: nil), layout: layout(folder),
+            architecture: .arm64)
+        let installed = try #require(try await earlier.installMail()).directory
+        #expect(installed.deletingLastPathComponent().lastPathComponent == "mail-runtimes")
+        let current = OnDemandRuntimes(
+            resources: try mailBundle(folder, name: "current", embedded: false), architecture: .arm64)
+        let reusable = try await current.reusablePayload(for: .mailpit, layout: layout(folder))
+        #expect(reusable?.directory == installed && reusable?.version == "1.31.3" && reusable?.kind == .mailpit)
+        #expect(try await current.hasReusablePayload(for: .mailpit, layout: layout(folder)))
+    }
+
+    /// The oldest copies wrote `mail-runtimes/<pin ID>/receipt.json` with plain file digests.
+    @Test func legacyMailpitWithThePinnedDigestIsReused() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let legacy = folder.path("data/mail-runtimes/mailpit-1.31.3-arm64")
+        try OwnedDirectory.create(legacy)
+        try AtomicFile.write(Data("mailpit".utf8), to: legacy.appendingPathComponent("mailpit"))
+        chmod(legacy.appendingPathComponent("mailpit").path, 0o700)
+        let receipt = """
+            {"archiveSHA256": "\(digest("c"))", "schemaVersion": 1,
+             "files": {"mailpit": "\(FileDigest.hexSHA256(of: Data("mailpit".utf8)))"}}
+            """
+        try AtomicFile.write(Data(receipt.utf8), to: legacy.appendingPathComponent("receipt.json"))
+        let current = OnDemandRuntimes(
+            resources: try mailBundle(folder, name: "current", embedded: false), architecture: .arm64)
+        let reusable = try await current.reusablePayload(for: .mailpit, layout: layout(folder))
+        #expect(reusable?.id == "mailpit-1.31.3-arm64" && reusable?.version == "1.31.3")
+        #expect(reusable?.directory.standardizedFileURL == legacy.standardizedFileURL)
+    }
+
     @Test func changedPayloadIsNotReusedAndStaysAsItIs() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }

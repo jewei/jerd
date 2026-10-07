@@ -81,8 +81,14 @@ public enum SampleServices {
     ]
 
     /// The RustFS that the committed catalog installs on demand, as the live port offers it.
-    public static let storageOffer = StorageRuntimeOffer(
-        versionLabel: "1.0.0", downloadSize: 87_018_416, source: "github.com", installedSize: 223_534_901)
+    public static let storageOffer = ServiceRuntimeOffer(
+        name: "RustFS", versionLabel: "1.0.0", downloadSize: 87_018_416, source: "github.com",
+        installedSize: 223_534_901)
+
+    /// The Mailpit that the committed catalog installs on demand, as the live port offers it.
+    public static let mailOffer = ServiceRuntimeOffer(
+        name: "Mailpit", versionLabel: "1.31.3", downloadSize: 9_848_192, source: "github.com",
+        installedSize: 26_328_126)
 
     /// The Redis that the app embeds, as the first launch registers it.
     public static let embeddedRedis = DatabaseRuntime(

@@ -1,36 +1,62 @@
 import JerdDesign
 import SwiftUI
 
-/// RustFS while it is not installed: the pinned version with its download size and Install
-/// RustFS…, or the running installation with its progress and Cancel. Nothing downloads before the
-/// user confirms.
-struct StorageRuntimeSection: View {
-    let model: StorageModel
+/// The runtime of a service page (RustFS, Mailpit) while it is not installed: the pinned version
+/// with its download size and Install…, or the running installation with its progress and Cancel.
+/// Nothing downloads before the user confirms. The Storage and Mail pages share it.
+struct ServiceRuntimeSection: View {
+    let copy: ServiceRuntimeCopy
+    let offer: ServiceRuntimeOffer?
+    let installation: ServiceRuntimeInstallation?
+    let canInstall: Bool
+    /// Why Install waits for another page, or nil.
+    let elsewhere: String?
+    /// The stable name of the page, for example `storage`.
+    let identifier: String
+    let install: @MainActor () -> Void
+    let cancel: @MainActor () -> Void
     @Environment(\.isQuitting) private var isQuitting
 
     var body: some View {
         Section {
-            if let installation = model.runtimeInstallation {
+            if let installation {
                 VStack(alignment: .leading, spacing: Spacing.tight) {
-                    Text("RustFS").textRole(.rowTitle)
-                    RuntimeInstallProgressRow(installation, cancel: model.cancelRuntimeInstall)
+                    Text(copy.runtime).textRole(.rowTitle)
+                    RuntimeInstallProgressRow(installation, identifier: identifier, cancel: cancel)
                 }
-            } else if let offer = model.runtimeOffer {
-                ActionRow("RustFS", detail: StorageRuntimeCopy.notInstalledDetail(offer)) {
-                    Button(StorageRuntimeCopy.installTitle) { model.requestRuntimeInstall() }
-                        .disabled(isQuitting || !model.canInstallRuntime)
+            } else if let offer {
+                ActionRow(copy.runtime, detail: copy.notInstalledDetail(offer)) {
+                    Button(copy.installTitle, action: install)
+                        .disabled(isQuitting || !canInstall)
                         .help(
-                            model.runtimeInstallElsewhere?()
-                                ?? StorageRuntimeCopy.confirmationMessage(
-                                    StorageRuntimeRequest(offer: offer, startsStorage: false))
+                            elsewhere
+                                ?? copy.confirmationMessage(ServiceRuntimeRequest(offer: offer, startsService: false))
                         )
-                        .accessibilityIdentifier("storage.install-runtime")
+                        .accessibilityIdentifier("\(identifier).install-runtime")
                 }
             }
         } header: {
             Text("Runtime")
         } footer: {
-            FormFooter(StorageRuntimeCopy.footer(reuses: model.runtimeOffer?.reusesInstalledCopy == true))
+            FormFooter(copy.footer(reuses: offer?.reusesInstalledCopy == true))
         }
+    }
+}
+
+extension ServiceRuntimeSection {
+    /// The section of the Storage page.
+    init(model: StorageModel) {
+        self.init(
+            copy: .storage, offer: model.runtimeOffer, installation: model.runtimeInstallation,
+            canInstall: model.canInstallRuntime, elsewhere: model.runtimeInstallElsewhere?(), identifier: "storage",
+            install: { model.requestRuntimeInstall() }, cancel: model.cancelRuntimeInstall)
+    }
+
+    /// The section of the Mail page.
+    init(model: MailModel) {
+        self.init(
+            copy: .mail, offer: model.runtimeOffer, installation: model.runtimeInstallation,
+            canInstall: model.canInstallRuntime, elsewhere: model.runtimeInstallElsewhere?(), identifier: "mail",
+            install: { model.requestRuntimeInstall() }, cancel: model.cancelRuntimeInstall)
     }
 }

@@ -43,7 +43,7 @@ import Testing
         #expect(try preparer.folder(for: pin).path.hasSuffix("payloads/mail/mailpit-1.31.3-arm64"))
         let bootstrap = BundledRuntimeBootstrap(
             resources: folder.path("payloads"), layout: DataLayout(root: folder.path("data")), architecture: .arm64)
-        let installed = try await bootstrap.installMail()
+        let installed = try #require(try await bootstrap.installMail())
         #expect(installed.id == receipt.folderID && installed.version == "1.31.3")
     }
 

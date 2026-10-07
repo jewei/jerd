@@ -1,6 +1,6 @@
 import JerdRuntimes
 
-/// The words of a pinned runtime installation that the Databases page, the Storage page, and
+/// The words of a pinned runtime installation that the Databases, Storage, and Mail pages and
 /// Runtimes share, so all ask the same question with the same facts.
 enum RuntimeInstallCopy {
     /// Why an install waits: the one shared installer runs for another page, for example

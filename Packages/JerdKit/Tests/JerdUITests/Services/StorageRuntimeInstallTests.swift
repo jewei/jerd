@@ -14,7 +14,7 @@ import Testing
 struct StorageRuntimeInstallTests {
     /// An app at first launch: no RustFS yet, and the pinned RustFS on offer.
     private func launched(
-        behavior: InstallBehavior = .succeed, offer: StorageRuntimeOffer? = SampleServices.storageOffer,
+        behavior: InstallBehavior = .succeed, offer: ServiceRuntimeOffer? = SampleServices.storageOffer,
         databases: InMemoryDatabases = InMemoryDatabases(), runtimes: InMemoryRuntimeInventory? = nil
     ) async -> (AppFixture, InMemoryStorage) {
         let storage = InMemoryStorage()
@@ -74,7 +74,7 @@ struct StorageRuntimeInstallTests {
         model.requestRuntimeInstall()
         #expect(
             model.pendingRuntimeInstall
-                == StorageRuntimeRequest(offer: SampleServices.storageOffer, startsStorage: false))
+                == ServiceRuntimeRequest(offer: SampleServices.storageOffer, startsService: false))
         #expect(await storage.calls == ["load"])
         await model.confirmRuntimeInstall()?.value
         #expect(await storage.calls == ["load", "install rustfs"])
@@ -90,7 +90,7 @@ struct StorageRuntimeInstallTests {
         defer { fixture.removeDefaults() }
         let model = fixture.state.storage
         #expect(model.start() == nil)
-        #expect(model.pendingRuntimeInstall?.startsStorage == true)
+        #expect(model.pendingRuntimeInstall?.startsService == true)
         #expect(await storage.calls == ["load"])
         await model.confirmRuntimeInstall()?.value
         await waitUntil { model.state.isRunning }
@@ -107,7 +107,7 @@ struct StorageRuntimeInstallTests {
         try #require(state.storage.summary.actions.first).perform()
         #expect(state.navigation.section == .storage)
         #expect(fixture.shell.windowRequests == before + 1)
-        #expect(state.storage.pendingRuntimeInstall?.startsStorage == true)
+        #expect(state.storage.pendingRuntimeInstall?.startsService == true)
     }
 
     @Test("Progress shows in bytes; Cancel installs nothing and says so")
@@ -115,7 +115,7 @@ struct StorageRuntimeInstallTests {
         let (fixture, storage) = await launched(behavior: Self.waiting)
         defer { fixture.removeDefaults() }
         let model = fixture.state.storage
-        model.requestRuntimeInstall(startsStorage: true)
+        model.requestRuntimeInstall(startsService: true)
         let task = model.confirmRuntimeInstall()
         await waitUntil { model.runtimeInstallation?.progress != nil }
         #expect(model.runtimeInstallation?.message == "Downloading RustFS 1.0.0… 34.8\u{00A0}MB of 87\u{00A0}MB")
@@ -124,7 +124,9 @@ struct StorageRuntimeInstallTests {
         #expect(!model.canStart && !model.canInstallRuntime && model.isBusy)
         model.cancelRuntimeInstall()
         await task?.value
-        #expect(model.runtimeNotice == StorageRuntimeNotice(message: StorageRuntimeCopy.cancelled, isFailure: false))
+        #expect(
+            model.runtimeNotice == ServiceRuntimeNotice(message: ServiceRuntimeCopy.storage.cancelled, isFailure: false)
+        )
         #expect(!model.hasRuntime && model.runtimeInstallation == nil)
         #expect(await storage.calls == ["load", "install rustfs"])
     }
@@ -135,9 +137,9 @@ struct StorageRuntimeInstallTests {
         let (fixture, storage) = await launched(behavior: .fail(offline))
         defer { fixture.removeDefaults() }
         let model = fixture.state.storage
-        model.requestRuntimeInstall(startsStorage: true)
+        model.requestRuntimeInstall(startsService: true)
         await model.confirmRuntimeInstall()?.value
-        #expect(model.runtimeNotice == StorageRuntimeNotice(message: offline, isFailure: true))
+        #expect(model.runtimeNotice == ServiceRuntimeNotice(message: offline, isFailure: true))
         #expect(model.operation == .idle)
         #expect(await storage.calls == ["load", "install rustfs"])
         model.dismissRuntimeNotice()
@@ -205,32 +207,32 @@ struct StorageRuntimeInstallTests {
     @Test("The words: the size, the source, the space, the reuse, and the start")
     func installCopy() {
         let offer = SampleServices.storageOffer
-        let install = StorageRuntimeRequest(offer: offer, startsStorage: false)
-        let start = StorageRuntimeRequest(offer: offer, startsStorage: true)
-        #expect(StorageRuntimeCopy.confirmationTitle(install) == "Install RustFS 1.0.0?")
-        #expect(StorageRuntimeCopy.confirmTitle(install) == "Download and Install")
-        #expect(StorageRuntimeCopy.confirmTitle(start) == "Download and Start")
-        let message = StorageRuntimeCopy.confirmationMessage(install)
+        let install = ServiceRuntimeRequest(offer: offer, startsService: false)
+        let start = ServiceRuntimeRequest(offer: offer, startsService: true)
+        #expect(ServiceRuntimeCopy.storage.confirmationTitle(install) == "Install RustFS 1.0.0?")
+        #expect(ServiceRuntimeCopy.storage.confirmTitle(install) == "Download and Install")
+        #expect(ServiceRuntimeCopy.storage.confirmTitle(start) == "Download and Start")
+        let message = ServiceRuntimeCopy.storage.confirmationMessage(install)
         #expect(message.contains("87\u{00A0}MB from github.com") && message.contains("reviewed checksum"))
         #expect(message.contains("310.6\u{00A0}MB of free disk space") && !message.contains("signature"))
-        #expect(StorageRuntimeCopy.confirmationMessage(start).hasSuffix("Then Jerd starts storage."))
-        #expect(StorageRuntimeCopy.notInstalledDetail(offer) == "Not installed. 1.0.0, 87\u{00A0}MB download.")
+        #expect(ServiceRuntimeCopy.storage.confirmationMessage(start).hasSuffix("Then Jerd starts storage."))
+        #expect(ServiceRuntimeCopy.storage.notInstalledDetail(offer) == "Not installed. 1.0.0, 87\u{00A0}MB download.")
 
-        let reused = StorageRuntimeOffer(
-            versionLabel: "1.0.0", downloadSize: offer.downloadSize, source: offer.source,
-            installedSize: offer.installedSize, reusesInstalledCopy: true)
-        let reuse = StorageRuntimeRequest(offer: reused, startsStorage: false)
-        #expect(StorageRuntimeCopy.confirmTitle(reuse) == "Install")
+        let reused = offer.reusing()
         #expect(
-            StorageRuntimeCopy.confirmTitle(StorageRuntimeRequest(offer: reused, startsStorage: true))
+            reused.reusesInstalledCopy && reused.title == offer.title && reused.installedSize == offer.installedSize)
+        let reuse = ServiceRuntimeRequest(offer: reused, startsService: false)
+        #expect(ServiceRuntimeCopy.storage.confirmTitle(reuse) == "Install")
+        #expect(
+            ServiceRuntimeCopy.storage.confirmTitle(ServiceRuntimeRequest(offer: reused, startsService: true))
                 == "Install and Start")
-        #expect(StorageRuntimeCopy.confirmationMessage(reuse).contains("Nothing is downloaded"))
-        #expect(!StorageRuntimeCopy.confirmationMessage(reuse).contains("87"))
-        #expect(StorageRuntimeCopy.notInstalledDetail(reused).contains("already on this Mac"))
-        #expect(StorageRuntimeCopy.cardNotice(reused).contains("copy on this Mac"))
-        #expect(StorageRuntimeCopy.footer(reuses: true).contains("Nothing is downloaded"))
-        #expect(!StorageRuntimeCopy.footer(reuses: true).contains("downloads it"))
-        #expect(StorageRuntimeCopy.footer(reuses: false).contains("downloads it only when"))
+        #expect(ServiceRuntimeCopy.storage.confirmationMessage(reuse).contains("Nothing is downloaded"))
+        #expect(!ServiceRuntimeCopy.storage.confirmationMessage(reuse).contains("87"))
+        #expect(ServiceRuntimeCopy.storage.notInstalledDetail(reused).contains("already on this Mac"))
+        #expect(ServiceRuntimeCopy.storage.cardNotice(reused).contains("copy on this Mac"))
+        #expect(ServiceRuntimeCopy.storage.footer(reuses: true).contains("Nothing is downloaded"))
+        #expect(!ServiceRuntimeCopy.storage.footer(reuses: true).contains("downloads it"))
+        #expect(ServiceRuntimeCopy.storage.footer(reuses: false).contains("downloads it only when"))
         #expect(reused.requiredSpace == 0 && offer.requiredSpace == 310_553_317)
     }
 
@@ -244,9 +246,9 @@ struct StorageRuntimeInstallTests {
         #expect(
             RuntimeCopy.onDemandDetail(release)
                 == "1.0.0, 87\u{00A0}MB download. Jerd checks it against its reviewed checksum.")
-        let request = StorageRuntimeRequest(offer: SampleServices.storageOffer, startsStorage: false)
+        let request = ServiceRuntimeRequest(offer: SampleServices.storageOffer, startsService: false)
         #expect(
             RuntimeInstallCopy.confirmationMessage(release, reuses: false)
-                == StorageRuntimeCopy.confirmationMessage(request))
+                == ServiceRuntimeCopy.storage.confirmationMessage(request))
     }
 }

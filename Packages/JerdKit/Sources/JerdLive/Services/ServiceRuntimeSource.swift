@@ -8,7 +8,8 @@ import JerdStorage
 package protocol ServiceRuntimeSource: Sendable {
     /// Installs the bundled database runtimes, except the kinds in `excluding`.
     func databaseRuntimes(excluding: Set<RuntimeKind>) async throws -> [DatabaseRuntime]
-    func mailRuntime() async throws -> MailRuntime
+    /// The embedded Mailpit, or nil when the app installs Mailpit on demand.
+    func mailRuntime() async throws -> MailRuntime?
     /// The embedded RustFS, or nil when the app installs RustFS on demand.
     func storageRuntime() async throws -> StorageRuntime?
 }

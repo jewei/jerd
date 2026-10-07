@@ -1,25 +1,25 @@
 import Foundation
+import JerdMail
 import JerdRuntimes
-import JerdStorage
 
-extension StorageModel {
-    /// True when the RustFS installation can start now: no runtime yet, a pinned offer, no other
-    /// storage work, no installation on another page, and not during a quit.
+extension MailModel {
+    /// True when the Mailpit installation can start now: no runtime yet, a pinned offer, no other
+    /// mail work, no installation on another page, and not during a quit.
     public var canInstallRuntime: Bool {
         canChange && !hasRuntime && runtimeOffer != nil && runtimeInstallElsewhere?() == nil
     }
 
-    /// Asks to confirm the installation of the pinned RustFS. Nothing downloads before the user
-    /// confirms. The request shows on the Storage page, so a card or menu request shows that page.
-    /// - Parameter startsService: True for Start: storage starts after the installation.
+    /// Asks to confirm the installation of the pinned Mailpit. Nothing downloads before the user
+    /// confirms. The request shows on the Mail page, so a card or menu request shows that page.
+    /// - Parameter startsService: True for Start: mail starts after the installation.
     public func requestRuntimeInstall(startsService: Bool = false) {
         guard canInstallRuntime, let runtimeOffer else { return }
         pendingRuntimeInstall = ServiceRuntimeRequest(offer: runtimeOffer, startsService: startsService)
         presentPage?()
     }
 
-    /// Installs the confirmed RustFS, then starts storage when Start asked for it. The page shows
-    /// the progress; Cancel stops it.
+    /// Installs the confirmed Mailpit, then starts mail when Start asked for it. The page shows the
+    /// progress; Cancel stops it.
     @discardableResult
     public func confirmRuntimeInstall() -> Task<Void, Never>? {
         guard let request = pendingRuntimeInstall else { return nil }
@@ -29,7 +29,7 @@ extension StorageModel {
             do {
                 try await installRuntime(request)
             } catch is CancellationError {
-                runtimeNotice = ServiceRuntimeNotice(message: ServiceRuntimeCopy.storage.cancelled, isFailure: false)
+                runtimeNotice = ServiceRuntimeNotice(message: ServiceRuntimeCopy.mail.cancelled, isFailure: false)
                 return
             } catch {
                 runtimeNotice = ServiceRuntimeNotice(message: ErrorText.message(for: error), isFailure: true)
@@ -51,11 +51,12 @@ extension StorageModel {
         runtimeNotice = nil
     }
 
-    /// Download, verify, install, and register, then read the new runtime. A failed or cancelled
-    /// installation reads the offer again, because a build may now be on this Mac. It throws
-    /// `CancellationError` after a cancel.
+    /// Download, verify, install, and register, then read the new runtime and its ports. A failed
+    /// or cancelled installation reads the offer again, because a build may now be on this Mac. It
+    /// throws `CancellationError` after a cancel.
     private func installRuntime(_ request: ServiceRuntimeRequest) async throws {
         runtimeNotice = nil
+        testResult = nil
         runtimeInstallation = ServiceRuntimeInstallation(offer: request.offer, startsService: request.startsService)
         defer { runtimeInstallation = nil }
         do {

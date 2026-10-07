@@ -15,10 +15,14 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     let databases: DatabaseRuntimeInstaller?
     /// The installation of the pinned RustFS, shared with the Storage page, or nil.
     let storage: StorageRuntimeInstaller?
+    /// The installation of the pinned Mailpit, shared with the Mail page, or nil.
+    let mail: MailRuntimeInstaller?
 
     package init(
         catalog: any RuntimeCatalogChecking, installer: any ManagedRuntimeInstalling, owners: any RuntimeOwning,
-        activator: RuntimeActivator, databases: DatabaseRuntimeInstaller? = nil, storage: StorageRuntimeInstaller? = nil
+        activator: RuntimeActivator, databases: DatabaseRuntimeInstaller? = nil,
+        storage: StorageRuntimeInstaller? = nil,
+        mail: MailRuntimeInstaller? = nil
     ) {
         self.catalog = catalog
         self.installer = installer
@@ -26,6 +30,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
         self.activator = activator
         self.databases = databases
         self.storage = storage
+        self.mail = mail
     }
 
     /// The live inventory, on the app's one fetcher and installer. Every request of the
@@ -39,7 +44,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
             databases: DatabaseRuntimeInstaller(
                 releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
                 layout: domain.layout),
-            storage: StorageRuntimeInstaller(domain: domain))
+            storage: StorageRuntimeInstaller(domain: domain), mail: MailRuntimeInstaller(domain: domain))
     }
 
     /// Removes the staging folders of `runtime-updates/` that a crash left. The app calls it
@@ -55,7 +60,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
     package func snapshot() async throws -> RuntimeInventorySnapshot {
         let records = try await owners.records()
         var snapshot = records.snapshot(managed: await installer.list().compactMap(\.runtime))
-        if let flow = databases?.flow ?? storage?.flow {
+        if let flow = databases?.flow ?? storage?.flow ?? mail?.flow {
             snapshot.onDemand = (try? flow.releases.releases()) ?? []
             for release in snapshot.onDemand where await flow.reusesInstalledCopy(release) {
                 snapshot.reusableOnDemand.insert(release.kind)

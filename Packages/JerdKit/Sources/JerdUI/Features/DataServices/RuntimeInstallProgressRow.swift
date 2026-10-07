@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The progress of an on-demand runtime installation on a service page: the step, a bar while the
 /// length is known, and Cancel where the page owns the installation (a sheet cancels with its own
-/// button). The Databases and Storage pages share it.
+/// button). The Databases, Storage, and Mail pages share it.
 struct RuntimeInstallProgressRow: View {
     let message: String
     let progress: RuntimeInstallProgress?
@@ -51,10 +51,10 @@ extension RuntimeInstallProgressRow {
             cancel: cancel)
     }
 
-    /// The row of the RustFS installation.
-    init(_ installation: StorageRuntimeInstallation, cancel: (@MainActor () -> Void)?) {
+    /// The row of the runtime installation of a service page, for example `storage` for RustFS.
+    init(_ installation: ServiceRuntimeInstallation, identifier: String, cancel: (@MainActor () -> Void)?) {
         self.init(
-            message: installation.message, progress: installation.progress, name: "RustFS",
-            cancelIdentifier: "storage.cancel-install", cancel: cancel)
+            message: installation.message, progress: installation.progress, name: installation.offer.name,
+            cancelIdentifier: "\(identifier).cancel-install", cancel: cancel)
     }
 }

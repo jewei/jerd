@@ -2,9 +2,15 @@ import Foundation
 import JerdMail
 
 extension MailModel {
+    /// Starts mail. Without a runtime it asks to install the pinned Mailpit first; the confirmed
+    /// installation then starts mail in the same flow.
     @discardableResult
     public func start() -> Task<Void, Never>? {
         guard canStart else { return nil }
+        if startInstallsRuntime {
+            requestRuntimeInstall(startsService: true)
+            return nil
+        }
         return perform("Starting mail…") { try await $0.port.start() }
     }
 

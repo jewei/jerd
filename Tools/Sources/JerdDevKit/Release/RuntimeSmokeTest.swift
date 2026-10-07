@@ -7,7 +7,9 @@ import JerdRuntimes
 /// a fault that only the signed form has (library validation, a missing entitlement) stops the release
 /// before anything is public. The commands use a private temporary home and a minimal environment,
 /// and none of them opens a network connection. RustFS installs on demand, so the prepared RustFS
-/// runs once beside the signed XZ library of the app (`runSupportCheck`).
+/// runs once beside the signed XZ library of the app (`runSupportCheck`). Mailpit installs on demand
+/// too, but it loads nothing from the signed app, so the release does not run it: the app has no
+/// Mailpit to sign, and the mail integration tests run the prepared Mailpit.
 struct RuntimeSmokeTest: Sendable {
     /// One command line.
     struct Command: Equatable, Sendable {

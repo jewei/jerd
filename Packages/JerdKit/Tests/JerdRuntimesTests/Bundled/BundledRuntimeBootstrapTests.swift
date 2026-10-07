@@ -25,7 +25,7 @@ import Testing
     @Test func mailpitInstallsIntoAPrivateContentAddressedFolder() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
-        let installed = try await bootstrap(try mailBundle(folder), folder).installMail()
+        let installed = try #require(try await bootstrap(try mailBundle(folder), folder).installMail())
         #expect(installed.id.hasPrefix("mailpit-1.31.3-arm64-") && installed.version == "1.31.3")
         #expect(installed.directory.deletingLastPathComponent().lastPathComponent == "mail-runtimes")
         #expect(permissions(installed.directory) == 0o700)
@@ -38,12 +38,12 @@ import Testing
     @Test func installedFolderIsReusedAndANewPayloadInstallsBesideIt() async throws {
         let folder = try TemporaryFolder()
         defer { folder.remove() }
-        let first = try await bootstrap(try mailBundle(folder), folder).installMail()
+        let first = try #require(try await bootstrap(try mailBundle(folder), folder).installMail())
         let license = first.directory.appendingPathComponent("LICENSE")
         let before = try Data(contentsOf: license)
         #expect(try await bootstrap(try mailBundle(folder), folder).installMail() == first)
-        let second = try await bootstrap(try mailBundle(folder, name: "signed", license: "MIT signed"), folder)
-            .installMail()
+        let second = try #require(
+            try await bootstrap(try mailBundle(folder, name: "signed", license: "MIT signed"), folder).installMail())
         #expect(second.id != first.id)
         #expect(try Data(contentsOf: license) == before)
     }
@@ -52,7 +52,7 @@ import Testing
         let folder = try TemporaryFolder()
         defer { folder.remove() }
         let bundle = try mailBundle(folder)
-        let installed = try await bootstrap(bundle, folder).installMail()
+        let installed = try #require(try await bootstrap(bundle, folder).installMail())
         let license = installed.directory.appendingPathComponent("LICENSE")
         try AtomicFile.write(Data("preserve this corrupt file".utf8), to: license)
         await #expect(
@@ -91,7 +91,7 @@ import Testing
         for group in groups {
             try folder.write("partial", to: "data/\(group.lastPathComponent)/.install-CRASH/payload")
         }
-        let installed = try await bootstrap(try mailBundle(folder), folder).installMail()
+        let installed = try #require(try await bootstrap(try mailBundle(folder), folder).installMail())
         let inUse = try StagingFolder(in: layout.runtimes.storageRuntimesDirectory)
         let removed = await bootstrap(folder.path("bundle"), folder).removeAbandonedStaging()
         #expect(removed == groups.map { "\($0.lastPathComponent)/.install-CRASH" })
@@ -161,6 +161,20 @@ import Testing
         #expect(installed.map(\.kind) == [.redis])
         let names = try FileManager.default.contentsOfDirectory(atPath: folder.path("data/database-runtimes").path)
         #expect(names == [installed[0].id])
+    }
+
+    @Test func appThatInstallsMailpitOnDemandInstallsNothingOfItAtLaunch() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        var builder = BundleBuilder(root: folder.path("bundle"))
+        try builder.add(
+            .mailpit, id: "mailpit-1.31.3-arm64", version: "1.31.3",
+            files: [.init(path: "mailpit", text: "m", executable: true)], embedded: false)
+        try builder.writeCatalog()
+        // The app bundle has no payload of a pin that installs on demand.
+        try FileManager.default.removeItem(at: folder.path("bundle/mail/mailpit-1.31.3-arm64"))
+        #expect(try await bootstrap(folder.path("bundle"), folder).installMail() == nil)
+        #expect(FileProbe.presence(at: folder.path("data/mail-runtimes")) == .absent)
     }
 
     @Test func databasesCanSkipInstalledEngines() async throws {
