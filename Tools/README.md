@@ -146,6 +146,10 @@ keys stay in the Keychain.
 3. Optional: run `./dev release VERSION BUILD --prepare-only` for a private candidate.
 4. On `main`, run `./dev release VERSION BUILD`.
 
+A candidate takes about 6 minutes on an Apple silicon Mac: about 2 minutes for the
+archive and about 3 minutes for the two notarizations. The public steps add the
+upload of the disk image.
+
 ### What the command does
 
 Each step prints `==> <step>`, and the summary gives the time of each step. All
