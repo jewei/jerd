@@ -137,8 +137,10 @@ and one folder for each engine. `./dev` writes that index in
 payloads stay unchanged.
 
 CI runs the `runtime-integration` job weekly and on manual dispatch. It caches
-`.build/runtimes` with a key on `Runtimes/runtimes.json` and the Laravel lock
-file, then runs `./dev runtimes prepare`, `./dev runtimes verify`, and
+`.build/runtimes` with a key on every input that changes the prepared bytes:
+the files in `Runtimes/`, the deployment target in `Configuration/Base.xcconfig`,
+and the preparation code in JerdManifest, JerdRuntimes, and the Tools runtime
+steps. `./dev lint` checks that the key covers these paths. Then the job runs `./dev runtimes prepare`, `./dev runtimes verify`, and
 `./dev test --integration web,database,mail,storage`.
 
 ## Pinned versions
