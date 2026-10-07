@@ -74,7 +74,7 @@ struct RuntimesStepsTests {
         let fetcher = FakeFetcher(files: [:])
         let step = RuntimesPrepareStep(
             context: TestFixtures.context(repository: repository, output: output), fetcher: fetcher,
-            commands: UnusedCommands())
+            commands: UnusedCommands(), minimumMacOS: .jerdKitMinimum)
         // Offline and not cached: the step goes on, and a warning names the next step.
         await step.cacheSignature(signature, of: pin)
         #expect(output.all.contains("run ./dev runtimes prepare database once with a network connection"))
@@ -131,7 +131,7 @@ struct RuntimesStepsTests {
         let fetcher = FakeFetcher(files: [:])
         let step = RuntimesPrepareStep(
             context: TestFixtures.context(repository: repository, output: output), fetcher: fetcher,
-            commands: UnusedCommands())
+            commands: UnusedCommands(), minimumMacOS: .jerdKitMinimum)
         try await step.prepare(.mail, catalog: try PayloadFixtures.catalog(), lzma: nil)
         #expect(fetcher.requested.isEmpty)
         #expect(output.all.contains("Verified the prepared \(try PayloadFixtures.pin(.mailpit).id)"))
@@ -149,7 +149,7 @@ struct RuntimesStepsTests {
         try Data(text.replacingOccurrences(of: "\"\(pin.version)\"", with: "\"0.0.1\"").utf8).write(to: receipt)
         let step = RuntimesPrepareStep(
             context: TestFixtures.context(repository: repository), fetcher: FakeFetcher(files: [:]),
-            commands: UnusedCommands())
+            commands: UnusedCommands(), minimumMacOS: .jerdKitMinimum)
         do {
             try await step.prepare(.mail, catalog: try PayloadFixtures.catalog(), lzma: nil)
             Issue.record("Expected a failure.")
@@ -163,7 +163,8 @@ struct RuntimesStepsTests {
     func compilerPrerequisite() async throws {
         let missing = RecordingProcessRunner { InvocationResult(commandLine: $0.commandLine, status: 1) }
         let step = RuntimesPrepareStep(
-            context: TestFixtures.context(runner: missing), fetcher: FakeFetcher(files: [:]), commands: UnusedCommands()
+            context: TestFixtures.context(runner: missing), fetcher: FakeFetcher(files: [:]),
+            commands: UnusedCommands(), minimumMacOS: .jerdKitMinimum
         )
         let catalog = try PayloadFixtures.catalog()
         try await step.checkPrerequisites(

@@ -10,19 +10,24 @@ struct RuntimesPrepareStep: Sendable {
     let context: DevContext
     let fetcher: any HTTPFetching
     let commands: any CommandRunning
+    /// The minimum macOS of the app, which the Redis and XZ builds target.
+    let minimumMacOS: MinimumMacOS
 
-    /// The live step: HTTPS downloads through the digest cache, and JerdKit's command runner.
-    static func live(_ context: DevContext, catalog: RuntimePinCatalog) -> RuntimesPrepareStep {
+    /// The live step: HTTPS downloads through the digest cache, JerdKit's command runner, and the
+    /// deployment target of `Configuration/Base.xcconfig`.
+    static func live(_ context: DevContext, catalog: RuntimePinCatalog) throws -> RuntimesPrepareStep {
         let cache = DownloadCache(
             folder: context.repository.runtimeDownloads, upstream: URLSessionFetcher(),
             digests: DownloadCache.digests(of: catalog))
-        return RuntimesPrepareStep(context: context, fetcher: cache, commands: CommandRunner())
+        return RuntimesPrepareStep(
+            context: context, fetcher: cache, commands: CommandRunner(),
+            minimumMacOS: try context.repository.runtimeMinimumMacOS())
     }
 
     var preparer: PinnedPayloadPreparer {
         PinnedPayloadPreparer(
             catalogDirectory: context.repository.runtimeSources, output: context.repository.payloads,
-            fetcher: fetcher, commands: commands)
+            fetcher: fetcher, commands: commands, minimumMacOS: minimumMacOS)
     }
 
     /// The XZ library, when selected.
@@ -30,13 +35,9 @@ struct RuntimesPrepareStep: Sendable {
         guard let source = catalog.supportSources["xz"] else {
             throw DevFailure.checkFailed("The runtime pin catalog has no XZ support source.")
         }
-        let base = XcconfigFile(
-            path: "Configuration/Base.xcconfig",
-            text: try RepositoryPolicy.readText("Configuration/Base.xcconfig", in: context.repository))
         let builder = XZSupportBuilder(
             folder: context.repository.runtimeSupport.appending(path: "xz", directoryHint: .isDirectory),
-            source: source, deploymentTarget: try base.value(of: "MACOSX_DEPLOYMENT_TARGET"), fetcher: fetcher,
-            context: context)
+            source: source, deploymentTarget: minimumMacOS.description, fetcher: fetcher, context: context)
         return try await builder.build()
     }
 

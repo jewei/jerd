@@ -12,7 +12,7 @@ struct RuntimesPrepareToolsTests {
     private func preparer(_ repository: Repository) -> PinnedPayloadPreparer {
         PinnedPayloadPreparer(
             catalogDirectory: repository.runtimeSources, output: repository.payloads, fetcher: FakeFetcher(files: [:]),
-            commands: CommandRunner())
+            commands: CommandRunner(), minimumMacOS: .jerdKitMinimum)
     }
 
     @Test("Composer gets the PHP CLI that the same run prepared")

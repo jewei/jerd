@@ -87,7 +87,8 @@ import Testing
         let commands = ScriptedCommandRunner()
         let installer = RuntimeInstaller(
             directory: folder.path("runtime-updates"), fetcher: fetcher, commands: commands,
-            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)),
+            minimumMacOS: .jerdKitMinimum)
         await #expect(throws: JerdError.self) { try await installer.install(release) }
         #expect(commands.requests.isEmpty)
         // The signature is never fetched: the size and the digest fail first.

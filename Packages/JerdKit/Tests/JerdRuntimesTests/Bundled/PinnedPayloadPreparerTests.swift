@@ -34,7 +34,7 @@ import Testing
         let commands = ScriptedCommandRunner { _ in CommandResult(status: 0, output: "mailpit v1.31.3 darwin/arm64") }
         let preparer = PinnedPayloadPreparer(
             catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: fetcher,
-            commands: commands, platform: platform)
+            commands: commands, platform: platform, minimumMacOS: .jerdKitMinimum)
         let catalog = try preparer.catalog()
         let receipt = try await preparer.prepare(pin, architecture: catalog.architecture, tools: PreparationTools())
         try preparer.writeCatalog()
@@ -54,7 +54,7 @@ import Testing
         let commands = ScriptedCommandRunner { _ in CommandResult(status: 0, output: "mailpit v1.31.3") }
         let preparer = PinnedPayloadPreparer(
             catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: fetcher,
-            commands: commands, platform: platform)
+            commands: commands, platform: platform, minimumMacOS: .jerdKitMinimum)
         let first = try await preparer.prepare(pin, architecture: .arm64, tools: PreparationTools())
         let downloads = fetcher.requests.count
         #expect(try await preparer.prepare(pin, architecture: .arm64, tools: PreparationTools()) == first)
@@ -76,7 +76,7 @@ import Testing
         let inUse = try StagingFolder(in: folder.path("payloads/database"))
         let preparer = PinnedPayloadPreparer(
             catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: FakeFetcher(),
-            commands: ScriptedCommandRunner(), platform: platform)
+            commands: ScriptedCommandRunner(), platform: platform, minimumMacOS: .jerdKitMinimum)
         #expect(preparer.removeAbandonedStaging() == PayloadGroup.allCases.map { "\($0.rawValue)/.install-CRASH" })
         #expect(
             try FileManager.default.contentsOfDirectory(atPath: folder.path("payloads/mail").path) == [
@@ -111,7 +111,7 @@ import Testing
         }
         let preparer = PinnedPayloadPreparer(
             catalogDirectory: folder.path("Runtimes"), output: folder.path("payloads"), fetcher: FakeFetcher(),
-            commands: commands, platform: platform)
+            commands: commands, platform: platform, minimumMacOS: .jerdKitMinimum)
         let tools = PreparationTools(phpCLI: URL(fileURLWithPath: "/php"), composer: URL(fileURLWithPath: "/c.phar"))
         let receipt = try await preparer.prepare(pin, architecture: .arm64, tools: tools)
         #expect(receipt.archiveSHA256 == pin.composerProject?.lockSHA256)
@@ -122,7 +122,8 @@ import Testing
     @Test func committedCatalogMapsToReleasesThatThePolicyAccepts() throws {
         let preparer = PinnedPayloadPreparer(
             catalogDirectory: Fixture.repositoryFile("Runtimes"), output: URL(fileURLWithPath: "/nonexistent"),
-            fetcher: FakeFetcher(), commands: ScriptedCommandRunner(), platform: platform)
+            fetcher: FakeFetcher(), commands: ScriptedCommandRunner(), platform: platform, minimumMacOS: .jerdKitMinimum
+        )
         let catalog = try preparer.catalog()
         let policy = ReleasePolicy(platform: platform)
         for pin in catalog.pins {

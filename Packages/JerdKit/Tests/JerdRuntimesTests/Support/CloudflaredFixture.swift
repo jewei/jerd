@@ -35,6 +35,7 @@ struct CloudflaredFixture {
     func installer(directory: URL) -> RuntimeInstaller {
         RuntimeInstaller(
             directory: directory, fetcher: fetcher, commands: commands,
-            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)))
+            policy: ReleasePolicy(platform: HostPlatform(architecture: .arm64, osMajor: 15)),
+            minimumMacOS: .jerdKitMinimum)
     }
 }

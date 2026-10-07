@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import JerdFoundation
+import JerdRuntimes
 
 /// Where the live app finds its bundle and its data, and the version it reports.
 public struct LiveConfiguration: Sendable {
@@ -12,15 +13,22 @@ public struct LiveConfiguration: Sendable {
     public let resources: URL
     /// `CFBundleShortVersionString`, for the user agent of runtime downloads.
     public let appVersion: String?
+    /// `LSMinimumSystemVersion` of the app: a runtime that the app builds from source must run on
+    /// the same Macs as the app.
+    public let minimumMacOS: MinimumMacOS
     /// True when the launch replaces an outdated command-line launcher in `bin/`. It starts true
     /// only for the current user's data root, because the launcher in `bin/` is the user's.
     public var refreshesCommandLineLauncher: Bool
 
-    public init(layout: DataLayout, appBundle: URL, resources: URL, appVersion: String?) {
+    public init(
+        layout: DataLayout, appBundle: URL, resources: URL, appVersion: String?,
+        minimumMacOS: MinimumMacOS = .jerdKitMinimum
+    ) {
         self.layout = layout
         self.appBundle = appBundle
         self.resources = resources
         self.appVersion = appVersion
+        self.minimumMacOS = minimumMacOS
         refreshesCommandLineLauncher = layout == .currentUser()
     }
 
@@ -31,7 +39,8 @@ public struct LiveConfiguration: Sendable {
         self.init(
             layout: dataRoot.map { DataLayout(root: $0) } ?? .currentUser(), appBundle: bundle.bundleURL,
             resources: bundle.resourceURL ?? bundle.bundleURL.appendingPathComponent("Contents/Resources"),
-            appVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            appVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+            minimumMacOS: .of(bundle))
     }
 
     /// The defaults domain for Jerd's own keys (`showMenuBar`, `showDock`, `appIcon`): nil for the

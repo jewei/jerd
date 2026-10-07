@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdRuntimes
 import JerdTestSupport
 import Testing
 
@@ -75,5 +76,21 @@ struct LaunchPreparationTests {
         #expect(configuration.makeDefaults() !== UserDefaults.standard)
         #expect(LiveConfiguration(bundle: .main).defaultsSuiteName == nil)
         #expect(LiveConfiguration(bundle: .main).makeDefaults() === UserDefaults.standard)
+    }
+
+    @Test("Runtimes that the app builds target the LSMinimumSystemVersion of the app")
+    func appMinimumComesFromItsInfoPlist() throws {
+        let temporary = try TemporaryDirectory()
+        defer { temporary.remove() }
+        let app = temporary.url.appendingPathComponent("Jerd.app")
+        try FileManager.default.createDirectory(
+            at: app.appendingPathComponent("Contents"), withIntermediateDirectories: true)
+        let plist = try PropertyListSerialization.data(
+            fromPropertyList: ["CFBundleIdentifier": "dev.jerd.fixture", "LSMinimumSystemVersion": "14.2"],
+            format: .xml, options: 0)
+        try plist.write(to: app.appendingPathComponent("Contents/Info.plist"))
+        let bundle = try #require(Bundle(url: app))
+        let configuration = LiveConfiguration(bundle: bundle, dataRoot: temporary.url)
+        #expect(configuration.minimumMacOS == MinimumMacOS(major: 14, minor: 2))
     }
 }
