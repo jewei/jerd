@@ -115,34 +115,109 @@ file, then runs `./dev runtimes prepare`, `./dev runtimes verify`, and
 
 ## Release
 
-`./dev release` makes signed app updates on the Mac that holds the keys. The
-Developer ID key, the Sparkle key (Keychain account `dev.jerd.sparkle`), and the
-notary profile stay in the Keychain. The identity, team, and profile are options.
+`./dev release VERSION BUILD` builds, signs, notarizes, and publishes a release in
+one run. Only the maintainer runs it, on the Mac that holds the keys. The private
+keys stay in the Keychain.
 
-1. `./dev release bump --version V --build B` sets `Configuration/Version.xcconfig`
-   and moves the `## [Unreleased]` notes under `## [V] - date` in `CHANGELOG.md`.
-   Merge this change through a pull request. The tag then names the exact commit
-   that Apple notarizes.
-2. `./dev release prepare --version V --build B --minimum-macos M --identity ID
-   --team T` needs a clean worktree at that commit and every prepared payload. It
-   archives and signs the payloads and Sparkle with explicit identifiers. It runs the
-   runtime tests, notarizes the app and the disk image, and signs the feed. It writes
-   a private candidate in `.build/releases/Jerd-V-B-*` (mode 0700). Nothing is public.
-3. `./dev release validate DIR` checks the candidate again. `--public-key-only`
-   uses no Keychain, so any Mac can run it.
-4. `./dev release publish DIR` requires the source commit on `origin/main` and no
-   tag or release of the version. It creates a draft, checks the uploaded assets,
-   publishes the release, and opens a pull request with the signed feed. It never
-   pushes to `main`. Merge the pull request, then run `./dev release resume DIR`.
-   Publication ends when the public feed URL serves the signed feed.
+| Option | Default |
+| --- | --- |
+| `--minimum-macos M` | `MACOSX_DEPLOYMENT_TARGET` of `Configuration/Base.xcconfig`. A lower value is refused |
+| `--identity ID` | The only valid Developer ID Application identity of the team. Give the SHA-1 when two certificates have the same name, for example during a renewal |
+| `--team T` | `4L4SS26L9J` |
+| `--notary-profile P`, `--keychain K` | `notarytool` in the default Keychain search list |
+| `--prepare-only` | Off. See below |
 
-`state.json` in the candidate records each stage. `./dev release status DIR` shows
-the stage and the next action. `resume` continues from the recorded stage, and each
-step can run again safely. `./dev release clean [--keep N]` removes old candidates
-(about 2.5 GB each), but never one whose publication started and is not finished.
+### One-time setup
 
-The feed item uses `<description sparkle:format="plain-text">` with the notes of
-the changelog section, so Sparkle shows the Markdown text as it is.
+1. The Developer ID Application identity of the team with its private key in the
+   login Keychain. Check with `security find-identity -v -p codesigning`.
+2. The notary credentials in the profile `notarytool`:
+   `xcrun notarytool store-credentials notarytool --apple-id <Apple ID> --team-id 4L4SS26L9J --password <app-specific password>`.
+3. The Sparkle EdDSA private key in the Keychain account `dev.jerd.sparkle`. Run
+   `./dev build` once, so that the Sparkle tools are in `.build/SourcePackages`.
+4. The prepared runtime payloads: `./dev runtimes prepare`.
+5. `gh auth login` with access to `jewei/jerd`.
+
+### Make a release
+
+1. Add the notes under `## [Unreleased]` in `CHANGELOG.md`.
+2. Merge everything to `main`, and wait until the `./dev check` job of CI passes for
+   the last commit.
+3. Optional: run `./dev release VERSION BUILD --prepare-only` for a private candidate.
+4. On `main`, run `./dev release VERSION BUILD`.
+
+### What the command does
+
+Each step prints `==> <step>`, and the summary gives the time of each step. All
+local work comes first:
+
+1. **Check preconditions.** The tree is clean, also without untracked files.
+   VERSION and BUILD exceed every item of the committed, signed `appcast.xml`.
+   VERSION is not lower than `Configuration/Version.xcconfig`, and BUILD is not lower
+   than its build; when the tag of that version exists, BUILD must be higher. No tag
+   of VERSION exists on this Mac. The `## [Unreleased]` notes exist and are plain
+   `- ` items. For a publication also: the branch is `main` of `jewei/jerd`, HEAD
+   equals the fetched `origin/main`, CI has a successful `./dev check` run for HEAD,
+   and no tag, release, or draft of VERSION exists on GitHub. Then the identity, the
+   notary profile, the Sparkle key, and every embedded runtime payload are checked.
+2. **Archive the app.** A Release archive with the version and build on the
+   command line, in `.build/releases/Jerd-VERSION-BUILD` (mode 0700). A new run of the
+   same version and build replaces that folder.
+3. **Sign and check the app.** It signs every Mach-O file of each embedded payload
+   and writes the new digests into the receipt with a signing record. It refuses an
+   app that contains any other payload. Then it signs Sparkle, the launcher, the
+   helper, and the app, and checks every signature, the Info.plist, arm64, and the
+   debug symbols.
+4. **Notarize the app** and staple it.
+5. **Build and notarize the disk image** with `Jerd.app` and a link to
+   `/Applications`, then staple it.
+6. **Sign the disk image and the feed.** `sign_update` signs the disk image for
+   Sparkle, and the candidate feed gets one new item. The item uses
+   `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the
+   text as it is. `sign_update` then signs the whole feed.
+7. **Validate the candidate.** It checks everything again on the final files, the
+   app inside the mounted disk image, and that HEAD and the tree did not change.
+
+With `--prepare-only` the command stops here. It allows any branch, changes no
+tracked file, and never contacts GitHub. Without it, it continues:
+
+8. **Commit and tag the release.** It writes the version and build into
+   `Configuration/Version.xcconfig`, moves the notes under `## [VERSION] - date` in
+   `CHANGELOG.md`, copies the candidate feed to `appcast.xml`, commits
+   `Release vVERSION`, and makes an annotated tag.
+9. **Push the tag.**
+10. **Publish the GitHub release** with the disk image and the symbols zip.
+11. **Publish the feed.** It pushes `main`. Installed apps read the feed from
+    `main`, so they see the new item only after the disk image is on GitHub.
+
+The release does not run the runtime integration tests. CI runs them weekly and on a
+manual run of the workflow; see [Integration tests](#integration-tests).
+
+### Recovery
+
+A failed step stops the run. The command then names the step, says what is public,
+and prints the exact commands for that phase. A stop by Ctrl-C prints the same text.
+
+- **Steps 1 to 7.** Nothing was published, and no tracked file changed. Correct the
+  cause and run the command again.
+- **Step 8 or 9.** The release commit and the tag exist only on this Mac. Undo them
+  with `git tag -d vVERSION; git reset --hard <source commit>`, then run the command
+  again. If `git ls-remote --tags origin vVERSION` prints a line, the tag is public:
+  continue as for step 10.
+- **Step 10.** The tag is on GitHub, but the release and the feed are not. Run
+  `gh release view vVERSION --repo jewei/jerd --json isDraft,assets`. Without a
+  release, run the printed `gh release create` command, then `git push origin HEAD:main`.
+  For a draft, upload what is missing, publish it with
+  `gh release edit vVERSION --draft=false`, and push `main`. To cancel, run
+  `git push origin :refs/tags/vVERSION`, then the reset of step 8.
+- **Step 11.** The release is public, but installed apps do not see it yet. Run
+  `git push origin HEAD:main` again. If `main` moved, merge with
+  `git pull --no-rebase origin main` (the tag must stay on a commit of `main`), check
+  that the new item is the first item of `appcast.xml`, and push.
+
+Each candidate takes about 2.5 GB. Remove an old one by hand, for example
+`rm -rf .build/releases/Jerd-0.1.0-6`. Keep the folder of a release whose
+publication did not finish, because the recovery commands use its files.
 
 ## Manual checks
 
@@ -166,7 +241,7 @@ case. A failed run also writes a record.
 | `Sources/JerdDevKit/Policies` | Pure repository policies that `./dev lint` checks |
 | `Sources/JerdDevKit/Steps` | Steps that run plans and policies and report results |
 | `Sources/JerdDevKit/Runtimes` | Payload preparation, verification, embedding, the XZ build, and integration paths |
-| `Sources/JerdDevKit/Release` | The release pipeline and its `state.json` state machine |
+| `Sources/JerdDevKit/Release` | The release command: preconditions, local steps, public steps, and recovery |
 | `Sources/JerdDevKit/Checks` | The manual harnesses and their evidence records |
 | `Sources/JerdDevKit/Commands` | One file for each command; `CommandCatalog` lists them |
 | `Scripts/embed-app-contents.sh` | The Xcode build phase that embeds the helper, CLI, and runtimes |
