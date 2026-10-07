@@ -13,7 +13,7 @@ enum UsageMessage {
         return "error: \(message)\nUsage: \(usage)\n  See '\(help)' for more information."
     }
 
-    /// The deepest command that the leading arguments name, for example `release prepare`, or the root
+    /// The deepest command that the leading arguments name, for example `runtimes prepare`, or the root
     /// command when the first argument is not a command.
     static func command(for arguments: [String]) -> any ParsableCommand.Type {
         var current: any ParsableCommand.Type = DevCommand.self
@@ -26,7 +26,7 @@ enum UsageMessage {
         return current
     }
 
-    /// The full name of `command` without the program, for example `release prepare`; `dev` for the root.
+    /// The full name of `command` without the program, for example `runtimes prepare`; `dev` for the root.
     static func commandPath(_ command: any ParsableCommand.Type) -> String {
         let names = path(to: command).compactMap { $0.configuration.commandName }
         return names.isEmpty ? "dev" : names.joined(separator: " ")

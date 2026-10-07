@@ -21,9 +21,7 @@ Run every task through `./dev`. It works from any folder in the repository.
 | `./dev generate [--check]` | Generate `Jerd.xcodeproj` from `project.yml` |
 | `./dev runtimes prepare [GROUP...]` | Download, verify, and prepare the pinned runtime payloads (`development`, `database`, `mail`, `storage`, `xz`) |
 | `./dev runtimes verify` / `status` | Verify each payload file by file, or list versions, sizes, and states |
-| `./dev release bump --version V --build B` | Set the version in `Configuration/Version.xcconfig` and promote the changelog, for a pull request |
-| `./dev release prepare --version V --build B --minimum-macos M --identity ID --team T` | Build, sign, notarize, and validate a private candidate in `.build/releases` |
-| `./dev release validate DIR [--public-key-only]` / `publish DIR` / `status DIR` / `resume DIR` / `clean [--keep N]` | Check, publish, inspect, continue, or remove candidates; see [Tools](Tools/README.md#release) |
+| `./dev release VERSION BUILD [--prepare-only]` | Build, sign, notarize, and publish a release from `main`; `--prepare-only` builds a private candidate in `.build/releases` and publishes nothing; see [Tools](Tools/README.md#release) |
 | `./dev check updates --identity ID` / `check xpc --identity ID` | Manual harnesses that need a signing identity; each writes evidence to `.build/evidence` |
 | `./dev doctor` | Check Xcode, Swift, swift-format, XcodeGen, and `gh`, with install hints |
 | `./dev clean [--all]` | Remove build output; `--all` also removes packages and runtimes |
@@ -56,7 +54,7 @@ For quick loops inside the package, `swift test --package-path Packages/JerdKit
 | `Docs/` | Architecture, data reference, and test guide |
 | `.github/` | The CI workflow and the actionlint settings |
 | `dev` | The shell entry point of `./dev`; it builds and runs the tool in `Tools/` |
-| `appcast.xml` | The signed Sparkle update feed. Only `./dev release publish` writes it |
+| `appcast.xml` | The signed Sparkle update feed. Only the release commit of `./dev release` writes it |
 | `CHANGELOG.md` | Release notes for users |
 | `README.md` | The user guide of the public repository |
 
@@ -74,7 +72,7 @@ Change these files together, in one commit:
 | The swift-argument-parser `exact` version in `Tools/Package.swift` | `Tools/Package.resolved` (run `swift package resolve --package-path Tools`) |
 | The Sparkle `exactVersion` in `project.yml` | `Package.resolved` in `Jerd.xcodeproj` (resolve again in Xcode); `./dev lint` checks it |
 | `appcast.xml` | Its signature block: sign the feed again with Sparkle `sign_update` |
-| `Configuration/Version.xcconfig` | Only as part of a release |
+| `Configuration/Version.xcconfig` | Never by hand: the release commit of `./dev release` changes it with `CHANGELOG.md` and `appcast.xml` |
 | The feed URL or key in `Configuration/App.xcconfig` | Never without a migration plan; `./dev lint` and every build check them |
 
 ## Code rules

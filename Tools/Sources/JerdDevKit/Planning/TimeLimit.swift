@@ -25,9 +25,7 @@ enum TimeLimit {
     static let notarization: Duration = .seconds(60 * 60)
     /// A Gatekeeper assessment, which can ask Apple online.
     static let assessment: Duration = .seconds(5 * 60)
-    /// The runtime tests of a release. The tests own graceful service shutdown, so this limit is long.
-    static let runtimeTests: Duration = .seconds(2 * 60 * 60)
-    /// One GitHub command; uploads and downloads of the release assets use `transfer`.
+    /// One GitHub command; the upload of the release assets uses `transfer`.
     static let gitHub: Duration = .seconds(5 * 60)
     static let transfer: Duration = .seconds(60 * 60)
     /// One manual harness case, for example one Sparkle installation.

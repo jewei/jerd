@@ -15,13 +15,15 @@ enum PayloadFixture {
         try Data(contentsOf: ReleaseFixtures.repositoryRoot.appending(path: "Runtimes/runtimes.json"))
     }
 
-    /// Writes `<root>/runtimes.json` and `<root>/<group>/<id>/` with a receipt for each bundled pin.
-    static func write(to root: URL) throws {
+    /// Writes `<root>/runtimes.json` and `<root>/<group>/<id>/` with a receipt for each bundled pin:
+    /// every pin for the prepared payloads, or only the embedded pins for the payloads of an app.
+    static func write(to root: URL, embeddedOnly: Bool = false) throws {
         let data = try catalogData()
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try data.write(to: root.appending(path: RuntimePinCatalog.fileName))
-        for pin in try RuntimePinCatalog.decode(data).pins {
-            guard let group = pin.group else { continue }
+        let inventory = PayloadInventory(root: root, catalog: try RuntimePinCatalog.decode(data))
+        let pins = embeddedOnly ? EmbeddedPayloads.pins(inventory) : inventory.pins(in: PayloadGroup.allCases)
+        for (pin, group) in pins {
             try writePayload(pin, in: root.appending(path: "\(group.rawValue)/\(pin.id)"))
         }
     }

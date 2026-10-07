@@ -1,7 +1,8 @@
 import Foundation
 
-/// Archives the Release app and copies it out of the archive. The version comes from
-/// `Configuration/Version.xcconfig` of the source commit; there are no version overrides.
+/// Archives the Release app and copies it out of the archive. The version and build come from the
+/// command line, because the release commit writes them into `Configuration/Version.xcconfig` only after
+/// the build; that commit changes no other file that the app contains.
 struct AppArchiver: Sendable {
     let shell: ReleaseShell
     let inputs: ReleaseInputs
@@ -17,6 +18,8 @@ struct AppArchiver: Sendable {
             "-onlyUsePackageVersionsFromResolvedFile",
             "CODE_SIGN_STYLE=Manual", "CODE_SIGN_IDENTITY=\(inputs.signing.identity)",
             "DEVELOPMENT_TEAM=\(inputs.signing.team)",
+            "\(ReleaseSourceFiles.marketingVersion)=\(inputs.version)",
+            "\(ReleaseSourceFiles.buildVersion)=\(inputs.build)",
         ]
     }
 

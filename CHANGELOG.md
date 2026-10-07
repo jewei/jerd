@@ -1,9 +1,10 @@
 # Changelog
 
 This file lists the changes that users see. Add one line under `## [Unreleased]`
-for each such change. `./dev release bump` moves these lines under the new
-version, and Sparkle shows them in the update window as plain text. Thus write
-each note as one `- ` list item, without headings, links, or code marks.
+for each such change. The release commit of `./dev release` moves these lines
+under the new version, and Sparkle shows them in the update window as plain
+text. Thus write each note as one `- ` list item, without headings, links, or
+code marks.
 
 ## [Unreleased]
 

@@ -11,7 +11,7 @@ struct PayloadSignerTests {
     static func setUp() throws -> (ReleaseWorkspace, CandidateLayout) {
         let workspace = try ReleaseWorkspace()
         let layout = CandidateLayout(root: workspace.path("candidate"))
-        try PayloadFixture.write(to: layout.appPayloads)
+        try PayloadFixture.write(to: layout.appPayloads, embeddedOnly: true)
         workspace.runner.on("lipo", ["-archs"], output: "arm64\n")
         workspace.runner.on("codesign", ["-d", "--entitlements"], output: "")
         workspace.runner.on(
@@ -99,6 +99,33 @@ struct PayloadSignerTests {
         second.runner.on("codesign", ["-d", "--entitlements"], output: String(decoding: debug, as: UTF8.self))
         await #expect(throws: DevFailure.self) { _ = try await Self.signer(second, secondLayout).run() }
         #expect(second.runner.calls("codesign", ["--force"]).isEmpty)
+    }
+
+    @Test("Signs exactly the pins of the embedded groups")
+    func signsEmbeddedPayloads() async throws {
+        let (workspace, layout) = try Self.setUp()
+        defer { workspace.remove() }
+        let catalog = try PayloadInventory.catalog(at: layout.appPayloads.appending(path: RuntimePinCatalog.fileName))
+        let expected = EmbeddedPayloads.pins(PayloadInventory(root: layout.appPayloads, catalog: catalog)).map(\.pin.id)
+        let reports = try await Self.signer(workspace, layout).run()
+        #expect(reports.map(\.payloadID) == expected)
+        #expect(!expected.isEmpty)
+    }
+
+    @Test("Refuses an app that contains a payload that the release does not embed")
+    func refusesOtherPayloads() async throws {
+        for extra in ["unknown-group/x/LICENSE", "mail/mailpit-0.0.1-arm64/LICENSE"] {
+            let (workspace, layout) = try Self.setUp()
+            defer { workspace.remove() }
+            let file = layout.appPayloads.appending(path: extra)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: file)
+            let error = #expect(throws: DevFailure.self) { try PayloadSigner.verifiedPayloads(in: layout.appPayloads) }
+            #expect(error?.message.contains("does not embed") == true)
+            await #expect(throws: DevFailure.self) { _ = try await Self.signer(workspace, layout).run() }
+            #expect(workspace.runner.calls("codesign", ["--force"]).isEmpty)
+        }
     }
 
     @Test("Refuses a changed payload before any file is signed")

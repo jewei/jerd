@@ -27,6 +27,11 @@ struct SimulatedSparkle: Sendable {
             try launch(invocation.executable)
         case "ditto" where arguments.first == "-c":
             try Data(repeating: 1, count: 512).write(to: URL(filePath: arguments[arguments.count - 1]))
+        case "codesign" where arguments.first == "-d":
+            let name = URL(filePath: arguments[arguments.count - 1]).lastPathComponent
+            let identifier = name == "Autoupdate" ? "Autoupdate-55554944" : "org.sparkle-project.\(name)"
+            return InvocationResult(
+                commandLine: invocation.commandLine, status: 0, standardError: "Identifier=\(identifier)\n")
         case "sign_update" where arguments.contains("-p"):
             output = "c2lnbmF0dXJl\n"
         case "defaults":

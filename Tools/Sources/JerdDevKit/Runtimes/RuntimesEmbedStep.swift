@@ -19,8 +19,7 @@ enum RuntimesEmbedStep {
         let start = ContinuousClock.now
         let catalogBytes = try RepositoryPolicy.read("Runtimes/runtimes.json", in: context.repository)
         let catalog = try PayloadInventory.catalog(at: context.repository.runtimeCatalog)
-        let inventory = PayloadInventory(root: context.repository.payloads, catalog: catalog)
-        let entries = inventory.embeddedEntries()
+        let entries = EmbeddedPayloads.entries(in: context.repository.payloads, catalog: catalog)
         let payloads = try checked(entries, requiresAll: requiresAll, context: context)
         let manager = FileManager.default
         guard !payloads.isEmpty else {
@@ -75,18 +74,8 @@ enum RuntimesEmbedStep {
     }
 
     private static func removeExtraneous(in destination: URL, keeping payloads: [PayloadInventory.Entry]) throws {
-        let manager = FileManager.default
-        var existing: [String: [String]] = [:]
-        for name in try manager.contentsOfDirectory(atPath: destination.path) {
-            let url = destination.appending(path: name)
-            let isFolder = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-            existing[name] = isFolder ? try manager.contentsOfDirectory(atPath: url.path) : []
-        }
-        let expected = Dictionary(grouping: payloads, by: { $0.group.rawValue }).mapValues { Set($0.map(\.pin.id)) }
-        for path in PayloadSyncPlan.extraneous(
-            existing: existing, expected: expected, catalogName: RuntimePinCatalog.fileName)
-        {
-            try manager.removeItem(at: destination.appending(path: path))
+        for path in try PayloadSyncPlan.extraneous(in: destination, keeping: payloads.map { ($0.pin, $0.group) }) {
+            try FileManager.default.removeItem(at: destination.appending(path: path))
         }
     }
 }

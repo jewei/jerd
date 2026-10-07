@@ -94,27 +94,35 @@ struct ReleaseParserTests {
             SymbolUUIDs.parse(output) == [.init(uuid: "1234ABCD-0000-0000-0000-000000000000", architecture: "arm64")])
     }
 
-    @Test("Only the exact tag and the exact release name count")
-    func exactLookups() throws {
-        let refs = """
-            {"ref":"refs/tags/v0.1.0-rc1","sha":"\(ReleaseFixtures.commit)","type":"commit"}
-            {"ref":"refs/tags/v0.1.01","sha":"\(ReleaseFixtures.commit)","type":"commit"}
-            """
-        #expect(try GitHubLookup.exactTag("v0.1.0", in: refs) == nil)
-        #expect(try GitHubLookup.exactTag("v0.1.01", in: refs)?.sha == ReleaseFixtures.commit)
-        let releases =
-            #"{"tag":"v0.1.0-rc1","draft":false,"target":"main"}"# + "\n"
-            + #"{"tag":"v0.1.0","draft":true,"target":"abc"}"#
+    @Test("Only the exact release name counts, and drafts count too")
+    func exactRelease() throws {
+        let releases = #"{"tag":"v0.1.0-rc1","draft":false}"# + "\n" + #"{"tag":"v0.1.0","draft":true}"#
         #expect(try GitHubLookup.release("v0.1.0", in: releases)?.draft == true)
         #expect(try GitHubLookup.release("v0.2.0", in: releases) == nil)
         #expect(throws: DevFailure.self) { try GitHubLookup.release("v0.1.0", in: "not json") }
     }
 
-    @Test("Pull request answers are read")
-    func pullRequests() throws {
-        #expect(try GitHubLookup.pullRequest(#"{"number":12,"state":"MERGED"}"#).state == "MERGED")
-        #expect(try GitHubLookup.pullRequests("[]").isEmpty)
-        #expect(try GitHubLookup.pullRequestNumber(fromCreateOutput: "https://github.com/jewei/jerd/pull/42\n") == 42)
-        #expect(throws: DevFailure.self) { try GitHubLookup.pullRequestNumber(fromCreateOutput: "done") }
+    @Test("Uploaded assets pass only with the same name, size, and digest")
+    func assets() throws {
+        let wanted = ["a.dmg": GitHubLookup.Asset(name: "a.dmg", size: 3, digest: "sha256:ab")]
+        let good = #"{"name":"a.dmg","size":3,"digest":"sha256:AB"}"#
+        #expect(try GitHubLookup.assetProblem(expected: wanted, in: good) == nil)
+        for bad in [
+            #"{"name":"a.dmg","size":4,"digest":"sha256:ab"}"#, #"{"name":"a.dmg","size":3,"digest":"sha256:cd"}"#,
+            #"{"name":"a.dmg","size":3,"digest":null}"#, #"{"name":"b.dmg","size":3,"digest":"sha256:ab"}"#, "",
+        ] {
+            #expect(try GitHubLookup.assetProblem(expected: wanted, in: bad) != nil, "\(bad)")
+        }
+    }
+
+    @Test("One successful ./dev check run is enough; other jobs and other states are not")
+    func checkRuns() throws {
+        let success = #"{"name":"./dev check","status":"completed","conclusion":"success"}"#
+        let failure = #"{"name":"./dev check","status":"completed","conclusion":"failure"}"#
+        let other = #"{"name":"Runtime integration","status":"completed","conclusion":"success"}"#
+        #expect(try GitHubLookup.checkProblem(named: "./dev check", in: failure + "\n" + success) == nil)
+        #expect(try GitHubLookup.checkProblem(named: "./dev check", in: other) == "has no ./dev check result")
+        #expect(try GitHubLookup.checkProblem(named: "./dev check", in: failure)?.contains("(failure)") == true)
+        #expect(throws: DevFailure.self) { try GitHubLookup.checkProblem(named: "./dev check", in: "{") }
     }
 }

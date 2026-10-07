@@ -28,6 +28,12 @@ struct SignalForwarder: Sendable {
     }
 
     private static let sources = OSAllocatedUnfairLock(initialState: [any DispatchSourceSignal]())
+    private static let interruptNote = OSAllocatedUnfairLock<String?>(initialState: nil)
+
+    /// Text that a stop by signal prints before `./dev` ends, for example what a release made public.
+    static func setInterruptNote(_ text: String?) {
+        interruptNote.withLock { $0 = text }
+    }
 
     /// Installs the handlers for the live tool. Call it once, before the first child starts.
     static func installLive(output: any TextOutput) {
@@ -38,7 +44,11 @@ struct SignalForwarder: Sendable {
             let source = DispatchSource.makeSignalSource(signal: number, queue: queue)
             source.setEventHandler {
                 output.write("error: Stopped by signal \(number). Stopping the running commands.\n", to: .standardError)
-                exit(forwarder.interrupt(by: number))
+                let status = forwarder.interrupt(by: number)
+                if let note = interruptNote.withLock({ $0 }) {
+                    output.write(Console.indented(note), to: .standardError)
+                }
+                exit(status)
             }
             source.resume()
             return source

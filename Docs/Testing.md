@@ -15,6 +15,11 @@ passes through the runtime path variables of those groups. Set each path to an
 absolute path of a trusted local runtime. The variables of each group are in
 [Tools](../Tools/README.md#integration-tests).
 
+`./dev release` runs each signed embedded runtime once with a version argument,
+but not the runtime integration tests. CI runs them: the weekly
+`runtime-integration` job, or a manual run of the workflow. Before a release
+that changes a pinned runtime, start that job and wait for its result.
+
 `--integration database` also installs MySQL and PostgreSQL on demand through
 the app wiring (`LiveDomain` and its one installer) into a temporary data root
 (`OnDemandRuntimeIntegrationTests` in JerdLive), then starts and stops a

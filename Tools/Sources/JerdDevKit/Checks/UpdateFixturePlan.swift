@@ -39,10 +39,11 @@ struct UpdateFixturePlan: Sendable {
             timeout: TimeLimit.appCopy)
     }
 
+    /// Signs the test app itself. Sparkle inside it is signed before, as in a release, so no `--deep`.
     func sign(_ app: URL, identity: String) -> Invocation {
         Invocation(
             executable: SystemProgram.codesign,
-            arguments: ["--force", "--deep", "--options", "runtime", "--sign", identity, app.path],
+            arguments: ["--force", "--options", "runtime", "--sign", identity, app.path],
             timeout: TimeLimit.codeSigning)
     }
 

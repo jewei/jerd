@@ -1,4 +1,5 @@
 import Foundation
+import JerdManifest
 
 /// Plans how the embed phase makes `Jerd.app/Contents/Resources/RuntimePayloads` equal to the verified
 /// payloads: one `rsync --delete` per payload folder, so unchanged files are not copied again on
@@ -30,5 +31,19 @@ enum PayloadSyncPlan {
             paths += children.filter { !ids.contains($0) }.map { "\(name)/\($0)" }
         }
         return paths.sorted()
+    }
+
+    /// The paths below `root` that do not belong to the layout of `pins`, sorted. It reads the top level
+    /// and each group folder. The build removes these paths; the release refuses an app that has any.
+    static func extraneous(in root: URL, keeping pins: [(pin: RuntimePin, group: PayloadGroup)]) throws -> [String] {
+        let manager = FileManager.default
+        var existing: [String: [String]] = [:]
+        for name in try manager.contentsOfDirectory(atPath: root.path) {
+            let url = root.appending(path: name)
+            let isFolder = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+            existing[name] = isFolder ? try manager.contentsOfDirectory(atPath: url.path) : []
+        }
+        let expected = Dictionary(grouping: pins, by: { $0.group.rawValue }).mapValues { Set($0.map(\.pin.id)) }
+        return extraneous(existing: existing, expected: expected, catalogName: RuntimePinCatalog.fileName)
     }
 }

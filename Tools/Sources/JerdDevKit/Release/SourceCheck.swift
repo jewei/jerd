@@ -1,7 +1,7 @@
 import JerdFoundation
 
 /// The source commit of a release: a clean worktree (also without untracked files) at a known commit.
-/// Preparation checks it before the build, after the runtime tests, and before it writes the manifest.
+/// The release checks it before the build and again before the release commit.
 struct SourceCheck: Sendable {
     let shell: ReleaseShell
 
@@ -21,7 +21,9 @@ struct SourceCheck: Sendable {
     /// The worktree is still clean and still at `commit`.
     func requireClean(at commit: String) async throws {
         guard try await requireClean() == commit else {
-            throw DevFailure.checkFailed("The source commit changed during the release. Prepare a new candidate.")
+            throw DevFailure.checkFailed(
+                "The source commit or the tree changed during the release, so the app does not match it. "
+                    + "Nothing was published. Run the release again.")
         }
     }
 }

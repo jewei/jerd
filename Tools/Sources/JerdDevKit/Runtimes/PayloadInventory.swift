@@ -53,11 +53,6 @@ struct PayloadInventory: Sendable {
         pins(in: PayloadGroup.allCases).filter { $0.pin.isEmbedded }
     }
 
-    /// The state of every embedded payload, in catalog order.
-    func embeddedEntries(verifiesFiles: Bool = true) -> [Entry] {
-        embeddedPayloads.map { entry(for: $0.pin, group: $0.group, verifiesFiles: verifiesFiles) }
-    }
-
     /// The folder of a pin: `<root>/<group>/<payload ID>`.
     func folder(for pin: RuntimePin, group: PayloadGroup) -> URL {
         root.appending(path: group.rawValue).appending(path: pin.id, directoryHint: .isDirectory)

@@ -67,7 +67,8 @@ struct DevMainTests {
         arguments: [
             (["build", "--sign", "X", "--json"], "build"),
             (["test", "--integration", "bogus", "--json"], "test"),
-            (["release", "prepare", "--json"], "release prepare"),
+            (["release", "0.2.0", "--json"], "release"),
+            (["release", "0.2.0", "03", "--json"], "release"),
             (["runtimes", "prepare", "nope", "--json"], "runtimes prepare"),
             (["nope", "--json"], "dev"),
         ])
@@ -105,7 +106,7 @@ struct DevMainTests {
     @Test(
         "the summary names the full command path",
         arguments: [
-            (["release", "status", "/nonexistent-jerd-release", "--json"], "release status")
+            (["runtimes", "status", "--json"], "runtimes status")
         ])
     func summaryCommandPath(arguments: [String], command: String) async throws {
         guard case .command(let parsed) = DevMain.parse(arguments) else {
@@ -116,7 +117,7 @@ struct DevMainTests {
         _ = await DevMain.execute(parsed, output: output)
         let summary = try JSONDecoder().decode(RunReport.Summary.self, from: Data(output.standardOutput.utf8))
         #expect(summary.command == command)
-        #expect(UsageMessage.commandPath(ReleasePrepareCommand.self) == "release prepare")
+        #expect(UsageMessage.commandPath(ReleaseCommand.self) == "release")
         #expect(UsageMessage.commandPath(DevCommand.self) == "dev")
         #expect(UsageMessage.commandPath(RuntimesPrepareCommand.self) == "runtimes prepare")
     }

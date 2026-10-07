@@ -5,8 +5,8 @@ import JerdRuntimes
 /// Computes the `JERD_*` runtime paths of the integration tests from the payload receipts, so that no
 /// file name (for example a PHP version) is written in the tool.
 ///
-/// `./dev test --integration` uses the prepared payloads; `./dev release prepare` uses the signed
-/// payloads inside the candidate app. Every payload is verified file by file before a test runs it.
+/// `./dev test --integration` uses the prepared payloads. Every payload is verified file by file
+/// before a test runs it.
 struct IntegrationRuntimePaths: Sendable {
     let inventory: PayloadInventory
     /// The folder for the database index: `<indexRoot>/database/pins.json` and one link per payload.

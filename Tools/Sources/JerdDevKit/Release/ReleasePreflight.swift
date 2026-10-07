@@ -7,19 +7,22 @@ struct ReleasePreflight: Sendable {
     let shell: ReleaseShell
     let inputs: ReleaseInputs
 
+    /// The valid code-signing identities in the Keychain, for `SigningIdentity.select`.
+    static func identities(_ shell: ReleaseShell) async throws -> String {
+        try await shell.output(
+            SystemProgram.security, ["find-identity", "-v", "-p", "codesigning"], limit: TimeLimit.probe)
+    }
+
     func run() async throws {
         try await Self.checkSparkleKey(shell)
         try await shell.xcrun(
             ["notarytool", "history"] + inputs.notary.arguments + ["--output-format", "json"],
             limit: TimeLimit.gitHub)
-        let identities = try await shell.output(
-            SystemProgram.security, ["find-identity", "-v", "-p", "codesigning"], limit: TimeLimit.probe)
-        guard identities.contains("\"\(inputs.signing.identity)\"") else {
-            throw DevFailure.missingPrerequisite(
-                "The Keychain has no valid code-signing identity \"\(inputs.signing.identity)\".")
-        }
         try checkPayloads()
-        shell.console.success("The Sparkle key, the notary profile, the signing identity, and the payloads are ready.")
+        let name = inputs.signing.name.isEmpty ? "" : " (\(inputs.signing.name))"
+        shell.console.success(
+            "The Sparkle key, the notary profile, the identity \(inputs.signing.identity)\(name), and the payloads are ready."
+        )
     }
 
     /// The Sparkle private key in the Keychain belongs to the public key of every installed app.
@@ -34,12 +37,12 @@ struct ReleasePreflight: Sendable {
         }
     }
 
-    /// Every pinned payload is prepared and matches its receipt, because the archive embeds them.
+    /// Every embedded payload is prepared and matches its receipt, because the archive embeds them.
     func checkPayloads() throws {
         let repository = shell.repository
         let catalog = try PayloadInventory.catalog(at: repository.runtimeCatalog)
-        let entries = PayloadInventory(root: repository.payloads, catalog: catalog).entries()
-        let problems = entries.compactMap { entry -> String? in
+        let problems = EmbeddedPayloads.entries(in: repository.payloads, catalog: catalog).compactMap {
+            entry -> String? in
             switch entry.state {
             case .valid: nil
             case .missing: "\(entry.pin.id) is not prepared"
@@ -48,8 +51,8 @@ struct ReleasePreflight: Sendable {
         }
         guard problems.isEmpty else {
             throw DevFailure.missingPrerequisite(
-                "A release needs every runtime payload. \(problems.joined(separator: "; ")). Run ./dev runtimes prepare."
-            )
+                "A release needs every embedded runtime payload. \(problems.joined(separator: "; ")). "
+                    + "Run ./dev runtimes prepare.")
         }
     }
 }

@@ -22,7 +22,8 @@ struct AppSigningTests {
             let name = URL(filePath: invocation.arguments.last!).lastPathComponent
             return .init(standardError: "Identifier=org.sparkle-project.\(name)\n")
         }
-        try await AppSigner(shell: workspace.shell(), signing: Self.signing).run(app: URL(filePath: "/c/Jerd.app"))
+        try await AppSigner(shell: workspace.shell(), identity: Self.signing.identity).run(
+            app: URL(filePath: "/c/Jerd.app"))
         let signed = workspace.runner.calls("codesign", ["--force"])
         let names = signed.map { URL(filePath: $0.last!).lastPathComponent }
         #expect(
@@ -35,6 +36,26 @@ struct AppSigningTests {
         #expect(identifiers[0] == "org.sparkle-project.Installer.xpc")
         #expect(signed[1].contains("--preserve-metadata=entitlements"))
         #expect(signed.filter { $0.contains("--preserve-metadata=entitlements") }.count == 1)
+    }
+
+    @Test("Autoupdate gets Sparkle's product identifier instead of the ad-hoc identifier of the package")
+    func autoupdateIdentifier() async throws {
+        let workspace = try ReleaseWorkspace()
+        defer { workspace.remove() }
+        workspace.runner.on("codesign", ["-d", "--verbose=2"]) { invocation in
+            let name = URL(filePath: invocation.arguments.last!).lastPathComponent
+            let identifier = name == "Autoupdate" ? "Autoupdate-55554944f723d84042cd352fbb0485760ff7597a" : name
+            return .init(standardError: "Identifier=\(identifier)\n")
+        }
+        try await AppSigner(shell: workspace.shell(), identity: Self.signing.identity).run(
+            app: URL(filePath: "/c/Jerd.app"))
+        let signed = workspace.runner.calls("codesign", ["--force"])
+        let autoupdate = try #require(signed.first { $0.last!.hasSuffix("/Autoupdate") })
+        #expect(autoupdate[autoupdate.firstIndex(of: "--identifier")! + 1] == "org.sparkle-project.Sparkle.Autoupdate")
+        #expect(
+            AppSigner.identifier(of: "Versions/B/Autoupdate", current: "org.sparkle-project.Other")
+                == "org.sparkle-project.Other")
+        #expect(AppSigner.identifier(of: "Versions/B/Updater.app", current: "x") == "x")
     }
 
     @Test("A signature passes with the team, hardened runtime, timestamp, and identifier")
@@ -82,20 +103,19 @@ struct AppSigningTests {
         #expect(!SignatureVerifier.IdentifierRule.any.accepts(nil))
     }
 
-    @Test("The archive uses the pinned packages, manual signing, and no version overrides")
+    @Test("The archive uses the pinned packages, the certificate SHA-1, and the release version and build")
     func archiveArguments() throws {
         let workspace = try ReleaseWorkspace()
         defer { workspace.remove() }
-        let inputs = try ReleaseInputs.parse(
-            version: "0.2.0", build: "3", minimumMacOS: "14.0", identity: ReleaseFixtures.identity,
-            team: ReleaseFixtures.team, notaryProfile: "p", keychain: nil)
         let arguments = AppArchiver(
-            shell: try workspace.shell(), inputs: inputs, layout: CandidateLayout(root: workspace.path("c"))
+            shell: try workspace.shell(), inputs: try ReleaseFixtures.inputs(),
+            layout: CandidateLayout(root: workspace.path("c"))
         )
         .arguments()
         #expect(arguments.contains("-onlyUsePackageVersionsFromResolvedFile"))
         #expect(arguments.contains("CODE_SIGN_STYLE=Manual") && arguments.contains("DEVELOPMENT_TEAM=ABCDE12345"))
-        #expect(!arguments.contains { $0.hasPrefix("MARKETING_VERSION") || $0.hasPrefix("CURRENT_PROJECT_VERSION") })
+        #expect(arguments.contains("CODE_SIGN_IDENTITY=\(ReleaseFixtures.sha1)"))
+        #expect(arguments.suffix(2) == ["MARKETING_VERSION=0.2.0", "CURRENT_PROJECT_VERSION=3"])
     }
 
     @Test("The minimum macOS version is written into the exported Info.plist")
