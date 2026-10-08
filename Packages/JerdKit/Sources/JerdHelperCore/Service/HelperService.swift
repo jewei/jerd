@@ -62,6 +62,10 @@ actor HelperService {
         }
     }
 
+    /// True while a connection holds the listeners, or a setup change or an acquisition runs.
+    /// The helper never exits then.
+    var isBusy: Bool { ports.lease != nil || ports.activity != .idle }
+
     /// Ends the lease of `connection` and closes its listeners.
     func release(connection: UUID) {
         ports.release(connection: connection)?.close()

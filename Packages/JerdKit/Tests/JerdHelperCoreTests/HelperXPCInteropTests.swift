@@ -85,6 +85,33 @@ final class OldAppConsent: NSObject, OldAppConsentProtocol, Sendable {
         withExtendedLifetime(delegate) {}
     }
 
+    /// An accepted connection counts until it closes; while the idle helper exits, a new
+    /// connection is refused at once, so the client retries and launchd starts the helper again.
+    @Test func theDelegateCountsConnectionsAndRefusesThemWhileTheHelperExits() async throws {
+        let harness = try ServiceHarness()
+        defer { harness.remove() }
+        let lifetime = HelperLifetime()
+        let delegate = HelperListenerDelegate(
+            requirement: try ownRequirement(), service: harness.service, lifetime: lifetime)
+        let listener = NSXPCListener.anonymous()
+        listener.delegate = delegate
+        listener.resume()
+        defer { listener.invalidate() }
+        let connection = connect(listener)
+        #expect(await status(connection).1 == nil)
+        #expect(lifetime.snapshot.connections == 1)
+        connection.invalidate()
+        for _ in 0..<200 where lifetime.snapshot.connections != 0 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(lifetime.snapshot.connections == 0)
+        #expect(lifetime.beginExit(expecting: lifetime.snapshot.generation))
+        let late = connect(listener)
+        defer { late.invalidate() }
+        let (data, error) = await status(late)
+        #expect(data == nil && error != nil)
+        #expect(lifetime.snapshot.connections == 0)
+        withExtendedLifetime(delegate) {}
+    }
+
     @Test func aPeerWithoutTheRequiredSignatureIsRefused() async throws {
         let harness = try ServiceHarness()
         defer { harness.remove() }

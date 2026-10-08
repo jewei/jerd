@@ -8,6 +8,7 @@ as root through `SMAppService`. `Apps/JerdHelper/main.swift` calls only `HelperD
 | Type | Purpose |
 | --- | --- |
 | `HelperDaemon`, `HelperLaunchPlan` | Start: team check, `--check-signing`, root check, the Mach service listener. |
+| `HelperLifetime`, `IdleExitMonitor`, `ExecutableFileIdentity` | The open connections and the exit of an idle helper. |
 | `HelperListenerDelegate`, `ConnectionAcceptPolicy` | Accept a connection: UID rule, code signature, session. |
 | `HelperSession` | The exported object of one connection, with ordered changes and ordered listener calls. |
 | `HelperService` | The one service: the setup store, the port lease, and the port reservation. |
@@ -32,6 +33,12 @@ as root through `SMAppService`. `Apps/JerdHelper/main.swift` calls only `HelperD
 - `TrustInstaller` deletes a keychain item that it added when a later step fails. It never deletes
   an item that existed before.
 - Errors cross XPC as text with a stable code (`HelperWireError`).
+- The helper exits when it is idle: no connection, no listener lease, and no setup change, for
+  30 seconds (checked every 5 seconds). When its executable file was replaced by an app update, it
+  exits at the first idle check. Thus launchd starts the current file on the next connection, and
+  an updated app never meets the old helper code for long. The limit is above launchd's 10-second
+  respawn throttle. A connection that arrives while the helper exits is refused; the app retries
+  once, and launchd starts the helper again.
 
 ## Test
 
