@@ -201,6 +201,16 @@ struct SitesModelTests {
         #expect(harness.model.operation == .idle)
     }
 
+    @Test("The banner title follows the cause: not allowed for Login Items, unknown otherwise")
+    func bannerTitleFollowsTheCause() {
+        #expect(SystemSetupState.unreadable("Allow it.", remedy: .openLoginItems).title == "Helper not allowed")
+        #expect(SystemSetupState.unreadable("Allow it.", remedy: .openLoginItems).message == "Allow it.")
+        let notRegistered = SystemSetupState.unreadable("Not registered.", remedy: .reconnectHelper)
+        #expect(notRegistered.title == "HTTPS setup unknown")
+        #expect(notRegistered.message == "Jerd could not read the HTTPS setup. Not registered.")
+        #expect(SystemSetupState.unreadable("Failed.").title == "HTTPS setup unknown")
+    }
+
     @Test("A helper that Jerd cannot reach offers Reconnect Helper… in the HTTPS setup banner")
     func unreachableHelperOffersReconnect() async {
         let harness = await SitesHarness.launched(

@@ -65,9 +65,11 @@ public struct HelperRegistration: Sendable {
                 "Allow Jerd in System Settings → General → Login Items & Extensions, then retry the operation."
             ).with(.openLoginItems)
         case .notRegistered, .notFound:
+            // Not a Login Items refusal: the remedy is to register again, not to allow the helper.
             throw JerdError.unavailable(
-                "The Jerd helper is not enabled. Use a signed app in a stable location and check Login Items & Extensions."
-            ).with(.openLoginItems)
+                "The Jerd helper is not registered. Keep Jerd in Applications, then click Reconnect Helper…. If it "
+                    + "fails again, check Login Items & Extensions."
+            ).with(.reconnectHelper)
         }
     }
 }

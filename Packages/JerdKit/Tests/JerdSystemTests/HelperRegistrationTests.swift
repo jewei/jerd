@@ -44,6 +44,14 @@ import os
         #expect(throws: JerdError.unavailable("Launch denied by user")) { try registration(service).register() }
     }
 
+    /// A daemon that stays unregistered is not a Login Items refusal: the remedy is Reconnect Helper….
+    @Test(arguments: [HelperAvailability.notRegistered, .notFound])
+    func aDaemonThatIsNotRegisteredOffersReconnect(status: HelperAvailability) {
+        let error = #expect(throws: JerdError.self) { try FakeDaemonService(status).registration().requireEnabled() }
+        #expect(error?.remedy == .reconnectHelper)
+        #expect(error?.message.contains("not allowed") == false)
+    }
+
     @Test func anUnsignedBuildCannotRegister() {
         let service = FakeDaemonService(.notRegistered)
         #expect(throws: JerdError.unavailable("unsigned")) { try registration(service, signed: false).register() }
