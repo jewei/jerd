@@ -1,6 +1,7 @@
 import Foundation
 
-/// The single error type of Jerd: a machine-readable kind and a message that a user can act on.
+/// The single error type of Jerd: a machine-readable kind, a message that a user can act on, and,
+/// for a few failures, the remedy that a page can offer as a button.
 public struct JerdError: Error, LocalizedError, Equatable, Hashable, Sendable {
     /// The category of a failure. Callers branch on the kind, never on the message text.
     public enum Kind: String, Sendable, Hashable, CaseIterable {
@@ -22,12 +23,29 @@ public struct JerdError: Error, LocalizedError, Equatable, Hashable, Sendable {
         case partialChange
     }
 
+    /// A step that fixes the failure and that a page can offer as a button. The message names the
+    /// same step, so a page without the button still tells the user what to do.
+    public enum Remedy: String, Sendable, Hashable, CaseIterable {
+        /// Register the privileged helper again (Reconnect Helper…).
+        case reconnectHelper
+        /// Open System Settings → General → Login Items & Extensions.
+        case openLoginItems
+    }
+
     public let kind: Kind
     public let message: String
+    public private(set) var remedy: Remedy?
 
     public init(_ kind: Kind, _ message: String) {
         self.kind = kind
         self.message = message
+    }
+
+    /// The same error with `remedy`.
+    public func with(_ remedy: Remedy) -> JerdError {
+        var copy = self
+        copy.remedy = remedy
+        return copy
     }
 
     public var errorDescription: String? { message }
