@@ -33,9 +33,19 @@ struct HelperStatusMappingTests {
                     hasPendingRecovery: false))
     }
 
-    @Test func aDisabledHelperIsAnEmptySetup() throws {
-        let mapped = try HelperStatusMapping.httpsStatus(HelperStatus(availability: .requiresApproval, setup: .empty))
+    @Test(arguments: [HelperAvailability.notRegistered, .notFound])
+    func aHelperThatWasNeverRegisteredIsAnEmptySetup(availability: HelperAvailability) throws {
+        let mapped = try HelperStatusMapping.httpsStatus(HelperStatus(availability: availability, setup: .empty))
         #expect(mapped == HTTPSSetupStatus())
+    }
+
+    /// A helper that the user turned off keeps its hosts and trust: the page offers Login Items,
+    /// not a new approval.
+    @Test func aTurnedOffHelperOffersLoginItems() {
+        #expect(throws: HelperStatusMapping.turnedOffError) {
+            try HelperStatusMapping.httpsStatus(HelperStatus(availability: .requiresApproval, setup: .empty))
+        }
+        #expect(HelperStatusMapping.turnedOffError.remedy == .openLoginItems)
     }
 
     @Test func anInterruptedTransactionIsAPendingRecovery() throws {

@@ -9,7 +9,7 @@ extension SitesModel {
     public var systemSetupState: SystemSetupState? {
         if runningApprovalID != nil { return .inProgress(Self.approvalMessage) }
         if setup?.hasPendingRecovery == true { return .recoveryPending }
-        if let setupReadFailure { return .unreadable(setupReadFailure) }
+        if let setupReadFailure { return .unreadable(setupReadFailure, remedy: setupReadRemedy) }
         if environment.state == .setupRequired { return .approvalRequired }
         return nil
     }
@@ -75,6 +75,16 @@ extension SitesModel {
     /// Opens Login Items & Extensions, where the user allows the helper.
     public func openLoginItems() {
         Task { await port.openLoginItems() }
+    }
+
+    /// True when the HTTPS setup can be read again: no other site work runs.
+    public var canCheckSetupAgain: Bool { isLoaded && !isBusy }
+
+    /// Reads the HTTPS setup again, for example after the user turned on the helper in Login Items.
+    @discardableResult
+    public func checkSetupAgain() -> Task<Void, Never>? {
+        guard canCheckSetupAgain else { return nil }
+        return Task { await readSetup() }
     }
 
     /// A system setup step. Its failure uses the window alert, because it changed the Mac.

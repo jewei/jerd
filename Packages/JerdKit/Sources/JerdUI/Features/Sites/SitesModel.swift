@@ -1,4 +1,5 @@
 import Foundation
+import JerdFoundation
 import JerdWeb
 import Observation
 
@@ -16,6 +17,8 @@ public final class SitesModel {
     public internal(set) var authority: InstallationAuthority?
     /// Why the HTTPS setup could not be read, shown in the system setup banner.
     public internal(set) var setupReadFailure: String?
+    /// The step that fixes the failed read, offered as a button in the system setup banner.
+    public internal(set) var setupReadRemedy: JerdError.Remedy?
     /// True after the saved sites were read.
     public internal(set) var isLoaded = false
     public internal(set) var operation: OperationState = .idle
@@ -127,10 +130,12 @@ public final class SitesModel {
             setup = try await port.setupStatus()
             authority = try await port.localAuthority()
             setupReadFailure = nil
+            setupReadRemedy = nil
         } catch {
             setup = nil
             authority = nil
             setupReadFailure = ErrorText.message(for: error)
+            setupReadRemedy = (error as? JerdError)?.remedy
         }
     }
 

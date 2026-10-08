@@ -13,6 +13,8 @@ public actor InMemorySitesPort: SitesPort {
     public var failure: String?
     /// When set, reading the configuration throws this message.
     public var loadFailure: String?
+    /// When set, reading the HTTPS setup throws this error.
+    public var setupFailure: JerdError?
     /// When true, a change waits until `requestStop()`, then ends with `CancellationError`.
     public var suspendsChanges = false
     /// When true, reading the configuration waits until `releaseLoad()`, for launch tests.
@@ -37,9 +39,11 @@ public actor InMemorySitesPort: SitesPort {
     public init(
         configuration: AppConfiguration = SampleData.siteConfiguration,
         environment: EnvironmentSnapshot = EnvironmentSnapshot(state: .stopped, siteIDs: []),
-        setup: HTTPSSetupStatus = SampleData.approvedSetup, loadFailure: String? = nil
+        setup: HTTPSSetupStatus = SampleData.approvedSetup, loadFailure: String? = nil,
+        setupFailure: JerdError? = nil
     ) {
         self.loadFailure = loadFailure
+        self.setupFailure = setupFailure
         configurationValue = configuration
         environmentValue = environment
         self.setup = setup
@@ -70,7 +74,10 @@ public actor InMemorySitesPort: SitesPort {
         environmentReads += 1
         return environmentValue
     }
-    public func setupStatus() async throws -> HTTPSSetupStatus { setup }
+    public func setupStatus() async throws -> HTTPSSetupStatus {
+        if let setupFailure { throw setupFailure }
+        return setup
+    }
     public func localAuthority() async throws -> InstallationAuthority? { authority }
 
     public func apply(_ change: SiteChange, startIfStopped: Bool) async throws -> SiteChangeOutcome {
