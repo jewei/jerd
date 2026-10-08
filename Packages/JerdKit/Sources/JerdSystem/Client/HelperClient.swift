@@ -11,6 +11,10 @@ public actor HelperClient {
     nonisolated let registration: HelperRegistration
     nonisolated let connection: HelperConnection
     nonisolated let gate: ConsentGate
+    /// The one automatic restart of the helper in this app run (`HelperRecoveryPolicy`).
+    var automaticRestart = AutomaticRestart.available
+    /// True from a listener acquisition until their release, while sites can use the sockets.
+    var holdsListeners = false
 
     public init(
         registration: HelperRegistration = HelperRegistration(), opener: any HelperLinkOpening = XPCHelperLinkOpener(),
@@ -27,13 +31,17 @@ public actor HelperClient {
     public func status() async throws -> HelperStatus {
         let availability = registration.availability
         guard availability == .enabled else { return HelperStatus(availability: availability, setup: .empty) }
-        let data: Data = try await connection.call(cancellation: .readOnly) { proxy, gate in
-            proxy.status { data, error in
-                if let data {
-                    gate.resolve(.success(data))
-                } else {
-                    gate.resolve(
-                        .failure(error.map(HelperWireError.error) ?? .unavailable("No helper status was returned.")))
+        let connection = connection
+        let data: Data = try await recovering {
+            try await connection.call(cancellation: .readOnly) { proxy, gate in
+                proxy.status { data, error in
+                    if let data {
+                        gate.resolve(.success(data))
+                    } else {
+                        gate.resolve(
+                            .failure(error.map(HelperWireError.error) ?? .unavailable("No helper status was returned."))
+                        )
+                    }
                 }
             }
         }
@@ -53,23 +61,29 @@ public actor HelperClient {
     ///
     /// A late reply after a timeout closes the listeners it carries.
     public func acquireListeners() async throws -> LoopbackListenerPair {
-        try await connection.call { proxy, gate in
-            proxy.acquireListeners { http, https, error in
-                guard let http, let https else {
-                    let failure =
-                        error.map(HelperWireError.error)
-                        ?? .unavailable("The helper did not return standard-port sockets.")
-                    gate.resolve(.failure(failure))
-                    return
+        let connection = connection
+        let pair: LoopbackListenerPair = try await recovering {
+            try await connection.call { proxy, gate in
+                proxy.acquireListeners { http, https, error in
+                    guard let http, let https else {
+                        let failure =
+                            error.map(HelperWireError.error)
+                            ?? .unavailable("The helper did not return standard-port sockets.")
+                        gate.resolve(.failure(failure))
+                        return
+                    }
+                    let pair = LoopbackListenerPair(http: http, https: https)
+                    if !gate.resolve(.success(pair)) { pair.close() }
                 }
-                let pair = LoopbackListenerPair(http: http, https: https)
-                if !gate.resolve(.success(pair)) { pair.close() }
             }
         }
+        holdsListeners = true
+        return pair
     }
 
     /// Returns the listeners. Without a connection there is nothing to release.
     public func releaseListeners() async {
+        holdsListeners = false
         guard await connection.isConnected else { return }
         do {
             let _: Bool = try await connection.call { proxy, gate in
@@ -81,16 +95,24 @@ public actor HelperClient {
     }
 
     /// Drops the connection. The next call connects again.
-    public func invalidate() async { await connection.invalidate() }
+    /// The helper ends the lease of a closed connection, so no listeners are held afterwards.
+    public func invalidate() async {
+        holdsListeners = false
+        await connection.invalidate()
+    }
 
     /// Registers the helper again after the user approved a reconnection. Hosts and trust stay.
+    /// The caller stopped the sites first. A later stale helper may be restarted automatically again.
     public func reconnect() async throws {
+        holdsListeners = false
+        automaticRestart = .available
         await connection.invalidate()
         try await registration.reregister()
     }
 
     /// Unregisters the helper after its setup was removed.
     public func unregister() async throws {
+        holdsListeners = false
         await connection.invalidate()
         try await registration.unregister()
     }

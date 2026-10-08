@@ -60,19 +60,26 @@ extension HelperClient {
     }
 
     /// Sends a changing request without an app timeout. A nil error text means success.
+    ///
+    /// A transport failure is never retried here: the helper can have run the request before XPC
+    /// refused its reply. Configure and remove read the status first, which restarts a stale helper.
     private func change(
         _ send: @escaping @Sendable (any JerdHelperProtocol, @escaping @Sendable (String?) -> Void) -> Void
     )
         async throws
     {
-        let _: Bool = try await connection.call(timeout: nil) { proxy, gate in
-            send(proxy) { error in
-                if let error {
-                    gate.resolve(.failure(HelperWireError.error(from: error)))
-                } else {
-                    gate.resolve(.success(true))
+        do {
+            let _: Bool = try await connection.call(timeout: nil) { proxy, gate in
+                send(proxy) { error in
+                    if let error {
+                        gate.resolve(.failure(HelperWireError.error(from: error)))
+                    } else {
+                        gate.resolve(.success(true))
+                    }
                 }
             }
+        } catch let failure as HelperTransportError {
+            throw failure.userError
         }
     }
 }

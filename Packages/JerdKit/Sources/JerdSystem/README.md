@@ -22,6 +22,8 @@ folder, and the keychain. It depends only on JerdFoundation.
 | `CodeSigningPolicy` | The code-signing requirement text and the team check. |
 | `LoopbackListenerPair`, `PortLeaseCoordinator` | The listeners on ports 80 and 443 and their lease. |
 | `ReplyGate`, `HelperConnection`, `HelperRegistration`, `HelperClient` | The app-side client. |
+| `HelperTransportError`, `HelperRecoveryPolicy` | The cause of a transport failure and the one automatic restart of a stale helper. |
+| `HelperRegistrationFailure`, `HelperProcessInspecting`, `HelperProcessTable` | The causes of `SMAppService` failures, and the check that the old helper process exited. |
 
 ## App-only and root-only code
 
@@ -60,6 +62,14 @@ module does not own. Split it in its own change: move the root-only folders into
   app timeout, because macOS can show an approval prompt. Cancellation ends only a status call.
   A timeout drops the shared link, but not while a change without a timeout waits on it.
 - Each changing call opens its own consent scope with a token. A second scope is refused.
+- A status or acquire call that fails with a code-signing requirement failure (`NSCocoaErrorDomain`
+  4102: the helper still runs the code from before an app update) restarts the helper once per
+  app run through `reregister()`, then retries once. It changes no hosts or trust. It never
+  restarts while the app holds the listeners. A lost connection (4097, 4099) is retried once on a
+  new connection. A changing call is never retried, because the helper can have run it.
+- `reregister()` waits until the daemon is not enabled and no helper process runs (at most
+  5 seconds), then registers. It retries "Operation not permitted" up to 4 times. Every failure is
+  a `JerdError` that names what to do; some carry a remedy (Reconnect Helper…, Login Items).
 - When another tool deleted the tracked hosts section, remove still removes the trust and the
   registration, with no change to the hosts bytes. Configure writes the section again after
   the external-mapping check.
