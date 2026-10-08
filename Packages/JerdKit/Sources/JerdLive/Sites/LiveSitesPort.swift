@@ -84,11 +84,20 @@ package actor LiveSitesPort: SitesPort {
         await sites.requestStop()
     }
 
-    /// Stops PHP-FPM and Caddy for Quit and closes the helper connection; the helper ends the
-    /// port lease when the connection closes.
+    /// The longest time that Quit waits for a running helper restart. A restart takes at most about
+    /// 7 seconds (the exit wait and the register retries); the margin covers a slow launchd.
+    package static let helperRestartQuitLimit: Duration = .seconds(20)
+
+    /// Stops PHP-FPM and Caddy for Quit, lets a running helper restart finish (a quit in the middle
+    /// could leave the helper unregistered), and closes the helper connection; the helper ends the
+    /// port lease when the connection closes. The wait is bounded, so it never blocks Quit.
     package func stopEnvironment() async throws {
         ServiceActivityLog.request("Stop", "the web environment")
         await coordinator.stop()
+        let limit = Self.helperRestartQuitLimit
+        if await !helper.finishRunningRestart(within: limit) {
+            ServiceActivityLog.helperRestartOutlastedQuit(limit)
+        }
         await helper.invalidate()
     }
 

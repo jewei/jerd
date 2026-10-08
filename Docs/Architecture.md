@@ -138,6 +138,8 @@ Quit runs the staged quit of `AppState` (`ShutdownCoordinator`): runtime work, t
 storage, mail, databases, then the web environment. `applicationShouldTerminate` answers
 `.terminateLater` once and replies once; a second request during a quit is cancelled at once.
 A service that does not stop cancels the quit and keeps Jerd open. Sparkle uses the same path.
+The web environment stage also waits up to 20 seconds for a running helper restart, so a quit
+does not leave the helper unregistered; after the limit, the quit continues and logs it.
 
 A Debug build reads `JERD_DEBUG_DATA_ROOT` to run with an empty data folder. Release builds
 always use `~/Library/Application Support/Jerd`.

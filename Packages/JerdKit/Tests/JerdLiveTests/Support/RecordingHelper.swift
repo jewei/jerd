@@ -17,12 +17,15 @@ actor RecordingHelper: HelperControlling {
         case reconnect
         case unregister
         case invalidate
+        case finishRestart(within: Duration)
     }
 
     private(set) var calls: [Call] = []
     var statusResult: Result<HelperStatus, JerdError> = .success(
         HelperStatus(availability: .notRegistered, setup: .empty))
     var failure: JerdError?
+    /// The answer of `finishRunningRestart(within:)`: false acts like a restart that outlasts the limit.
+    var restartFinishes = true
     let journal: CallJournal?
 
     init(status: HelperStatus? = nil, journal: CallJournal? = nil) {
@@ -88,6 +91,14 @@ actor RecordingHelper: HelperControlling {
         calls.append(.invalidate)
         await journal?.record("helper.invalidate")
     }
+
+    func finishRunningRestart(within limit: Duration) async -> Bool {
+        calls.append(.finishRestart(within: limit))
+        await journal?.record("helper.finishRestart")
+        return restartFinishes
+    }
+
+    func setRestartFinishes(_ finishes: Bool) { restartFinishes = finishes }
 
     private func failIfSet() throws {
         if let failure { throw failure }
