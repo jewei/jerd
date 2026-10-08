@@ -14,7 +14,11 @@ struct SigningInformation: Equatable, Sendable {
     }
 
     /// The facts of the running process; an unsigned process gives no Team ID.
+    ///
+    /// Security can block in these calls and logs a warning on the main thread, so the app calls
+    /// this only from an actor. A Debug build stops on a main-thread call.
     static func ofRunningProcess() -> SigningInformation {
+        assert(!Thread.isMainThread, "Read the code signature off the main thread.")
         var code: SecCode?
         var staticCode: SecStaticCode?
         guard SecCodeCopySelf(SecCSFlags(), &code) == errSecSuccess, let code,

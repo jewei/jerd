@@ -67,7 +67,7 @@ The "Install Command-Line Tools" control in Dashboard > Advanced calls `install(
   but only while they still have the setup's bytes. An edited file stays, and the error
   names it and its backup.
 - The launcher copy `bin/JerdCLI` (0700) must have a valid code signature from the app's
-  signer (`CodeSignatureCheck.forRunningApp()`). For a signed app, the rule is
+  signer (`CodeSignatureCheck.forRunningApp()`, read at the first check, never on the main thread). For a signed app, the rule is
   `anchor apple generic` with the app's Team ID. For an ad hoc or unsigned development app,
   only an ad hoc launcher passes. The links
   `php`, `composer`, and `laravel` point to `JerdCLI`. The setup removes leftovers of a

@@ -2,6 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdTestSupport
 import Testing
+import os
 
 @testable import JerdCLICore
 
@@ -24,6 +25,25 @@ import Testing
     }
 
     private static func isInvalid(_ error: any Error) -> Bool { (error as? JerdError)?.kind == .invalid }
+
+    /// The app makes the check on the main actor at launch. The Security code-signing calls must
+    /// not run there, so the app's signer is read only by a check, once per check.
+    @Test func theRunningAppSignerIsReadOnlyWhenACheckRuns() throws {
+        let reads = OSAllocatedUnfairLock(initialState: 0)
+        let check = CodeSignatureCheck.forRunningApp {
+            reads.withLock { $0 += 1 }
+            return .adHoc
+        }
+        _ = ShellSetupInstaller(
+            layout: DataLayout(root: URL(fileURLWithPath: "/nonexistent/jerd")),
+            home: URL(fileURLWithPath: "/nonexistent"),
+            launcher: URL(fileURLWithPath: "/nonexistent/JerdCLI"), signatures: check)
+        #expect(reads.withLock { $0 } == 0)
+        let directory = try TemporaryDirectory(" cli café")
+        defer { directory.remove() }
+        try check.checkSignature(of: try Self.adHocLauncher(in: directory))
+        #expect(reads.withLock { $0 } == 1)
+    }
 
     /// A development app accepts its ad hoc launcher.
     @Test func adHocLauncherPassesForAnAdHocApp() throws {
