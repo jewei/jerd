@@ -45,8 +45,10 @@ Jerd is a native macOS app for local PHP development. It does these tasks:
 
 Jerd uses [Sparkle](https://sparkle-project.org) for app updates. It reads
 only the signed feed [`appcast.xml`](appcast.xml) in this repository, over
-HTTPS. Sparkle installs an update only when its signature is correct. You can
-change the update settings on the About page of the Dashboard.
+HTTPS. Sparkle installs an update only when its signature is correct. At the
+second launch, Jerd asks one time whether to check for updates automatically.
+It never installs an update without your approval. You can change the update
+settings on the About page of the Dashboard.
 
 ## What Jerd changes on your Mac
 

@@ -6,8 +6,6 @@
 	<string>$(JERD_UPDATE_FEED_URL)</string>
 	<key>SUPublicEDKey</key>
 	<string>$(JERD_UPDATE_PUBLIC_KEY)</string>
-	<key>SUEnableAutomaticChecks</key>
-	<false/>
 	<key>SUAutomaticallyUpdate</key>
 	<false/>
 	<key>SUAllowsAutomaticUpdates</key>

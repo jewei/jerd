@@ -12,7 +12,6 @@ struct BuiltAppPolicyTests {
             "LSMinimumSystemVersion": "14.0",
             "SUFeedURL": UpdateSettingsPolicy.feedURL,
             "SUPublicEDKey": UpdateSettingsPolicy.publicKey,
-            "SUEnableAutomaticChecks": false,
             "SUAutomaticallyUpdate": false,
             "SUAllowsAutomaticUpdates": false,
             "SUEnableSystemProfiling": false,
@@ -27,6 +26,15 @@ struct BuiltAppPolicyTests {
     @Test("accepts the expanded feed URL, key, and Sparkle keys")
     func acceptsValidPlist() throws {
         #expect(BuiltAppPolicy.infoPlistFindings(try Self.validPlist(), file: "Info.plist").isEmpty)
+    }
+
+    @Test("refuses a built app that sets the automatic check key")
+    func refusesAutomaticCheckKey() throws {
+        let data = try Self.validPlist(changing: ["SUEnableAutomaticChecks": false])
+        #expect(
+            BuiltAppPolicy.infoPlistFindings(data, file: "Info.plist").map(\.message) == [
+                "SUEnableAutomaticChecks must be absent, so Sparkle asks the user whether to check."
+            ])
     }
 
     @Test("refuses an effective feed URL that a conditional setting changed")

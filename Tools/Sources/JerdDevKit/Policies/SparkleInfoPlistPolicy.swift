@@ -1,7 +1,8 @@
 import Foundation
 
 /// The Sparkle keys in `Apps/Jerd/Resources/Info.plist`. Each key and value type is exact: no automatic
-/// checks or installs by default, no profiling, signed feeds only, and archives checked before extraction.
+/// installs, no profiling, signed feeds only, and archives checked before extraction. The automatic check
+/// key must be absent, so Sparkle asks the user once whether to check for updates automatically.
 enum SparkleInfoPlistPolicy {
     static let file = "Apps/Jerd/Resources/Info.plist"
 
@@ -23,7 +24,6 @@ enum SparkleInfoPlistPolicy {
     static let requiredValues: [(key: String, value: Value)] = [
         ("SUFeedURL", .string("$(JERD_UPDATE_FEED_URL)")),
         ("SUPublicEDKey", .string("$(JERD_UPDATE_PUBLIC_KEY)")),
-        ("SUEnableAutomaticChecks", .bool(false)),
         ("SUAutomaticallyUpdate", .bool(false)),
         ("SUAllowsAutomaticUpdates", .bool(false)),
         ("SUEnableSystemProfiling", .bool(false)),
@@ -31,6 +31,17 @@ enum SparkleInfoPlistPolicy {
         ("SURequireSignedFeed", .bool(true)),
         ("SUSignedFeedFailureExpirationInterval", .integer(0)),
     ]
+
+    /// Keys that must not be set. Without `SUEnableAutomaticChecks`, Sparkle asks the user at the second
+    /// launch whether to check automatically; a fixed value would decide for every user.
+    static let absentKeys = ["SUEnableAutomaticChecks"]
+
+    /// The findings for each key of `absentKeys` that the dictionary sets.
+    static func absentKeyFindings(_ dictionary: [String: Any], file: String) -> [PolicyFinding] {
+        absentKeys.filter { dictionary[$0] != nil }.map {
+            PolicyFinding(file: file, message: "\($0) must be absent, so Sparkle asks the user whether to check.")
+        }
+    }
 
     static func findings(plistData: Data) -> [PolicyFinding] {
         let decoded = try? PropertyListSerialization.propertyList(from: plistData, format: nil)
@@ -45,7 +56,8 @@ enum SparkleInfoPlistPolicy {
                 findings.append(PolicyFinding(file: file, message: "\(key) \(found); it must be \(required)."))
             }
         }
-        let known = Set(requiredValues.map(\.key))
+        findings += absentKeyFindings(dictionary, file: file)
+        let known = Set(requiredValues.map(\.key) + absentKeys)
         for key in dictionary.keys.sorted() where key.hasPrefix("SU") && !known.contains(key) {
             findings.append(PolicyFinding(file: file, message: "\(key) is not an approved Sparkle setting."))
         }

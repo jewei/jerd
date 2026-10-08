@@ -32,12 +32,13 @@ enum BuiltAppPolicy {
         guard let dictionary = decoded as? [String: Any] else {
             return [PolicyFinding(file: file, message: "The file is not a property list dictionary.")]
         }
-        return requiredValues.compactMap { key, required in
+        let wrong = requiredValues.compactMap { key, required -> PolicyFinding? in
             let actual = dictionary[key].flatMap(SparkleInfoPlistPolicy.value(of:))
             guard actual != required else { return nil }
             let found = actual.map { "has \($0)" } ?? "is missing"
             return PolicyFinding(file: file, message: "\(key) \(found); it must be \(required).")
         }
+        return wrong + SparkleInfoPlistPolicy.absentKeyFindings(dictionary, file: file)
     }
 
     /// - Parameter lipoOutput: The output of `lipo -archs`, or `nil` when lipo could not read the file.
