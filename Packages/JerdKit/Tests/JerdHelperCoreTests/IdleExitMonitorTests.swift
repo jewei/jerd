@@ -7,7 +7,7 @@ import os
 
 /// The helper ends when it is idle, so launchd starts the current file after an app update. Each
 /// `check` stands for one `checkInterval` of a fake clock; no test waits for real time.
-@Suite struct IdleExitMonitorTests {
+@Suite(.timeLimit(.minutes(1))) struct IdleExitMonitorTests {
     private static let checksToExit = Int(IdleExitMonitor.idleLimit / IdleExitMonitor.checkInterval)
 
     private func monitor(
@@ -103,7 +103,14 @@ import os
         let exits = OSAllocatedUnfairLock(initialState: 0)
         let monitor = IdleExitMonitor(
             lifetime: lifetime, isBusy: { false }, isReplaced: { false },
-            sleep: { duration in sleeps.withLock { $0.append(duration) } }, exit: { exits.withLock { $0 += 1 } })
+            sleep: { duration in
+                // A bound, so a regression that never exits ends the run instead of hanging the test.
+                let count = sleeps.withLock { current -> Int in
+                    current.append(duration)
+                    return current.count
+                }
+                if count > 100 { throw CancellationError() }
+            }, exit: { exits.withLock { $0 += 1 } })
         await monitor.run()
         #expect(exits.withLock { $0 } == 1)
         #expect(sleeps.withLock { $0 } == Array(repeating: IdleExitMonitor.checkInterval, count: Self.checksToExit))
