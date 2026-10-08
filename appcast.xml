@@ -7,6 +7,21 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.2</title>
+            <pubDate>Thu, 08 Oct 2026 07:09:15 GMT</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• Jerd now asks one time whether to check for updates automatically, so you learn about new versions. It still installs an update only after you approve it.
+• HTTPS keeps working after an app update. The system helper now stops by itself when it has no work, and Jerd restarts an outdated helper one time without a question. Your host entries and certificate settings do not change.
+• Reconnect Helper is more reliable: Jerd waits until the old helper has stopped before it starts the new one, so it no longer fails with "Operation not permitted".
+• Clearer helper messages: when Jerd cannot reach its helper, the Sites page shows a Reconnect Helper button. When the helper is not allowed in Login Items, it shows Open Login Items and Check Again buttons. The messages no longer name a menu that you cannot see.
+• Jerd starts more smoothly, because it no longer checks its code signature on the main thread at launch.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.2/Jerd-0.1.2.dmg" length="83464125" type="application/octet-stream" sparkle:edSignature="EBQNvPZiTlz1ead9lLjY3odbjf1u663rtjZOZ4CDojhxDSjyR3ID7OXd8GjJ/EKDDrJ1G1b0b89FMIAuvwjlBg=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.1</title>
             <pubDate>Thu, 08 Oct 2026 01:27:15 GMT</pubDate>
             <sparkle:version>7</sparkle:version>
@@ -42,6 +57,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 1DD1TDc2kVl2Co0+eM2CWrzyohxJ1/CE6RuOvb9HAo5T8qshX8ws13Zsjijs4UQEsxyXUom/Moi1gGgtqUszDw==
-length: 4142
+edSignature: gluPbIiDohtHt94THsqjp9G0LX0wXv0HUm7J0k4gBmwdQeUwy2mxQsw6WaGr7WSKsmyOAB0kIY1qKo3d2hrwAA==
+length: 5822
 -->

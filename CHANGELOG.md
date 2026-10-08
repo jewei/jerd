@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-08
+
 - Jerd now asks one time whether to check for updates automatically, so you learn about new versions. It still installs an update only after you approve it.
 - HTTPS keeps working after an app update. The system helper now stops by itself when it has no work, and Jerd restarts an outdated helper one time without a question. Your host entries and certificate settings do not change.
 - Reconnect Helper is more reliable: Jerd waits until the old helper has stopped before it starts the new one, so it no longer fails with "Operation not permitted".
