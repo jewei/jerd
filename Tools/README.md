@@ -226,8 +226,10 @@ local work comes first:
 4. **Run the signed runtimes.** It runs each embedded executable once from the
    signed app with a version argument (PHP also with `-m`; Composer and the Laravel
    installer with the embedded PHP; the app embeds no Mailpit, which loads nothing from
-   the app, so the step does not run it). Each command has a time limit, a private
-   temporary home, and a minimal environment, and none uses the network. A fault that
+   the app, so the step does not run it). Each command has a time limit of 180 seconds, a
+   private temporary home, and a minimal environment, and none uses the network. The limit
+   is long because macOS scans each new binary on its first run, and on a busy Mac this took
+   more than 60 seconds for RustFS. A fault that
    only the signed form has, for example a missing entitlement, stops the release.
 5. **Notarize the app** and staple it.
 6. **Build and notarize the disk image** with `Jerd.app` and a link to

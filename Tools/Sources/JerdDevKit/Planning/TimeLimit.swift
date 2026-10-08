@@ -2,6 +2,9 @@
 /// limit stops only a command that hangs.
 enum TimeLimit {
     static let probe: Duration = .seconds(60)
+    /// The first run of a binary in a new folder. macOS scans an unknown binary before it runs, and
+    /// for a large binary such as RustFS this took more than 60 s on a busy Mac.
+    static let firstRun: Duration = .seconds(180)
     static let git: Duration = .seconds(120)
     static let generate: Duration = .seconds(300)
     static let format: Duration = .seconds(600)

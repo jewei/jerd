@@ -57,7 +57,7 @@ extension RuntimeSmokeTest {
             try FileManager.default.copyItem(at: copy.source, to: copy.destination)
         }
         try await shell.run(
-            check.command.executable, check.command.arguments, limit: TimeLimit.probe,
+            check.command.executable, check.command.arguments, limit: TimeLimit.firstRun,
             log: layout.log("runtime-smoke"), environment: environment, directory: home)
         shell.console.success("RustFS loaded the signed XZ library of the app.")
     }

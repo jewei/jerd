@@ -81,7 +81,7 @@ struct RuntimeSmokeTestTests {
         #expect(home.contains("jerd-release-smoke") && !FileManager.default.fileExists(atPath: home))
         #expect(
             runs.allSatisfy { $0.environment?["PATH"] == "/usr/bin:/bin" && $0.environment?["JERD_PHP_CLI"] == nil })
-        #expect(runs.allSatisfy { $0.timeout == TimeLimit.probe && $0.workingDirectory?.path == home })
+        #expect(runs.allSatisfy { $0.timeout == TimeLimit.firstRun && $0.workingDirectory?.path == home })
         // The last run is RustFS from the private XZ check folder.
         #expect(runs.last?.executable.path == "\(home)/xz-check/tool" && runs.last?.arguments == ["--version"])
         workspace.runner.on("tool", ["-m"], status: 1, error: "dyld: Library not loaded")
