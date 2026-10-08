@@ -27,7 +27,7 @@ struct RuntimeSmokeTest: Sendable {
         let environment = ["HOME": home.path, "TMPDIR": home.path, "PATH": "/usr/bin:/bin", "LANG": "C"]
         for command in commands {
             try await shell.run(
-                command.executable, command.arguments, limit: TimeLimit.probe, log: layout.log("runtime-smoke"),
+                command.executable, command.arguments, limit: TimeLimit.firstRun, log: layout.log("runtime-smoke"),
                 environment: environment, directory: home)
         }
         shell.console.success("\(commands.count) commands of the signed runtimes ran.")
