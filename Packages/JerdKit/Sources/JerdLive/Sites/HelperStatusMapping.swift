@@ -11,11 +11,11 @@ package enum HelperStatusMapping {
     /// A status that names a running helper transaction carries no setup at all. Reading it as
     /// "no setup" would ask for a new approval, and reading it as interrupted would offer a
     /// recovery of live work, so it throws: the caller retries after the transaction ends.
-    /// A helper that waits for approval in Login Items & Extensions (the user turned it off) also
+    /// A helper that waits for approval in Login Items & Extensions (turned off, or not yet allowed) also
     /// throws: its hosts and trust stay, so "approval required" would be wrong. A helper that was
     /// never registered is an empty setup, and the next Start asks for approval.
     package static func httpsStatus(_ status: HelperStatus) throws -> HTTPSSetupStatus {
-        if status.availability == .requiresApproval { throw turnedOffError }
+        if status.availability == .requiresApproval { throw notAllowedError }
         let setup = status.setup
         if let operation = setup.operationInProgress {
             throw busyError(operation)
@@ -65,10 +65,10 @@ package enum HelperStatusMapping {
         )
     }
 
-    static var turnedOffError: JerdError {
+    static var notAllowedError: JerdError {
         JerdError.unavailable(
-            "The Jerd helper is turned off. Turn on Jerd in System Settings → General → Login Items & Extensions, "
-                + "then try again. Host entries and certificate settings stay."
+            "The Jerd helper is not allowed in Login Items & Extensions. Allow Jerd in System Settings → General → "
+                + "Login Items & Extensions, then try again. Host entries and certificate settings stay."
         ).with(.openLoginItems)
     }
 

@@ -39,13 +39,13 @@ struct HelperStatusMappingTests {
         #expect(mapped == HTTPSSetupStatus())
     }
 
-    /// A helper that the user turned off keeps its hosts and trust: the page offers Login Items,
+    /// A helper that is not allowed in Login Items keeps its hosts and trust: the page offers Login Items,
     /// not a new approval.
-    @Test func aTurnedOffHelperOffersLoginItems() {
-        #expect(throws: HelperStatusMapping.turnedOffError) {
+    @Test func aHelperThatIsNotAllowedOffersLoginItems() {
+        #expect(throws: HelperStatusMapping.notAllowedError) {
             try HelperStatusMapping.httpsStatus(HelperStatus(availability: .requiresApproval, setup: .empty))
         }
-        #expect(HelperStatusMapping.turnedOffError.remedy == .openLoginItems)
+        #expect(HelperStatusMapping.notAllowedError.remedy == .openLoginItems)
     }
 
     @Test func anInterruptedTransactionIsAPendingRecovery() throws {

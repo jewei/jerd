@@ -45,13 +45,13 @@ extension SampleData {
     public static let staleHelperFailure = JerdError.unavailable(
         "Jerd restarted its system helper, but the helper still does not match this copy of Jerd. Click "
             + "Reconnect Helper… to try again. If it fails again, install Jerd again from its disk image "
-            + "into Applications. (NSCocoaErrorDomain 4102)"
+            + "into Applications. Error code: NSCocoaErrorDomain 4102."
     ).with(.reconnectHelper)
 
-    /// The user turned the helper off in Login Items & Extensions.
-    public static let helperOffFailure = JerdError.unavailable(
-        "The Jerd helper is turned off. Turn on Jerd in System Settings → General → Login Items & Extensions, "
-            + "then try again. Host entries and certificate settings stay."
+    /// The helper is not allowed in Login Items & Extensions.
+    public static let helperNotAllowedFailure = JerdError.unavailable(
+        "The Jerd helper is not allowed in Login Items & Extensions. Allow Jerd in System Settings → General → "
+            + "Login Items & Extensions, then try again. Host entries and certificate settings stay."
     ).with(.openLoginItems)
 
     /// Many sites with long names, for truncation.

@@ -27,6 +27,7 @@ public enum SystemSetupState: Equatable, Sendable {
         case .approvalRequired: "HTTPS approval required"
         case .inProgress: "Setting up HTTPS"
         case .recoveryPending: "HTTPS setup needs recovery"
+        case .unreadable(_, .openLoginItems): "Helper not allowed"
         case .unreadable: "HTTPS setup unknown"
         }
     }
@@ -38,6 +39,8 @@ public enum SystemSetupState: Equatable, Sendable {
         case .inProgress(let message): message
         case .recoveryPending:
             "An earlier HTTPS setup was interrupted. Recover it in Advanced before you start or change sites."
+        // The state is known: the message says what to allow, without "could not read".
+        case .unreadable(let message, .openLoginItems): message
         case .unreadable(let message, _): "Jerd could not read the HTTPS setup. \(message)"
         }
     }

@@ -163,6 +163,7 @@ import os
             #expect(!shown.message.contains("Operation not permitted"))
             #expect(shown.message.hasSuffix(".") || shown.message.hasSuffix(")"))
         }
+        #expect(HelperRegistrationFailure.disabledError.message.hasPrefix("The Jerd helper is not allowed"))
         #expect(HelperRegistrationFailure.error(for: errors[0]).remedy == .openLoginItems)
         #expect(HelperRegistrationFailure.error(for: errors[1]).remedy == .openLoginItems)
         #expect(HelperRegistrationFailure.error(for: errors[5]).remedy == .reconnectHelper)

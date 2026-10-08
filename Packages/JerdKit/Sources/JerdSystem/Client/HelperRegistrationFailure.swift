@@ -67,11 +67,12 @@ enum HelperRegistrationFailure: Equatable, Sendable {
         }
     }
 
-    /// The helper is off in Login Items & Extensions. Host entries and certificate trust stay.
+    /// The helper is not allowed in Login Items & Extensions: turned off, or a first registration that
+    /// still waits for approval. Host entries and certificate trust stay.
     static var disabledError: JerdError {
         JerdError.unavailable(
-            "The Jerd helper is turned off. Turn on Jerd in System Settings → General → Login Items & Extensions, "
-                + "then try again. Host entries and certificate settings stay."
+            "The Jerd helper is not allowed in Login Items & Extensions. Allow Jerd in System Settings → General → "
+                + "Login Items & Extensions, then try again. Host entries and certificate settings stay."
         ).with(.openLoginItems)
     }
 }

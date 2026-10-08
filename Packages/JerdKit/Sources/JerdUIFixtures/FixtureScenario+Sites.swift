@@ -39,9 +39,10 @@ extension FixtureScenario {
             var setup = SampleData.approvedSetup
             setup.hasPendingRecovery = true
             return InMemorySitesPort(setup: setup)
-        case .sitesHelperStale, .sitesHelperOff:
+        case .sitesHelperStale, .sitesHelperNotAllowed:
             return InMemorySitesPort(
-                setupFailure: self == .sitesHelperStale ? SampleData.staleHelperFailure : SampleData.helperOffFailure)
+                setupFailure: self == .sitesHelperStale
+                    ? SampleData.staleHelperFailure : SampleData.helperNotAllowedFailure)
         default:
             return InMemorySitesPort(environment: running(served))
         }
@@ -83,7 +84,8 @@ extension FixtureScenario {
     package var snapshotAppearances: [SnapshotAppearance] {
         switch self {
         case .dashboard, .appearance, .runtimesChecked, .runtimesOnDemand, .advanced, .about, .sitesEmpty,
-            .sitesRunning, .sitesDisabled, .sitesSetupRequired, .sitesRecovery, .sitesHelperStale, .sitesHelperOff,
+            .sitesRunning, .sitesDisabled, .sitesSetupRequired, .sitesRecovery, .sitesHelperStale,
+            .sitesHelperNotAllowed,
             .tunnelFailed, .tunnelConnected:
             SnapshotAppearance.allCases
         default: SnapshotAppearance.standard

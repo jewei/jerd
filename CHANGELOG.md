@@ -11,7 +11,7 @@ code marks.
 - Jerd now asks one time whether to check for updates automatically, so you learn about new versions. It still installs an update only after you approve it.
 - HTTPS keeps working after an app update. The system helper now stops by itself when it has no work, and Jerd restarts an outdated helper one time without a question. Your host entries and certificate settings do not change.
 - Reconnect Helper is more reliable: Jerd waits until the old helper has stopped before it starts the new one, so it no longer fails with "Operation not permitted".
-- Clearer helper messages: when Jerd cannot reach its helper, the Sites page shows a Reconnect Helper button. When the helper is turned off, it shows Open Login Items and Check Again buttons. The messages no longer name a menu that you cannot see.
+- Clearer helper messages: when Jerd cannot reach its helper, the Sites page shows a Reconnect Helper button. When the helper is not allowed in Login Items, it shows Open Login Items and Check Again buttons. The messages no longer name a menu that you cannot see.
 - Jerd starts more smoothly, because it no longer checks its code signature on the main thread at launch.
 
 ## [0.1.1] - 2026-10-08

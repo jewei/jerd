@@ -212,11 +212,16 @@ struct SitesModelTests {
         #expect(harness.model.canChangeSystem)
     }
 
-    @Test("A turned-off helper offers Open Login Items, and Check Again reads the setup again")
-    func turnedOffHelperOffersLoginItemsAndCheckAgain() async {
-        let port = InMemorySitesPort(setupFailure: SampleData.helperOffFailure)
+    @Test("A helper that is not allowed offers Open Login Items, and Check Again reads the setup again")
+    func notAllowedHelperOffersLoginItemsAndCheckAgain() async {
+        let port = InMemorySitesPort(setupFailure: SampleData.helperNotAllowedFailure)
         let harness = await SitesHarness.launched(sites: port)
-        #expect(harness.model.systemSetupState?.remedy == .openLoginItems)
+        let state = harness.model.systemSetupState
+        #expect(state?.remedy == .openLoginItems)
+        // The state is known, so the banner neither says "unknown" nor claims that the user turned it off.
+        #expect(state?.title == "Helper not allowed")
+        #expect(state?.message == SampleData.helperNotAllowedFailure.message)
+        #expect(state?.message.contains("turned off") == false)
         harness.model.openLoginItems()
         await port.configure { $0.setupFailure = nil }
         await harness.model.checkSetupAgain()?.value
@@ -227,7 +232,7 @@ struct SitesModelTests {
 
     @Test("Check Again waits while other site work runs")
     func checkAgainWaitsForWork() async {
-        let port = InMemorySitesPort(setupFailure: SampleData.helperOffFailure)
+        let port = InMemorySitesPort(setupFailure: SampleData.helperNotAllowedFailure)
         let harness = await SitesHarness.launched(sites: port)
         await port.configure { $0.suspendsChanges = true }
         let work = harness.model.startAll()

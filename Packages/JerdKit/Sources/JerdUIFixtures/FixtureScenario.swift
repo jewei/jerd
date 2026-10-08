@@ -32,8 +32,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case sitesRecovery = "sites-recovery"
     /// The helper could not be reached after an app update: the banner offers Reconnect Helper….
     case sitesHelperStale = "sites-helper-stale"
-    /// The helper is off in Login Items: the banner offers Open Login Items and Check Again.
-    case sitesHelperOff = "sites-helper-off"
+    /// The helper is not allowed in Login Items: the banner offers Open Login Items and Check Again.
+    case sitesHelperNotAllowed = "sites-helper-not-allowed"
     case sitesLoadFailed = "sites-load-failed"
     case sitesLong = "sites-long"
     case sitesApproving = "sites-approving"
