@@ -241,7 +241,8 @@ local work comes first:
 7. **Sign the disk image and the feed.** `sign_update` signs the disk image for
    Sparkle, and the candidate feed gets one new item. The item uses
    `<description sparkle:format="plain-text">` with the notes, so Sparkle shows the
-   text as it is. `sign_update` then signs the whole feed.
+   text as it is. Each `- ` list mark of the changelog becomes a `• ` bullet there; the
+   GitHub release keeps the Markdown list. `sign_update` then signs the whole feed.
 8. **Validate the candidate.** It checks everything again on the final files, the
    app inside the mounted disk image, and that HEAD and the tree did not change.
 
