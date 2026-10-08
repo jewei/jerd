@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdSystem
 import JerdTestSupport
 import JerdUI
 import JerdWeb
@@ -192,6 +193,8 @@ struct LiveSitesPortTests {
                 .finishRestart(within: LiveSitesPort.helperRestartQuitLimit), .invalidate,
             ])
         #expect(LiveSitesPort.helperRestartQuitLimit <= .seconds(30))
+        // Above the longest restart, with room for the SMAppService calls.
+        #expect(LiveSitesPort.helperRestartQuitLimit >= HelperRegistration.restartWaitLimit + .seconds(10))
     }
 
     @Test func reconnectStopsTheSitesBeforeTheHelperRegistersAgain() async throws {

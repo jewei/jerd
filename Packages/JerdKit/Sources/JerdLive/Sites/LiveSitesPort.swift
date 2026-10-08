@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdSystem
 import JerdUI
 import JerdWeb
 
@@ -84,13 +85,15 @@ package actor LiveSitesPort: SitesPort {
         await sites.requestStop()
     }
 
-    /// The longest time that Quit waits for a running helper restart. A restart takes at most about
-    /// 7 seconds (the exit wait and the register retries); the margin covers a slow launchd.
-    package static let helperRestartQuitLimit: Duration = .seconds(20)
+    /// The longest time that Quit or Stop waits for a running helper restart. The waits of a
+    /// restart total at most `HelperRegistration.restartWaitLimit` (8 seconds); the margin covers
+    /// the `SMAppService` calls and a slow launchd.
+    package static let helperRestartQuitLimit: Duration = HelperRegistration.restartWaitLimit + .seconds(12)
 
-    /// Stops PHP-FPM and Caddy for Quit, lets a running helper restart finish (a quit in the middle
-    /// could leave the helper unregistered), and closes the helper connection; the helper ends the
-    /// port lease when the connection closes. The wait is bounded, so it never blocks Quit.
+    /// Stops PHP-FPM and Caddy for Quit and for a user Stop, lets a running helper restart finish (a
+    /// quit in the middle could leave the helper unregistered), and closes the helper connection;
+    /// the helper ends the port lease when the connection closes. The wait is bounded by
+    /// `helperRestartQuitLimit`, so Stop and Quit can take that long during a restart, never longer.
     package func stopEnvironment() async throws {
         ServiceActivityLog.request("Stop", "the web environment")
         await coordinator.stop()

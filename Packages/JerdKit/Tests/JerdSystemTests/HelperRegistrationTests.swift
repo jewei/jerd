@@ -113,6 +113,23 @@ import os
         #expect(service.status == .enabled)
     }
 
+    /// The worst case: the old helper never exits and every register fails with EPERM. Before,
+    /// the waits added up to 21.5 seconds, more than the Quit limit.
+    @Test func allWaitsOfARestartStayWithinItsLimit() async {
+        let service = FakeDaemonService(.enabled)
+        service.configure {
+            $0.exitingChecks = 1_000_000
+            $0.refusesWhileExiting = true
+        }
+        let pauses = OSAllocatedUnfairLock(initialState: [Duration]())
+        await #expect(throws: HelperRegistrationFailure.disabledError) {
+            try await service.registration(pauses: pauses).reregister()
+        }
+        let waited = pauses.withLock { $0 }.reduce(Duration.zero, +)
+        #expect(waited <= HelperRegistration.restartWaitLimit)
+        #expect(service.calls.filter { $0 == "register" }.count >= 2)
+    }
+
     @Test func aDaemonThatIsAlreadyGoneNeedsNoUnregistration() async throws {
         let service = FakeDaemonService(.enabled)
         service.configure {

@@ -72,8 +72,11 @@ module does not own. Split it in its own change: move the root-only folders into
   race, and a removal during a restart ends unregistered. A call in flight that the restart's
   close fails (4099) waits for the restart, then sends again. A 4102 from a link that was opened
   before a finished restart is retried once on the new link. A retry closes only the failed link.
-  Cancellation ends such a wait at once; the restart continues. Quit waits for a running restart
-  for at most 20 seconds (`finishRunningRestart(within:)`), then continues and logs it.
+  Cancellation ends such a wait at once; the restart continues. `unregister()` runs like a
+  restart that other calls wait for, so no automatic restart starts during a removal.
+- All waits of one `reregister()` total at most `restartWaitLimit` (8 seconds). Quit and a user
+  Stop of the sites (`LiveSitesPort.stopEnvironment()`) wait for a running restart for at most
+  20 seconds (`finishRunningRestart(within:)`), then continue and log it.
 - `reregister()` waits until the daemon is not enabled and no helper process runs (at most
   5 seconds), then registers. It retries "Operation not permitted" up to 4 times. Every failure is
   a `JerdError` that names what to do; some carry a remedy (Reconnect Helper…, Login Items).
