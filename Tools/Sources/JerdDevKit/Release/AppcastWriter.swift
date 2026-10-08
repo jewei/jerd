@@ -5,8 +5,8 @@ import JerdManifest
 ///
 /// The old Sparkle signature comments are removed, because `sign_update` signs the new content. The
 /// item goes after the channel metadata and before older items (newest first), so the document reads
-/// like a normal RSS feed. The notes are plain text with `sparkle:format`, so
-/// Sparkle shows the Markdown list as written instead of one HTML paragraph.
+/// like a normal RSS feed. The notes are plain text with `sparkle:format`, so Sparkle shows each note
+/// on its own line instead of one HTML paragraph; `displayNotes` writes each list mark as a bullet.
 enum AppcastWriter {
     /// The new item.
     struct Item: Equatable, Sendable {
@@ -50,7 +50,7 @@ enum AppcastWriter {
         element.addChild(sparkle("shortVersionString", item.version.text))
         element.addChild(sparkle("minimumSystemVersion", item.minimumMacOS.text))
         element.addChild(sparkle("hardwareRequirements", ReleaseNames.architecture))
-        let description = XMLElement(name: "description", stringValue: item.notes)
+        let description = XMLElement(name: "description", stringValue: displayNotes(item.notes))
         description.addAttribute(sparkleAttribute("format", "plain-text"))
         element.addChild(description)
         let enclosure = XMLElement(name: "enclosure")
@@ -63,6 +63,14 @@ enum AppcastWriter {
         enclosure.addAttribute(sparkleAttribute("edSignature", item.archiveSignature))
         element.addChild(enclosure)
         return element
+    }
+
+    /// The notes as the update window shows them. Sparkle shows plain text as written, so the Markdown
+    /// list mark `- ` of each changelog line becomes a bullet `• `. Other text does not change.
+    static func displayNotes(_ notes: String) -> String {
+        notes.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.hasPrefix("- ") ? "• " + $0.dropFirst(2) : String($0) }
+            .joined(separator: "\n")
     }
 
     /// RFC 2822 date in GMT, for example `Tue, 06 Oct 2026 12:00:00 GMT`.

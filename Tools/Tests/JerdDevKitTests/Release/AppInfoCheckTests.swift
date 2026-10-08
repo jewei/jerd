@@ -12,7 +12,7 @@ struct AppInfoCheckTests {
     static func info() -> [String: Any] {
         [
             "CFBundleIdentifier": "dev.jerd.app", "SUFeedURL": AppUpdateSettings.officialFeedURL,
-            "SUPublicEDKey": AppUpdateSettings.officialPublicKey, "SUEnableAutomaticChecks": false,
+            "SUPublicEDKey": AppUpdateSettings.officialPublicKey,
             "SUAutomaticallyUpdate": false, "SUAllowsAutomaticUpdates": false, "SUEnableSystemProfiling": false,
             "SUVerifyUpdateBeforeExtraction": true, "SURequireSignedFeed": true,
             "SUSignedFeedFailureExpirationInterval": 0, "LSMinimumSystemVersion": "14.0",
@@ -29,7 +29,8 @@ struct AppInfoCheckTests {
     func refuses() {
         let changes: [(String, Any)] = [
             ("CFBundleIdentifier", "dev.jerd.other"), ("SUFeedURL", "https://example.com/appcast.xml"),
-            ("SUPublicEDKey", "AAAA"), ("SUEnableAutomaticChecks", true), ("SUAutomaticallyUpdate", true),
+            ("SUPublicEDKey", "AAAA"), ("SUEnableAutomaticChecks", true), ("SUEnableAutomaticChecks", false),
+            ("SUAutomaticallyUpdate", true),
             ("SUEnableSystemProfiling", true), ("SUSignedFeedFailureExpirationInterval", 60),
             ("SURequireSignedFeed", 1), ("LSMinimumSystemVersion", "27.0.1"), ("CFBundleVersion", "2"),
             ("CFBundleShortVersionString", "0.1.0"),

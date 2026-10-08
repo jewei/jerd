@@ -16,8 +16,8 @@ enum GoldenFeed {
                     <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
                     <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
                     <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-                    <description sparkle:format="plain-text">- First line.
-        - Second &lt;line&gt; &amp; more.
+                    <description sparkle:format="plain-text">• First line.
+        • Second &lt;line&gt; &amp; more.
         </description>
                     <enclosure url="https://github.com/jewei/jerd/releases/download/v0.2.0/Jerd-0.2.0.dmg" \
         length="1234" type="application/octet-stream" sparkle:edSignature="\

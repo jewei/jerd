@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+- Jerd now asks one time whether to check for updates automatically, so you learn about new versions. It still installs an update only after you approve it.
+
 ## [0.1.1] - 2026-10-08
 
 - Jerd is smaller: it no longer includes Mailpit. Start Mail or Install Mailpit on the Mail page downloads it first (about 10 MB). A Mailpit that you already have stays in use, and your captured mail stays.

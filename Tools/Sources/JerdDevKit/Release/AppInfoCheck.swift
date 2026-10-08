@@ -27,6 +27,9 @@ struct AppInfoCheck: Sendable {
                 throw failure("The app's \(key) must be \(required).")
             }
         }
+        for key in SparkleInfoPlistPolicy.absentKeys where info[key] != nil {
+            throw failure("The app's \(key) must be absent, so Sparkle asks the user whether to check.")
+        }
         guard info["LSMinimumSystemVersion"] as? String == minimumMacOS.text else {
             throw failure("The app's LSMinimumSystemVersion must be \(minimumMacOS).")
         }

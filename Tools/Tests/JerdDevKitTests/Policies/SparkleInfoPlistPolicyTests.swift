@@ -15,8 +15,6 @@ struct SparkleInfoPlistPolicyTests {
         	<string>$(JERD_UPDATE_FEED_URL)</string>
         	<key>SUPublicEDKey</key>
         	<string>$(JERD_UPDATE_PUBLIC_KEY)</string>
-        	<key>SUEnableAutomaticChecks</key>
-        	<false/>
         	<key>SUAutomaticallyUpdate</key>
         	<false/>
         	<key>SUAllowsAutomaticUpdates</key>
@@ -42,16 +40,33 @@ struct SparkleInfoPlistPolicyTests {
         #expect(findings(Self.committedPlist).isEmpty)
     }
 
-    @Test("checks all nine keys")
-    func checksNineKeys() {
-        #expect(SparkleInfoPlistPolicy.requiredValues.count == 9)
+    @Test("checks eight keys and keeps the automatic check key absent")
+    func checksKeys() {
+        #expect(SparkleInfoPlistPolicy.requiredValues.count == 8)
+        #expect(SparkleInfoPlistPolicy.absentKeys == ["SUEnableAutomaticChecks"])
     }
 
     @Test("reports a changed value")
     func reportsChangedValue() {
         let plist = Self.committedPlist.replacingOccurrences(
-            of: "<key>SUEnableAutomaticChecks</key>\n\t<false/>", with: "<key>SUEnableAutomaticChecks</key>\n\t<true/>")
-        #expect(findings(plist) == ["SUEnableAutomaticChecks has boolean true; it must be boolean false."])
+            of: "<key>SUAutomaticallyUpdate</key>\n\t<false/>", with: "<key>SUAutomaticallyUpdate</key>\n\t<true/>")
+        #expect(findings(plist) == ["SUAutomaticallyUpdate has boolean true; it must be boolean false."])
+    }
+
+    @Test(
+        "reports the automatic check key with any value, so Sparkle can ask the user",
+        arguments: ["<false/>", "<true/>"])
+    func reportsAutomaticCheckKey(value: String) {
+        let plist = Self.committedPlist.replacingOccurrences(
+            of: "</dict>", with: "\t<key>SUEnableAutomaticChecks</key>\n\t\(value)\n</dict>")
+        #expect(
+            findings(plist) == ["SUEnableAutomaticChecks must be absent, so Sparkle asks the user whether to check."])
+    }
+
+    @Test("the committed Info.plist has no automatic check key")
+    func committedFileHasNoAutomaticCheckKey() throws {
+        let url = ReleaseFixtures.repositoryRoot.appending(path: SparkleInfoPlistPolicy.file)
+        #expect(SparkleInfoPlistPolicy.findings(plistData: try Data(contentsOf: url)).isEmpty)
     }
 
     @Test("reports a value of the wrong type, even when it means the same")

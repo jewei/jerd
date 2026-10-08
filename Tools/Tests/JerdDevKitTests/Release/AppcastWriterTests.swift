@@ -27,6 +27,12 @@ struct AppcastWriterTests {
         #expect(!text.contains("sparkle-sign-warning"))
     }
 
+    @Test("The update window shows a bullet for each list mark and keeps other text")
+    func displayNotesUseBullets() {
+        #expect(AppcastWriter.displayNotes("- One.\n- Two - three.\n") == "• One.\n• Two - three.\n")
+        #expect(AppcastWriter.displayNotes("Plain line.\n-not a mark\n") == "Plain line.\n-not a mark\n")
+    }
+
     @Test("The written item parses as an appcast item with the release values")
     func itemParses() throws {
         let feed = try AppcastWriter.feed(from: Self.committedFeed(), adding: Self.item)
