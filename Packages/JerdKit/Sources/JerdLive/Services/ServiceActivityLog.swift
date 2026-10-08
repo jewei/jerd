@@ -9,4 +9,9 @@ package enum ServiceActivityLog {
     package static func request(_ action: String, _ service: String) {
         log.notice("\(action, privacy: .public) requested for \(service, privacy: .public).")
     }
+
+    /// A quit that did not wait for a helper restart any longer.
+    package static func helperRestartOutlastedQuit(_ limit: Duration) {
+        log.error("Quit continued after \(limit, privacy: .public): the helper restart did not finish.")
+    }
 }

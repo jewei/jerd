@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdSystem
 import JerdTestSupport
 import JerdUI
 import JerdWeb
@@ -175,7 +176,25 @@ struct LiveSitesPortTests {
 
         try await harness.port.stopEnvironment()
 
-        #expect(await harness.journal.entries == ["environment.stop", "helper.invalidate"])
+        #expect(await harness.journal.entries == ["environment.stop", "helper.finishRestart", "helper.invalidate"])
+    }
+
+    /// A quit during a helper restart lets it finish, so the helper stays registered; a restart
+    /// that outlasts the limit never blocks Quit.
+    @Test func quitWaitsABoundedTimeForAHelperRestart() async throws {
+        let harness = try Harness()
+        defer { harness.remove() }
+        await harness.helper.setRestartFinishes(false)
+
+        try await harness.port.stopEnvironment()
+
+        #expect(
+            await harness.helper.calls.suffix(2) == [
+                .finishRestart(within: LiveSitesPort.helperRestartQuitLimit), .invalidate,
+            ])
+        #expect(LiveSitesPort.helperRestartQuitLimit <= .seconds(30))
+        // Above the longest restart, with room for the SMAppService calls.
+        #expect(LiveSitesPort.helperRestartQuitLimit >= HelperRegistration.restartWaitLimit + .seconds(10))
     }
 
     @Test func reconnectStopsTheSitesBeforeTheHelperRegistersAgain() async throws {

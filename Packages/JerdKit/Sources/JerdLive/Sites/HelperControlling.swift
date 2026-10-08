@@ -16,6 +16,8 @@ package protocol HelperControlling: Sendable {
     func reconnect() async throws
     func unregister() async throws
     func invalidate() async
+    /// Waits at most `limit` for a running helper restart. False when the limit passed.
+    func finishRunningRestart(within limit: Duration) async -> Bool
 }
 
 extension HelperClient: HelperControlling {}

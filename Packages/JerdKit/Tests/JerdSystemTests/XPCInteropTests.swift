@@ -22,7 +22,7 @@ import Testing
             pair: pair, status: try Fixture.data("Wire/status-configured.json"),
             consent: try HelperWireProtocol.encode(consent))
         let client = HelperClient(
-            registration: HelperRegistration(service: FakeDaemonService(.enabled)) {},
+            registration: FakeDaemonService(.enabled).registration(),
             opener: AnonymousLinkOpener(endpoint: helper.listener.endpoint), trustSettings: AcceptingTrustSettings())
         return (helper, client, pair)
     }

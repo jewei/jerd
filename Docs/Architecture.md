@@ -78,7 +78,9 @@ enum too, so a failure names what is already public.
 writes it. That type keeps the exact compatible encoding and the backup copy.
 
 **Errors.** `JerdError` carries a kind and a user message. A view shows the
-message of the operation that failed, once, on the page that owns it.
+message of the operation that failed, once, on the page that owns it. A few
+errors also carry a remedy (Reconnect Helper…, Open Login Items) that the page
+offers as a button; the message names the same step.
 
 ## Process model
 
@@ -86,7 +88,10 @@ PHP-FPM, Caddy, and all data services run as the user, in their own process
 groups. Each gets a clean environment and only the file descriptors that it needs.
 The helper runs as root, binds only `127.0.0.1:80` and `127.0.0.1:443`, edits
 only Jerd's tracked hosts section, and manages only Jerd's installation CA.
-It never starts a process.
+It never starts a process. It exits after 30 seconds without a connection, a
+listener lease, or a setup change, so that launchd starts the current helper
+file after an app update. The app restarts a helper that still runs older code
+one time, through its approved registration.
 
 Data services stop with a graceful signal and a 30-second limit. A timeout
 never escalates to `SIGKILL`; the process, its record, and its data lock stay,
@@ -133,6 +138,8 @@ Quit runs the staged quit of `AppState` (`ShutdownCoordinator`): runtime work, t
 storage, mail, databases, then the web environment. `applicationShouldTerminate` answers
 `.terminateLater` once and replies once; a second request during a quit is cancelled at once.
 A service that does not stop cancels the quit and keeps Jerd open. Sparkle uses the same path.
+The web environment stage also waits up to 20 seconds for a running helper restart, so a quit
+does not leave the helper unregistered; after the limit, the quit continues and logs it.
 
 A Debug build reads `JERD_DEBUG_DATA_ROOT` to run with an empty data folder. Release builds
 always use `~/Library/Application Support/Jerd`.

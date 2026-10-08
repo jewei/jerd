@@ -7,7 +7,8 @@ import JerdFoundation
 /// interruption, or a reply timeout drops it, but only if it is still the current link, so a late
 /// event of an old link never drops a newer one. A reply timeout does not drop a link that carries a
 /// call without a timeout (a change that can wait for macOS approval): dropping it would interrupt
-/// that change. Transport errors become one stable message.
+/// that change. A transport error is a `HelperTransportError` with its cause; `HelperClient`
+/// decides about a retry and shows its `JerdError`.
 public actor HelperConnection {
     private let opener: any HelperLinkOpening
     private let responder: ConsentResponder
@@ -36,7 +37,7 @@ public actor HelperConnection {
         if timeout == nil { openChanges[id, default: 0] += 1 }
         defer { if timeout == nil { endChange(on: id) } }
         let deliver: (ReplyGate<Value>) -> Void = { gate in
-            let proxy = current.proxy { error in gate.resolve(.failure(Self.transportError(error))) }
+            let proxy = current.proxy { error in gate.resolve(.failure(HelperTransportError(error, link: id))) }
             guard let proxy else {
                 gate.resolve(.failure(JerdError.unavailable("The helper interface is unavailable.")))
                 return
@@ -83,11 +84,8 @@ public actor HelperConnection {
         return (id, opened)
     }
 
+    /// The message that the user sees for a transport error.
     static func transportError(_ error: any Error) -> JerdError {
-        let detail = error as NSError
-        return .unavailable(
-            "Jerd could not communicate with its system helper. Choose System setup → Reconnect helper… and approve "
-                + "reconnection. Existing hosts and certificate settings will remain. (\(detail.domain) \(detail.code))"
-        )
+        HelperTransportError(error).userError
     }
 }

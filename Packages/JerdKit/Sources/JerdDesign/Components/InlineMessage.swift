@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A message with a symbol, text, an optional action, and an optional Dismiss button.
+/// A message with a symbol, text, up to two actions, and an optional Dismiss button.
 /// Use the row style inside a form section and the banner style at the top of a page.
 /// Warnings and errors are announced to VoiceOver when they appear and each time their text
 /// changes, in both styles.
@@ -24,6 +24,7 @@ public struct InlineMessage: View {
     private let title: String?
     private let style: Style
     private let action: PageAction?
+    private let secondaryAction: PageAction?
     private let identifier: String?
     private let dismiss: (@MainActor () -> Void)?
     let details: InlineMessageDetails?
@@ -36,15 +37,18 @@ public struct InlineMessage: View {
     ///     gets `<identifier>.dismiss`; without it, `message.<kind>.dismiss`.
     ///   - details: Lines below the text behind a disclosure, for example the end of a log. The
     ///     disclosure gets `<identifier>.details`.
+    ///   - secondaryAction: A second button after `action`, for a follow-up step such as Check Again.
     public init(
         _ text: String, kind: MessageKind, title: String? = nil, style: Style = .row, action: PageAction? = nil,
-        identifier: String? = nil, details: InlineMessageDetails? = nil, dismiss: (@MainActor () -> Void)? = nil
+        secondaryAction: PageAction? = nil, identifier: String? = nil, details: InlineMessageDetails? = nil,
+        dismiss: (@MainActor () -> Void)? = nil
     ) {
         self.text = text
         self.kind = kind
         self.title = title
         self.style = style
         self.action = action
+        self.secondaryAction = secondaryAction
         self.identifier = identifier
         self.dismiss = dismiss
         self.details = details?.lines.isEmpty == false ? details : nil
@@ -102,6 +106,10 @@ public struct InlineMessage: View {
             message
             if let action {
                 PageActionButton(action: action, isPrimary: false)
+                    .controlSize(.small)
+            }
+            if let secondaryAction {
+                PageActionButton(action: secondaryAction, isPrimary: false)
                     .controlSize(.small)
             }
             if let dismiss {

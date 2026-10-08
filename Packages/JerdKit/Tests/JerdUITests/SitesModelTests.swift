@@ -201,6 +201,58 @@ struct SitesModelTests {
         #expect(harness.model.operation == .idle)
     }
 
+    @Test("The banner title follows the cause: not allowed for Login Items, unknown otherwise")
+    func bannerTitleFollowsTheCause() {
+        #expect(SystemSetupState.unreadable("Allow it.", remedy: .openLoginItems).title == "Helper not allowed")
+        #expect(SystemSetupState.unreadable("Allow it.", remedy: .openLoginItems).message == "Allow it.")
+        let notRegistered = SystemSetupState.unreadable("Not registered.", remedy: .reconnectHelper)
+        #expect(notRegistered.title == "HTTPS setup unknown")
+        #expect(notRegistered.message == "Jerd could not read the HTTPS setup. Not registered.")
+        #expect(SystemSetupState.unreadable("Failed.").title == "HTTPS setup unknown")
+    }
+
+    @Test("A helper that Jerd cannot reach offers Reconnect Helper… in the HTTPS setup banner")
+    func unreachableHelperOffersReconnect() async {
+        let harness = await SitesHarness.launched(
+            sites: InMemorySitesPort(setupFailure: SampleData.staleHelperFailure))
+        let state = harness.model.systemSetupState
+        #expect(state == .unreadable(SampleData.staleHelperFailure.message, remedy: .reconnectHelper))
+        #expect(state?.remedy == .reconnectHelper)
+        #expect(state?.message.contains("System setup →") == false)
+        #expect(harness.model.canChangeSystem)
+    }
+
+    @Test("A helper that is not allowed offers Open Login Items, and Check Again reads the setup again")
+    func notAllowedHelperOffersLoginItemsAndCheckAgain() async {
+        let port = InMemorySitesPort(setupFailure: SampleData.helperNotAllowedFailure)
+        let harness = await SitesHarness.launched(sites: port)
+        let state = harness.model.systemSetupState
+        #expect(state?.remedy == .openLoginItems)
+        // The state is known, so the banner neither says "unknown" nor claims that the user turned it off.
+        #expect(state?.title == "Helper not allowed")
+        #expect(state?.message == SampleData.helperNotAllowedFailure.message)
+        #expect(state?.message.contains("turned off") == false)
+        harness.model.openLoginItems()
+        await port.configure { $0.setupFailure = nil }
+        await harness.model.checkSetupAgain()?.value
+        #expect(harness.model.systemSetupState == nil)
+        #expect(harness.model.setup == SampleData.approvedSetup)
+        #expect(harness.model.setupReadRemedy == nil)
+    }
+
+    @Test("Check Again waits while other site work runs")
+    func checkAgainWaitsForWork() async {
+        let port = InMemorySitesPort(setupFailure: SampleData.helperNotAllowedFailure)
+        let harness = await SitesHarness.launched(sites: port)
+        await port.configure { $0.suspendsChanges = true }
+        let work = harness.model.startAll()
+        #expect(!harness.model.canCheckSetupAgain)
+        #expect(harness.model.checkSetupAgain() == nil)
+        await port.requestStop()
+        await work?.value
+        #expect(harness.model.canCheckSetupAgain)
+    }
+
     @Test("Remove System Setup leaves the environment needing approval, and the page says so")
     func removeSystemSetup() async {
         let harness = await SitesHarness.launched()

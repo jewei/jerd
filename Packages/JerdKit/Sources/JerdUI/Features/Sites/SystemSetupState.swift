@@ -1,4 +1,5 @@
 import JerdDesign
+import JerdFoundation
 
 /// A state of the HTTPS system setup that the Sites page explains in a banner.
 public enum SystemSetupState: Equatable, Sendable {
@@ -8,8 +9,8 @@ public enum SystemSetupState: Equatable, Sendable {
     case inProgress(String)
     /// An interrupted setup waits for recovery in Advanced. No site can change until then.
     case recoveryPending
-    /// The helper could not report the setup.
-    case unreadable(String)
+    /// The helper could not report the setup. The remedy, when known, is a banner button.
+    case unreadable(String, remedy: JerdError.Remedy? = nil)
 
     public var kind: MessageKind {
         switch self {
@@ -26,6 +27,7 @@ public enum SystemSetupState: Equatable, Sendable {
         case .approvalRequired: "HTTPS approval required"
         case .inProgress: "Setting up HTTPS"
         case .recoveryPending: "HTTPS setup needs recovery"
+        case .unreadable(_, .openLoginItems): "Helper not allowed"
         case .unreadable: "HTTPS setup unknown"
         }
     }
@@ -37,10 +39,18 @@ public enum SystemSetupState: Equatable, Sendable {
         case .inProgress(let message): message
         case .recoveryPending:
             "An earlier HTTPS setup was interrupted. Recover it in Advanced before you start or change sites."
-        case .unreadable(let message): "Jerd could not read the HTTPS setup. \(message)"
+        // The state is known: the message says what to allow, without "could not read".
+        case .unreadable(let message, .openLoginItems): message
+        case .unreadable(let message, _): "Jerd could not read the HTTPS setup. \(message)"
         }
     }
 
     /// Only a pending recovery links to another page.
     public var opensAdvanced: Bool { self == .recoveryPending }
+
+    /// The step that the banner offers as a button, or nil.
+    public var remedy: JerdError.Remedy? {
+        if case .unreadable(_, let remedy) = self { return remedy }
+        return nil
+    }
 }

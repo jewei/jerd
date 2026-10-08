@@ -8,6 +8,9 @@ import Security
 /// file that another developer or an ad hoc signer made is refused. For an ad hoc or unsigned app (a
 /// local development build), only an ad hoc launcher passes. A valid signature proves that the bytes
 /// are complete and unchanged since that signer signed them; it does not prove which build made them.
+///
+/// The signer of the running app is read at the first check, not when the check is made: the app
+/// makes it on the main actor at launch, and the Security code-signing calls must not run there.
 package struct CodeSignatureCheck: LauncherSignatureChecking {
     /// The signer that the launcher must have.
     package enum Signer: Equatable, Sendable {
@@ -17,23 +20,34 @@ package struct CodeSignatureCheck: LauncherSignatureChecking {
         case adHoc
     }
 
-    package let expected: Signer
+    private let signer: @Sendable () -> Signer
+
+    /// The signer that the launcher must have. For the running app this reads the app's signature.
+    package var expected: Signer { signer() }
 
     package init(expected: Signer) {
-        self.expected = expected
+        signer = { expected }
     }
 
-    /// The check for the signer of the running app.
-    package static func forRunningApp() -> CodeSignatureCheck {
-        CodeSignatureCheck(expected: SigningInformation.ofRunningProcess().signer)
+    private init(signer: @escaping @Sendable () -> Signer) {
+        self.signer = signer
+    }
+
+    /// The check for the signer of the running app. `read` runs only when a check runs, on the
+    /// installer actor.
+    package static func forRunningApp(
+        reading read: @escaping @Sendable () -> Signer = { SigningInformation.ofRunningProcess().signer }
+    ) -> CodeSignatureCheck {
+        CodeSignatureCheck(signer: read)
     }
 
     package func checkSignature(of file: URL) throws {
+        let expected = expected
         var code: SecStaticCode?
         let created = SecStaticCodeCreateWithPath(file as CFURL, SecCSFlags(), &code)
         guard created == errSecSuccess, let code else { throw Self.invalid(file, created) }
         let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate)
-        let status = SecStaticCodeCheckValidity(code, flags, try requirement())
+        let status = SecStaticCodeCheckValidity(code, flags, try Self.requirement(for: expected))
         guard status == errSecSuccess else { throw Self.invalid(file, status) }
         if expected == .adHoc, !SigningInformation.of(code).isAdHoc {
             throw JerdError.invalid(
@@ -43,9 +57,9 @@ package struct CodeSignatureCheck: LauncherSignatureChecking {
     }
 
     /// The code requirement for a team signer; nil for ad hoc, which has no certificate to check.
-    private func requirement() throws -> SecRequirement? {
+    private static func requirement(for expected: Signer) throws -> SecRequirement? {
         guard case .team(let team) = expected else { return nil }
-        guard Self.isTeamIdentifier(team) else {
+        guard isTeamIdentifier(team) else {
             throw JerdError.invalid("The Team ID \(team) of this Jerd app is not valid. Install Jerd again.")
         }
         var requirement: SecRequirement?

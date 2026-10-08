@@ -17,7 +17,7 @@ struct SystemSetupMenu: View {
         } label: {
             Label("System Setup", systemImage: "lock.shield")
         }
-        .help("System setup")
+        .help("System Setup: Login Items, Reconnect Helper, and Remove System Setup")
         .accessibilityIdentifier("sites.system-setup-menu")
     }
 

@@ -24,6 +24,17 @@ import Testing
         #expect(JerdError.invalid("A") != JerdError.invalid("B"))
     }
 
+    @Test func aRemedyKeepsTheKindAndMessageAndTakesPartInEquality() {
+        let plain = JerdError.unavailable("Reconnect the helper.")
+        let remedied = plain.with(.reconnectHelper)
+        #expect(plain.remedy == nil)
+        #expect(remedied.remedy == .reconnectHelper)
+        #expect(remedied.kind == .unavailable && remedied.message == plain.message)
+        #expect(remedied.localizedDescription == "Reconnect the helper.")
+        #expect(remedied != plain)
+        #expect(remedied.with(.openLoginItems).remedy == .openLoginItems)
+    }
+
     @Test func systemErrorTextNamesTheCause() {
         #expect(SystemError.describe(ENOENT) == "No such file or directory")
     }

@@ -15,7 +15,7 @@ import os
     private func client(_ helper: FakeHelper, _ status: HelperAvailability = .enabled) -> (HelperClient, FakeLinkOpener)
     {
         let opener = FakeLinkOpener(helper)
-        let registration = HelperRegistration(service: FakeDaemonService(status)) {}
+        let registration = FakeDaemonService(status).registration()
         return (
             HelperClient(registration: registration, opener: opener, trustSettings: AcceptingTrustSettings()), opener
         )
@@ -199,10 +199,10 @@ import os
     @Test func reconnectAndUnregisterUseTheRegistration() async throws {
         let service = FakeDaemonService(.enabled)
         let client = HelperClient(
-            registration: HelperRegistration(service: service) {}, opener: FakeLinkOpener(FakeHelper()))
+            registration: service.registration(), opener: FakeLinkOpener(FakeHelper()))
         try await client.reconnect()
         try await client.unregister()
         #expect(service.calls == ["unregister", "register", "unregister"])
-        try await HelperClient(registration: HelperRegistration(service: FakeDaemonService(.notFound)) {}).approve()
+        try await HelperClient(registration: FakeDaemonService(.notFound).registration()).approve()
     }
 }

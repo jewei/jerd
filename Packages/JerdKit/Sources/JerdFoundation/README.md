@@ -8,7 +8,7 @@ and small values.
 
 | Type | Purpose |
 | --- | --- |
-| `JerdError` | The error of every operation: a `kind` and a message that a user can act on. |
+| `JerdError` | The error of every operation: a `kind`, a message that a user can act on, and an optional `remedy` that a page can offer as a button. |
 | `FileProbe` | Tells if a path is absent, present, or unknown. Only `absent` proves absence. |
 | `OwnedDirectory` | Creates private folders (mode 0700) and checks folders inside the data root. |
 | `AtomicFile` | Writes whole files atomically and reads private files with limits. |

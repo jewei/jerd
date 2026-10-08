@@ -1,4 +1,5 @@
 import Foundation
+import JerdFoundation
 import JerdTunnels
 import JerdWeb
 
@@ -39,6 +40,19 @@ extension SampleData {
         hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], installationID: installationID,
         certificateSHA256: caFingerprint,
         hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS)
+
+    /// The helper still runs the code from before an app update, and its automatic restart did not help.
+    public static let staleHelperFailure = JerdError.unavailable(
+        "Jerd restarted its system helper, but the helper still does not match this copy of Jerd. Click "
+            + "Reconnect Helper… to try again. If it fails again, install Jerd again from its disk image "
+            + "into Applications. Error code: NSCocoaErrorDomain 4102."
+    ).with(.reconnectHelper)
+
+    /// The helper is not allowed in Login Items & Extensions.
+    public static let helperNotAllowedFailure = JerdError.unavailable(
+        "The Jerd helper is not allowed in Login Items & Extensions. Allow Jerd in System Settings → General → "
+            + "Login Items & Extensions, then try again. Host entries and certificate settings stay."
+    ).with(.openLoginItems)
 
     /// Many sites with long names, for truncation.
     public static let longSiteConfiguration: AppConfiguration = {

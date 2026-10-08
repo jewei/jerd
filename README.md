@@ -62,10 +62,16 @@ changes:
 | The certificate "Jerd Local CA" in the System keychain, with trust for TLS | Browsers and PHP accept the HTTPS certificates of your sites |
 | Optional: a PATH block in `~/.zprofile` and `~/.zshrc` | It adds the `php`, `composer`, and `laravel` commands. Jerd keeps a backup of each file that it changes |
 
-To remove the changes, open the Sites tab and select **System Setup** >
-**Remove System Setup…**. Jerd stops the sites, removes its hosts section and
-its CA certificate, and removes its helper. Your site records and project
-files stay.
+To remove the changes, open the Sites tab, click the **System Setup** menu
+(the shield button in the toolbar), and select **Remove System Setup…**. Jerd
+stops the sites, removes its hosts section and its CA certificate, and removes
+its helper. Your site records and project files stay.
+
+If Jerd cannot communicate with its helper, the Sites page shows a
+**Reconnect Helper…** button. The same command is in the System Setup menu.
+After an app update, Jerd restarts its helper by itself, one time. The helper
+also stops by itself after 30 seconds without work, so that macOS starts the
+current version on the next request.
 
 Jerd keeps its data in `~/Library/Application Support/Jerd`. The helper keeps
 its records in `/Library/Application Support/JerdHelper`. To remove all data,
