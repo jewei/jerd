@@ -119,12 +119,17 @@ public actor HelperClient {
     }
 
     /// Unregisters the helper after its setup was removed. A running restart ends first, so it
-    /// cannot register the helper again after the removal.
+    /// cannot register the helper again after the removal. The removal itself runs like a restart
+    /// that other calls wait for, so no automatic restart can start while it suspends; afterwards
+    /// the daemon is not registered and no call reaches a stale helper.
     public func unregister() async throws {
         holdsListeners = false
         try await waitForRestartToEnd()
-        await connection.invalidate()
-        try await registration.unregister()
+        let (connection, registration) = (connection, registration)
+        try await runExclusive(finishing: automaticRestart) {
+            await connection.invalidate()
+            try await registration.unregister()
+        }
     }
 
     /// Waits at most `limit` for a running restart, for Quit: a quit during the restart could

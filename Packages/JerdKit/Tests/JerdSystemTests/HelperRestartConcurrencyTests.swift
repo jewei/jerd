@@ -96,6 +96,25 @@ import os
         #expect(daemon.status == .notRegistered)
     }
 
+    /// Regression test: a status call during the removal waits for it. Before, its 4102 started an
+    /// automatic restart while `unregister()` suspended, and the helper ended registered again.
+    @Test func noAutomaticRestartStartsDuringARemoval() async throws {
+        let daemon = FakeDaemonService(.enabled)
+        let gate = PauseGate()
+        daemon.configure { $0.unregisterPause = gate }
+        let (client, _) = RecoveryFixture.client(
+            try RecoveryFixture.configuredHelper(), daemon: daemon, script: .init(currentAfterRegistrations: nil))
+        let removal = Task { try await client.unregister() }
+        await gate.waitUntilPaused()
+        let status = Task { try await client.status() }
+        await RecoveryFixture.settle()
+        gate.open()
+        try await removal.value
+        #expect(try await status.value == HelperStatus(availability: .notRegistered, setup: .empty))
+        #expect(daemon.calls == ["unregister"])
+        #expect(daemon.status == .notRegistered)
+    }
+
     /// Two Reconnects during a failing automatic restart run one new registration, not two in parallel.
     @Test func twoReconnectsDuringAFailedRestartRunOneRegistration() async throws {
         let daemon = FakeDaemonService(.enabled)

@@ -22,6 +22,8 @@ final class FakeDaemonService: DaemonServiceControlling, HelperProcessInspecting
         var registerErrors: [NSError] = []
         /// The error of the next `unregister()`.
         var unregisterError: NSError?
+        /// When set, `unregister()` waits here before it changes anything, like a slow launchd.
+        var unregisterPause: PauseGate?
         /// The number of successful registrations: each one makes launchd start the current file.
         var registrations = 0
         var processChecks = 0
@@ -53,6 +55,7 @@ final class FakeDaemonService: DaemonServiceControlling, HelperProcessInspecting
     }
 
     func unregister() async throws {
+        if let pause = state.withLock({ $0.unregisterPause }) { await pause.pause(.zero) }
         try state.withLock { current in
             current.calls.append("unregister")
             if let error = current.unregisterError { throw error }

@@ -121,14 +121,23 @@ extension HelperClient {
     /// Reconnect ends as `.available`.
     func runRestart(finishing final: AutomaticRestart) async throws {
         let (connection, registration) = (connection, registration)
-        let id = UUID()
-        let restart = Task {
+        try await runExclusive(finishing: final) {
             await connection.invalidate()
             try await registration.reregister()
         }
-        automaticRestart = .running(id: id, task: restart)
+    }
+
+    /// Runs a registration change (a restart or a removal) as the one `.running` entry, which every
+    /// other call waits for. It sets `.running` before its first suspension, so no call can start
+    /// another change meanwhile.
+    func runExclusive(
+        finishing final: AutomaticRestart, _ work: @escaping @Sendable () async throws -> Void
+    ) async throws {
+        let id = UUID()
+        let task = Task { try await work() }
+        automaticRestart = .running(id: id, task: task)
         defer { finishRestart(id, as: final) }
-        try await restart.value
+        try await task.value
     }
 
     /// Ends the restart `id`, unless it ended already or another restart replaced it.
