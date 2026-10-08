@@ -7,7 +7,7 @@ import os
 @testable import JerdSystem
 
 /// The app recovers by itself from a helper that still runs the code from before an app update.
-@Suite struct StaleHelperRecoveryTests {
+@Suite(.timeLimit(.minutes(1))) struct StaleHelperRecoveryTests {
     private final class AcceptingTrustSettings: TrustSettingsApplying {
         func setAdminTrust(certificateDER: Data, scope: TrustScope) -> OSStatus { errSecSuccess }
         func removeAdminTrust(certificateDER: Data) -> OSStatus { errSecSuccess }
@@ -26,12 +26,88 @@ import os
     }
 
     private func client(
-        _ helper: FakeHelper, daemon: FakeDaemonService, script: FakeUpdatedHelperOpener.Script = .init()
+        _ helper: FakeHelper, daemon: FakeDaemonService, script: FakeUpdatedHelperOpener.Script = .init(),
+        gate: PauseGate? = nil
     ) -> (HelperClient, FakeUpdatedHelperOpener) {
         let opener = FakeUpdatedHelperOpener(helper: helper, daemon: daemon, script: script)
-        let client = HelperClient(
-            registration: daemon.registration(), opener: opener, trustSettings: AcceptingTrustSettings())
+        let registration =
+            gate.map { gate in
+                HelperRegistration(service: daemon, processes: daemon, requireSignedBuild: {}) { await gate.pause($0) }
+            } ?? daemon.registration()
+        let client = HelperClient(registration: registration, opener: opener, trustSettings: AcceptingTrustSettings())
         return (client, opener)
+    }
+
+    /// Lets started tasks run until they wait, without waiting for real time.
+    private func settle() async {
+        for _ in 0..<50 { await Task.yield() }
+    }
+
+    /// Regression test: calls that start while the automatic restart runs wait for it. Before,
+    /// a status read "not registered, no setup", an acquire failed with "Approved helper setup is
+    /// required", and an approval registered the daemon in parallel with the restart.
+    @Test func callsThatStartDuringTheRestartWaitForIt() async throws {
+        let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
+        defer { pair.close() }
+        let helper = try configuredHelper()
+        helper.script.withLock { $0.listeners = pair }
+        let daemon = FakeDaemonService(.enabled)
+        daemon.configure { $0.exitingChecks = 1 }
+        let gate = PauseGate()
+        let (client, _) = client(helper, daemon: daemon, gate: gate)
+        let first = Task { try await client.status() }
+        await gate.waitUntilPaused()
+        #expect(daemon.status == .notRegistered)
+        let second = Task { try await client.status() }
+        let acquire = Task { try await client.acquireListeners() }
+        let approve = Task { try await client.approve() }
+        await settle()
+        gate.open()
+        #expect(try await first.value.setup.hostnames == ["games-jp.test"])
+        let status = try await second.value
+        #expect(status.availability == .enabled && status.setup.hostnames == ["games-jp.test"])
+        try await acquire.value.close()
+        try await approve.value
+        #expect(daemon.calls == ["unregister", "register"])
+    }
+
+    /// A reply that XPC refuses after the restart already finished came from the old helper: the
+    /// call is sent again on the new link, not reported as a helper that stays stale.
+    @Test func aFailureOnALinkFromBeforeTheRestartIsRetriedOnTheNewLink() async throws {
+        let daemon = FakeDaemonService(.enabled)
+        let (client, opener) = client(try configuredHelper(), daemon: daemon, script: .init(heldStaleCalls: 1))
+        let early = Task { try await client.status() }
+        while opener.heldCount == 0 { await Task.yield() }
+        #expect(try await client.status().setup.hostnames == ["games-jp.test"])
+        opener.releaseHeldFailures()
+        #expect(try await early.value.setup.hostnames == ["games-jp.test"])
+        #expect(daemon.registrations == 1)
+    }
+
+    /// A manual Reconnect during the automatic restart reuses it, and a later stale helper can be
+    /// restarted automatically again.
+    @Test func aManualReconnectDuringTheRestartReusesIt() async throws {
+        let daemon = FakeDaemonService(.enabled)
+        daemon.configure { $0.exitingChecks = 1 }
+        let gate = PauseGate()
+        let (client, opener) = client(try configuredHelper(), daemon: daemon, gate: gate)
+        let first = Task { try await client.status() }
+        await gate.waitUntilPaused()
+        let reconnected = OSAllocatedUnfairLock(initialState: false)
+        let reconnect = Task {
+            try await client.reconnect()
+            reconnected.withLock { $0 = true }
+        }
+        await settle()
+        // No second registration runs in parallel: the Reconnect ends only with the running restart.
+        #expect(!reconnected.withLock { $0 })
+        gate.open()
+        _ = try await first.value
+        try await reconnect.value
+        #expect(daemon.calls == ["unregister", "register"])
+        opener.script.withLock { $0.currentAfterRegistrations = 2 }
+        _ = try await client.status()
+        #expect(daemon.registrations == 2)
     }
 
     /// The field sequence with fakes: the helper ran before the update and never exited, the
@@ -67,7 +143,7 @@ import os
         #expect(daemon.registrations == 1)
         #expect(daemon.calls == ["unregister", "register"])
         #expect(expected.remedy == .reconnectHelper)
-        #expect(expected.message.hasSuffix("(NSCocoaErrorDomain 4102)"))
+        #expect(expected.message.hasSuffix("Error code: NSCocoaErrorDomain 4102."))
     }
 
     @Test func concurrentCallsShareOneRestart() async throws {
@@ -141,12 +217,23 @@ import os
         (HelperRecoveryPolicy.Restart.available, false, HelperRecoveryPolicy.Step.restartThenRetry),
         (.running, false, .awaitRestartThenRetry),
         (.used, false, .fail(HelperRecoveryPolicy.staleAfterRestart(stale))),
+        (.used, true, .fail(HelperRecoveryPolicy.staleWhileServing(stale))),
         (.available, true, .fail(HelperRecoveryPolicy.staleWhileServing(stale))),
     ])
     func aSignatureMismatchRestartsOnlyOnceAndNeverWhileServing(
         restart: HelperRecoveryPolicy.Restart, holdsListeners: Bool, step: HelperRecoveryPolicy.Step
     ) {
         #expect(HelperRecoveryPolicy.step(after: Self.stale, restart: restart, holdsListeners: holdsListeners) == step)
+    }
+
+    @Test func aMismatchFromBeforeAFinishedRestartIsRetriedOnTheNewLink() {
+        for restart in [HelperRecoveryPolicy.Restart.available, .running, .used] {
+            for holds in [false, true] {
+                let step = HelperRecoveryPolicy.step(
+                    after: Self.stale, restart: restart, holdsListeners: holds, restartedSinceStart: true)
+                #expect(step == .retryOnNewLink)
+            }
+        }
     }
 
     @Test func otherFailuresRetryOnlyALostConnection() {
@@ -177,7 +264,7 @@ import os
         let message = Self.lost.userError.message
         #expect(!message.contains("Choose System setup"))
         #expect(message.contains("Reconnect Helper…") && message.contains("shield button"))
-        #expect(message.hasSuffix("(NSCocoaErrorDomain 4099)"))
+        #expect(message.hasSuffix("Error code: NSCocoaErrorDomain 4099."))
         #expect(Self.lost.userError.remedy == .reconnectHelper)
     }
 

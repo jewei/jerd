@@ -67,6 +67,9 @@ module does not own. Split it in its own change: move the root-only folders into
   app run through `reregister()`, then retries once. It changes no hosts or trust. It never
   restarts while the app holds the listeners. A lost connection (4097, 4099) is retried once on a
   new connection. A changing call is never retried, because the helper can have run it.
+  While a restart runs (automatic or Reconnect), every status, acquire, change, approve, and
+  reconnect call waits for it, so no call sees "no setup" and no two registrations race. A 4102
+  from a link that was opened before a finished restart is retried once on the new link.
 - `reregister()` waits until the daemon is not enabled and no helper process runs (at most
   5 seconds), then registers. It retries "Operation not permitted" up to 4 times. Every failure is
   a `JerdError` that names what to do; some carry a remedy (Reconnect Helper…, Login Items).

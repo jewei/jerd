@@ -68,6 +68,7 @@ extension HelperClient {
     )
         async throws
     {
+        try await waitForRunningRestart()
         do {
             let _: Bool = try await connection.call(timeout: nil) { proxy, gate in
                 send(proxy) { error in

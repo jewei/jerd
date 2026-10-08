@@ -45,8 +45,8 @@ struct HelperTransportError: Error, LocalizedError, Equatable, Sendable {
         }
     }
 
-    /// The domain and code for the end of a message, so a report names the exact failure.
-    var reference: String { "(\(domain) \(code))" }
+    /// The last sentence of a message, so a support report names the exact failure.
+    var reference: String { "Error code: \(domain) \(code)." }
 
     /// The message when Jerd cannot reach its helper; the page offers Reconnect Helper….
     var userError: JerdError {

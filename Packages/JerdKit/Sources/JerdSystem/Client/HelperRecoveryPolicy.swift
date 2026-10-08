@@ -20,6 +20,9 @@ enum HelperRecoveryPolicy {
     enum Step: Equatable, Sendable {
         /// Open a new connection and send the call again.
         case retry
+        /// Send the call again on the current link: the failed link was opened before a restart
+        /// that finished meanwhile, so its failure says nothing about the new helper.
+        case retryOnNewLink
         /// Restart the helper, then send the call again.
         case restartThenRetry
         /// Wait for the restart that another call started, then send the call again.
@@ -28,13 +31,16 @@ enum HelperRecoveryPolicy {
         case fail(JerdError)
     }
 
-    static func step(after failure: HelperTransportError, restart: Restart, holdsListeners: Bool) -> Step {
+    static func step(
+        after failure: HelperTransportError, restart: Restart, holdsListeners: Bool, restartedSinceStart: Bool = false
+    ) -> Step {
         switch failure.cause {
         case .connectionLost:
             return .retry
         case .other:
             return .fail(failure.userError)
         case .signatureMismatch:
+            if restartedSinceStart { return .retryOnNewLink }
             if holdsListeners { return .fail(staleWhileServing(failure)) }
             switch restart {
             case .available: return .restartThenRetry
@@ -61,8 +67,7 @@ enum HelperRecoveryPolicy {
     static func staleWhileServing(_ failure: HelperTransportError) -> JerdError {
         JerdError.unavailable(
             "The Jerd system helper changed while sites ran. Stop all sites, then click Reconnect Helper…, or "
-                + "choose it in the System Setup menu (the shield button in the Sites toolbar). "
-                + failure.reference
+                + "choose it in the System Setup menu (the shield button in the Sites toolbar). \(failure.reference)"
         ).with(.reconnectHelper)
     }
 }

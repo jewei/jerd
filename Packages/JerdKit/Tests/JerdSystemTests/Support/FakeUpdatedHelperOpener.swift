@@ -14,6 +14,10 @@ final class FakeUpdatedHelperOpener: HelperLinkOpening, Sendable {
         /// The results of the next calls, one per proxy, before the rule above applies: an error
         /// code, or nil for an answer of `helper`.
         var nextErrorCodes: [Int?] = []
+        /// The next stale calls whose 4102 arrives only at `releaseHeldFailures()`, like a reply
+        /// that XPC refuses after a restart already finished.
+        var heldStaleCalls = 0
+        var held: [@Sendable (any Error) -> Void] = []
         var opened = 0
     }
 
@@ -47,11 +51,35 @@ final class FakeUpdatedHelperOpener: HelperLinkOpening, Sendable {
         }
     }
 
+    /// Delivers the held 4102 failures now.
+    func releaseHeldFailures() {
+        let held = script.withLock { current -> [@Sendable (any Error) -> Void] in
+            defer { current.held = [] }
+            return current.held
+        }
+        held.forEach { $0(NSError(domain: NSCocoaErrorDomain, code: HelperTransportError.signatureCode)) }
+    }
+
+    var heldCount: Int { script.withLock { $0.held.count } }
+
+    /// Holds `onError` when a held stale call is due. Returns true when it was held.
+    fileprivate func hold(_ onError: @escaping @Sendable (any Error) -> Void) -> Bool {
+        script.withLock { current in
+            guard current.heldStaleCalls > 0 else { return false }
+            current.heldStaleCalls -= 1
+            current.held.append(onError)
+            return true
+        }
+    }
+
+    private let silent = FakeHelper(.init(unanswered: true))
+
     private struct Link: HelperLink {
         let opener: FakeUpdatedHelperOpener
 
         func proxy(onError: @escaping @Sendable (any Error) -> Void) -> (any JerdHelperProtocol)? {
             guard let code = opener.nextErrorCode() else { return opener.helper }
+            if code == HelperTransportError.signatureCode, opener.hold(onError) { return opener.silent }
             onError(NSError(domain: NSCocoaErrorDomain, code: code))
             return nil
         }

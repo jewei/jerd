@@ -15,6 +15,9 @@ public actor HelperClient {
     var automaticRestart = AutomaticRestart.available
     /// True from a listener acquisition until their release, while sites can use the sockets.
     var holdsListeners = false
+    /// The number of finished automatic restarts. A call compares it to see whether its link is
+    /// older than a restart.
+    var finishedRestarts = 0
 
     public init(
         registration: HelperRegistration = HelperRegistration(), opener: any HelperLinkOpening = XPCHelperLinkOpener(),
@@ -29,6 +32,7 @@ public actor HelperClient {
 
     /// The daemon state and, when it is enabled, the setup it reports.
     public func status() async throws -> HelperStatus {
+        try await waitForRunningRestart()
         let availability = registration.availability
         guard availability == .enabled else { return HelperStatus(availability: availability, setup: .empty) }
         let connection = connection
@@ -54,8 +58,12 @@ public actor HelperClient {
         }
     }
 
-    /// Registers the helper after the user approved HTTPS setup.
-    public func approve() throws { try registration.register() }
+    /// Registers the helper after the user approved HTTPS setup. It waits for a running automatic
+    /// restart, so two registrations never race.
+    public func approve() async throws {
+        try await waitForRunningRestart()
+        try registration.register()
+    }
 
     /// Asks the helper for the HTTP and HTTPS listeners on ports 80 and 443.
     ///
@@ -102,12 +110,20 @@ public actor HelperClient {
     }
 
     /// Registers the helper again after the user approved a reconnection. Hosts and trust stay.
-    /// The caller stopped the sites first. A later stale helper may be restarted automatically again.
+    /// The caller stopped the sites first. A running automatic restart is reused: when it succeeds,
+    /// the helper was just registered again. A later stale helper may be restarted automatically again.
     public func reconnect() async throws {
         holdsListeners = false
-        automaticRestart = .available
-        await connection.invalidate()
-        try await registration.reregister()
+        if case .running(_, let restart) = automaticRestart {
+            do {
+                try await restart.value
+                automaticRestart = .available
+                return
+            } catch {
+                // The running restart failed; the manual restart below tries again and reports.
+            }
+        }
+        try await runRestart(finishing: .available)
     }
 
     /// Unregisters the helper after its setup was removed.
