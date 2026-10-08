@@ -28,8 +28,11 @@ struct HelperTransportError: Error, LocalizedError, Equatable, Sendable {
     let cause: Cause
     let domain: String
     let code: Int
+    /// The link that failed, so a retry closes only that link and never a newer one.
+    let link: UUID?
 
-    init(_ error: any Error) {
+    init(_ error: any Error, link: UUID? = nil) {
+        self.link = link
         let error = error as NSError
         domain = error.domain
         code = error.code

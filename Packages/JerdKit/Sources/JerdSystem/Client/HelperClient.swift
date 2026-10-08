@@ -114,22 +114,30 @@ public actor HelperClient {
     /// the helper was just registered again. A later stale helper may be restarted automatically again.
     public func reconnect() async throws {
         holdsListeners = false
-        if case .running(_, let restart) = automaticRestart {
-            do {
-                try await restart.value
-                automaticRestart = .available
-                return
-            } catch {
-                // The running restart failed; the manual restart below tries again and reports.
-            }
-        }
+        if try await joinRunningRestarts() { return }
         try await runRestart(finishing: .available)
     }
 
-    /// Unregisters the helper after its setup was removed.
+    /// Unregisters the helper after its setup was removed. A running restart ends first, so it
+    /// cannot register the helper again after the removal.
     public func unregister() async throws {
         holdsListeners = false
+        try await waitForRestartToEnd()
         await connection.invalidate()
         try await registration.unregister()
+    }
+
+    /// Waits at most `limit` for a running restart, for Quit: a quit during the restart could
+    /// leave the helper unregistered. Returns false when the limit passed; Quit then continues.
+    public func finishRunningRestart(within limit: Duration) async -> Bool {
+        guard case .running(_, let task) = automaticRestart else { return true }
+        do {
+            try await Self.wait(for: task, timeout: limit)
+        } catch let error as JerdError where error == ReplyGate<Void>.timeoutError {
+            return false
+        } catch {
+            // The restart failed or the quit was cancelled; either way it no longer runs for Quit.
+        }
+        return true
     }
 }

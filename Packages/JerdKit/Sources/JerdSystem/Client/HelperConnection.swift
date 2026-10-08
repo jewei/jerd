@@ -37,7 +37,7 @@ public actor HelperConnection {
         if timeout == nil { openChanges[id, default: 0] += 1 }
         defer { if timeout == nil { endChange(on: id) } }
         let deliver: (ReplyGate<Value>) -> Void = { gate in
-            let proxy = current.proxy { error in gate.resolve(.failure(HelperTransportError(error))) }
+            let proxy = current.proxy { error in gate.resolve(.failure(HelperTransportError(error, link: id))) }
             guard let proxy else {
                 gate.resolve(.failure(JerdError.unavailable("The helper interface is unavailable.")))
                 return

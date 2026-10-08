@@ -37,6 +37,8 @@ final class PauseGate: Sendable {
         }
     }
 
+    var isOpen: Bool { state.withLock { $0.isOpen } }
+
     /// Ends every pause, now and later.
     func open() {
         let sleepers = state.withLock { current -> [CheckedContinuation<Void, Never>] in

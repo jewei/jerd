@@ -17,8 +17,12 @@ final class FakeUpdatedHelperOpener: HelperLinkOpening, Sendable {
         /// The next stale calls whose 4102 arrives only at `releaseHeldFailures()`, like a reply
         /// that XPC refuses after a restart already finished.
         var heldStaleCalls = 0
+        /// The next calls of any kind whose failure arrives only at `releaseHeldFailures(code:)`.
+        var heldCalls = 0
         var held: [@Sendable (any Error) -> Void] = []
         var opened = 0
+        /// The links that were closed, in order.
+        var invalidated = 0
     }
 
     let helper: FakeHelper
@@ -52,21 +56,28 @@ final class FakeUpdatedHelperOpener: HelperLinkOpening, Sendable {
     }
 
     /// Delivers the held 4102 failures now.
-    func releaseHeldFailures() {
+    func releaseHeldFailures(code: Int = HelperTransportError.signatureCode) {
         let held = script.withLock { current -> [@Sendable (any Error) -> Void] in
             defer { current.held = [] }
             return current.held
         }
-        held.forEach { $0(NSError(domain: NSCocoaErrorDomain, code: HelperTransportError.signatureCode)) }
+        held.forEach { $0(NSError(domain: NSCocoaErrorDomain, code: code)) }
     }
+
+    var invalidated: Int { script.withLock { $0.invalidated } }
 
     var heldCount: Int { script.withLock { $0.held.count } }
 
     /// Holds `onError` when a held stale call is due. Returns true when it was held.
-    fileprivate func hold(_ onError: @escaping @Sendable (any Error) -> Void) -> Bool {
+    fileprivate func hold(_ onError: @escaping @Sendable (any Error) -> Void, stale: Bool) -> Bool {
         script.withLock { current in
-            guard current.heldStaleCalls > 0 else { return false }
-            current.heldStaleCalls -= 1
+            if current.heldCalls > 0 {
+                current.heldCalls -= 1
+            } else if stale, current.heldStaleCalls > 0 {
+                current.heldStaleCalls -= 1
+            } else {
+                return false
+            }
             current.held.append(onError)
             return true
         }
@@ -74,16 +85,32 @@ final class FakeUpdatedHelperOpener: HelperLinkOpening, Sendable {
 
     private let silent = FakeHelper(.init(unanswered: true))
 
-    private struct Link: HelperLink {
+    /// Like `NSXPCConnection`, `invalidate()` fails every call that still waits on the link with
+    /// `NSXPCConnectionInvalid` (4099). A late failure of a finished call is ignored by its gate.
+    private final class Link: HelperLink, Sendable {
         let opener: FakeUpdatedHelperOpener
+        private let pending = OSAllocatedUnfairLock(initialState: [@Sendable (any Error) -> Void]())
+
+        init(opener: FakeUpdatedHelperOpener) { self.opener = opener }
 
         func proxy(onError: @escaping @Sendable (any Error) -> Void) -> (any JerdHelperProtocol)? {
-            guard let code = opener.nextErrorCode() else { return opener.helper }
-            if code == HelperTransportError.signatureCode, opener.hold(onError) { return opener.silent }
+            if opener.hold(onError, stale: false) { return opener.silent }
+            guard let code = opener.nextErrorCode() else {
+                pending.withLock { $0.append(onError) }
+                return opener.helper
+            }
+            if code == HelperTransportError.signatureCode, opener.hold(onError, stale: true) { return opener.silent }
             onError(NSError(domain: NSCocoaErrorDomain, code: code))
             return nil
         }
 
-        func invalidate() {}
+        func invalidate() {
+            opener.script.withLock { $0.invalidated += 1 }
+            let waiting = pending.withLock { current -> [@Sendable (any Error) -> Void] in
+                defer { current = [] }
+                return current
+            }
+            waiting.forEach { $0(NSError(domain: NSCocoaErrorDomain, code: HelperTransportError.invalidCode)) }
+        }
     }
 }
