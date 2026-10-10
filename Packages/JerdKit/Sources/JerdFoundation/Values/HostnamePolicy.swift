@@ -48,6 +48,13 @@ public enum HostnamePolicy {
         return Hostname(checked: (label.isEmpty ? "project" : label) + ".test")
     }
 
+    /// DNS syntax only, for names outside `.test`: at most 253 bytes and two or more labels that
+    /// follow the label rule of `validate(_:)`. It checks no reserved name.
+    package static func isDNSName(_ text: String) -> Bool {
+        let labels = text.split(separator: ".", omittingEmptySubsequences: false)
+        return text.utf8.count <= maximumLength && labels.count >= 2 && labels.allSatisfy(isValidLabel)
+    }
+
     private static func isValidLabel(_ label: Substring) -> Bool {
         !label.isEmpty && label.utf8.count <= maximumLabelLength && label.first != "-" && label.last != "-"
             && label.utf8.allSatisfy { (97...122).contains($0) || (48...57).contains($0) || $0 == 45 }
