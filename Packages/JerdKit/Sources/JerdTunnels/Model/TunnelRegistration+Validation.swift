@@ -14,6 +14,16 @@ extension TunnelRegistration {
     public func validate() throws {
         try validateStored()
         guard !Self.isAddressLiteral(hostname) else { throw JerdError.invalid(TunnelMessage.addressHostname) }
+        if routing == .local {
+            guard siteID != nil || originURL != nil else {
+                throw JerdError.invalid("Choose a Jerd site or enter a local address for this tunnel.")
+            }
+            if let originURL, let address = URLComponents(string: originURL),
+                !address.path.isEmpty || address.query != nil
+            {
+                throw JerdError.invalid("Enter a local address without a path or query, such as http://127.0.0.1:8000.")
+            }
+        }
     }
 
     /// Checks a registration from the settings file with the rule of earlier builds, so a file that

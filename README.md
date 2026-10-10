@@ -9,6 +9,7 @@ Jerd is a native macOS app for local PHP development. It does these tasks:
 - It manages MySQL, PostgreSQL, and Redis services, a Mailpit inbox for test
   mail, and RustFS storage with an S3 API.
 - It runs connectors for Cloudflare Tunnels that you already have.
+- For a locally managed tunnel, select Jerd under Manage route in and choose a site. Jerd configures the local route and verified HTTPS connection when you connect. The public hostname must already point to the tunnel in Cloudflare.
 - It checks for new runtime versions and installs them.
 
 ## Requirements

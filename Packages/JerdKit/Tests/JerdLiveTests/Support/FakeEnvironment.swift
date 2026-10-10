@@ -13,6 +13,8 @@ actor FakeEnvironment: EnvironmentControlling {
 
     func snapshot() -> EnvironmentSnapshot { current }
 
+    func setSnapshot(_ snapshot: EnvironmentSnapshot) { current = snapshot }
+
     func stop() async {
         current = EnvironmentSnapshot(state: .stopped, siteIDs: [])
         await journal?.record("environment.stop")

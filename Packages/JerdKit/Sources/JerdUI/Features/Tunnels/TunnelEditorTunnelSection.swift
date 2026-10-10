@@ -17,7 +17,7 @@ struct TunnelEditorTunnelSection: View {
             Text("Existing Tunnel")
         } footer: {
             FormFooter(
-                "The hostname and route must already exist in Cloudflare. The token is stored in your macOS Keychain and is never shown again."
+                "The public hostname must already point to this tunnel in Cloudflare. The token is stored in your macOS Keychain."
             )
         }
     }

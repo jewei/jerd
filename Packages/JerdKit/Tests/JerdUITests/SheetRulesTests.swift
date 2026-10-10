@@ -65,6 +65,11 @@ struct SheetRulesTests {
         editor.name = "Preview"
         editor.hostname = "preview.example.com"
         editor.token = "token"
+        #expect(editor.routing == .local)
+        #expect(editor.canSave)
+        #expect(editor.saveRequirement == nil)
+        #expect(editor.registration?.routing == .local)
+        editor.routing = .cloudflare
         #expect(
             editor.saveRequirement
                 == "To save, select “I checked the existing route for this Mac.” at the end of this form.")
@@ -77,6 +82,19 @@ struct SheetRulesTests {
         editor.hostname = "localhost"
         #expect(editor.validationMessage != nil)
         #expect(editor.saveRequirement == nil)
+    }
+
+    @Test("An earlier registration keeps Cloudflare routing until the user chooses Jerd")
+    func earlierTunnelCanSelectLocalRouting() {
+        let tunnel = TunnelRegistration(name: "Preview", hostname: "preview.example.com", siteID: SampleData.studio.id)
+        let editor = TunnelEditorModel(tunnel: tunnel, sites: [SampleData.studio])
+        #expect(editor.routing == .cloudflare)
+        #expect(!editor.canSave)
+        editor.routing = .local
+        #expect(editor.canSave)
+        #expect(editor.registration?.routing == .local)
+        #expect(editor.registration?.siteID == tunnel.siteID)
+        #expect(editor.tokenToSave == nil)
     }
 
     @Test("A requirement list reads as English")

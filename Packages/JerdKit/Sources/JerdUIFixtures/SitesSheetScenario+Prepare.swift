@@ -59,6 +59,7 @@ extension SitesSheetScenario {
             editor.name = "Aurora preview"
             editor.hostname = "aurora.example.com"
             editor.token = "token"
+            editor.routing = .cloudflare
         case .tunnelEditorFailure:
             model.beginEdit(SampleData.docsTunnel, sites: fixture.state.sites.sites)
             guard let editor = model.sheet?.editor else { return }

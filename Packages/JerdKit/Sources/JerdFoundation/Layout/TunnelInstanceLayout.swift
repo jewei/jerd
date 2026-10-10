@@ -7,7 +7,7 @@ public struct TunnelInstanceLayout: Hashable, Sendable {
 
     public var lockFile: URL { root.file(ServiceFileName.lock) }
     public var activeRunFile: URL { root.file(ServiceFileName.activeRun) }
-    /// The empty cloudflared configuration (`{}` and a newline).
+    /// The private cloudflared configuration, without credentials.
     public var configurationFile: URL { root.file("config.yml") }
     /// `server.log`: the output of the current connector run.
     public var logFile: URL { root.file(ServiceFileName.log) }

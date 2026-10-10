@@ -2,7 +2,7 @@ import Foundation
 import JerdTunnels
 
 /// The cloudflared connectors for existing Cloudflare tunnels. JerdLive implements it with
-/// `TunnelSupervisor`. No call changes a Cloudflare account, a route, or DNS.
+/// `TunnelSupervisor`. No call changes a Cloudflare account, a remote route, or DNS.
 public protocol TunnelsPort: Sendable {
     /// Reads the saved settings once. It never connects a tunnel.
     /// - Throws: When the file cannot be read. The file stays as it is.

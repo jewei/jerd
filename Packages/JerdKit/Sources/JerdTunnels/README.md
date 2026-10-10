@@ -1,7 +1,8 @@
 # JerdTunnels
 
-JerdTunnels runs cloudflared connectors for existing, remotely managed Cloudflare tunnels.
-It never changes a Cloudflare account, a remote tunnel, a route, or DNS. It depends only on
+JerdTunnels runs cloudflared connectors for existing Cloudflare tunnels, with local routes
+or routes managed in Cloudflare. It never changes a Cloudflare account, a remote route,
+or DNS. It depends only on
 JerdFoundation and JerdProcess.
 
 ## Main types
@@ -14,6 +15,7 @@ JerdFoundation and JerdProcess.
 | `TunnelToken` | Checks a token and gives the values to redact. Its text is never in a description. |
 | `TunnelSecretStore` (`TunnelSecretStoring`) | Keeps each token in the Keychain. |
 | `CloudflaredConnector` (`TunnelConnecting`) | Launches, checks, and stops the connectors that Jerd owns. |
+| `CloudflaredConfiguration`, `TunnelSiteResolving` | Renders an exact local route; JerdLive resolves linked sites and their installation CA at each launch. |
 | `TunnelReconnectPolicy` | The pure reducer of each tunnel's lifecycle: backoff, readiness, and failures. |
 | `TunnelAuthFailureClassifier` | Finds a token rejection in anchored cloudflared log lines. |
 | `TunnelState`, `TunnelSnapshot`, `TunnelStartupFailure` | What the app shows. `TunnelSnapshot.settingsIssue` tells the user to edit settings that an earlier build saved and the current rules refuse. |
@@ -28,8 +30,18 @@ JerdFoundation and JerdProcess.
 - Load and Save never connect. `connectStartupTunnels()` connects only when the app calls it,
   and it returns every failure.
 - A launch holds `service.lock`. It refuses a live earlier process before it runs any command.
-  Then it checks the runtime version and that the metrics port is free, and writes `{}` to
-  `config.yml`, so cloudflared reads no other configuration.
+  Then it checks the runtime version and that the metrics port is free, and writes the private
+  `config.yml`, so cloudflared reads no other local configuration. Local routing uses one
+  exact hostname rule and a final `http_status:404` rule. A linked site uses loopback HTTPS,
+  its `.test` hostname for the Host header and TLS server name, and Jerd's installation CA.
+  TLS verification stays on. A local address uses the specified HTTP or HTTPS service.
+- Registrations from earlier builds retain Cloudflare routing and the empty `{}` configuration.
+  Editing a tunnel can select local routing; new editor drafts default to it. The optional
+  `routing` key is `"local"` for local routing; its absence means `"cloudflare"` and saves omit
+  that default. Cloudflare routing does not resolve or require a running linked site.
+- Local routing requires a selected site or loopback address. Address paths and queries are
+  refused because cloudflared ingress does not rewrite them. A missing or stopped linked site
+  fails before the connector starts, with an instruction to choose or start the site.
 - Each launch moves the earlier output to `server.previous.log` (at most 4 MiB). The token
   check reads only the output of the current run.
 - "Connected" means that `http://127.0.0.1:<metricsPort>/ready` answers 200 and that the owned
