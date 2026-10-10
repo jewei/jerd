@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-10
+
 - Jerd can now configure locally managed Cloudflare tunnels from the selected site, including the local route and verified HTTPS connection.
 
 ## [0.1.2] - 2026-10-08

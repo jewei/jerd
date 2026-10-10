@@ -7,6 +7,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.3</title>
+            <pubDate>Sat, 10 Oct 2026 09:42:58 GMT</pubDate>
+            <sparkle:version>9</sparkle:version>
+            <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• Jerd can now configure locally managed Cloudflare tunnels from the selected site, including the local route and verified HTTPS connection.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.3/Jerd-0.1.3.dmg" length="79317639" type="application/octet-stream" sparkle:edSignature="lf73E95HrpU6KraSOIYQ3mBZiCnBOP+6F6cvZ6DKSFcfZ8nIkdkL/MxT7iCVvmSDz+ZcAk1wY2kDWmyElC2xDA=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.2</title>
             <pubDate>Thu, 08 Oct 2026 07:09:15 GMT</pubDate>
             <sparkle:version>8</sparkle:version>
@@ -57,6 +68,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: gluPbIiDohtHt94THsqjp9G0LX0wXv0HUm7J0k4gBmwdQeUwy2mxQsw6WaGr7WSKsmyOAB0kIY1qKo3d2hrwAA==
-length: 5822
+edSignature: PLJqI2X2yv7Q2OCkDpLIDh2OiIeCCRLiXhqPImIbm4sbESBKm1UfRToGks384rQZybIKBal5O/xfLhrknn41Bw==
+length: 6717
 -->
