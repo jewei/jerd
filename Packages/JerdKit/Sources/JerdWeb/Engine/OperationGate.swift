@@ -15,6 +15,9 @@ final class OperationGate: Sendable {
     /// True while an operation holds the gate.
     var isBusy: Bool { state.withLock { $0.busy } }
 
+    /// The operations that wait in `enter()`.
+    var waiterCount: Int { state.withLock { $0.waiters.count } }
+
     /// Takes the gate when it is free. Returns false (and takes nothing) when it is busy.
     func tryEnter() -> Bool {
         state.withLock { state in

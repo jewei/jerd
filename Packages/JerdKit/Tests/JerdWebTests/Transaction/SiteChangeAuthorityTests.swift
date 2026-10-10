@@ -95,11 +95,15 @@ struct LiveTransaction {
     let store: FakeConfigurationStore
     let registry: SiteRegistry
     let transaction: SiteChangeTransaction
+    let forwardedHosts: FakeForwardedHosts
     let before: AppConfiguration
 
     /// `sites` are approved; the ones in `running` run, and the others are disabled.
-    init(sites hostnames: [String], running: [String]) async throws {
+    init(
+        sites hostnames: [String], running: [String], forwardedHosts: FakeForwardedHosts = FakeForwardedHosts()
+    ) async throws {
         harness = try CoordinatorHarness(approved: hostnames)
+        self.forwardedHosts = forwardedHosts
         var sites: [Site] = []
         for host in hostnames {
             var site = try harness.site(host)
@@ -115,7 +119,7 @@ struct LiveTransaction {
             layout: harness.layout, system: harness.system, coordinator: harness.coordinator)
         transaction = SiteChangeTransaction(
             registry: registry, reducer: SiteChangeReducer(hosts: FakeHostsFile()), coordinator: harness.coordinator,
-            gateway: gateway)
+            gateway: gateway, forwardedHosts: forwardedHosts)
         let ids = Set(sites.filter(\.isEnabled).map(\.id))
         try await harness.ensure(try ServingPlan(before, siteIDs: ids))
     }

@@ -31,7 +31,6 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     let ports: LoopbackPortGuard
     let startGate: StartGate
     let temporaryRoot: URL
-    let publicHosts: (any SitePublicHostsLoading)?
     let id = UUID()
     let gate = OperationGate()
     var state: EnvironmentState = .stopped
@@ -46,8 +45,7 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
     public init(
         layout: DataLayout, system: any SystemSetupPort, engine: any EngineControlling = EngineRunner(),
         probe: any TrustProbing = SystemTrustProbe(), ports: LoopbackPortGuard = LoopbackPortGuard(),
-        startGate: StartGate = StartGate(), temporaryRoot: URL = FileManager.default.temporaryDirectory,
-        publicHosts: (any SitePublicHostsLoading)? = nil
+        startGate: StartGate = StartGate(), temporaryRoot: URL = FileManager.default.temporaryDirectory
     ) {
         environment = layout.environment
         self.system = system
@@ -56,7 +54,6 @@ public actor EnvironmentCoordinator: EnvironmentCoordinating {
         self.ports = ports
         self.startGate = startGate
         self.temporaryRoot = temporaryRoot
-        self.publicHosts = publicHosts
     }
 
     public func snapshot() -> EnvironmentSnapshot {

@@ -3,34 +3,37 @@ import JerdFoundation
 import JerdTunnels
 import JerdWeb
 
-/// Uses the current site registration and Jerd's own CA for each local connector launch.
-package actor LiveTunnelSiteResolver: TunnelSiteResolving {
+/// Prepares a linked Jerd site for each local connector launch: the site as the web run serves
+/// it, with its public hostnames restored, and Jerd's own CA to verify it.
+package struct LiveTunnelSiteResolver: TunnelSiteResolving {
+    private let sites: any ForwardedHostApplying
     private let registry: any SiteConfigurationLoading
-    private let environment: any EnvironmentControlling
     private let layout: EnvironmentLayout
 
-    package init(
-        registry: any SiteConfigurationLoading, environment: any EnvironmentControlling, layout: EnvironmentLayout
-    ) {
+    package init(sites: any ForwardedHostApplying, registry: any SiteConfigurationLoading, layout: EnvironmentLayout) {
+        self.sites = sites
         self.registry = registry
-        self.environment = environment
         self.layout = layout
     }
 
+    /// Checks the CA first: without it the route cannot verify TLS, so a restart would be wasted.
     package func prepareDestination(for siteID: UUID) async throws -> TunnelSiteDestination {
-        let configuration = try await registry.snapshot()
-        guard let site = configuration.sites.first(where: { $0.id == siteID }) else {
-            throw JerdError.unavailable("The linked site was removed. Edit this tunnel to choose a site.")
-        }
-        guard await environment.snapshot().siteIDs.contains(siteID) else {
-            throw JerdError.unavailable("Start \(site.displayName) in Sites before connecting this tunnel.")
-        }
         guard FileProbe.presence(at: layout.rootCertificateFile) == .present else {
-            throw JerdError.unavailable("The site's HTTPS certificate is missing. Restart the site before connecting.")
+            throw JerdError.unavailable(TunnelMessage.certificateAuthorityMissing)
         }
-        try await environment.preparePublicHosts(for: siteID)
+        guard let site = try await sites.applyForwardedHosts(servingSite: siteID) else {
+            throw try await notServed(siteID)
+        }
         return TunnelSiteDestination(
             siteID: siteID, hostname: try Hostname(site.hostname), httpsPort: ListenerBinding.product.httpsPort,
             certificateAuthorityFile: layout.rootCertificateFile)
+    }
+
+    /// Why the run does not serve `siteID`: the site was removed, or it does not run.
+    private func notServed(_ siteID: UUID) async throws -> JerdError {
+        guard let site = try await registry.snapshot().sites.first(where: { $0.id == siteID }) else {
+            return .unavailable(TunnelMessage.siteRemoved)
+        }
+        return .unavailable(TunnelMessage.siteNotRunning(site.displayName))
     }
 }

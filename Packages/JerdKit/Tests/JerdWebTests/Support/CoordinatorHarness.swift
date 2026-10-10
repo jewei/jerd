@@ -18,7 +18,7 @@ struct CoordinatorHarness {
 
     init(
         approved hostnames: [String] = ["demo.test"], policy: HTTPSTrustPolicy = .serverTLS, probeFails: Bool = false,
-        portsOccupied: Bool = false, publicHosts: (any SitePublicHostsLoading)? = nil
+        portsOccupied: Bool = false
     )
         throws
     {
@@ -35,8 +35,7 @@ struct CoordinatorHarness {
         }
         coordinator = EnvironmentCoordinator(
             layout: layout, system: system, engine: engine, probe: probe,
-            ports: LoopbackPortGuard(commands: lsof), temporaryRoot: URL(fileURLWithPath: "/tmp"),
-            publicHosts: publicHosts)
+            ports: LoopbackPortGuard(commands: lsof), temporaryRoot: URL(fileURLWithPath: "/tmp"))
     }
 
     var runtime: DevelopmentRuntime { Samples.runtime(id: Samples.runtimeID, cli: binary.path, fpm: binary.path) }

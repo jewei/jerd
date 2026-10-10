@@ -51,15 +51,14 @@ package struct LiveDomain: Sendable {
             directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher,
             minimumMacOS: configuration.minimumMacOS)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
-        web = WebDomain(layout: layout, helper: helper, publicHosts: LiveTunnelHostSource(layout: layout.tunnels))
+        web = WebDomain(layout: layout, helper: helper, forwardedHosts: LiveForwardedHosts(layout: layout.tunnels))
         developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)
         databases = DatabaseManager(layout: layout.databases, effects: effects)
         mail = MailManager(layout: layout, effects: effects)
         storage = StorageManager(layout: layout, effects: effects)
         connector = CloudflaredConnector(
             layout: layout.tunnels,
-            sites: LiveTunnelSiteResolver(
-                registry: web.registry, environment: web.coordinator, layout: layout.environment),
+            sites: LiveTunnelSiteResolver(sites: web.transaction, registry: web.registry, layout: layout.environment),
             processes: processes)
         tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
     }

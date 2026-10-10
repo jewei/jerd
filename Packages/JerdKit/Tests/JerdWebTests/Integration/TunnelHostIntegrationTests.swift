@@ -34,11 +34,11 @@ struct TunnelHostIntegrationTests {
         let otherProject = folder.path("other")
         try FileManager.default.copyItem(at: project, to: otherProject)
         let other = Samples.site(otherProject, hostname: "other.test")
-        let publicHost = try SitePublicHost(siteID: site.id, hostname: "public.example.com")
-        let secondHost = try SitePublicHost(siteID: site.id, hostname: "second.example.com")
+        let publicHost = try #require(PublicHostname("public.example.com"))
+        let secondHost = try #require(PublicHostname("second.example.com"))
         let plan = ServingPlan(
             sites: [site, other].map { PlannedSite(site: $0, runtime: runtime) }, caddy: caddy,
-            publicHosts: [publicHost, secondHost])
+            forwardedHosts: ForwardedHosts([site.id: [publicHost, secondHost]]))
         let layout = IntegrationRun.layout(in: folder)
         let ports = try IntegrationRun.freePorts()
         let binding = ListenerBinding(httpsPort: ports.https, httpPort: ports.http, inherited: false)
@@ -46,11 +46,11 @@ struct TunnelHostIntegrationTests {
         do {
             _ = try await engine.start(plan, layout: layout, binding: binding, listeners: nil)
             for (local, forwarded, expected) in [
-                (site.hostname, publicHost.hostname, publicHost.hostname),
-                (site.hostname, secondHost.hostname, secondHost.hostname),
+                (site.hostname, publicHost.value, publicHost.value),
+                (site.hostname, secondHost.value, secondHost.value),
                 (site.hostname, "", "\(site.hostname):\(ports.https)"),
                 (site.hostname, "unregistered.example.com", "\(site.hostname):\(ports.https)"),
-                (other.hostname, publicHost.hostname, "\(other.hostname):\(ports.https)"),
+                (other.hostname, publicHost.value, "\(other.hostname):\(ports.https)"),
                 (site.hostname, "public.example.com.evil.invalid", "\(site.hostname):\(ports.https)"),
             ] {
                 let response = try await IntegrationRun.request(
@@ -65,19 +65,19 @@ struct TunnelHostIntegrationTests {
             }
             let asset = try await IntegrationRun.request(
                 site.hostname, "/app.js", port: ports.https, layout: layout,
-                extra: ["--header", "X-Forwarded-Host: \(publicHost.hostname)"])
+                extra: ["--header", "X-Forwarded-Host: \(publicHost.value)"])
             #expect(asset.code.hasPrefix("200"))
             #expect(asset.body == Data("document.body.textContent = 'tunnel works';".utf8))
             let redirect = try await IntegrationRun.request(
                 site.hostname, "/redirect", port: ports.https, layout: layout,
-                extra: ["--include", "--header", "X-Forwarded-Host: \(publicHost.hostname)"])
+                extra: ["--include", "--header", "X-Forwarded-Host: \(publicHost.value)"])
             #expect(redirect.code.hasPrefix("302"))
             #expect(
                 String(decoding: redirect.body, as: UTF8.self).lowercased().contains(
                     "location: https://public.example.com/destination"))
             let wrongHost = try await IntegrationRun.request(
                 site.hostname, "/", port: ports.https, layout: layout,
-                extra: ["--header", "Host: unknown.test", "--header", "X-Forwarded-Host: \(publicHost.hostname)"])
+                extra: ["--header", "Host: unknown.test", "--header", "X-Forwarded-Host: \(publicHost.value)"])
             #expect(wrongHost.code.hasPrefix("421"))
             await engine.stop()
         } catch {

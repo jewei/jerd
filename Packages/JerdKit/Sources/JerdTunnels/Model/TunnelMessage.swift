@@ -50,6 +50,14 @@ package enum TunnelMessage {
         return lastError.map { text + " Last error: " + $0 } ?? text
     }
 
+    // Local routes to a Jerd site
+    package static let siteRemoved = "The linked site was removed. Edit this tunnel and choose a destination."
+    package static func siteNotRunning(_ site: String) -> String {
+        "Start \(site) in Sites before connecting this tunnel."
+    }
+    package static let certificateAuthorityMissing =
+        "Jerd's local certificate authority is missing. Start the linked site in Sites to set up HTTPS, then connect."
+
     // Connector
     package static let executableName = "Select an executable named cloudflared."
     package static let noVersion = "The selected executable did not report a cloudflared version."

@@ -6,8 +6,6 @@ extension EnvironmentCoordinator {
     public func preflight(_ plan: ServingPlan, ticket: StopTicket) async throws -> PreparedPlan {
         try await operation {
             try checkpoint(ticket)
-            let plan = try await resolvePublicHosts(plan)
-            try checkpoint(ticket)
             let stamps = try ExecutableStamp.capture(plan.executablePaths)
             try await preflightOwned(plan)
             try checkpoint(ticket)
@@ -25,8 +23,6 @@ extension EnvironmentCoordinator {
                 state = EngineRunner.stoppedState(failure: nil, survivor: await cleanup())
                 return
             }
-            let plan = try await resolvePublicHosts(plan)
-            try checkpoint(ticket)
             let stamps = try ExecutableStamp.capture(plan.executablePaths)
             // A kept run activates nothing new, so it needs no approval check. This lets a
             // rollback keep the previous run that a refused activation never stopped.
@@ -46,12 +42,6 @@ extension EnvironmentCoordinator {
                 throw error
             }
         }
-    }
-
-    /// Rechecks tunnel registrations before comparing plans, so a new route replaces the web run.
-    private func resolvePublicHosts(_ plan: ServingPlan) async throws -> ServingPlan {
-        guard !plan.isEmpty, let publicHosts else { return plan }
-        return try await ServingPlan(sites: plan.sites, caddy: plan.caddy, publicHosts: publicHosts.loadPublicHosts())
     }
 
     /// True when the active run serves an equivalent plan with the same executables and is

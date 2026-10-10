@@ -12,20 +12,26 @@ public actor SiteChangeTransaction {
     let reducer: SiteChangeReducer
     let coordinator: any EnvironmentCoordinating
     let gateway: any SystemSetupManaging
-    private var busy = false
+    let forwardedHosts: any ForwardedHostsLoading
+    /// One change at a time. A site change refuses at once when the gate is busy; a forwarded
+    /// host apply waits for it (`waitingExclusive`).
+    let gate = OperationGate()
     /// The current phase. Tests read it; the app shows the result of a change instead.
     package private(set) var phase: SiteChangePhase = .idle
     /// Every phase of the last change, in order, for tests.
     package private(set) var trace: [SiteChangePhase] = []
 
-    public init(
+    /// - Parameter forwardedHosts: The saved public hostnames that the sites restore from a forwarder.
+    package init(
         registry: SiteRegistry, reducer: SiteChangeReducer = SiteChangeReducer(),
-        coordinator: any EnvironmentCoordinating, gateway: any SystemSetupManaging
+        coordinator: any EnvironmentCoordinating, gateway: any SystemSetupManaging,
+        forwardedHosts: any ForwardedHostsLoading
     ) {
         self.registry = registry
         self.reducer = reducer
         self.coordinator = coordinator
         self.gateway = gateway
+        self.forwardedHosts = forwardedHosts
     }
 
     /// Edits the configuration. Validation errors change nothing.
@@ -79,15 +85,25 @@ public actor SiteChangeTransaction {
         trace.append(next)
     }
 
-    /// Runs one change. Its stop ticket is taken before its first suspension, so a Stop at any
-    /// later moment ends it.
+    /// Runs one change, or refuses at once while another one runs.
     private func exclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
-        guard !busy else { throw JerdError.unavailable("Wait for the current site edit.") }
-        busy = true
+        guard gate.tryEnter() else { throw JerdError.unavailable("Wait for the current site edit.") }
+        return try await holding(body)
+    }
+
+    /// Waits for the current change, then runs one change.
+    func waitingExclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
+        await gate.enter()
+        return try await holding(body)
+    }
+
+    /// Runs `body` while the gate is held, then opens it. The stop ticket is taken before the
+    /// first suspension, so a Stop at any later moment ends the change.
+    private func holding<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
         trace = []
         defer {
-            busy = false
             phase = .idle
+            gate.leave()
         }
         let ticket = await coordinator.ticket()
         return try await body(ticket)
