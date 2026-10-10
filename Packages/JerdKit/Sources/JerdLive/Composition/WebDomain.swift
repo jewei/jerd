@@ -14,11 +14,13 @@ package struct WebDomain: Sendable {
     /// - Parameter engine: The web effects. Its default supervisor has the forceful ceiling,
     ///   because Caddy and PHP-FPM hold no user data; data services never use it.
     package init(
-        layout: DataLayout, helper: any HelperControlling, engine: EngineServices = Self.engineServices()
+        layout: DataLayout, helper: any HelperControlling, engine: EngineServices = Self.engineServices(),
+        publicHosts: (any SitePublicHostsLoading)? = nil
     ) {
         system = HelperSystemSetup(helper: helper)
         registry = SiteRegistry(store: ConfigurationStore(layout: layout))
-        coordinator = EnvironmentCoordinator(layout: layout, system: system, engine: EngineRunner(services: engine))
+        coordinator = EnvironmentCoordinator(
+            layout: layout, system: system, engine: EngineRunner(services: engine), publicHosts: publicHosts)
         gateway = SystemSetupGateway(layout: layout, system: system, coordinator: coordinator)
         transaction = SiteChangeTransaction(registry: registry, coordinator: coordinator, gateway: gateway)
     }

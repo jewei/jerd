@@ -32,7 +32,7 @@ struct TunnelEditorDestinationSection: View {
         } footer: {
             FormFooter(
                 editor.routing == .local
-                    ? "Jerd configures the local route and HTTPS for the selected site when you connect."
+                    ? "Jerd configures the local route and HTTPS when you connect. Applying a changed route briefly restarts the shared web services."
                     : "Match this reference to the route in Cloudflare. Use Jerd for a locally managed tunnel."
             )
         }

@@ -22,6 +22,9 @@ import Testing
         let destination = try await resolver.destination(for: site.id)
         #expect(destination.hostname == site.hostname)
         #expect(destination.certificateAuthority == layout.rootCertificateFile)
+        #expect(await environment.preparedSites == [site.id])
+        await environment.setPreparationFailure()
+        await #expect(throws: CancellationError.self) { try await resolver.destination(for: site.id) }
     }
 
     @Test func aRemovedSiteHasAnActionableError() async throws {

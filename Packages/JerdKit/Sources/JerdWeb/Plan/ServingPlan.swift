@@ -7,10 +7,13 @@ import JerdFoundation
 public struct ServingPlan: Equatable, Sendable {
     public let sites: [PlannedSite]
     public let caddy: CaddyRuntime
+    public let publicHosts: Set<SitePublicHost>
 
-    public init(sites: [PlannedSite], caddy: CaddyRuntime) {
+    public init(sites: [PlannedSite], caddy: CaddyRuntime, publicHosts: Set<SitePublicHost> = []) {
         self.sites = sites
         self.caddy = caddy
+        let ids = Set(sites.map(\.site.id))
+        self.publicHosts = publicHosts.filter { ids.contains($0.siteID) }
     }
 
     /// The enabled sites of `configuration` (only those in `siteIDs`, when given), in saved order.
@@ -21,6 +24,7 @@ public struct ServingPlan: Equatable, Sendable {
     public init(_ configuration: AppConfiguration, siteIDs: Set<UUID>? = nil) throws {
         guard let caddy = configuration.caddy else { throw JerdError.unavailable("Caddy is unavailable.") }
         self.caddy = caddy
+        publicHosts = []
         sites = try configuration.sites
             .filter { $0.isEnabled && (siteIDs?.contains($0.id) ?? true) }
             .map { PlannedSite(site: $0, runtime: try configuration.runtime(for: $0)) }
@@ -34,7 +38,9 @@ public struct ServingPlan: Equatable, Sendable {
     /// True when both plans serve the same way: the same Caddy record and, for every site ID, the
     /// same hostname, paths, and runtime. Site order and display data do not count.
     public func isEquivalent(to other: ServingPlan) -> Bool {
-        guard caddy == other.caddy, sites.count == other.sites.count else { return false }
+        guard caddy == other.caddy, sites.count == other.sites.count, publicHosts == other.publicHosts else {
+            return false
+        }
         return sites.allSatisfy { entry in
             other.sites.first { $0.site.id == entry.site.id }.map(entry.servesLike) ?? false
         }

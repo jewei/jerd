@@ -34,6 +34,19 @@ web registry and checks that the site is running. The connector resolves this
 again on each launch, including a retry. Cloudflare-managed registrations keep
 an empty local configuration and do not call this port.
 
+`JerdWeb.SitePublicHostsLoading` supplies exact public hostnames from saved local
+tunnel registrations. `JerdLive.LiveTunnelHostSource` reads them through the
+tunnel store on its own actor; `TunnelSupervisor` remains the only writer.
+The web coordinator includes these mappings in the serving plan and compares
+them when deciding whether a running environment can stay. Before a local
+connector starts, the site resolver asks the coordinator to apply the current
+mappings. A changed mapping briefly restarts the shared web environment.
+Caddy first checks the local TLS SNI and Host and selects the site. Within that
+site only, it restores a registered public Host from cloudflared's exact
+X-Forwarded-Host value. PHP then generates public URLs without project changes.
+Unknown forwarded hosts do not change the request Host. Public hosts are not
+added to system hosts, local certificates, or Cloudflare routes.
+
 ## Targets
 
 | Target | Responsibility |

@@ -1,3 +1,4 @@
+import Foundation
 import JerdWeb
 
 @testable import JerdLive
@@ -6,6 +7,8 @@ import JerdWeb
 actor FakeEnvironment: EnvironmentControlling {
     var current = EnvironmentSnapshot(state: .stopped, siteIDs: [])
     let journal: CallJournal?
+    private(set) var preparedSites: [UUID] = []
+    var preparationFailure: Bool = false
 
     init(journal: CallJournal? = nil) {
         self.journal = journal
@@ -14,6 +17,13 @@ actor FakeEnvironment: EnvironmentControlling {
     func snapshot() -> EnvironmentSnapshot { current }
 
     func setSnapshot(_ snapshot: EnvironmentSnapshot) { current = snapshot }
+
+    func setPreparationFailure() { preparationFailure = true }
+
+    func preparePublicHosts(for siteID: UUID) async throws {
+        if preparationFailure { throw CancellationError() }
+        preparedSites.append(siteID)
+    }
 
     func stop() async {
         current = EnvironmentSnapshot(state: .stopped, siteIDs: [])

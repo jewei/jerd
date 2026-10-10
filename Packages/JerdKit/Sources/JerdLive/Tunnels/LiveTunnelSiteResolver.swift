@@ -27,6 +27,7 @@ package actor LiveTunnelSiteResolver: TunnelSiteResolving {
         guard FileProbe.presence(at: layout.rootCertificateFile) == .present else {
             throw JerdError.unavailable("The site's HTTPS certificate is missing. Restart the site before connecting.")
         }
+        try await environment.preparePublicHosts(for: siteID)
         return TunnelSiteDestination(hostname: site.hostname, certificateAuthority: layout.rootCertificateFile)
     }
 }

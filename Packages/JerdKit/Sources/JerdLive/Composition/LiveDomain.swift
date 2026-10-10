@@ -51,7 +51,7 @@ package struct LiveDomain: Sendable {
             directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher,
             minimumMacOS: configuration.minimumMacOS)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
-        web = WebDomain(layout: layout, helper: helper)
+        web = WebDomain(layout: layout, helper: helper, publicHosts: LiveTunnelHostSource(layout: layout.tunnels))
         developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)
         databases = DatabaseManager(layout: layout.databases, effects: effects)
         mail = MailManager(layout: layout, effects: effects)
