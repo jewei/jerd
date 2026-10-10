@@ -46,15 +46,58 @@ import Testing
         #expect(text(layout.previousSettingsFile) == Self.golden)
     }
 
-    @Test func localRoutingRoundTripsWithoutChangingTheOtherSavedKeys() throws {
-        let earlier = try JSONDecoder().decode(TunnelConfiguration.self, from: Data(Self.golden.utf8))
-        var local = earlier
-        local.tunnels[0].routing = .local
-        let bytes = try JSONEncoder().encode(local)
-        #expect(String(decoding: bytes, as: UTF8.self).contains("\"routing\":\"local\""))
-        let decoded = try JSONDecoder().decode(TunnelConfiguration.self, from: bytes)
-        #expect(decoded == local)
-        #expect(decoded.schemaVersion == earlier.schemaVersion)
+    /// `golden` with `"routing" : "local"`, the only key that local routing adds.
+    static let goldenLocal = golden.replacingOccurrences(
+        of: "\"restartOnFailure\" : true,\n", with: "\"restartOnFailure\" : true,\n      \"routing\" : \"local\",\n")
+
+    @Test func localRoutingSavesTheExactBytes() throws {
+        let folder = try TemporaryDirectory(" tunnels")
+        defer { folder.remove() }
+        let store = TunnelStore(layout: folder.layout)
+        var configuration = try JSONDecoder().decode(TunnelConfiguration.self, from: Data(Self.golden.utf8))
+        configuration.tunnels[0].routing = .local
+        try store.save(configuration)
+        #expect(text(folder.layout.settingsFile) == Self.goldenLocal)
+        #expect(try store.load() == configuration)
+    }
+
+    /// An explicit default loads as Cloudflare routing, and Save omits it, as earlier builds wrote.
+    @Test func anExplicitCloudflareRoutingLoadsAndSavesWithoutTheKey() throws {
+        let folder = try TemporaryDirectory(" tunnels")
+        defer { folder.remove() }
+        try OwnedDirectory.create(folder.layout.root)
+        let explicit = Self.goldenLocal.replacingOccurrences(of: "\"local\"", with: "\"cloudflare\"")
+        try AtomicFile.write(Data(explicit.utf8), to: folder.layout.settingsFile)
+        let store = TunnelStore(layout: folder.layout)
+        let loaded = try store.load()
+        #expect(loaded.tunnels.first?.routing == .cloudflare)
+        try store.save(loaded)
+        #expect(text(folder.layout.settingsFile) == Self.golden)
+    }
+
+    /// A routing value from a later build cannot be read. The file stays as it is.
+    @Test func anUnknownRoutingValueIsCorruptAndPreserved() throws {
+        let folder = try TemporaryDirectory(" tunnels")
+        defer { folder.remove() }
+        try OwnedDirectory.create(folder.layout.root)
+        let later = Self.goldenLocal.replacingOccurrences(of: "\"local\"", with: "\"hybrid\"")
+        try AtomicFile.write(Data(later.utf8), to: folder.layout.settingsFile)
+        #expect {
+            try TunnelStore(layout: folder.layout).load()
+        } throws: { error in
+            (error as? JerdError)?.kind == .corrupt
+        }
+        #expect(text(folder.layout.settingsFile) == later)
+    }
+
+    /// The hand-written decoder keeps every key of earlier builds required.
+    @Test(arguments: ["hostname", "id", "metricsPort", "name", "restartOnFailure", "startOnLaunch"])
+    func everyRequiredKeyOfEarlierBuildsStaysRequired(_ key: String) throws {
+        let line = try #require(Self.golden.split(separator: "\n").first { $0.contains("\"\(key)\" :") })
+        let missing = Self.golden.replacingOccurrences(of: line + "\n", with: "")
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(TunnelConfiguration.self, from: Data(missing.utf8))
+        }
     }
 
     /// Settings that an earlier build wrote with an IP address as hostname. That build accepted it;

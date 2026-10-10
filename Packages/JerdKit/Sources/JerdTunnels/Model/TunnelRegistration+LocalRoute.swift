@@ -10,10 +10,10 @@ extension TunnelRegistration {
 
     /// False for a Jerd route to a Jerd site: the route needs its site to run, and sites do not
     /// start when Jerd opens. Such a tunnel never connects at launch, whatever `startOnLaunch` says.
-    public var canConnectOnLaunch: Bool { Self.canConnectOnLaunch(routing: routing, siteID: siteID) }
+    package var canConnectOnLaunch: Bool { Self.canConnectOnLaunch(routing: routing, siteID: siteID) }
 
     /// `canConnectOnLaunch` for the fields of a draft.
-    public static func canConnectOnLaunch(routing: TunnelRouting, siteID: UUID?) -> Bool {
+    package static func canConnectOnLaunch(routing: TunnelRouting, siteID: UUID?) -> Bool {
         routing != .local || siteID == nil
     }
 

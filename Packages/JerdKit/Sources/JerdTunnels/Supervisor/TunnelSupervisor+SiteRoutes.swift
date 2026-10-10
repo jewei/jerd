@@ -7,7 +7,7 @@ extension TunnelSupervisor {
     ///
     /// The app calls it after each site change and each Stop. A failed stop shows on its tunnel.
     /// - Parameter served: The `.test` hostname of each site that the web run serves, by site ID.
-    public func stopRoutesToUnservedSites(_ served: [UUID: String]) async {
+    package func stopRoutesToUnservedSites(_ served: [UUID: String]) async {
         let stale = handles.values.filter { handle in
             guard let site = handle.siteDestination else { return false }
             return served[site.siteID] != site.hostname.value
