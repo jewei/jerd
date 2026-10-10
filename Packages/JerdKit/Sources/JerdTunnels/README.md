@@ -41,6 +41,9 @@ JerdFoundation and JerdProcess.
   Editing a tunnel can select local routing; new editor drafts default to it. The optional
   `routing` key is `"local"` for local routing; its absence means `"cloudflare"` and saves omit
   that default. Cloudflare routing does not resolve or require a running linked site.
+- `stopRoutesToUnservedSites(_:)` stops each local route whose site the web run no longer
+  serves under the hostname of its launch. The tunnel then shows why, and Connect starts it
+  again. JerdLive calls it after each site change and each Stop.
 - Local routing requires a selected site or loopback address. Address paths and queries are
   refused because cloudflared ingress does not rewrite them. A missing or stopped linked site
   fails before the connector starts, with an instruction to choose or start the site.

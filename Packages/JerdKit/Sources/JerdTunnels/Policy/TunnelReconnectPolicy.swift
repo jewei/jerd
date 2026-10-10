@@ -44,8 +44,9 @@ public struct TunnelReconnectPolicy: Equatable, Sendable {
             return TunnelTransition(next, .launch(after: .zero))
         case .stopRequested:
             return TunnelTransition(TunnelLifecycle(state: .stopping), .idle)
-        case .stopFinished(let error):
-            return TunnelTransition(TunnelLifecycle(state: error.map(TunnelState.failed) ?? .stopped), .idle)
+        case .stopFinished(let error, let reason):
+            return TunnelTransition(
+                TunnelLifecycle(state: (error ?? reason).map(TunnelState.failed) ?? .stopped), .idle)
         case .progress(let generation, let progress):
             guard generation == lifecycle.generation else { return TunnelTransition(lifecycle, .idle) }
             var next = lifecycle

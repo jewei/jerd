@@ -27,6 +27,9 @@ package struct LiveDomain: Sendable {
     /// The pinned runtimes that the app does not embed, from the catalog in the bundle.
     package let onDemandRuntimes: OnDemandRuntimes
     package let web: WebDomain
+    /// The one way that the live ports change sites: the site change transaction, then a stop of
+    /// each local tunnel route whose site the run no longer serves.
+    package let siteChanges: RouteGuardedSiteChanges
     package let developmentRuntimes: DevelopmentRuntimeSetup
     package let databases: DatabaseManager
     package let mail: MailManager
@@ -52,7 +55,6 @@ package struct LiveDomain: Sendable {
             minimumMacOS: configuration.minimumMacOS)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
         web = WebDomain(layout: layout, helper: helper, forwardedHosts: LiveForwardedHosts(layout: layout.tunnels))
-        developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)
         databases = DatabaseManager(layout: layout.databases, effects: effects)
         mail = MailManager(layout: layout, effects: effects)
         storage = StorageManager(layout: layout, effects: effects)
@@ -61,6 +63,9 @@ package struct LiveDomain: Sendable {
             sites: LiveTunnelSiteResolver(sites: web.transaction, registry: web.registry, layout: layout.environment),
             processes: processes)
         tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
+        siteChanges = RouteGuardedSiteChanges(changes: web.transaction, environment: web.coordinator, routes: tunnels)
+        developmentRuntimes = DevelopmentRuntimeSetup(
+            layout: layout, bootstrap: bootstrap, registry: web.registry, sites: siteChanges)
     }
 
     package var layout: DataLayout { configuration.layout }

@@ -9,11 +9,17 @@ public struct TunnelConnectorHandle: Equatable, Hashable, Sendable {
     public let processID: Int32
     /// The loopback metrics port that this connector must listen on, and nothing else.
     public let metricsPort: UInt16
+    /// The Jerd site that the route of this connector sends to, as resolved at launch, or nil.
+    package let siteDestination: TunnelSiteDestination?
 
-    package init(registrationID: UUID, process: ProcessToken, processID: Int32, metricsPort: UInt16) {
+    package init(
+        registrationID: UUID, process: ProcessToken, processID: Int32, metricsPort: UInt16,
+        siteDestination: TunnelSiteDestination? = nil
+    ) {
         self.registrationID = registrationID
         self.process = process
         self.processID = processID
         self.metricsPort = metricsPort
+        self.siteDestination = siteDestination
     }
 }

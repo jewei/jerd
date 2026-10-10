@@ -28,9 +28,14 @@ extension TunnelSupervisor {
     /// Stops the connector gracefully. Concurrent Stops share one operation, and a new Connect is
     /// refused until it is done. A connector that does not stop stays owned, and the error is thrown.
     public func stop(id: UUID) async throws {
+        try await stop(id: id, reason: nil)
+    }
+
+    /// `stop(id:)`. After a stop that Jerd made on its own, the tunnel shows `reason`.
+    func stop(id: UUID, reason: String?) async throws {
         if let running = stops[id] { return try await running.task.value }
         let ticket = UUID()
-        let task = Task { try await self.performStop(id) }
+        let task = Task { try await self.performStop(id, reason: reason) }
         stops[id] = TunnelStopWork(ticket: ticket, task: task)
         let result = await task.result
         if stops[id]?.ticket == ticket { stops[id] = nil }
@@ -81,7 +86,7 @@ extension TunnelSupervisor {
     }
 
     /// Ends the generation, waits for its work, then stops the owned connector.
-    private func performStop(_ id: UUID) async throws {
+    private func performStop(_ id: UUID, reason: String?) async throws {
         apply(.stopRequested, to: id)
         if let current = slots.take(id) {
             current.cancel()
@@ -92,7 +97,7 @@ extension TunnelSupervisor {
                 try await connector.disconnect(handle)
                 if handles[id] == handle { handles[id] = nil }
             }
-            apply(.stopFinished(error: nil), to: id)
+            apply(.stopFinished(error: nil, reason: reason), to: id)
         } catch {
             apply(.stopFinished(error: FailureDetail.describe(error)), to: id)
             throw error

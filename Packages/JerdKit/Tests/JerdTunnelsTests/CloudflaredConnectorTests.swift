@@ -30,6 +30,8 @@ import Testing
         registration.siteID = siteID
         let first = try await fixture.connector.connect(launch(fixture, registration))
         #expect(try hostHeader(fixture) == "shop.test")
+        #expect(first.siteDestination?.siteID == siteID)
+        #expect(first.siteDestination?.hostname.value == "shop.test")
         #expect(!text(fixture.instance.configurationFile).contains(TokenSamples.secret))
         try await fixture.connector.disconnect(first)
         await sites.rename("renamed.test")
@@ -50,6 +52,7 @@ import Testing
         let rules = try ingress(fixture)
         #expect(rules.first?["service"] as? String == "http://127.0.0.1:8000")
         #expect(await sites.requests.isEmpty)
+        #expect(handle.siteDestination == nil)
         try await fixture.connector.disconnect(handle)
     }
 

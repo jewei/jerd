@@ -75,8 +75,9 @@ public actor CloudflaredConnector: TunnelConnecting {
         do {
             // The record check runs first, before any command, while the lock is held.
             let clearance = try gate.requireStopped(instance.record, holding: lock)
-            try await prepare(launch, instance: instance)
-            return try await spawn(launch, instance: instance, lock: lock, clearance: clearance)
+            let route = try await prepare(launch, instance: instance)
+            return try await spawn(
+                launch, site: route.siteDestination, instance: instance, lock: lock, clearance: clearance)
         } catch {
             if owned[id] == nil { lock.release() }
             throw error
@@ -113,7 +114,7 @@ public actor CloudflaredConnector: TunnelConnecting {
     }
 
     /// Checks the runtime and the port, writes this launch's `config.yml`, and keeps the earlier log.
-    private func prepare(_ launch: TunnelLaunch, instance: TunnelInstanceLayout) async throws {
+    private func prepare(_ launch: TunnelLaunch, instance: TunnelInstanceLayout) async throws -> TunnelRoute {
         let inspected = try await inspectRuntime(executable: launch.runtime.executable)
         guard inspected.version == launch.runtime.version else {
             throw JerdError.unavailable(TunnelMessage.versionMismatch)
@@ -123,6 +124,7 @@ public actor CloudflaredConnector: TunnelConnecting {
         try AtomicFile.write(CloudflaredConfigurationRenderer.render(route), to: instance.configurationFile)
         try ConnectorLogHistory(instance: instance).archiveCurrent()
         try Task.checkCancellation()
+        return route
     }
 
     /// The route of this launch. A linked site is resolved at every launch, also for a retry after
@@ -139,7 +141,8 @@ public actor CloudflaredConnector: TunnelConnecting {
 
     /// Spawns cloudflared, takes ownership, and saves the run record.
     private func spawn(
-        _ launch: TunnelLaunch, instance: TunnelInstanceLayout, lock: InstanceLock, clearance: StartClearance
+        _ launch: TunnelLaunch, site: TunnelSiteDestination?, instance: TunnelInstanceLayout, lock: InstanceLock,
+        clearance: StartClearance
     ) async throws -> TunnelConnectorHandle {
         let request = CloudflaredCommand.connector(launch, instance: instance)
         let process = try await processes.start(request, log: ProcessLogFile(url: instance.logFile))
@@ -151,7 +154,7 @@ public actor CloudflaredConnector: TunnelConnecting {
         }
         let handle = TunnelConnectorHandle(
             registrationID: launch.registration.id, process: process, processID: processID,
-            metricsPort: launch.registration.metricsPort)
+            metricsPort: launch.registration.metricsPort, siteDestination: site)
         owned[launch.registration.id] = OwnedConnector(handle: handle, lock: lock, record: instance.record)
         do {
             try recorder.record(

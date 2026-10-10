@@ -40,7 +40,7 @@ package struct LiveRuntimeInventory: RuntimeInventory {
         self.init(
             catalog: RuntimeCatalog(fetcher: domain.fetcher), installer: domain.runtimeInstaller, owners: owners,
             activator: RuntimeActivator(
-                owners: owners, sites: domain.web.transaction, inspector: ExecutableInspector(layout: domain.layout)),
+                owners: owners, sites: domain.siteChanges, inspector: ExecutableInspector(layout: domain.layout)),
             databases: DatabaseRuntimeInstaller(
                 releases: domain.onDemandRuntimes, installer: domain.runtimeInstaller, manager: domain.databases,
                 layout: domain.layout),

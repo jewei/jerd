@@ -55,6 +55,8 @@ package enum TunnelMessage {
     package static func siteNotRunning(_ site: String) -> String {
         "Start \(site) in Sites before connecting this tunnel."
     }
+    package static let siteRouteStopped =
+        "Jerd stopped this tunnel because its site stopped or changed its hostname. Start the site in Sites, then connect again."
     package static let certificateAuthorityMissing =
         "Jerd's local certificate authority is missing. Start the linked site in Sites to set up HTTPS, then connect."
 

@@ -20,7 +20,7 @@ package struct LiveExecutableRegistrations: ExecutableRegistrationPort {
 
     package init(domain: LiveDomain) {
         self.init(
-            configuration: domain.developmentRuntimes, sites: domain.web.transaction,
+            configuration: domain.developmentRuntimes, sites: domain.siteChanges,
             inspector: ExecutableInspector(layout: domain.layout))
     }
 
