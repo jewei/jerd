@@ -23,7 +23,8 @@ extension SiteChangeTransaction {
         }
         advance(to: .planning)
         let running = await coordinator.runningPlan()
-        let plan = try Self.plan(for: request, running: running)
+        let plan = try Self.plan(for: request, running: running)?.forwarding(
+            await savedForwardedHosts(keeping: running))
         advance(to: .recoveryGate)
         let status = try await gateway.status()
         guard !status.hasPendingRecovery else {
@@ -65,6 +66,16 @@ extension SiteChangeTransaction {
             selected = (running?.siteIDs ?? []).union(enabled.subtracting(before)).intersection(enabled)
         }
         return selected.isEmpty ? nil : try ServingPlan(request.candidate, siteIDs: selected)
+    }
+
+    /// The saved forwarded hosts. Tunnel settings never block a site change: when they cannot be
+    /// read, the hosts of the current run stay, and a Connect reports the read failure.
+    func savedForwardedHosts(keeping running: ServingPlan?) async -> ForwardedHosts {
+        do {
+            return try await forwardedHosts.loadForwardedHosts()
+        } catch {
+            return running?.forwardedHosts ?? .none
+        }
     }
 
     /// S3: a preflight only when the plan differs from the run, and none when an equivalent

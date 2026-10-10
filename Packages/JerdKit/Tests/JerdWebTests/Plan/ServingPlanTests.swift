@@ -51,6 +51,21 @@ import Testing
         #expect(!plan.isEquivalent(to: ServingPlan(sites: [one], caddy: Samples.caddy())))
     }
 
+    @Test func forwardedHostsOfSitesOutsideThePlanAreDropped() {
+        let planned = PlannedSite(site: Samples.site(URL(fileURLWithPath: "/p/1")), runtime: Samples.runtime())
+        let host = PublicHostname("public.example.com")!
+        let plan = ServingPlan(
+            sites: [planned], caddy: Samples.caddy(),
+            forwardedHosts: ForwardedHosts([planned.site.id: [host], UUID(): [host]]))
+        #expect(plan.forwardedHosts == ForwardedHosts([planned.site.id: [host]]))
+        #expect(
+            plan.isEquivalent(to: ServingPlan(sites: [planned], caddy: Samples.caddy()).forwarding(plan.forwardedHosts))
+        )
+        #expect(
+            ServingPlan(sites: [planned], caddy: Samples.caddy()).forwarding(ForwardedHosts([UUID(): [host]]))
+                .forwardedHosts == .none)
+    }
+
     @Test func executablePathsAreCaddyAndEachRuntimePair() {
         let site = PlannedSite(site: Samples.site(URL(fileURLWithPath: "/p/1")), runtime: Samples.runtime())
         #expect(
@@ -65,6 +80,7 @@ enum PlanField: CaseIterable, Sendable {
     case siteID, hostname, project, documentRoot
     case runtimeID, cliPath, fpmPath, version, architectures, cliExtensions, fpmExtensions
     case caddyPath, caddyVersion, caddyArchitectures
+    case forwardedHost
 
     var restarts: Bool { ![.displayName, .enabled, .selection, .inspectedAt].contains(self) }
 
@@ -95,13 +111,16 @@ enum PlanField: CaseIterable, Sendable {
         case .caddyPath: caddy.path = "/other/caddy"
         case .caddyVersion: caddy.version = "v2.12.0"
         case .caddyArchitectures: caddy.architectures = [.arm64, .x86_64]
+        case .forwardedHost: break
         }
         let changed = DevelopmentRuntime(
             id: runtime.id, cliPath: runtime.cli, fpmPath: runtime.fpm, version: runtime.version,
             architectures: runtime.architectures, cliExtensions: runtime.cliExtensions,
             fpmExtensions: runtime.fpmExtensions, inspectedAt: runtime.inspectedAt)
+        let hosts = self == .forwardedHost ? ForwardedHosts([site.id: [PublicHostname("public.example.com")!]]) : .none
         return ServingPlan(
             sites: [PlannedSite(site: site, runtime: changed)],
-            caddy: CaddyRuntime(path: caddy.path, version: caddy.version, architectures: caddy.architectures))
+            caddy: CaddyRuntime(path: caddy.path, version: caddy.version, architectures: caddy.architectures),
+            forwardedHosts: hosts)
     }
 }

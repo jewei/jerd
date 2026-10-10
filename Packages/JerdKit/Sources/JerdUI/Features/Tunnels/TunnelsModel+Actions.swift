@@ -75,7 +75,7 @@ extension TunnelsModel {
         guard let step = confirmation else { return nil }
         confirmation = nil
         switch step {
-        case .connect(let tunnel):
+        case .connect(let tunnel, _):
             return perform("Connecting \(tunnel.name)…") { model in
                 model.startupFailures[tunnel.id] = nil
                 try await model.port.connect(id: tunnel.id)

@@ -23,11 +23,14 @@ actor FakeConnector: TunnelConnecting {
     var heldReadinessResult: TunnelReadiness = .waiting
     var outputAtLaunch = ""
     var connectFailure: (any Error)?
+    /// The `.test` name that a local route to a site resolves to at launch.
+    var siteHostname = "shop.test"
     var disconnectFailure: JerdError?
 
     func setReadiness(_ value: TunnelReadiness) { readiness = value }
     func setOutputAtLaunch(_ value: String) { outputAtLaunch = value }
     func setConnectFailure(_ value: (any Error)?) { connectFailure = value }
+    func setSiteHostname(_ value: String) { siteHostname = value }
     func setDisconnectFailure(_ value: JerdError?) { disconnectFailure = value }
     func setHeldReadinessResult(_ value: TunnelReadiness) { heldReadinessResult = value }
 
@@ -66,7 +69,7 @@ actor FakeConnector: TunnelConnecting {
         if let connectFailure { throw connectFailure }
         let handle = TunnelConnectorHandle(
             registrationID: launch.registration.id, process: ProcessToken(), processID: nextProcessID,
-            metricsPort: launch.registration.metricsPort)
+            metricsPort: launch.registration.metricsPort, siteDestination: try siteDestination(of: launch.registration))
         nextProcessID += 1
         owned[launch.registration.id] = handle
         alive.insert(handle)
@@ -75,6 +78,14 @@ actor FakeConnector: TunnelConnecting {
     }
 
     func ownedHandle(for id: UUID) -> TunnelConnectorHandle? { owned[id] }
+
+    /// The resolved site of a local route to a Jerd site, as the real connector records it.
+    private func siteDestination(of registration: TunnelRegistration) throws -> TunnelSiteDestination? {
+        guard registration.routing == .local, let siteID = registration.siteID else { return nil }
+        return TunnelSiteDestination(
+            siteID: siteID, hostname: try Hostname(siteHostname), httpsPort: 443,
+            certificateAuthorityFile: URL(fileURLWithPath: "/data/root.crt"))
+    }
 
     func isRunning(_ handle: TunnelConnectorHandle) -> Bool { alive.contains(handle) }
 

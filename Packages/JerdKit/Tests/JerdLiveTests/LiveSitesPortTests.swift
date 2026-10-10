@@ -170,13 +170,14 @@ struct LiveSitesPortTests {
         #expect(await harness.sites.changes == [.enabled(SampleWeb.siteID, false)])
     }
 
-    @Test func stopEnvironmentStopsTheRunThenClosesTheHelperConnection() async throws {
+    @Test func stopEnvironmentStopsTheRunThroughTheSiteChangesThenClosesTheHelperConnection() async throws {
         let harness = try Harness()
         defer { harness.remove() }
 
         try await harness.port.stopEnvironment()
 
-        #expect(await harness.journal.entries == ["environment.stop", "helper.finishRestart", "helper.invalidate"])
+        #expect(
+            await harness.journal.entries == ["transaction.requestStop", "helper.finishRestart", "helper.invalidate"])
     }
 
     /// A quit during a helper restart lets it finish, so the helper stays registered; a restart

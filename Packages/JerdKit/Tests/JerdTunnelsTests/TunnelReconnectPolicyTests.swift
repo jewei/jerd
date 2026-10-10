@@ -238,6 +238,14 @@ import Testing
         #expect(late[0].lifecycle.state == .stopping)
     }
 
+    /// A stop that Jerd made on its own tells the user why; a connector that still runs says so first.
+    @Test func aStopWithAReasonShowsTheReason() {
+        #expect(run([.stopFinished(error: nil, reason: "Why.")]).last?.lifecycle.state == .failed("Why."))
+        #expect(
+            run([.stopFinished(error: "Still running.", reason: "Why.")]).last?.lifecycle.state
+                == .failed("Still running."))
+    }
+
     @Test func cancellationAndUnknownErrorsBecomeTunnelFailures() {
         #expect(TunnelFailure(CancellationError()).message == TunnelMessage.cancelled)
         #expect(!TunnelFailure(CancellationError()).isTransient)

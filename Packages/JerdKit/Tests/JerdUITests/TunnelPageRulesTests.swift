@@ -14,7 +14,9 @@ struct TunnelPageRulesTests {
     func nextStep() async {
         var configuration = SampleData.tunnelConfiguration
         configuration.tunnels[1].hostname = "203.0.113.10"
-        let port = InMemoryTunnelsPort(configuration: configuration, states: [SampleData.docsTunnelID: .failed("x")])
+        let port = InMemoryTunnelsPort(
+            configuration: configuration,
+            states: [SampleData.previewTunnelID: .connected, SampleData.docsTunnelID: .failed("x")])
         let harness = await SitesHarness.launched(tunnels: port)
         let model = harness.model.tunnels
         #expect(model.nextStep(for: SampleData.previewTunnelID) == .open)

@@ -21,25 +21,29 @@ struct TunnelEditorSheet: View {
             SheetTopMessage(message: topMessage?.text, kind: topMessage?.kind ?? .info, identifier: topIdentifier)
             TunnelEditorTunnelSection(editor: editor)
             TunnelEditorDestinationSection(editor: editor)
-            Section("Startup") {
-                Toggle("Connect when Jerd opens", isOn: $editor.startOnLaunch)
-                Toggle("Restart after an unexpected exit", isOn: $editor.restartOnFailure)
-            }
-            if editor.routing == .cloudflare {
-                routeConfirmation
-            }
+            startup
+            routeConfirmation
         }
     }
 
+    private var startup: some View {
+        Section {
+            Toggle("Connect when Jerd opens", isOn: $editor.connectsOnLaunch)
+                .disabled(!editor.canConnectOnLaunch)
+            Toggle("Restart after an unexpected exit", isOn: $editor.restartOnFailure)
+        } header: {
+            Text("Startup")
+        } footer: {
+            if !editor.canConnectOnLaunch { FormFooter(TunnelRouteCopy.launchNote) }
+        }
+    }
+
+    /// Save needs it in both route modes.
     private var routeConfirmation: some View {
         Section {
-            Toggle("I checked the existing route for this Mac.", isOn: $editor.routeChecked)
+            Toggle(editor.routeCheckTitle, isOn: $editor.routeChecked)
                 .accessibilityIdentifier("tunnel-editor.route-checked")
-            ActionRow(
-                "Cloudflare route",
-                detail:
-                    "Another connector can already serve this tunnel and share its traffic. Select Connect when you are ready."
-            ) {
+            ActionRow(TunnelRouteCopy.checkTitle(editor.routing), detail: TunnelRouteCopy.checkDetail(editor.routing)) {
                 Button("Open Cloudflare", systemImage: "arrow.up.right") { model.openCloudflare() }
             }
         }

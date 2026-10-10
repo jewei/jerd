@@ -14,8 +14,9 @@ public struct TunnelSnapshot: Equatable, Sendable {
     }
 
     /// Why the saved settings need an edit, or nil. An earlier build could save a value that the
-    /// current rules refuse, for example an IP address as hostname. Such a tunnel still loads and
-    /// connects; the app shows this message, and Save requires a valid value.
+    /// current rules refuse, for example an IP address as hostname. Such a tunnel still loads, and
+    /// with a route from the Cloudflare dashboard it still connects; a route that Jerd sets needs
+    /// the edit first. The app shows this message, and Save requires a valid value.
     public var settingsIssue: String? {
         do {
             try registration.validate()

@@ -11,11 +11,13 @@ JerdFoundation and JerdProcess.
 | --- | --- |
 | `TunnelSupervisor` | The actor that the app uses: `load()`, `currentConfiguration()`, `snapshots()`, `snapshotUpdates()`, `suggestedPort()`, `useRuntime(at:)`, `save(_:token:)`, `remove(id:)`, `start(id:)`, `stop(id:)`, `stopAll()`, `connectStartupTunnels()`, and `log(id:)`. |
 | `TunnelRegistration`, `TunnelConfiguration`, `TunnelRuntime` | The saved settings in `tunnels/settings.json`. |
-| `TunnelStore` | The one reader and writer of the settings file and its backup. |
+| `TunnelStore` | The codec of the settings file and its backup. `TunnelSupervisor` is the only writer. |
 | `TunnelToken` | Checks a token and gives the values to redact. Its text is never in a description. |
 | `TunnelSecretStore` (`TunnelSecretStoring`) | Keeps each token in the Keychain. |
 | `CloudflaredConnector` (`TunnelConnecting`) | Launches, checks, and stops the connectors that Jerd owns. |
-| `CloudflaredConfiguration`, `TunnelSiteResolving` | Renders an exact local route; JerdLive resolves linked sites and their installation CA at each launch. |
+| `TunnelRoute`, `CloudflaredConfigurationRenderer` | The route of one launch and its private `config.yml`: one exact public hostname and a final 404 rule, or `{}`. |
+| `TunnelSiteResolving` (`TunnelSiteDestination`) | Resolves a linked site at each launch. JerdLive implements it with the site change transaction. |
+| `TunnelSiteRoutes` | Reads the public hostnames of saved local routes for the web run. It never writes. |
 | `TunnelReconnectPolicy` | The pure reducer of each tunnel's lifecycle: backoff, readiness, and failures. |
 | `TunnelAuthFailureClassifier` | Finds a token rejection in anchored cloudflared log lines. |
 | `TunnelState`, `TunnelSnapshot`, `TunnelStartupFailure` | What the app shows. `TunnelSnapshot.settingsIssue` tells the user to edit settings that an earlier build saved and the current rules refuse. |
@@ -36,9 +38,17 @@ JerdFoundation and JerdProcess.
   its `.test` hostname for the Host header and TLS server name, and Jerd's installation CA.
   TLS verification stays on. A local address uses the specified HTTP or HTTPS service.
 - Registrations from earlier builds retain Cloudflare routing and the empty `{}` configuration.
-  Editing a tunnel can select local routing; new editor drafts default to it. The optional
-  `routing` key is `"local"` for local routing; its absence means `"cloudflare"` and saves omit
-  that default. Cloudflare routing does not resolve or require a running linked site.
+  Editing a tunnel can select local routing; new editor drafts default to it. Save needs a
+  confirmation in both modes, because a dashboard route can point anywhere and a dashboard
+  tunnel ignores a local route. The optional `routing` key is `"local"` for local routing; its
+  absence means `"cloudflare"` and saves omit that default. Cloudflare routing does not
+  resolve or require a running linked site.
+- A launch with a route to a Jerd site resolves the site through `TunnelSiteResolving`. That can
+  restart the shared web run once, when the saved public hostnames changed. Such a tunnel never
+  connects at launch (`canConnectOnLaunch`), because no site runs then.
+- `stopRoutesToUnservedSites(_:)` stops each local route whose site the web run no longer
+  serves under the hostname of its launch. The tunnel then shows why, and Connect starts it
+  again. JerdLive calls it after each site change and each Stop.
 - Local routing requires a selected site or loopback address. Address paths and queries are
   refused because cloudflared ingress does not rewrite them. A missing or stopped linked site
   fails before the connector starts, with an instruction to choose or start the site.

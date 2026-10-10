@@ -16,7 +16,7 @@ public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Se
     public var siteID: UUID?
     /// A local HTTP or HTTPS address that the route points to, when no site is chosen.
     public var originURL: String?
-    /// Earlier registrations keep Cloudflare routing until the user chooses local routing.
+    /// Who sets the route: Jerd, in `config.yml`, or the Cloudflare dashboard.
     public var routing: TunnelRouting
     /// Connect when Jerd opens. Saving a registration never connects.
     public var startOnLaunch: Bool

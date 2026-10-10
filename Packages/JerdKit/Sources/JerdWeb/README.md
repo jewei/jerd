@@ -14,18 +14,20 @@ JerdFoundation and JerdProcess. It does not import JerdSystem: the helper is a p
 | `PathCanonicalizer`, `ProjectDetector`, `SiteValidator` | Canonical paths, Laravel detection, site rules. |
 | `SiteChange`, `SiteChangeReducer`, `SiteRegistry` | One edit, its candidate, and the compare-and-swap save. |
 | `ServingPlan`, `ExecutableStamp` | What a run serves, its equivalence rule, and binary identity. |
+| `ForwardedHosts` (`ForwardedHostsLoading`) | The saved public hostnames that each site restores as Host from a forwarder. |
 | `RunLayout`, `LocalAuthority` | Every path of a run and the one name of the CA. |
-| `CaddyConfigRenderer`, `SiteRoutePolicy`, `FPMPoolRenderer`, `PHPIniPolicy` | The generated files. |
+| `CaddyConfigRenderer`, `SiteRoutePolicy`, `ForwardedHostRoutePolicy`, `FPMPoolRenderer`, `PHPIniPolicy` | The generated files. |
 | `InstallationIdentity`, `LocalCAProvisioner`, `PHPCABundleBuilder` | The installation CA and the PHP CA bundle. |
 | `FastCGIPing` (`FPMPinging`) | The FPM readiness ping over the pool socket. |
 | `PHPRuntimeInspector`, `CaddyRuntimeInspector` | Inspection of explicit executables into records. |
 | `EngineRunner` (`EngineControlling`) | Starts, checks, watches, and stops Caddy and PHP-FPM. |
 | `EnvironmentCoordinator` (`EnvironmentCoordinating`) | Keeps, replaces, or stops a run. |
 | `SystemSetupGateway` (`SystemSetupManaging`) | Prepares, applies, and restores the HTTPS setup. |
-| `SiteChangeTransaction` | Edits, Start, and Stop as one transaction with one rollback. |
+| `SiteChangeTransaction` | Edits, Start, Stop, and forwarded host applies as one transaction with one rollback. |
 
 Ports that JerdLive implements: `SystemSetupPort` (the helper), `TrustDecisionPort` (macOS
-trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustProbe`).
+trust), `TrustProbing` (the system HTTPS check, with the live `SystemTrustProbe`), and
+`ForwardedHostsLoading` (the saved local tunnel routes).
 
 ## Rules
 
@@ -33,6 +35,11 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
 - Caddy gets JSON only, with the admin API off, the internal CA only, and `install_trust: false`.
   It uses loopback or inherited listeners only and strict SNI. Unknown hosts get 421, and HTTP
   gets 308 to HTTPS.
+- Within a matched site, only an exact `X-Forwarded-Host` of that site's forwarded hosts
+  replaces the Host, with the saved name. Other values do not change the Host.
+- Forwarded hosts never block a site change: when they cannot be read, the hosts of the current
+  run stay. `SiteChangeTransaction.applyForwardedHosts(servingSite:)` waits for a running change,
+  restarts only for a changed mapping, and runs the restart in its own task.
 - Dot paths, private folders, Composer files, and PHP-like names (`.php5`, `.pht`, `.phtml`,
   `.phar`, `.phps`, `.phpt`, `.inc`, any case) answer 404. An existing file below `/.well-known/`
   is served statically; hidden files there still answer 404.
@@ -50,7 +57,7 @@ trust), and `TrustProbing` (the system HTTPS check, with the live `SystemTrustPr
   removes only a folder that it created, and deletes a run record only for a proven stop.
 - Readiness uses CA-verified HTTPS with the run's CA. Never `curl -k`.
 - A Stop raises a stop epoch. Every step of an older operation ends with `CancellationError`.
-  A change takes its ticket before its first suspension. `SiteChangeTransaction.requestStop()`
+  A change takes its ticket when it holds the gate, before its first step. `SiteChangeTransaction.requestStop()`
   is the app's Stop: it ends the change, prevents its restart, and stops the run.
 - An engine failure while an operation holds the coordinator gate is kept. It is applied when
   that operation ends, so the state never stays `running` after a runtime exit.

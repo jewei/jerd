@@ -6,7 +6,9 @@ import JerdFoundation
 /// Invariants of the output: the admin API is off; no ACME, only the internal issuer of the
 /// run's CA with `install_trust: false`; loopback or inherited listeners only; no HTTP/3; TLS on
 /// every HTTPS connection; strict SNI and Host; unknown hosts get 421 on both servers; HTTP for a
-/// known host gets 308 to HTTPS with the full request URI. The output is deterministic.
+/// known host gets 308 to HTTPS with the full request URI. Within a matched site, only an exact
+/// `X-Forwarded-Host` of its forwarded hosts replaces the Host, with the saved name
+/// (`ForwardedHostRoutePolicy`). The output is deterministic.
 public enum CaddyConfigRenderer {
     /// Apple's pretty format with sorted keys and unescaped slashes, as the old generator wrote.
     static let options: JSONSerialization.WritingOptions = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -28,7 +30,8 @@ public enum CaddyConfigRenderer {
                 "handle": [
                     [
                         "handler": "subroute",
-                        "routes": .array(TunnelHostPolicy.routes(for: site) + (try SiteRoutePolicy.routes(for: site))),
+                        "routes": .array(
+                            ForwardedHostRoutePolicy.routes(for: site) + (try SiteRoutePolicy.routes(for: site))),
                     ]
                 ],
             ])

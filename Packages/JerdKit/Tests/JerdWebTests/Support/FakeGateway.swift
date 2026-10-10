@@ -91,13 +91,15 @@ struct TransactionHarness {
     let coordinator: FakeCoordinator
     let gateway: FakeGateway
     let transaction: SiteChangeTransaction
+    let forwardedHosts: FakeForwardedHosts
     let before: AppConfiguration
 
     /// `running` lists the hostnames of `sites` that run; `approved` the approved hostnames.
     init(
         sites hostnames: [String] = ["demo.test"], running: [String]? = nil, approved: [String]? = nil,
-        hosts: any HostsFileReading = FakeHostsFile()
+        hosts: any HostsFileReading = FakeHostsFile(), forwardedHosts: FakeForwardedHosts = FakeForwardedHosts()
     ) async throws {
+        self.forwardedHosts = forwardedHosts
         folder = try TemporaryDirectory(" transaction")
         let validator = SiteValidator()
         var sites: [Site] = []
@@ -116,7 +118,7 @@ struct TransactionHarness {
         gateway = FakeGateway(try FakeSystem.approved(approved ?? hostnames), coordinator: coordinator)
         transaction = SiteChangeTransaction(
             registry: registry, reducer: SiteChangeReducer(hosts: hosts), coordinator: coordinator,
-            gateway: gateway)
+            gateway: gateway, forwardedHosts: forwardedHosts)
     }
 
     func site(_ hostname: String) -> Site { before.sites.first { $0.hostname == hostname }! }

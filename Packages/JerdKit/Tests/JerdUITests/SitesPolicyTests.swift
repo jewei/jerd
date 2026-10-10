@@ -83,6 +83,7 @@ struct SitesPolicyTests {
         let editor = TunnelEditorModel(tunnel: nil, sites: [studio], suggestedPort: 20_241)
         editor.name = "Preview"
         editor.token = "token"
+        editor.originURL = TunnelEditorModel.defaultOrigin
         editor.routeChecked = true
         editor.hostname = "https://preview.example.com"
         #expect(editor.validationMessage != nil)

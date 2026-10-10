@@ -60,22 +60,36 @@ extension FixtureScenario {
             return InMemoryTunnelsPort(
                 configuration: configuration,
                 states: [
+                    SampleData.previewTunnelID: .connected,
                     SampleData.docsTunnelID: .failed(
-                        "Cloudflare rejected the tunnel token. Edit this tunnel to replace its token.")
+                        "Cloudflare rejected the tunnel token. Edit this tunnel to replace its token."),
                 ])
         case .sitesStopped, .tunnelStopped, .sitesApproving:
-            return InMemoryTunnelsPort(configuration: stoppedTunnels)
+            return InMemoryTunnelsPort(states: [:])
         case .tunnelSettingsIssue:
-            var configuration = stoppedTunnels
+            var configuration = SampleData.tunnelConfiguration
             configuration.tunnels[1].hostname = "203.0.113.10"
-            return InMemoryTunnelsPort(configuration: configuration)
+            return InMemoryTunnelsPort(configuration: configuration, states: [:])
         case .tunnelSiteRemoved:
-            var configuration = stoppedTunnels
+            var configuration = SampleData.tunnelConfiguration
             configuration.tunnels[1].siteID = SampleData.removedSiteID
             configuration.tunnels[1].originURL = nil
-            return InMemoryTunnelsPort(configuration: configuration)
+            return InMemoryTunnelsPort(configuration: configuration, states: [:])
         default:
-            return InMemoryTunnelsPort()
+            return InMemoryTunnelsPort(states: servesStudio ? SampleData.tunnelStates : [:])
+        }
+    }
+
+    /// True when `sitesPort()` runs Studio, so Studio preview can be connected. A Jerd route to a
+    /// site that does not run is stopped, as the app stops it.
+    private var servesStudio: Bool {
+        switch self {
+        case .dashboardEmpty, .sitesEmpty, .dashboardLong, .sitesLong, .sitesStopped, .sitesBusy, .dashboardBusy,
+            .sitesDisabled, .sitesFailed, .sitesApproving, .sitesSetupRequired, .sitesLoadFailed, .sitesRecovery,
+            .sitesHelperStale, .sitesHelperNotAllowed:
+            false
+        default:
+            true
         }
     }
 
@@ -134,16 +148,5 @@ extension FixtureScenario {
 
     private func running(_ ids: Set<UUID>) -> EnvironmentSnapshot {
         EnvironmentSnapshot(state: .running, siteIDs: ids)
-    }
-
-    /// The sample tunnels without "Connect when Jerd opens", so none connects at launch.
-    private var stoppedTunnels: TunnelConfiguration {
-        var configuration = SampleData.tunnelConfiguration
-        configuration.tunnels = configuration.tunnels.map { tunnel in
-            var stopped = tunnel
-            stopped.startOnLaunch = false
-            return stopped
-        }
-        return configuration
     }
 }

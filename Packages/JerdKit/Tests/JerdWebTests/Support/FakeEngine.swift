@@ -18,10 +18,11 @@ actor FakeEngine: EngineControlling {
     private var waiters: [CheckedContinuation<String?, Never>] = []
     /// Runs inside `preflight`, for example to touch an executable.
     var onPreflight: @Sendable () throws -> Void = {}
-    /// True while `preflight` or `isHealthy` waits for `resumeHeld()`.
+    /// True while `preflight`, `start`, or `isHealthy` waits for `resumeHeld()`.
     private(set) var isHolding = false
     private var holdPreflight = false
     private var holdHealthCheck = false
+    private var holdStart = false
     private var heldWaiter: CheckedContinuation<Void, Never>?
 
     func rejectNextStart() { failNextStart = true }
@@ -30,6 +31,8 @@ actor FakeEngine: EngineControlling {
     func holdNextPreflight() { holdPreflight = true }
     /// The next `isHealthy` decides "healthy" now, then waits until `resumeHeld()`.
     func holdNextHealthCheck() { holdHealthCheck = true }
+    /// The next `start` waits inside the engine, after the old run stopped, until `resumeHeld()`.
+    func holdNextStart() { holdStart = true }
 
     func resumeHeld() {
         heldWaiter?.resume()
@@ -48,9 +51,13 @@ actor FakeEngine: EngineControlling {
 
     func start(
         _ plan: ServingPlan, layout: RunLayout, binding: ListenerBinding, listeners: InheritedListeners?
-    ) throws -> EngineRunID {
+    ) async throws -> EngineRunID {
         try Task.checkCancellation()
         starts += 1
+        if holdStart {
+            holdStart = false
+            await hold()
+        }
         if failNextStart {
             failNextStart = false
             state = .failed("Injected startup failure")

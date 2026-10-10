@@ -10,7 +10,7 @@ calls. Pure mappings are `package static` functions with their own tests.
 | --- | --- |
 | `Composition/` | `LiveConfiguration` (bundle, data root, version), `LiveDomain` (one owner per file and process), `WebDomain`, `LiveApp` (all ports, the root state, and the launch), `LaunchPreparation`. |
 | `Sites/` | `LiveSitesPort`, the helper adapter `HelperSystemSetup` (JerdWeb `SystemSetupPort`), `HelperStatusMapping`, the bundled PHP and Caddy setup (`DevelopmentRuntimeSetup`), `SiteChangeStep`, Login Items. |
-| `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. |
+| `Tunnels/` | `LiveTunnelsPort` on `TunnelSupervisor`. `LiveTunnelSiteResolver` (JerdTunnels `TunnelSiteResolving`) on the site change transaction, and `LiveForwardedHosts` (JerdWeb `ForwardedHostsLoading`) on `TunnelSiteRoutes`. |
 | `Services/` | `LiveDatabasesPort`, `LiveMailPort`, `LiveStoragePort`, and the bundled service runtimes. |
 | `Settings/` | Runtimes (`LiveRuntimeInventory`, `RuntimeActivator`), Advanced (`LiveRecoveryPort`, `LiveExecutableRegistrations`, `LiveHTTPSRecovery`), and `LiveCommandLineTools`. |
 | `Workspace/` | The main window split (`WorkspaceSplit`, `WorkspaceSplitController`). The sidebar is a plain split item, because AppKit lays out the whole toolbar after a `.sidebar` item with a sibling and the picker then moved. The plain item holds `WorkspaceSidebarController`: a split with one `.sidebar` item and no sibling, so AppKit draws the system sidebar background (from macOS 26 a glass variant without public API; an `NSVisualEffectView` with the `.sidebar` material is lighter). The split makes the title bar transparent, because a window with a `.sidebar` item draws a title bar band over the sidebar top. `SidebarWidthLimit` (JerdDesign) keeps the sidebar edge left of the centered picker in a narrow window. |
@@ -21,8 +21,8 @@ calls. Pure mappings are `package static` functions with their own tests.
 - One graceful `ProcessSupervisor` runs every data service and tunnel connector. The web engine
   keeps the JerdWeb default, `ProcessSupervisor(ceiling: .forceful)`, because Caddy and PHP-FPM
   hold no user data.
-- Every site edit, Start, Stop, and PHP or Caddy record change goes through the one
-  `SiteChangeTransaction`. A change that needs HTTPS approval waits in `LiveSitesPort` under its
+- Every site edit, Start, Stop, PHP or Caddy record change, and forwarded host apply of a local
+  tunnel goes through the one `SiteChangeTransaction`. A change that needs HTTPS approval waits in `LiveSitesPort` under its
   `HTTPSApproval.id`. Approve registers the helper first, then continues the change; a failure
   keeps the change for a retry. Discard forgets it.
 - `HelperStatusMapping` maps the helper status to the web status. A pending recovery sets

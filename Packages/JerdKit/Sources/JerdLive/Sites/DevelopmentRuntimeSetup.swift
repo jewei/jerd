@@ -28,10 +28,11 @@ package actor DevelopmentRuntimeSetup {
         self.source = source
     }
 
-    package init(layout: DataLayout, bootstrap: BundledRuntimeBootstrap, web: WebDomain) {
+    package init(
+        layout: DataLayout, bootstrap: BundledRuntimeBootstrap, registry: SiteRegistry, sites: any SiteChangeApplying
+    ) {
         self.init(
-            registry: web.registry, sites: web.transaction,
-            source: BundledDevelopmentSource(bootstrap: bootstrap, layout: layout))
+            registry: registry, sites: sites, source: BundledDevelopmentSource(bootstrap: bootstrap, layout: layout))
     }
 
     /// The saved configuration. The first call loads it and runs the bundled setup; concurrent

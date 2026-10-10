@@ -40,12 +40,12 @@ public actor TunnelSupervisor {
 
     public init(
         layout: TunnelsLayout, secrets: any TunnelSecretStoring = TunnelSecretStore(),
-        connector: (any TunnelConnecting)? = nil, policy: TunnelReconnectPolicy = .standard,
+        connector: any TunnelConnecting, policy: TunnelReconnectPolicy = .standard,
         clock: any TunnelClocking = TunnelClock()
     ) {
         store = TunnelStore(layout: layout)
         self.secrets = secrets
-        self.connector = connector ?? CloudflaredConnector(layout: layout)
+        self.connector = connector
         self.policy = policy
         self.clock = clock
         root = layout.root

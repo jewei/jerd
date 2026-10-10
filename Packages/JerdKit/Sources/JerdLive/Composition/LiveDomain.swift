@@ -27,6 +27,9 @@ package struct LiveDomain: Sendable {
     /// The pinned runtimes that the app does not embed, from the catalog in the bundle.
     package let onDemandRuntimes: OnDemandRuntimes
     package let web: WebDomain
+    /// The one way that the live ports change sites: the site change transaction, then a stop of
+    /// each local tunnel route whose site the run no longer serves.
+    package let siteChanges: RouteGuardedSiteChanges
     package let developmentRuntimes: DevelopmentRuntimeSetup
     package let databases: DatabaseManager
     package let mail: MailManager
@@ -51,16 +54,18 @@ package struct LiveDomain: Sendable {
             directory: layout.runtimes.managedRuntimesDirectory, fetcher: self.fetcher,
             minimumMacOS: configuration.minimumMacOS)
         onDemandRuntimes = OnDemandRuntimes(resources: configuration.payloads)
-        web = WebDomain(layout: layout, helper: helper, publicHosts: LiveTunnelHostSource(layout: layout.tunnels))
-        developmentRuntimes = DevelopmentRuntimeSetup(layout: layout, bootstrap: bootstrap, web: web)
+        web = WebDomain(layout: layout, helper: helper, forwardedHosts: LiveForwardedHosts(layout: layout.tunnels))
         databases = DatabaseManager(layout: layout.databases, effects: effects)
         mail = MailManager(layout: layout, effects: effects)
         storage = StorageManager(layout: layout, effects: effects)
         connector = CloudflaredConnector(
-            layout: layout.tunnels, processes: processes,
-            sites: LiveTunnelSiteResolver(
-                registry: web.registry, environment: web.coordinator, layout: layout.environment))
+            layout: layout.tunnels,
+            sites: LiveTunnelSiteResolver(sites: web.transaction, registry: web.registry, layout: layout.environment),
+            processes: processes)
         tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
+        siteChanges = RouteGuardedSiteChanges(changes: web.transaction, served: web.transaction, routes: tunnels)
+        developmentRuntimes = DevelopmentRuntimeSetup(
+            layout: layout, bootstrap: bootstrap, registry: web.registry, sites: siteChanges)
     }
 
     package var layout: DataLayout { configuration.layout }

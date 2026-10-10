@@ -28,24 +28,49 @@ small port protocol with its own value types. `JerdLive` implements the port
 with the other domain. This keeps each target buildable, testable, and
 reviewable alone.
 
-For local tunnel routing, `JerdTunnels.TunnelSiteResolving` supplies the current
-site hostname and installation CA. `JerdLive.LiveTunnelSiteResolver` reads the
-web registry and checks that the site is running. The connector resolves this
-again on each launch, including a retry. Cloudflare-managed registrations keep
-an empty local configuration and do not call this port.
+## Local tunnel routes
 
-`JerdWeb.SitePublicHostsLoading` supplies exact public hostnames from saved local
-tunnel registrations. `JerdLive.LiveTunnelHostSource` reads them through the
-tunnel store on its own actor; `TunnelSupervisor` remains the only writer.
-The web coordinator includes these mappings in the serving plan and compares
-them when deciding whether a running environment can stay. Before a local
-connector starts, the site resolver asks the coordinator to apply the current
-mappings. A changed mapping briefly restarts the shared web environment.
-Caddy first checks the local TLS SNI and Host and selects the site. Within that
-site only, it restores a registered public Host from cloudflared's exact
-X-Forwarded-Host value. PHP then generates public URLs without project changes.
-Unknown forwarded hosts do not change the request Host. Public hosts are not
-added to system hosts, local certificates, or Cloudflare routes.
+A tunnel with a Jerd route sends one exact public hostname to a Jerd site or to
+a loopback address. Two ports connect the tunnel domain and the web domain:
+
+- `JerdTunnels.TunnelSiteResolving` prepares a linked site for each connector
+  launch, also for a retry. `JerdLive.LiveTunnelSiteResolver` implements it with
+  the site change transaction. It returns the site as the web run serves it, the
+  HTTPS port of the web domain, and the installation CA. cloudflared sends the
+  site's `.test` name as Host and TLS server name, and verifies the certificate
+  with that CA.
+- `JerdWeb.ForwardedHostsLoading` supplies the public hostnames of the saved
+  local routes. `JerdLive.LiveForwardedHosts` reads them through
+  `JerdTunnels.TunnelSiteRoutes`, which never writes. `TunnelSupervisor` stays
+  the only writer.
+
+The site change transaction adds these forwarded hosts to each plan. A route
+file that cannot be read never blocks a site change: the hosts of the current
+run stay. Before a local connector starts,
+`SiteChangeTransaction.applyForwardedHosts(servingSite:)` applies the saved
+hosts. It waits for a site change that runs. Only a changed mapping restarts the
+shared web run, and a failed restart restores the previous run once. The restart
+runs in its own task, so a tunnel Stop cannot stop all sites halfway.
+
+Caddy first checks the TLS server name and the `.test` Host and selects the
+site. Within that site only, an exact `X-Forwarded-Host` of a saved route
+replaces the Host with the saved name, so PHP builds public URLs without project
+changes. Any other value keeps the Host. Any local process can send the header,
+but it can only select a saved public name of the same site. Public hostnames
+are not added to the hosts file, to local certificates, or to Cloudflare routes.
+
+A connector keeps the site that its route resolved at launch. All site changes
+of the live ports go through `JerdLive.RouteGuardedSiteChanges`. After each
+change, also a failed one, and after each Stop, it calls
+`TunnelSupervisor.stopRoutesToUnservedSites(_:)` with the sites that the run
+served when the change ended (`SiteChangeTransaction.servedHostnames`), never
+with the run during a restart. That call stops each local route whose site the
+run no longer serves under the hostname of its launch, and also a launch in
+progress to a site that the run does not serve. The tunnel shows why. A
+forwarded host apply changes no site, so it is not checked; if its restart and
+the rollback both fail, the routes stay until the next change. A renamed, removed, or stopped site then cannot leave a
+route that sends public traffic to another site with that name. A crash of the
+web run does not stop the route: cloudflared then gets no answer.
 
 ## Targets
 

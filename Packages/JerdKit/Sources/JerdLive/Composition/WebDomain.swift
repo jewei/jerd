@@ -11,18 +11,20 @@ package struct WebDomain: Sendable {
     package let transaction: SiteChangeTransaction
     package let system: HelperSystemSetup
 
-    /// - Parameter engine: The web effects. Its default supervisor has the forceful ceiling,
-    ///   because Caddy and PHP-FPM hold no user data; data services never use it.
+    /// - Parameters:
+    ///   - forwardedHosts: The saved public hostnames that the sites restore from a local tunnel.
+    ///   - engine: The web effects. Its default supervisor has the forceful ceiling, because Caddy
+    ///     and PHP-FPM hold no user data; data services never use it.
     package init(
-        layout: DataLayout, helper: any HelperControlling, engine: EngineServices = Self.engineServices(),
-        publicHosts: (any SitePublicHostsLoading)? = nil
+        layout: DataLayout, helper: any HelperControlling, forwardedHosts: any ForwardedHostsLoading,
+        engine: EngineServices = Self.engineServices()
     ) {
         system = HelperSystemSetup(helper: helper)
         registry = SiteRegistry(store: ConfigurationStore(layout: layout))
-        coordinator = EnvironmentCoordinator(
-            layout: layout, system: system, engine: EngineRunner(services: engine), publicHosts: publicHosts)
+        coordinator = EnvironmentCoordinator(layout: layout, system: system, engine: EngineRunner(services: engine))
         gateway = SystemSetupGateway(layout: layout, system: system, coordinator: coordinator)
-        transaction = SiteChangeTransaction(registry: registry, coordinator: coordinator, gateway: gateway)
+        transaction = SiteChangeTransaction(
+            registry: registry, coordinator: coordinator, gateway: gateway, forwardedHosts: forwardedHosts)
     }
 
     /// The JerdWeb defaults (`ProcessSupervisor(ceiling: .forceful)`), with the macOS trust

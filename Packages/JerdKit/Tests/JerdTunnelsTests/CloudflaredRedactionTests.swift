@@ -27,7 +27,7 @@ import Testing
         try Data(Self.script.utf8).write(to: executable)
         chmod(executable.path, 0o700)
         let port = try await LoopbackPortGuard().suggest(startingAt: 47_100)
-        let connector = CloudflaredConnector(layout: folder.layout)
+        let connector = CloudflaredConnector(layout: folder.layout, sites: FakeTunnelSiteResolver())
         let runtime = try await connector.inspectRuntime(executable: executable)
         let registration = TunnelRegistration(name: "Preview", hostname: "preview.example.com", metricsPort: port)
         let token = try TunnelToken(TokenSamples.valid)

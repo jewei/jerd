@@ -3,15 +3,16 @@ import JerdDesign
 import JerdTunnels
 import SwiftUI
 
-/// The local destination that the Cloudflare route should use: a Jerd site or an address.
+/// Who sets the route, and its local destination: a Jerd site or an address.
 struct TunnelEditorDestinationSection: View {
     @Bindable var editor: TunnelEditorModel
 
     var body: some View {
         Section {
-            Picker("Manage route in", selection: $editor.routing) {
-                Text("Jerd (locally managed tunnel)").tag(TunnelRouting.local)
-                Text("Cloudflare dashboard").tag(TunnelRouting.cloudflare)
+            Picker(TunnelRouteCopy.label, selection: $editor.routing) {
+                ForEach(TunnelRouting.allCases, id: \.self) { routing in
+                    Text(TunnelRouteCopy.setter(routing)).tag(routing)
+                }
             }
             Picker("Local destination", selection: $editor.siteID) {
                 Text("Local HTTP or HTTPS address").tag(UUID?.none)
@@ -28,13 +29,9 @@ struct TunnelEditorDestinationSection: View {
                 TextField("Local address", text: $editor.originURL, prompt: Text(TunnelEditorModel.defaultOrigin))
             }
         } header: {
-            Text(editor.routing == .local ? "Destination" : "Destination Reference")
+            Text("Destination")
         } footer: {
-            FormFooter(
-                editor.routing == .local
-                    ? "Jerd configures the local route and HTTPS when you connect. Applying a changed route briefly restarts the shared web services."
-                    : "Match this reference to the route in Cloudflare. Use Jerd for a locally managed tunnel."
-            )
+            FormFooter(TunnelRouteCopy.editorFooter(editor.routing, linksSite: editor.siteID != nil))
         }
     }
 }

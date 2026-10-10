@@ -8,13 +8,14 @@ struct TunnelStartupSection: View {
 
     var body: some View {
         Section {
-            ValueRow("Connect when Jerd opens", value: tunnel.startOnLaunch ? "On" : "Off")
+            ValueRow("Connect when Jerd opens", value: tunnel.startOnLaunch && tunnel.canConnectOnLaunch ? "On" : "Off")
             ValueRow("Restart after an unexpected exit", value: tunnel.restartOnFailure ? "On" : "Off")
         } header: {
             Text("Startup")
         } footer: {
             FormFooter(
-                "Closing the window keeps this connector running. Quit stops it. The Mac must stay awake and online to serve traffic."
+                (tunnel.canConnectOnLaunch ? "" : TunnelRouteCopy.launchNote + " ")
+                    + "Closing the window keeps this connector running. Quit stops it. The Mac must stay awake and online to serve traffic."
             )
         }
     }

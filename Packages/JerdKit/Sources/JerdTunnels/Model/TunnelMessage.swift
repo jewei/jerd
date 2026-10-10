@@ -6,7 +6,12 @@ package enum TunnelMessage {
         "Enter a public hostname in lower case, such as preview.example.com. Do not include a scheme or path."
     package static let addressHostname =
         "Enter the public hostname of the Cloudflare route, such as preview.example.com. An IP address is not a hostname."
+    package static let localHostname =
+        "Enter the public hostname of the Cloudflare route, such as preview.example.com. A .test name works only on this Mac."
     package static let invalidOrigin = "Use one registered site or a local HTTP or HTTPS address without credentials."
+    package static let localDestinationMissing = "Choose a Jerd site or enter a local address for this tunnel."
+    package static let localAddressPath =
+        "Enter a local address without a path or query, such as http://127.0.0.1:8000."
     package static let invalidConfiguration =
         "Tunnel settings have an unsupported format, duplicate records, or duplicate metrics ports."
     package static let invalidRuntime = "The cloudflared runtime record is invalid."
@@ -15,7 +20,7 @@ package enum TunnelMessage {
     // Tokens
     package static let tokenCharacters = "Paste the tunnel token without spaces or a command."
     package static let tokenFormat =
-        "The token format is invalid. Copy the token for an existing remotely managed Cloudflare tunnel."
+        "The token format is invalid. Copy the token of an existing Cloudflare tunnel."
     package static let duplicateTunnel = "This Cloudflare tunnel is already saved in Jerd."
     package static let tokenRequired = "Enter the existing tunnel token."
     package static let tokenMissing = "The tunnel token is missing. Edit this tunnel to add its token."
@@ -44,6 +49,16 @@ package enum TunnelMessage {
             + "Read the tunnel log, then select Connect."
         return lastError.map { text + " Last error: " + $0 } ?? text
     }
+
+    // Local routes to a Jerd site
+    package static let siteRemoved = "The linked site was removed. Edit this tunnel and choose a destination."
+    package static func siteNotRunning(_ site: String) -> String {
+        "Start \(site) in Sites before connecting this tunnel."
+    }
+    package static let siteRouteStopped =
+        "Jerd stopped this tunnel because its site no longer runs with the same hostname. Start the site, or edit this tunnel, then connect again."
+    package static let certificateAuthorityMissing =
+        "Jerd's local certificate authority is missing. Start the linked site in Sites to set up HTTPS, then connect."
 
     // Connector
     package static let executableName = "Select an executable named cloudflared."

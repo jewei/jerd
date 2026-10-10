@@ -3,7 +3,7 @@ import JerdTunnels
 import SwiftUI
 
 /// The page of one tunnel: its connector state, the next step, the public address, the
-/// destination reference, startup, diagnostics, and its registration.
+/// route and destination, startup, diagnostics, and its registration.
 struct TunnelDetailPage: View {
     let state: AppState
     let sites: SitesModel
@@ -60,8 +60,14 @@ struct TunnelDetailPage: View {
             isEnabled: (model.canChange && !isQuitting) && model.configuration.runtime != nil,
             help: model.configuration.runtime == nil ? model.runtimeMessage : nil, identifier: "tunnel.connect"
         ) {
-            model.confirmation = .connect(tunnel)
+            model.confirmation = .connect(tunnel, destination: localAddress)
         }
+    }
+
+    /// The local address that a Jerd route sends to: the linked site, or the saved address.
+    private var localAddress: String? {
+        guard let siteID = tunnel.siteID else { return tunnel.originURL }
+        return sites.site(siteID).map { "https://\($0.hostname)" }
     }
 
     private var secondaryActions: [PageAction] {

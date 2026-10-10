@@ -120,6 +120,20 @@ import Testing
         #expect(await harness.engine.preflights == 3)
     }
 
+    /// A token checked Caddy without the forwarded hosts, so it cannot start a run with them.
+    @Test func aTokenForOtherForwardedHostsIsNotAccepted() async throws {
+        let harness = try CoordinatorHarness()
+        defer { harness.remove() }
+        let site = try harness.site("demo.test")
+        let plan = harness.plan([site])
+        let prepared = try await harness.coordinator.preflight(plan, ticket: await harness.coordinator.ticket())
+        let forwarded = plan.forwarding(ForwardedHosts([site.id: [PublicHostname("public.example.com")!]]))
+        try await harness.ensure(forwarded, prepared: prepared)
+        #expect(await harness.engine.preflights == 2)
+        #expect(await harness.coordinator.runningPlan() == forwarded)
+        await harness.coordinator.stop()
+    }
+
     @Test func aRuntimeChangeDuringPreflightIsRefused() async throws {
         let harness = try CoordinatorHarness()
         defer { harness.remove() }

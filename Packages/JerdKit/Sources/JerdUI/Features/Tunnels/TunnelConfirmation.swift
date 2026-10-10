@@ -2,20 +2,21 @@ import JerdTunnels
 
 /// A tunnel step that asks first: Connect (it can share traffic) and Remove.
 public enum TunnelConfirmation: Equatable, Sendable {
-    case connect(TunnelRegistration)
+    /// `destination` is the local address of a Jerd route, so the user sees what becomes public.
+    case connect(TunnelRegistration, destination: String? = nil)
     case remove(TunnelRegistration)
 
     public var title: String {
         switch self {
-        case .connect(let tunnel): "Connect \(tunnel.name)?"
+        case .connect(let tunnel, _): "Connect \(tunnel.name)?"
         case .remove: "Remove this tunnel from Jerd?"
         }
     }
 
     public var message: String {
         switch self {
-        case .connect(let tunnel) where tunnel.routing == .local:
-            "Jerd will route https://\(tunnel.hostname) to the selected local destination. Other connectors for this tunnel can also receive traffic."
+        case .connect(let tunnel, let destination) where tunnel.routing == .local:
+            "Jerd will send https://\(tunnel.hostname) to \(destination ?? "the local destination of this tunnel"). Cloudflare can also send this traffic to other connectors of this tunnel."
         case .connect:
             "Jerd will start another connector for this existing tunnel. Cloudflare can send traffic to it alongside any connector that is already running. Confirm that the existing routes point to services on this Mac."
         case .remove:

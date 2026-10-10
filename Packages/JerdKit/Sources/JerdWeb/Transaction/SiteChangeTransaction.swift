@@ -12,20 +12,29 @@ public actor SiteChangeTransaction {
     let reducer: SiteChangeReducer
     let coordinator: any EnvironmentCoordinating
     let gateway: any SystemSetupManaging
-    private var busy = false
+    let forwardedHosts: any ForwardedHostsLoading
+    /// One change at a time. A site change refuses at once when the gate is busy; a forwarded
+    /// host apply waits for it (`waitingExclusive`).
+    let gate = OperationGate()
     /// The current phase. Tests read it; the app shows the result of a change instead.
     package private(set) var phase: SiteChangePhase = .idle
     /// Every phase of the last change, in order, for tests.
     package private(set) var trace: [SiteChangePhase] = []
+    /// The `.test` hostname of each site that the run served when the last change ended, by site
+    /// ID. Readers use it instead of the run itself, which serves no site during a restart.
+    package private(set) var servedHostnames: [UUID: String] = [:]
 
-    public init(
+    /// - Parameter forwardedHosts: The saved public hostnames that the sites restore from a forwarder.
+    package init(
         registry: SiteRegistry, reducer: SiteChangeReducer = SiteChangeReducer(),
-        coordinator: any EnvironmentCoordinating, gateway: any SystemSetupManaging
+        coordinator: any EnvironmentCoordinating, gateway: any SystemSetupManaging,
+        forwardedHosts: any ForwardedHostsLoading
     ) {
         self.registry = registry
         self.reducer = reducer
         self.coordinator = coordinator
         self.gateway = gateway
+        self.forwardedHosts = forwardedHosts
     }
 
     /// Edits the configuration. Validation errors change nothing.
@@ -71,6 +80,7 @@ public actor SiteChangeTransaction {
     /// prevents the change's rollback from restarting a run, and then stops the run.
     public func requestStop() async {
         await coordinator.stop()
+        servedHostnames = [:]
     }
 
     /// Moves to `next` and records it. The only place that changes the phase.
@@ -79,17 +89,39 @@ public actor SiteChangeTransaction {
         trace.append(next)
     }
 
-    /// Runs one change. Its stop ticket is taken before its first suspension, so a Stop at any
-    /// later moment ends it.
+    /// Runs one change, or refuses at once while another one runs.
     private func exclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
-        guard !busy else { throw JerdError.unavailable("Wait for the current site edit.") }
-        busy = true
+        guard gate.tryEnter() else { throw JerdError.unavailable("Wait for the current site edit.") }
+        return try await holding(body)
+    }
+
+    /// Waits for the current change, then runs one change.
+    func waitingExclusive<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
+        await gate.enter()
+        return try await holding(body)
+    }
+
+    /// Runs `body` while the gate is held, records what the run serves, then opens the gate. The
+    /// stop ticket is taken before the first step, so a Stop at any later moment ends the change.
+    private func holding<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
         trace = []
-        defer {
-            busy = false
-            phase = .idle
-        }
         let ticket = await coordinator.ticket()
-        return try await body(ticket)
+        do {
+            let result = try await body(ticket)
+            await end()
+            return result
+        } catch {
+            await end()
+            throw error
+        }
+    }
+
+    /// The end of every change, also a failed one.
+    private func end() async {
+        let sites = await coordinator.runningPlan()?.sites.map(\.site) ?? []
+        // A plan has each site once; the merge only keeps a duplicate from trapping.
+        servedHostnames = Dictionary(sites.map { ($0.id, $0.hostname) }) { first, _ in first }
+        phase = .idle
+        gate.leave()
     }
 }

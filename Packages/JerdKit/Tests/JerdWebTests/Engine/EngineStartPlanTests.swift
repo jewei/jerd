@@ -29,6 +29,19 @@ import Testing
         #expect(plan.caddySites.map(\.socket.lastPathComponent) == ["php-0.sock", "php-1.sock", "php-0.sock"])
     }
 
+    @Test func eachCaddySiteGetsOnlyItsOwnForwardedHosts() throws {
+        let runtime = Samples.runtime(id: Samples.runtimeID)
+        let sites = ["b.test", "a.test"].map {
+            PlannedSite(site: Samples.site(URL(fileURLWithPath: "/p/\($0)"), hostname: $0), runtime: runtime)
+        }
+        let hosts = ["z.example.com", "y.example.com"].compactMap(PublicHostname.init)
+        let serving = ServingPlan(
+            sites: sites, caddy: Samples.caddy(), forwardedHosts: ForwardedHosts([sites[0].site.id: Set(hosts)]))
+        let plan = try EngineStartPlan(
+            plan: serving, validatedSites: sites.map(\.site), layout: layout, binding: .product)
+        #expect(plan.caddySites.map(\.forwardedHosts) == [hosts.sorted(), []])
+    }
+
     @Test func theCommandsHaveExactArgumentsAndTheRunEnvironment() throws {
         let plan = try plan()
         let pool = plan.pools[0].layout

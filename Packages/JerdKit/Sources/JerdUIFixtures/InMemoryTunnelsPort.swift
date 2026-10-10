@@ -21,8 +21,10 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public var suggestedPortValue: UInt16 = 20_243
     public private(set) var calls: [String] = []
 
+    /// By default the sample tunnels run as the user left them: Studio preview is connected.
     public init(
-        configuration: TunnelConfiguration = SampleData.tunnelConfiguration, states: [UUID: TunnelState] = [:]
+        configuration: TunnelConfiguration = SampleData.tunnelConfiguration,
+        states: [UUID: TunnelState] = SampleData.tunnelStates
     ) {
         configurationValue = configuration
         self.states = states
@@ -81,7 +83,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
 
     public func connectStartupTunnels() async throws -> [TunnelStartupFailure] {
         calls.append("connect startup")
-        for tunnel in configurationValue.tunnels where tunnel.startOnLaunch {
+        for tunnel in configurationValue.tunnels where tunnel.startOnLaunch && tunnel.canConnectOnLaunch {
             if !startupFailures.contains(where: { $0.id == tunnel.id }) { states[tunnel.id] = .connected }
         }
         return startupFailures

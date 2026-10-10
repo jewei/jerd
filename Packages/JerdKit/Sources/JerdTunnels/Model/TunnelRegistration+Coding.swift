@@ -5,7 +5,8 @@ extension TunnelRegistration {
         case id, name, hostname, siteID, originURL, startOnLaunch, restartOnFailure, metricsPort, routing
     }
 
-    /// Earlier registrations keep their remote routes and all required keys stay required.
+    /// A registration without `routing` uses the Cloudflare dashboard, as in earlier builds, and
+    /// every key that earlier builds required stays required.
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)

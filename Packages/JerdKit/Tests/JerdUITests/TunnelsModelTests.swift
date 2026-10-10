@@ -8,20 +8,33 @@ import Testing
 @Suite("Tunnels model", .timeLimit(.minutes(1)))
 @MainActor
 struct TunnelsModelTests {
-    @Test("Launch loads the settings, then connects the startup tunnels and keeps each failure")
+    /// Both sample tunnels have "Connect when Jerd opens", as an earlier build could save them.
+    private func startupTunnels(failing: [TunnelStartupFailure] = []) async -> InMemoryTunnelsPort {
+        var configuration = SampleData.tunnelConfiguration
+        for index in configuration.tunnels.indices { configuration.tunnels[index].startOnLaunch = true }
+        let port = InMemoryTunnelsPort(configuration: configuration, states: [:])
+        await port.configure { $0.startupFailures = failing }
+        return port
+    }
+
+    @Test("Launch loads the settings, then connects the startup tunnels except a Jerd route to a site")
     func launchConnectsStartupTunnels() async {
-        let port = InMemoryTunnelsPort()
-        await port.configure { port in
-            port.startupFailures = [
-                TunnelStartupFailure(id: SampleData.docsTunnelID, name: "Docs staging", message: "Token missing.")
-            ]
-        }
-        let harness = await SitesHarness.launched(tunnels: port)
+        let harness = await SitesHarness.launched(tunnels: await startupTunnels())
         let model = harness.model.tunnels
         #expect(model.isLoaded)
-        #expect(model.state(of: SampleData.previewTunnelID) == .connected)
-        #expect(model.startupFailures == [SampleData.docsTunnelID: "Token missing."])
+        #expect(model.state(of: SampleData.docsTunnelID) == .connected)
+        #expect(model.state(of: SampleData.previewTunnelID) == .stopped)
         #expect(model.connectedCount == 1)
+        #expect(await harness.tunnels.calls.contains("connect startup"))
+    }
+
+    @Test("Launch keeps each startup failure")
+    func launchKeepsStartupFailures() async {
+        let failure = TunnelStartupFailure(id: SampleData.docsTunnelID, name: "Docs staging", message: "Token missing.")
+        let harness = await SitesHarness.launched(tunnels: await startupTunnels(failing: [failure]))
+        let model = harness.model.tunnels
+        #expect(model.startupFailures == [SampleData.docsTunnelID: "Token missing."])
+        #expect(model.connectedCount == 0)
     }
 
     @Test("A failed load keeps the file and says so")
@@ -74,8 +87,8 @@ struct TunnelsModelTests {
         editor.name = "Studio preview"
         editor.hostname = "Preview.Example.com"
         editor.token = "secret-token"
-        #expect(editor.routing == .local)
-        #expect(!editor.routeChecked)
+        editor.originURL = TunnelEditorModel.defaultOrigin
+        editor.routeChecked = true
         #expect(editor.canSave)
         await model.save(editor)?.value
         #expect(model.sheet == nil)
