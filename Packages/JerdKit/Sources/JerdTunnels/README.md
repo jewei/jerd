@@ -38,9 +38,14 @@ JerdFoundation and JerdProcess.
   its `.test` hostname for the Host header and TLS server name, and Jerd's installation CA.
   TLS verification stays on. A local address uses the specified HTTP or HTTPS service.
 - Registrations from earlier builds retain Cloudflare routing and the empty `{}` configuration.
-  Editing a tunnel can select local routing; new editor drafts default to it. The optional
-  `routing` key is `"local"` for local routing; its absence means `"cloudflare"` and saves omit
-  that default. Cloudflare routing does not resolve or require a running linked site.
+  Editing a tunnel can select local routing; new editor drafts default to it. Save needs a
+  confirmation in both modes, because a dashboard route can point anywhere and a dashboard
+  tunnel ignores a local route. The optional `routing` key is `"local"` for local routing; its
+  absence means `"cloudflare"` and saves omit that default. Cloudflare routing does not
+  resolve or require a running linked site.
+- A launch with a route to a Jerd site resolves the site through `TunnelSiteResolving`. That can
+  restart the shared web run once, when the saved public hostnames changed. Such a tunnel never
+  connects at launch (`canConnectOnLaunch`), because no site runs then.
 - `stopRoutesToUnservedSites(_:)` stops each local route whose site the web run no longer
   serves under the hostname of its launch. The tunnel then shows why, and Connect starts it
   again. JerdLive calls it after each site change and each Stop.

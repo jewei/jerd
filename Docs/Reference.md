@@ -115,13 +115,24 @@ private (mode 0700).
 | `tunnels/instances/<UUID>/server.previous.log` | The output of earlier runs (at most 4 MiB) |
 | `tunnels/instances/<UUID>/home` | The private `HOME` of cloudflared |
 
-Tunnel registrations can include `routing: "local"`. An absent `routing` key means
-`"cloudflare"`, so earlier registrations keep their existing remote routes. Saves
-omit that default key. The schema version and all earlier keys stay unchanged.
-New registrations made in the editor default to local routing. A local connector
-configuration accepts only the registered public hostname and returns 404 for
-other hostnames. Linked sites use Jerd's loopback HTTPS listener, their `.test`
-hostname for HTTP and TLS, and the installation CA above.
+Tunnel registrations can include `routing: "local"`: Jerd then sets the route
+in `config.yml`. An absent `routing` key means `"cloudflare"`: the Cloudflare
+dashboard sets the route, so earlier registrations keep their routes. Saves omit
+that default key. The schema version and all earlier keys stay unchanged. A build
+before 0.1.3 does not know the key. When such a build saves, each local route
+becomes a dashboard route, and its connector gets the empty configuration. A
+`routing` value that this build does not know makes the file unreadable. The file
+then stays as it is, and only the tunnels are affected; sites still start.
+
+New registrations made in the editor default to local routing, with no local
+address. Only a locally managed tunnel (made with cloudflared) uses a local
+route; for a tunnel from the dashboard, cloudflared uses the dashboard routes.
+A local connector configuration accepts only the registered public hostname and
+returns 404 for other hostnames. Linked sites use Jerd's loopback HTTPS listener,
+their `.test` hostname for HTTP and TLS, and the installation CA above.
+cloudflared can report the local configuration of a locally managed tunnel to
+Cloudflare. That configuration has the `.test` names and the CA path, but no
+token.
 
 ## Locks
 
