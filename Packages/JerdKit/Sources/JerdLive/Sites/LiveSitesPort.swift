@@ -90,12 +90,12 @@ package actor LiveSitesPort: SitesPort {
     /// the `SMAppService` calls and a slow launchd.
     package static let helperRestartQuitLimit: Duration = HelperRegistration.restartWaitLimit + .seconds(12)
 
-    /// Stops PHP-FPM and Caddy for Quit and for a user Stop through the app's Stop of the site
-    /// changes, so the local tunnel routes to the stopped sites stop too. Then it lets a running
-    /// helper restart finish (a quit in the middle could leave the helper unregistered), and
-    /// closes the helper connection;
-    /// the helper ends the port lease when the connection closes. The wait is bounded by
-    /// `helperRestartQuitLimit`, so Stop and Quit can take that long during a restart, never longer.
+    /// Stops PHP-FPM and Caddy for Quit and for a user Stop, through the app's Stop of the site
+    /// changes, so the local tunnel routes to the stopped sites stop too. Their graceful stops run
+    /// in parallel; a Quit has already stopped every tunnel. Then it lets a running helper restart
+    /// finish (a quit in the middle could leave the helper unregistered), and closes the helper
+    /// connection; the helper ends the port lease when the connection closes. The wait for the
+    /// helper is bounded by `helperRestartQuitLimit`.
     package func stopEnvironment() async throws {
         ServiceActivityLog.request("Stop", "the web environment")
         await sites.requestStop()

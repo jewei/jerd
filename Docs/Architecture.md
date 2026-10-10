@@ -59,12 +59,16 @@ changes. Any other value keeps the Host. Any local process can send the header,
 but it can only select a saved public name of the same site. Public hostnames
 are not added to the hosts file, to local certificates, or to Cloudflare routes.
 
-A connector keeps the site that its route resolved at launch. All live site
-changes go through `JerdLive.RouteGuardedSiteChanges`. After each change, also
-a failed one, and after each Stop, it calls
-`TunnelSupervisor.stopRoutesToUnservedSites(_:)`. That call stops each local
-route whose site the run no longer serves under the hostname of its launch, and
-the tunnel shows why. A renamed, removed, or stopped site then cannot leave a
+A connector keeps the site that its route resolved at launch. All site changes
+of the live ports go through `JerdLive.RouteGuardedSiteChanges`. After each
+change, also a failed one, and after each Stop, it calls
+`TunnelSupervisor.stopRoutesToUnservedSites(_:)` with the sites that the run
+served when the change ended (`SiteChangeTransaction.servedHostnames`), never
+with the run during a restart. That call stops each local route whose site the
+run no longer serves under the hostname of its launch, and also a launch in
+progress to a site that the run does not serve. The tunnel shows why. A
+forwarded host apply changes no site, so it is not checked; if its restart and
+the rollback both fail, the routes stay until the next change. A renamed, removed, or stopped site then cannot leave a
 route that sends public traffic to another site with that name. A crash of the
 web run does not stop the route: cloudflared then gets no answer.
 

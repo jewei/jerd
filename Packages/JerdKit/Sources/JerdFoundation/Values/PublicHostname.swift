@@ -1,8 +1,9 @@
 /// A lowercase public DNS name that a Cloudflare route can use, for example `preview.example.com`.
 ///
 /// It is the one rule for public hostnames: tunnels save it, and the web environment restores it
-/// as the request Host. A local name cannot be one, because Cloudflare cannot route it and Caddy
-/// must never receive another site's `.test` name as Host.
+/// as the request Host. `localhost` and `.test` names cannot be one: Cloudflare cannot route
+/// them, and Caddy must never receive another site's `.test` name as Host. Other private names,
+/// such as `.local`, pass this rule.
 package struct PublicHostname: Hashable, Comparable, Sendable, CustomStringConvertible {
     /// The hostname text, for example `preview.example.com`.
     package let value: String

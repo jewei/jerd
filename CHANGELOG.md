@@ -10,7 +10,7 @@ code marks.
 
 - A damaged tunnel settings file no longer stops your sites from starting or changing.
 - Stopping a tunnel while it connects no longer stops all sites, and a failed restart for a tunnel now restores the sites that ran.
-- Connecting a tunnel now waits for a running site change instead of failing, and restarts the sites only when the tunnel's public hostname changed.
+- Connecting a tunnel now waits for a running site change instead of failing, and restarts the sites only when the saved public hostnames of local tunnels changed.
 - When a site stops, is removed, or gets a new hostname, Jerd now stops the tunnels that route to it, so public traffic cannot reach another site.
 - The tunnel editor now asks you to confirm the route in both modes, starts without a local address, and says that a route set by Jerd works only for a locally managed tunnel.
 - Connect when Jerd opens is now off for a tunnel that routes to a Jerd site, because sites do not start when Jerd opens.

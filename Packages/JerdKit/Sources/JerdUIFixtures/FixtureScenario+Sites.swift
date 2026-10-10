@@ -76,7 +76,20 @@ extension FixtureScenario {
             configuration.tunnels[1].originURL = nil
             return InMemoryTunnelsPort(configuration: configuration, states: [:])
         default:
-            return InMemoryTunnelsPort()
+            return InMemoryTunnelsPort(states: servesStudio ? SampleData.tunnelStates : [:])
+        }
+    }
+
+    /// True when `sitesPort()` runs Studio, so Studio preview can be connected. A Jerd route to a
+    /// site that does not run is stopped, as the app stops it.
+    private var servesStudio: Bool {
+        switch self {
+        case .dashboardEmpty, .sitesEmpty, .dashboardLong, .sitesLong, .sitesStopped, .sitesBusy, .dashboardBusy,
+            .sitesDisabled, .sitesFailed, .sitesApproving, .sitesSetupRequired, .sitesLoadFailed, .sitesRecovery,
+            .sitesHelperStale, .sitesHelperNotAllowed:
+            false
+        default:
+            true
         }
     }
 
