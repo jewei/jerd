@@ -23,17 +23,18 @@ public actor CloudflaredConnector: TunnelConnecting {
     let gate: StartGate
     let recorder: ActiveRunRecorder
     let stopPolicy: StopPolicy
-    let sites: (any TunnelSiteResolving)?
+    let sites: any TunnelSiteResolving
     /// Connectors that run, by registration ID.
     var owned: [UUID: OwnedConnector] = [:]
     /// Registrations with a launch in progress, so a second launch cannot begin.
     var launching: Set<UUID> = []
 
-    public init(
-        layout: TunnelsLayout, processes: any ProcessControlling = ProcessSupervisor(),
+    /// - Parameter sites: Resolves the linked site of a local route at each launch.
+    package init(
+        layout: TunnelsLayout, sites: any TunnelSiteResolving, processes: any ProcessControlling = ProcessSupervisor(),
         commands: any CommandRunning = CommandRunner(), ports: LoopbackPortGuard = LoopbackPortGuard(),
         gate: StartGate = StartGate(), recorder: ActiveRunRecorder = ActiveRunRecorder(),
-        stopPolicy: StopPolicy = .graceful(), sites: (any TunnelSiteResolving)? = nil
+        stopPolicy: StopPolicy = .graceful()
     ) {
         self.layout = layout
         self.processes = processes
@@ -111,24 +112,29 @@ public actor CloudflaredConnector: TunnelConnecting {
         try ConnectorLogHistory(instance: layout.instance(id)).recent(limit: Self.logViewBytes)
     }
 
-    /// Resolves the current site at every launch, including retries after an unexpected exit.
+    /// Checks the runtime and the port, writes this launch's `config.yml`, and keeps the earlier log.
     private func prepare(_ launch: TunnelLaunch, instance: TunnelInstanceLayout) async throws {
         let inspected = try await inspectRuntime(executable: launch.runtime.executable)
         guard inspected.version == launch.runtime.version else {
             throw JerdError.unavailable(TunnelMessage.versionMismatch)
         }
         try await ports.requireFree(launch.registration.metricsPort)
-        let registration = launch.registration
-        var site: TunnelSiteDestination?
-        if registration.routing == .local, let id = registration.siteID {
-            guard let sites else {
-                throw JerdError.unavailable("Load the selected Jerd site before connecting this tunnel.")
-            }
-            site = try await sites.destination(for: id)
-        }
-        try AtomicFile.write(CloudflaredConfiguration.render(registration, site: site), to: instance.configurationFile)
+        let route = try await route(for: launch.registration)
+        try AtomicFile.write(CloudflaredConfigurationRenderer.render(route), to: instance.configurationFile)
         try ConnectorLogHistory(instance: instance).archiveCurrent()
         try Task.checkCancellation()
+    }
+
+    /// The route of this launch. A linked site is resolved at every launch, also for a retry after
+    /// an unexpected exit, so the route uses the site as the web run serves it now.
+    private func route(for registration: TunnelRegistration) async throws -> TunnelRoute {
+        guard let local = try registration.localRoute() else { return .cloudflare }
+        switch local.target {
+        case .site(let siteID):
+            return .site(local.hostname, try await sites.prepareDestination(for: siteID))
+        case .address(let origin):
+            return .address(local.hostname, origin: origin)
+        }
     }
 
     /// Spawns cloudflared, takes ownership, and saves the run record.

@@ -1,6 +1,7 @@
 import Foundation
 import JerdFoundation
 import JerdTunnels
+import JerdWeb
 
 /// Uses the current site registration and Jerd's own CA for each local connector launch.
 package actor LiveTunnelSiteResolver: TunnelSiteResolving {
@@ -16,7 +17,7 @@ package actor LiveTunnelSiteResolver: TunnelSiteResolving {
         self.layout = layout
     }
 
-    package func destination(for siteID: UUID) async throws -> TunnelSiteDestination {
+    package func prepareDestination(for siteID: UUID) async throws -> TunnelSiteDestination {
         let configuration = try await registry.snapshot()
         guard let site = configuration.sites.first(where: { $0.id == siteID }) else {
             throw JerdError.unavailable("The linked site was removed. Edit this tunnel to choose a site.")
@@ -28,6 +29,8 @@ package actor LiveTunnelSiteResolver: TunnelSiteResolving {
             throw JerdError.unavailable("The site's HTTPS certificate is missing. Restart the site before connecting.")
         }
         try await environment.preparePublicHosts(for: siteID)
-        return TunnelSiteDestination(hostname: site.hostname, certificateAuthority: layout.rootCertificateFile)
+        return TunnelSiteDestination(
+            siteID: siteID, hostname: try Hostname(site.hostname), httpsPort: ListenerBinding.product.httpsPort,
+            certificateAuthorityFile: layout.rootCertificateFile)
     }
 }

@@ -2,17 +2,22 @@ import Foundation
 import JerdFoundation
 import JerdTunnels
 
+/// Resolves every linked site to one `.test` name, or fails, and records each request.
 actor FakeTunnelSiteResolver: TunnelSiteResolving {
+    /// The message of the live resolver for a site that does not run.
+    static let notRunning = JerdError.unavailable("Start Shop in Sites before connecting this tunnel.")
     private var hostname = "shop.test"
-    var failure: JerdError?
+    private var failure: JerdError?
     private(set) var requests: [UUID] = []
 
-    func destination(for siteID: UUID) throws -> TunnelSiteDestination {
+    func prepareDestination(for siteID: UUID) throws -> TunnelSiteDestination {
         requests.append(siteID)
         if let failure { throw failure }
-        return TunnelSiteDestination(hostname: hostname, certificateAuthority: URL(fileURLWithPath: "/data/root.crt"))
+        return TunnelSiteDestination(
+            siteID: siteID, hostname: try Hostname(hostname), httpsPort: 443,
+            certificateAuthorityFile: URL(fileURLWithPath: "/data/root.crt"))
     }
 
     func rename(_ hostname: String) { self.hostname = hostname }
-    func fail() { failure = .unavailable("Start the linked site first.") }
+    func fail(_ error: JerdError = notRunning) { failure = error }
 }

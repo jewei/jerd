@@ -23,12 +23,12 @@ import Testing
             metricsPort: 20243, routing: .local)
         try store.save(TunnelConfiguration(tunnels: [local, remote, address]))
         let source = LiveTunnelHostSource(layout: layout)
-        #expect(try await source.loadPublicHosts() == [SitePublicHost(siteID: siteID, hostname: local.hostname)])
+        #expect(try source.loadPublicHosts() == [SitePublicHost(siteID: siteID, hostname: local.hostname)])
         local.hostname = "renamed.example.com"
         try store.save(TunnelConfiguration(tunnels: [local]))
-        #expect(try await source.loadPublicHosts() == [SitePublicHost(siteID: siteID, hostname: local.hostname)])
+        #expect(try source.loadPublicHosts() == [SitePublicHost(siteID: siteID, hostname: local.hostname)])
         try store.save(TunnelConfiguration())
-        #expect(try await source.loadPublicHosts().isEmpty)
+        #expect(try source.loadPublicHosts().isEmpty)
     }
 
     @Test func corruptTunnelSettingsArePreservedAndReported() async throws {
@@ -39,7 +39,7 @@ import Testing
         let corrupt = Data("not json".utf8)
         try AtomicFile.write(corrupt, to: layout.settingsFile)
         let source = LiveTunnelHostSource(layout: layout)
-        await #expect(throws: JerdError.self) { try await source.loadPublicHosts() }
+        #expect(throws: JerdError.self) { try source.loadPublicHosts() }
         #expect(try Data(contentsOf: layout.settingsFile) == corrupt)
     }
 }

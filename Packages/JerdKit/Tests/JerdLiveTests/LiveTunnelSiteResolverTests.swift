@@ -19,12 +19,12 @@ import Testing
         let resolver = LiveTunnelSiteResolver(
             registry: FakeSiteRegistry(SampleWeb.configuration(sites: [site])), environment: environment, layout: layout
         )
-        let destination = try await resolver.destination(for: site.id)
-        #expect(destination.hostname == site.hostname)
-        #expect(destination.certificateAuthority == layout.rootCertificateFile)
+        let destination = try await resolver.prepareDestination(for: site.id)
+        #expect(destination.hostname.value == site.hostname)
+        #expect(destination.certificateAuthorityFile == layout.rootCertificateFile)
         #expect(await environment.preparedSites == [site.id])
         await environment.setPreparationFailure()
-        await #expect(throws: CancellationError.self) { try await resolver.destination(for: site.id) }
+        await #expect(throws: CancellationError.self) { try await resolver.prepareDestination(for: site.id) }
     }
 
     @Test func aRemovedSiteHasAnActionableError() async throws {
@@ -33,7 +33,7 @@ import Testing
             layout: DataLayout(root: URL(fileURLWithPath: "/unused")).environment)
         await #expect(throws: JerdError.unavailable("The linked site was removed. Edit this tunnel to choose a site."))
         {
-            try await resolver.destination(for: UUID())
+            try await resolver.prepareDestination(for: UUID())
         }
     }
 
@@ -43,7 +43,7 @@ import Testing
             registry: FakeSiteRegistry(SampleWeb.configuration(sites: [site])), environment: FakeEnvironment(),
             layout: DataLayout(root: URL(fileURLWithPath: "/unused")).environment)
         await #expect(throws: JerdError.unavailable("Start Shop in Sites before connecting this tunnel.")) {
-            try await resolver.destination(for: site.id)
+            try await resolver.prepareDestination(for: site.id)
         }
     }
 
@@ -60,7 +60,7 @@ import Testing
             throws: JerdError.unavailable(
                 "The site's HTTPS certificate is missing. Restart the site before connecting.")
         ) {
-            try await resolver.destination(for: site.id)
+            try await resolver.prepareDestination(for: site.id)
         }
     }
 }

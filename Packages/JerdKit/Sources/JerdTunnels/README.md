@@ -11,11 +11,13 @@ JerdFoundation and JerdProcess.
 | --- | --- |
 | `TunnelSupervisor` | The actor that the app uses: `load()`, `currentConfiguration()`, `snapshots()`, `snapshotUpdates()`, `suggestedPort()`, `useRuntime(at:)`, `save(_:token:)`, `remove(id:)`, `start(id:)`, `stop(id:)`, `stopAll()`, `connectStartupTunnels()`, and `log(id:)`. |
 | `TunnelRegistration`, `TunnelConfiguration`, `TunnelRuntime` | The saved settings in `tunnels/settings.json`. |
-| `TunnelStore` | The one reader and writer of the settings file and its backup. |
+| `TunnelStore` | The codec of the settings file and its backup. `TunnelSupervisor` is the only writer. |
 | `TunnelToken` | Checks a token and gives the values to redact. Its text is never in a description. |
 | `TunnelSecretStore` (`TunnelSecretStoring`) | Keeps each token in the Keychain. |
 | `CloudflaredConnector` (`TunnelConnecting`) | Launches, checks, and stops the connectors that Jerd owns. |
-| `CloudflaredConfiguration`, `TunnelSiteResolving` | Renders an exact local route; JerdLive resolves linked sites and their installation CA at each launch. |
+| `TunnelRoute`, `CloudflaredConfigurationRenderer` | The route of one launch and its private `config.yml`: one exact public hostname and a final 404 rule, or `{}`. |
+| `TunnelSiteResolving` (`TunnelSiteDestination`) | Resolves a linked site at each launch. JerdLive implements it with the site change transaction. |
+| `TunnelSiteRoutes` | Reads the public hostnames of saved local routes for the web run. It never writes. |
 | `TunnelReconnectPolicy` | The pure reducer of each tunnel's lifecycle: backoff, readiness, and failures. |
 | `TunnelAuthFailureClassifier` | Finds a token rejection in anchored cloudflared log lines. |
 | `TunnelState`, `TunnelSnapshot`, `TunnelStartupFailure` | What the app shows. `TunnelSnapshot.settingsIssue` tells the user to edit settings that an earlier build saved and the current rules refuse. |

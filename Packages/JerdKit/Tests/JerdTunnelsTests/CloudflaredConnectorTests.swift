@@ -7,42 +7,50 @@ import JerdTunnels
 import Testing
 
 @Suite struct CloudflaredConnectorTests {
-    @Test func cloudflareRoutingNeverRequiresTheReferencedSite() async throws {
+    @Test func cloudflareRoutingNeverResolvesTheReferencedSite() async throws {
         let sites = FakeTunnelSiteResolver()
         await sites.fail()
         let fixture = try ConnectorFixture(sites: sites)
         defer { fixture.folder.remove() }
         var registration = fixture.registration
         registration.siteID = UUID()
-        let handle = try await fixture.connector.connect(
-            TunnelLaunch(
-                runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid)))
+        let handle = try await fixture.connector.connect(launch(fixture, registration))
         #expect(contents(fixture.instance.configurationFile) == Data("{}\n".utf8))
         #expect(await sites.requests.isEmpty)
         try await fixture.connector.disconnect(handle)
     }
 
-    @Test func localRoutingIsWrittenBeforeSpawnAndResolvesTheSiteAgainOnRestart() async throws {
+    @Test func eachLocalLaunchResolvesTheSiteAgain() async throws {
+        let sites = FakeTunnelSiteResolver()
+        let fixture = try ConnectorFixture(sites: sites)
+        defer { fixture.folder.remove() }
+        let siteID = UUID()
+        var registration = fixture.registration
+        registration.routing = .local
+        registration.siteID = siteID
+        let first = try await fixture.connector.connect(launch(fixture, registration))
+        #expect(try hostHeader(fixture) == "shop.test")
+        #expect(!text(fixture.instance.configurationFile).contains(TokenSamples.secret))
+        try await fixture.connector.disconnect(first)
+        await sites.rename("renamed.test")
+        let second = try await fixture.connector.connect(launch(fixture, registration))
+        #expect(try hostHeader(fixture) == "renamed.test")
+        #expect(await sites.requests == [siteID, siteID])
+        try await fixture.connector.disconnect(second)
+    }
+
+    @Test func aLocalAddressRouteNeedsNoSite() async throws {
         let sites = FakeTunnelSiteResolver()
         let fixture = try ConnectorFixture(sites: sites)
         defer { fixture.folder.remove() }
         var registration = fixture.registration
         registration.routing = .local
-        registration.siteID = UUID()
-        let launch = TunnelLaunch(
-            runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid))
-        let first = try await fixture.connector.connect(launch)
-        let firstConfig = text(fixture.instance.configurationFile)
-        #expect(firstConfig.contains("shop.test"))
-        #expect(!firstConfig.contains(TokenSamples.valid))
-        #expect(!firstConfig.contains(TokenSamples.secret))
-        try await fixture.connector.disconnect(first)
-        await sites.rename("renamed.test")
-        let second = try await fixture.connector.connect(launch)
-        #expect(text(fixture.instance.configurationFile).contains("renamed.test"))
-        #expect(!text(fixture.instance.configurationFile).contains("shop.test"))
-        #expect(await sites.requests.count == 2)
-        try await fixture.connector.disconnect(second)
+        registration.originURL = "http://127.0.0.1:8000"
+        let handle = try await fixture.connector.connect(launch(fixture, registration))
+        let rules = try ingress(fixture)
+        #expect(rules.first?["service"] as? String == "http://127.0.0.1:8000")
+        #expect(await sites.requests.isEmpty)
+        try await fixture.connector.disconnect(handle)
     }
 
     @Test func anUnavailableLocalSiteStopsBeforeSpawnAndKeepsThePreviousConfig() async throws {
@@ -55,14 +63,41 @@ import Testing
         var registration = fixture.registration
         registration.routing = .local
         registration.siteID = UUID()
-        await #expect(throws: JerdError.unavailable("Start the linked site first.")) {
-            try await fixture.connector.connect(
-                TunnelLaunch(
-                    runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid)))
+        await #expect(throws: FakeTunnelSiteResolver.notRunning) {
+            try await fixture.connector.connect(launch(fixture, registration))
         }
         #expect(await fixture.processes.started.isEmpty)
         #expect(text(fixture.instance.configurationFile) == "previous config")
         #expect(fixture.lockIsFree())
+    }
+
+    /// A launch checks the Save rule itself, so a hand-edited file cannot write a route that Save refuses.
+    @Test func aLocalRouteThatSaveRefusesIsNeverWritten() async throws {
+        let fixture = try ConnectorFixture()
+        defer { fixture.folder.remove() }
+        var registration = fixture.registration
+        registration.routing = .local
+        await #expect(throws: JerdError.invalid(TunnelMessage.localDestinationMissing)) {
+            try await fixture.connector.connect(launch(fixture, registration))
+        }
+        #expect(await fixture.processes.started.isEmpty)
+        #expect(contents(fixture.instance.configurationFile) == nil)
+        #expect(fixture.lockIsFree())
+    }
+
+    private func launch(_ fixture: ConnectorFixture, _ registration: TunnelRegistration) throws -> TunnelLaunch {
+        TunnelLaunch(runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid))
+    }
+
+    private func ingress(_ fixture: ConnectorFixture) throws -> [[String: Any]] {
+        let data = try #require(contents(fixture.instance.configurationFile))
+        let document = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        return try #require(document["ingress"] as? [[String: Any]])
+    }
+
+    private func hostHeader(_ fixture: ConnectorFixture) throws -> String? {
+        let origin = try ingress(fixture).first?["originRequest"] as? [String: Any]
+        return origin?["httpHostHeader"] as? String
     }
 
     @Test func aLaunchPreparesTheFolderLocksItAndSavesTheRunRecord() async throws {
