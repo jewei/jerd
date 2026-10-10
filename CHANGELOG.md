@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-10
+
 - A damaged tunnel settings file no longer stops your sites from starting or changing.
 - Stopping a tunnel while it connects no longer stops all sites, and a failed restart for a tunnel now restores the sites that ran.
 - Connecting a tunnel now waits for a running site change instead of failing, and restarts the sites only when the saved public hostnames of local tunnels changed.

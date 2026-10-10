@@ -7,6 +7,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.5</title>
+            <pubDate>Sat, 10 Oct 2026 13:29:49 GMT</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• A damaged tunnel settings file no longer stops your sites from starting or changing.
+• Stopping a tunnel while it connects no longer stops all sites, and a failed restart for a tunnel now restores the sites that ran.
+• Connecting a tunnel now waits for a running site change instead of failing, and restarts the sites only when the saved public hostnames of local tunnels changed.
+• When a site stops, is removed, or gets a new hostname, Jerd now stops the tunnels that route to it, so public traffic cannot reach another site.
+• The tunnel editor now asks you to confirm the route in both modes, starts without a local address, and says that a route set by Jerd works only for a locally managed tunnel.
+• Connect when Jerd opens is now off for a tunnel that routes to a Jerd site, because sites do not start when Jerd opens.
+• A public tunnel hostname that ends in .test is now refused, because Cloudflare cannot route it.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.5/Jerd-0.1.5.dmg" length="82862824" type="application/octet-stream" sparkle:edSignature="hhth4Y7f7odoj9UAScg2Q9PtnvX4g1mxe6dW3AHQy3LJVkcR01rcZkaRREeqBVW8sB/i2sV8qSwVPsPyedNNAQ=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.4</title>
             <pubDate>Sat, 10 Oct 2026 10:31:02 GMT</pubDate>
             <sparkle:version>10</sparkle:version>
@@ -79,6 +96,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: s2EQqJ8+MtAOe3e0Zgqli5mx7sHL0bGVzICJyKFWgkH/1l2vyPuHq5kxP556FcJFz5wWnIiqYYilhJkN+I3QBA==
-length: 7638
+edSignature: o2UHmf3RvFxk3nuAMR2HTCprUXJZ+xPcWK9XRcFCXQM1CLz7Md3p/Vxuajk4FuOeq348N0+tbU6e7f5dfUuaDw==
+length: 9331
 -->
