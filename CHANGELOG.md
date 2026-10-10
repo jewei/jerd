@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-10
+
 - Local tunnels now keep their public hostname when serving PHP, so generated assets, links, and redirects use the public address instead of the local .test address.
 
 ## [0.1.3] - 2026-10-10

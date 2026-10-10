@@ -7,6 +7,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.4</title>
+            <pubDate>Sat, 10 Oct 2026 10:31:02 GMT</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• Local tunnels now keep their public hostname when serving PHP, so generated assets, links, and redirects use the public address instead of the local .test address.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.4/Jerd-0.1.4.dmg" length="81023631" type="application/octet-stream" sparkle:edSignature="eAYDFz3xnFVTDYQlEYW1Q9zmAZAj6DZlpbXx137JAGMlnSyMO3Orb9RosSLjjrgfwuM7I2NdQfTNtP+uK+f6AQ=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.3</title>
             <pubDate>Sat, 10 Oct 2026 09:42:58 GMT</pubDate>
             <sparkle:version>9</sparkle:version>
@@ -68,6 +79,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: PLJqI2X2yv7Q2OCkDpLIDh2OiIeCCRLiXhqPImIbm4sbESBKm1UfRToGks384rQZybIKBal5O/xfLhrknn41Bw==
-length: 6717
+edSignature: s2EQqJ8+MtAOe3e0Zgqli5mx7sHL0bGVzICJyKFWgkH/1l2vyPuHq5kxP556FcJFz5wWnIiqYYilhJkN+I3QBA==
+length: 7638
 -->
