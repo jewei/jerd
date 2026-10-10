@@ -20,6 +20,7 @@ public final class TunnelEditorModel: Identifiable {
     /// The linked site, or nil for a local address.
     public var siteID: UUID?
     public var originURL: String
+    public var routing: TunnelRouting
     public var startOnLaunch: Bool
     public var restartOnFailure: Bool
     /// "I checked the existing route for this Mac."
@@ -36,6 +37,7 @@ public final class TunnelEditorModel: Identifiable {
         metricsPort = (tunnel?.metricsPort ?? suggestedPort).map(String.init) ?? ""
         siteID = tunnel?.siteID
         originURL = tunnel?.originURL ?? (tunnel?.siteID == nil ? Self.defaultOrigin : "")
+        routing = tunnel?.routing ?? .local
         startOnLaunch = tunnel?.startOnLaunch ?? false
         restartOnFailure = tunnel?.restartOnFailure ?? true
         self.sites = sites
@@ -62,7 +64,7 @@ public final class TunnelEditorModel: Identifiable {
             id: original?.id ?? UUID(), name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             hostname: hostname.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), siteID: siteID,
             originURL: siteID == nil ? originURL.trimmingCharacters(in: .whitespaces) : nil,
-            startOnLaunch: startOnLaunch, restartOnFailure: restartOnFailure, metricsPort: port)
+            startOnLaunch: startOnLaunch, restartOnFailure: restartOnFailure, metricsPort: port, routing: routing)
     }
 
     /// The first broken rule of the filled fields, inline in the sheet. Empty fields say nothing.
@@ -79,10 +81,10 @@ public final class TunnelEditorModel: Identifiable {
     }
 
     /// Every rule holds: a valid registration, a token for a new tunnel, an existing site, and
-    /// the route confirmation.
+    /// the route confirmation when Cloudflare manages it.
     public var canSave: Bool {
         guard let registration, !registration.name.isEmpty, !registration.hostname.isEmpty else { return false }
-        return validationMessage == nil && routeChecked && !isSiteMissing
+        return validationMessage == nil && (routing == .local || routeChecked) && !isSiteMissing
             && (!isNew || !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 

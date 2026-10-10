@@ -74,14 +74,15 @@ struct TunnelsModelTests {
         editor.name = "Studio preview"
         editor.hostname = "Preview.Example.com"
         editor.token = "secret-token"
-        #expect(!editor.canSave)
-        editor.routeChecked = true
+        #expect(editor.routing == .local)
+        #expect(!editor.routeChecked)
         #expect(editor.canSave)
         await model.save(editor)?.value
         #expect(model.sheet == nil)
         #expect(editor.token.isEmpty)
         let saved = try #require(model.registrations.first)
         #expect(saved.hostname == "preview.example.com")
+        #expect(saved.routing == .local)
         #expect(saved.originURL == TunnelEditorModel.defaultOrigin)
         #expect(model.state(of: saved.id) == .stopped)
         #expect(harness.recorder.shown == [.item(.tunnel(saved.id))])

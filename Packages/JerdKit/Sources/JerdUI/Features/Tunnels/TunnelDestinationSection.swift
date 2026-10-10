@@ -2,8 +2,7 @@ import JerdDesign
 import JerdTunnels
 import SwiftUI
 
-/// Where the Cloudflare route should point: a Jerd site or a local address. Only a reference;
-/// Jerd never changes routes or DNS.
+/// The local route, or a reference for a route managed in Cloudflare.
 struct TunnelDestinationSection: View {
     let state: AppState
     let sites: SitesModel
@@ -11,15 +10,18 @@ struct TunnelDestinationSection: View {
 
     var body: some View {
         Section {
+            ValueRow("Route managed by", value: tunnel.routing == .local ? "Jerd" : "Cloudflare")
             destination
-            ActionRow("Cloudflare route", detail: "Check the published hostname and origin in Cloudflare.") {
+            ActionRow("Cloudflare", detail: "The public hostname must point to this tunnel.") {
                 Button("Open Cloudflare", systemImage: "arrow.up.right") { sites.tunnels.openCloudflare() }
             }
         } header: {
-            Text("Destination Reference")
+            Text(tunnel.routing == .local ? "Destination" : "Destination Reference")
         } footer: {
             FormFooter(
-                "Jerd does not change DNS or tunnel routes. For local HTTPS, keep TLS verification on and configure the trusted CA and origin hostname in Cloudflare."
+                tunnel.routing == .local
+                    ? "Jerd configures this connector's route and verifies the site's HTTPS certificate."
+                    : "Cloudflare manages this route. For a locally managed tunnel, select Jerd under Manage route in when you edit it."
             )
         }
     }

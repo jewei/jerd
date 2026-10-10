@@ -25,16 +25,22 @@ struct TunnelEditorSheet: View {
                 Toggle("Connect when Jerd opens", isOn: $editor.startOnLaunch)
                 Toggle("Restart after an unexpected exit", isOn: $editor.restartOnFailure)
             }
-            Section {
-                Toggle("I checked the existing route for this Mac.", isOn: $editor.routeChecked)
-                    .accessibilityIdentifier("tunnel-editor.route-checked")
-                ActionRow(
-                    "Cloudflare route",
-                    detail:
-                        "Another connector can already serve this tunnel and share its traffic. Select Connect when you are ready."
-                ) {
-                    Button("Open Cloudflare", systemImage: "arrow.up.right") { model.openCloudflare() }
-                }
+            if editor.routing == .cloudflare {
+                routeConfirmation
+            }
+        }
+    }
+
+    private var routeConfirmation: some View {
+        Section {
+            Toggle("I checked the existing route for this Mac.", isOn: $editor.routeChecked)
+                .accessibilityIdentifier("tunnel-editor.route-checked")
+            ActionRow(
+                "Cloudflare route",
+                detail:
+                    "Another connector can already serve this tunnel and share its traffic. Select Connect when you are ready."
+            ) {
+                Button("Open Cloudflare", systemImage: "arrow.up.right") { model.openCloudflare() }
             }
         }
     }

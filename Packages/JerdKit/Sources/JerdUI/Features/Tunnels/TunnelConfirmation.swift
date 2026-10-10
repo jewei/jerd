@@ -14,6 +14,8 @@ public enum TunnelConfirmation: Equatable, Sendable {
 
     public var message: String {
         switch self {
+        case .connect(let tunnel) where tunnel.routing == .local:
+            "Jerd will route https://\(tunnel.hostname) to the selected local destination. Other connectors for this tunnel can also receive traffic."
         case .connect:
             "Jerd will start another connector for this existing tunnel. Cloudflare can send traffic to it alongside any connector that is already running. Confirm that the existing routes point to services on this Mac."
         case .remove:

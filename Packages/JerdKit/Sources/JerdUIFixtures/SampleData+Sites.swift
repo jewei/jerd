@@ -71,7 +71,7 @@ extension SampleData {
 
     public static let previewTunnel = TunnelRegistration(
         id: previewTunnelID, name: "Studio preview", hostname: "preview.example.com", siteID: studioID,
-        startOnLaunch: true, metricsPort: 20_241)
+        startOnLaunch: true, metricsPort: 20_241, routing: .local)
     public static let docsTunnel = TunnelRegistration(
         id: docsTunnelID, name: "Docs staging", hostname: "docs.example.com", originURL: "http://127.0.0.1:8000",
         metricsPort: 20_242)
