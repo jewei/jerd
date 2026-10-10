@@ -4,7 +4,8 @@ import JerdFoundation
 /// The one reader and writer of `tunnels/settings.json` and its backup `settings.previous.json`.
 ///
 /// It keeps the exact encoding (pretty, sorted keys, unescaped slashes) and never overwrites a
-/// file that it cannot read. Call it only from `TunnelSupervisor`.
+/// file that it cannot read. `TunnelSupervisor` is the only writer; the web route source reads
+/// through this same codec on its own actor. Atomic replacement keeps those reads complete.
 package struct TunnelStore: Sendable {
     /// The largest settings file that Jerd reads (256 KiB).
     package static let sizeLimit = 262_144

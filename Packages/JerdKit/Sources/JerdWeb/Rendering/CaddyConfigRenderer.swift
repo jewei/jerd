@@ -25,7 +25,12 @@ public enum CaddyConfigRenderer {
             let host: JSONValue = [["host": [.string(site.hostname.value)]]]
             secure.append([
                 "match": host, "terminal": true,
-                "handle": [["handler": "subroute", "routes": .array(try SiteRoutePolicy.routes(for: site))]],
+                "handle": [
+                    [
+                        "handler": "subroute",
+                        "routes": .array(TunnelHostPolicy.routes(for: site) + (try SiteRoutePolicy.routes(for: site))),
+                    ]
+                ],
             ])
             redirects.append(["match": host, "handle": [redirect(to: site.hostname, httpsPort: binding.httpsPort)]])
         }

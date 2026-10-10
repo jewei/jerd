@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+- Local tunnels now keep their public hostname when serving PHP, so generated assets, links, and redirects use the public address instead of the local .test address.
+
 ## [0.1.3] - 2026-10-10
 
 - Jerd can now configure locally managed Cloudflare tunnels from the selected site, including the local route and verified HTTPS connection.
