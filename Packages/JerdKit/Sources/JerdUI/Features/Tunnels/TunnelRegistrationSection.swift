@@ -12,7 +12,7 @@ struct TunnelRegistrationSection: View {
     var body: some View {
         let isActive = model.isActive(tunnel.id)
         Section {
-            ActionRow("Settings", detail: "Edit the token, destination reference, or startup settings.") {
+            ActionRow("Settings", detail: "Edit the token, the route, the destination, or the startup settings.") {
                 Button("Edit Tunnel…") { model.beginEdit(tunnel, sites: sites.sites) }
                     .disabled(!(model.canChange && !isQuitting) || isActive)
                     .accessibilityIdentifier("tunnel.edit")

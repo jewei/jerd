@@ -61,36 +61,37 @@ struct SheetRulesTests {
     @Test("A disabled tunnel Save names its reason, also the route confirmation at the end of the form")
     func tunnelSaveRequirement() {
         let editor = TunnelEditorModel(tunnel: nil, sites: [SampleData.studio], suggestedPort: 20_243)
-        #expect(editor.saveRequirement == "To save, enter a name, a public hostname, and a tunnel token.")
+        #expect(
+            editor.saveRequirement
+                == "To save, enter a name, a public hostname, a tunnel token, and a local address.")
         editor.name = "Preview"
         editor.hostname = "preview.example.com"
         editor.token = "token"
-        #expect(editor.routing == .local)
-        #expect(editor.canSave)
-        #expect(editor.saveRequirement == nil)
-        #expect(editor.registration?.routing == .local)
-        editor.routing = .cloudflare
+        editor.originURL = TunnelEditorModel.defaultOrigin
         #expect(
             editor.saveRequirement
-                == "To save, select “I checked the existing route for this Mac.” at the end of this form.")
+                == "To save, select “I checked that this tunnel is locally managed.” at the end of this form.")
         editor.routeChecked = true
         #expect(editor.canSave)
         #expect(editor.saveRequirement == nil)
         editor.siteID = UUID()
-        #expect(editor.saveRequirement == "The linked site was removed. To save, choose a local destination.")
+        #expect(editor.saveRequirement == "The linked site was removed. To save, choose a destination.")
         editor.siteID = nil
         editor.hostname = "localhost"
         #expect(editor.validationMessage != nil)
         #expect(editor.saveRequirement == nil)
     }
 
-    @Test("An earlier registration keeps Cloudflare routing until the user chooses Jerd")
+    @Test("An earlier registration keeps Cloudflare routing until the user chooses Jerd and confirms it")
     func earlierTunnelCanSelectLocalRouting() {
         let tunnel = TunnelRegistration(name: "Preview", hostname: "preview.example.com", siteID: SampleData.studio.id)
         let editor = TunnelEditorModel(tunnel: tunnel, sites: [SampleData.studio])
         #expect(editor.routing == .cloudflare)
-        #expect(!editor.canSave)
+        editor.routeChecked = true
+        #expect(editor.canSave)
         editor.routing = .local
+        #expect(!editor.canSave)
+        editor.routeChecked = true
         #expect(editor.canSave)
         #expect(editor.registration?.routing == .local)
         #expect(editor.registration?.siteID == tunnel.siteID)

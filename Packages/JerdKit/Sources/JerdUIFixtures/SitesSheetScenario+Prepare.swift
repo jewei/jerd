@@ -47,8 +47,8 @@ extension SitesSheetScenario {
         }
     }
 
-    /// Add Tunnel (empty, or filled without the route confirmation), Edit Tunnel, or an Edit
-    /// Tunnel whose save failed.
+    /// Add Tunnel (empty, or filled with a Jerd route to Studio but without the route
+    /// confirmation), Edit Tunnel (a Cloudflare route), or an Edit Tunnel whose save failed.
     @MainActor
     func prepareTunnelEditor(_ fixture: AppFixture) async {
         let model = fixture.state.sites.tunnels
@@ -59,7 +59,7 @@ extension SitesSheetScenario {
             editor.name = "Aurora preview"
             editor.hostname = "aurora.example.com"
             editor.token = "token"
-            editor.routing = .cloudflare
+            editor.siteID = SampleData.studioID
         case .tunnelEditorFailure:
             model.beginEdit(SampleData.docsTunnel, sites: fixture.state.sites.sites)
             guard let editor = model.sheet?.editor else { return }

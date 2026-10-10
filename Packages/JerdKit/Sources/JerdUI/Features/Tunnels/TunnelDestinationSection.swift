@@ -2,7 +2,7 @@ import JerdDesign
 import JerdTunnels
 import SwiftUI
 
-/// The local route, or a reference for a route managed in Cloudflare.
+/// Who sets the route, and its local destination.
 struct TunnelDestinationSection: View {
     let state: AppState
     let sites: SitesModel
@@ -10,19 +10,15 @@ struct TunnelDestinationSection: View {
 
     var body: some View {
         Section {
-            ValueRow("Route managed by", value: tunnel.routing == .local ? "Jerd" : "Cloudflare")
+            ValueRow(TunnelRouteCopy.label, value: TunnelRouteCopy.setter(tunnel.routing))
             destination
-            ActionRow("Cloudflare", detail: "The public hostname must point to this tunnel.") {
+            ActionRow("Public hostname", detail: "In Cloudflare, this hostname must point to this tunnel.") {
                 Button("Open Cloudflare", systemImage: "arrow.up.right") { sites.tunnels.openCloudflare() }
             }
         } header: {
-            Text(tunnel.routing == .local ? "Destination" : "Destination Reference")
+            Text("Destination")
         } footer: {
-            FormFooter(
-                tunnel.routing == .local
-                    ? "Jerd configures this connector's route and verifies the site's HTTPS certificate."
-                    : "Cloudflare manages this route. For a locally managed tunnel, select Jerd under Manage route in when you edit it."
-            )
+            FormFooter(TunnelRouteCopy.pageFooter(tunnel.routing, linksSite: tunnel.siteID != nil))
         }
     }
 
@@ -38,9 +34,7 @@ struct TunnelDestinationSection: View {
             } else if !sites.isLoaded {
                 ValueRow("Jerd site", value: "Unavailable until the site settings load")
             } else {
-                InlineMessage(
-                    "The linked site was removed. Edit this registration to select a destination.", kind: .warning,
-                    identifier: "tunnel.site-removed")
+                InlineMessage(TunnelMessage.siteRemoved, kind: .warning, identifier: "tunnel.site-removed")
             }
         } else {
             ValueRow("Local address", value: tunnel.originURL ?? "Not set", isCode: true)

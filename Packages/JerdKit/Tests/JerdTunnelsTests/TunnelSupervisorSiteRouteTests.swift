@@ -62,4 +62,18 @@ import Testing
         #expect(await fixture.state()?.isActive == true)
         try await fixture.supervisor.stop(id: fixture.id)
     }
+
+    /// An earlier build could save "Connect when Jerd opens" for a Jerd route to a site. No site
+    /// runs at launch, so that tunnel waits for the user instead of failing at every launch.
+    @Test func aJerdRouteToASiteNeverConnectsAtLaunch() async throws {
+        let fixture = try await SupervisorFixture(startOnLaunch: true)
+        defer { fixture.folder.remove() }
+        var local = fixture.registration
+        local.routing = .local
+        local.siteID = siteID
+        try await fixture.supervisor.save(local)
+        #expect(try await fixture.supervisor.connectStartupTunnels().isEmpty)
+        #expect(await fixture.connector.launches.isEmpty)
+        #expect(await fixture.state() == .stopped)
+    }
 }

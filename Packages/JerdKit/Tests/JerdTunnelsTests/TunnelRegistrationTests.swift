@@ -114,6 +114,17 @@ import Testing
         try registration().validate()
     }
 
+    /// Sites do not start when Jerd opens, so only a Jerd route to a Jerd site cannot connect then.
+    @Test func onlyAJerdRouteToASiteCannotConnectAtLaunch() {
+        var tunnel = registration(siteID: UUID())
+        #expect(tunnel.canConnectOnLaunch)
+        tunnel.routing = .local
+        #expect(!tunnel.canConnectOnLaunch)
+        tunnel.siteID = nil
+        tunnel.originURL = "http://127.0.0.1:8000"
+        #expect(tunnel.canConnectOnLaunch)
+    }
+
     @Test func aValidRegistrationHasNoSettingsIssue() {
         #expect(TunnelSnapshot(registration: registration(), state: .stopped).settingsIssue == nil)
     }

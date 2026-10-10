@@ -69,9 +69,12 @@ extension SampleData {
         return configuration
     }()
 
+    /// A Jerd route to Studio. It connects after Studio starts, never at launch.
     public static let previewTunnel = TunnelRegistration(
         id: previewTunnelID, name: "Studio preview", hostname: "preview.example.com", siteID: studioID,
-        startOnLaunch: true, metricsPort: 20_241, routing: .local)
+        metricsPort: 20_241, routing: .local)
+    /// The states of the sample tunnels: the user connected Studio preview after Studio started.
+    public static let tunnelStates: [UUID: TunnelState] = [previewTunnelID: .connected]
     public static let docsTunnel = TunnelRegistration(
         id: docsTunnelID, name: "Docs staging", hostname: "docs.example.com", originURL: "http://127.0.0.1:8000",
         metricsPort: 20_242)

@@ -74,8 +74,8 @@ struct TunnelsModelTests {
         editor.name = "Studio preview"
         editor.hostname = "Preview.Example.com"
         editor.token = "secret-token"
-        #expect(editor.routing == .local)
-        #expect(!editor.routeChecked)
+        editor.originURL = TunnelEditorModel.defaultOrigin
+        editor.routeChecked = true
         #expect(editor.canSave)
         await model.save(editor)?.value
         #expect(model.sheet == nil)

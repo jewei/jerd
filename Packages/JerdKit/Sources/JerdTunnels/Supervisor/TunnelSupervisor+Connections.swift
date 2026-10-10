@@ -69,10 +69,12 @@ extension TunnelSupervisor {
     }
 
     /// Connects every registration with `startOnLaunch`, one after another. Every failure is kept.
+    /// A Jerd route to a Jerd site waits for the user, because no site runs yet
+    /// (`TunnelRegistration.canConnectOnLaunch`).
     public func connectStartupTunnels() async throws -> [TunnelStartupFailure] {
         try requireLoaded()
         var failures: [TunnelStartupFailure] = []
-        for registration in configuration.tunnels where registration.startOnLaunch {
+        for registration in configuration.tunnels where registration.startOnLaunch && registration.canConnectOnLaunch {
             guard !shuttingDown else { break }
             do {
                 try await start(id: registration.id)
