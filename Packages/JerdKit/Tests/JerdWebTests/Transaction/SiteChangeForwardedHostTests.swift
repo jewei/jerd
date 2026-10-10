@@ -164,4 +164,74 @@ import Testing
         #expect(await harness.coordinator.preflights == preflights)
         #expect(await harness.coordinator.launches == 1)
     }
+
+    @Test func aPendingRecoveryRefusesTheRestartAndKeepsTheRun() async throws {
+        let live = try await running()
+        defer { live.harness.remove() }
+        let demo = live.site("demo.test")
+        await live.forwardedHosts.set(demo.id, [publicHost.value])
+        var status = try FakeSystem.approved(["demo.test"])
+        status.hasPendingRecovery = true
+        await live.harness.system.set(status)
+        await #expect(
+            throws: JerdError.unavailable("Recover the interrupted HTTPS setup in Advanced before connecting.")
+        ) {
+            try await live.transaction.applyForwardedHosts(servingSite: demo.id)
+        }
+        #expect(await live.harness.engine.starts == 1)
+        #expect(await live.harness.coordinator.snapshot().state == .running)
+    }
+
+    /// The user's Stop during the restart ends it, and the rollback does not start the run again.
+    @Test func aUserStopDuringTheRestartStopsTheSites() async throws {
+        let live = try await running()
+        defer { live.harness.remove() }
+        let demo = live.site("demo.test")
+        await live.forwardedHosts.set(demo.id, [publicHost.value])
+        await live.harness.engine.holdNextStart()
+        let transaction = live.transaction
+        let apply = Task { try await transaction.applyForwardedHosts(servingSite: demo.id) }
+        #expect(await waitUntil { await live.harness.engine.isHolding })
+        let stop = Task { await transaction.requestStop() }
+        #expect(await waitUntil { await live.harness.coordinator.isStopRequested(since: StopTicket(epoch: 0)) })
+        await live.harness.engine.resumeHeld()
+        await #expect(throws: CancellationError.self) { try await apply.value }
+        await stop.value
+        #expect(await live.harness.engine.starts == 2)
+        #expect(await live.harness.coordinator.snapshot().state == .stopped)
+        #expect(await transaction.servedHostnames.isEmpty)
+    }
+
+    @Test func theServedSitesAreRecordedWhenAChangeEnds() async throws {
+        let harness = try await TransactionHarness(sites: ["demo.test", "two.test"], running: [])
+        defer { harness.remove() }
+        let demo = harness.site("demo.test")
+        #expect(await harness.transaction.servedHostnames.isEmpty)
+        _ = try await harness.transaction.run([demo.id])
+        #expect(await harness.transaction.servedHostnames == [demo.id: "demo.test"])
+        await harness.transaction.requestStop()
+        #expect(await harness.transaction.servedHostnames.isEmpty)
+    }
+
+    /// Regression test: a change that was refused during a restart read the run while it served
+    /// no site, and the tunnels of every site stopped.
+    @Test func aRefusedChangeDuringARestartKeepsTheServedSites() async throws {
+        let live = try await running()
+        defer { live.harness.remove() }
+        let demo = live.site("demo.test")
+        _ = try await live.transaction.run([demo.id])
+        await live.forwardedHosts.set(demo.id, [publicHost.value])
+        await live.harness.engine.holdNextStart()
+        let transaction = live.transaction
+        let apply = Task { try await transaction.applyForwardedHosts(servingSite: demo.id) }
+        #expect(await waitUntil { await live.harness.engine.isHolding })
+        #expect(await live.harness.coordinator.runningPlan() == nil)
+        await #expect(throws: JerdError.unavailable("Wait for the current site edit.")) {
+            try await transaction.run([demo.id])
+        }
+        #expect(await transaction.servedHostnames == [demo.id: "demo.test"])
+        await live.harness.engine.resumeHeld()
+        _ = try await apply.value
+        #expect(await transaction.servedHostnames == [demo.id: "demo.test"])
+    }
 }

@@ -20,6 +20,9 @@ public actor SiteChangeTransaction {
     package private(set) var phase: SiteChangePhase = .idle
     /// Every phase of the last change, in order, for tests.
     package private(set) var trace: [SiteChangePhase] = []
+    /// The `.test` hostname of each site that the run served when the last change ended, by site
+    /// ID. Readers use it instead of the run itself, which serves no site during a restart.
+    package private(set) var servedHostnames: [UUID: String] = [:]
 
     /// - Parameter forwardedHosts: The saved public hostnames that the sites restore from a forwarder.
     package init(
@@ -77,6 +80,7 @@ public actor SiteChangeTransaction {
     /// prevents the change's rollback from restarting a run, and then stops the run.
     public func requestStop() async {
         await coordinator.stop()
+        servedHostnames = [:]
     }
 
     /// Moves to `next` and records it. The only place that changes the phase.
@@ -97,15 +101,27 @@ public actor SiteChangeTransaction {
         return try await holding(body)
     }
 
-    /// Runs `body` while the gate is held, then opens it. The stop ticket is taken before the
-    /// first suspension, so a Stop at any later moment ends the change.
+    /// Runs `body` while the gate is held, records what the run serves, then opens the gate. The
+    /// stop ticket is taken before the first step, so a Stop at any later moment ends the change.
     private func holding<Result: Sendable>(_ body: (StopTicket) async throws -> Result) async throws -> Result {
         trace = []
-        defer {
-            phase = .idle
-            gate.leave()
-        }
         let ticket = await coordinator.ticket()
-        return try await body(ticket)
+        do {
+            let result = try await body(ticket)
+            await end()
+            return result
+        } catch {
+            await end()
+            throw error
+        }
+    }
+
+    /// The end of every change, also a failed one.
+    private func end() async {
+        let sites = await coordinator.runningPlan()?.sites.map(\.site) ?? []
+        // A plan has each site once; the merge only keeps a duplicate from trapping.
+        servedHostnames = Dictionary(sites.map { ($0.id, $0.hostname) }) { first, _ in first }
+        phase = .idle
+        gate.leave()
     }
 }

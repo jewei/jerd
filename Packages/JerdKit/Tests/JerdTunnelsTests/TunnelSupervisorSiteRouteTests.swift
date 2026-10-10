@@ -76,4 +76,44 @@ import Testing
         #expect(await fixture.connector.launches.isEmpty)
         #expect(await fixture.state() == .stopped)
     }
+
+    /// A launch that has no connector yet when the site stops would otherwise start with a name
+    /// that no site serves, and no later check would see it.
+    @Test func aLaunchInProgressToASiteThatIsGoneStops() async throws {
+        let fixture = try await SupervisorFixture()
+        defer { fixture.folder.remove() }
+        var local = fixture.registration
+        local.routing = .local
+        local.siteID = siteID
+        try await fixture.supervisor.save(local)
+        await fixture.connector.hold("connect")
+        let starting = Task { try await fixture.supervisor.start(id: fixture.id) }
+        await fixture.connector.waitForHeld("connect", count: 1)
+        let checking = Task { await fixture.supervisor.stopRoutesToUnservedSites([:]) }
+        await fixture.reach(.stopping)
+        await fixture.connector.release("connect")
+        await checking.value
+        _ = await starting.result
+        #expect(await fixture.state() == .failed(TunnelMessage.siteRouteStopped))
+        #expect(await fixture.connector.owned.isEmpty)
+    }
+
+    /// The name of a launch in progress is not known yet; it resolves the site as the run
+    /// serves it now, so a served site keeps the launch.
+    @Test func aLaunchInProgressToAServedSiteContinues() async throws {
+        let fixture = try await SupervisorFixture()
+        defer { fixture.folder.remove() }
+        var local = fixture.registration
+        local.routing = .local
+        local.siteID = siteID
+        try await fixture.supervisor.save(local)
+        await fixture.connector.hold("connect")
+        let starting = Task { try await fixture.supervisor.start(id: fixture.id) }
+        await fixture.connector.waitForHeld("connect", count: 1)
+        await fixture.supervisor.stopRoutesToUnservedSites([siteID: "renamed.test"])
+        await fixture.connector.release("connect")
+        try await starting.value
+        #expect(await fixture.state()?.isActive == true)
+        try await fixture.supervisor.stop(id: fixture.id)
+    }
 }

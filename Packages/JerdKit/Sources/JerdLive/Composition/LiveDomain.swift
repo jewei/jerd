@@ -63,7 +63,7 @@ package struct LiveDomain: Sendable {
             sites: LiveTunnelSiteResolver(sites: web.transaction, registry: web.registry, layout: layout.environment),
             processes: processes)
         tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
-        siteChanges = RouteGuardedSiteChanges(changes: web.transaction, environment: web.coordinator, routes: tunnels)
+        siteChanges = RouteGuardedSiteChanges(changes: web.transaction, served: web.transaction, routes: tunnels)
         developmentRuntimes = DevelopmentRuntimeSetup(
             layout: layout, bootstrap: bootstrap, registry: web.registry, sites: siteChanges)
     }

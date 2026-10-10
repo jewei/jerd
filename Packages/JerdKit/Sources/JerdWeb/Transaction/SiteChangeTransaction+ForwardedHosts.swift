@@ -18,6 +18,8 @@ extension SiteChangeTransaction {
             else { return nil }
             let plan = running.forwarding(try await forwardedHosts.loadForwardedHosts())
             guard plan.forwardedHosts != running.forwardedHosts else { return served }
+            // A Stop of the forwarder during the reads must not start a restart of every site.
+            try Task.checkCancellation()
             try await Task { try await self.restart(running, as: plan, ticket: ticket) }.value
             return served
         }
