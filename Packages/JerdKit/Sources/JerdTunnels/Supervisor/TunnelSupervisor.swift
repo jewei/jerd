@@ -1,10 +1,10 @@
 import Foundation
 import JerdFoundation
 
-/// Controls Jerd's connectors for existing remote Cloudflare tunnels.
+/// Controls Jerd's connectors for existing Cloudflare tunnels.
 ///
 /// Rules:
-/// - No method changes a Cloudflare account, a remote tunnel, a route, or DNS.
+/// - No method changes a Cloudflare account, a remote tunnel route, or DNS.
 /// - Tokens live in the secret store, never in settings, arguments, or logs.
 /// - Load and Save never connect. `connectStartupTunnels()` connects only on request.
 /// - Each tunnel has one work slot keyed by generation, and one reducer

@@ -2,7 +2,7 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 
-/// A checked token of an existing, remotely managed Cloudflare tunnel.
+/// A checked token of an existing Cloudflare tunnel.
 ///
 /// The token is standard base64 of the JSON `{"a": <account tag>, "t": <tunnel UUID>, "s": <secret>}`.
 /// Its text never appears in a description, a dump, or a mirror, so a log statement cannot leak it.

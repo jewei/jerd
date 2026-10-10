@@ -1,10 +1,9 @@
 import Foundation
 
-/// One connector for an existing, remotely managed Cloudflare tunnel. The hostname and the origin
-/// are references for the user; Jerd never changes DNS or tunnel routes.
+/// One connector for an existing Cloudflare tunnel. Local routing configures only this connector.
 ///
 /// The stored keys are a compatibility contract: `id, name, hostname, siteID?, originURL?,
-/// startOnLaunch, restartOnFailure, metricsPort`. Optional values are omitted when nil.
+/// startOnLaunch, restartOnFailure, metricsPort, routing?`. Missing routing means Cloudflare.
 public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Sendable {
     /// The first metrics port that Jerd suggests.
     public static let defaultMetricsPort: UInt16 = 20_241
@@ -17,6 +16,8 @@ public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Se
     public var siteID: UUID?
     /// A local HTTP or HTTPS address that the route points to, when no site is chosen.
     public var originURL: String?
+    /// Earlier registrations keep Cloudflare routing until the user chooses local routing.
+    public var routing: TunnelRouting
     /// Connect when Jerd opens. Saving a registration never connects.
     public var startOnLaunch: Bool
     /// Start a new connector after an unexpected exit, with backoff.
@@ -26,13 +27,15 @@ public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Se
 
     public init(
         id: UUID = UUID(), name: String, hostname: String, siteID: UUID? = nil, originURL: String? = nil,
-        startOnLaunch: Bool = false, restartOnFailure: Bool = true, metricsPort: UInt16 = defaultMetricsPort
+        startOnLaunch: Bool = false, restartOnFailure: Bool = true, metricsPort: UInt16 = defaultMetricsPort,
+        routing: TunnelRouting = .cloudflare
     ) {
         self.id = id
         self.name = name
         self.hostname = hostname
         self.siteID = siteID
         self.originURL = originURL
+        self.routing = routing
         self.startOnLaunch = startOnLaunch
         self.restartOnFailure = restartOnFailure
         self.metricsPort = metricsPort

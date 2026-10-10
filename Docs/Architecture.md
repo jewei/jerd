@@ -28,6 +28,12 @@ small port protocol with its own value types. `JerdLive` implements the port
 with the other domain. This keeps each target buildable, testable, and
 reviewable alone.
 
+For local tunnel routing, `JerdTunnels.TunnelSiteResolving` supplies the current
+site hostname and installation CA. `JerdLive.LiveTunnelSiteResolver` reads the
+web registry and checks that the site is running. The connector resolves this
+again on each launch, including a retry. Cloudflare-managed registrations keep
+an empty local configuration and do not call this port.
+
 ## Targets
 
 | Target | Responsibility |
@@ -45,7 +51,7 @@ reviewable alone.
 | `JerdDatabases` | MySQL, PostgreSQL, and Redis definitions, the service registry, retained registrations, and the database manager |
 | `JerdMail` | The Mailpit definition, mail settings, test messages, and the mail manager |
 | `JerdStorage` | The RustFS definition, the S3 signer, transport, and parsers, bucket policies, bucket provisioning, and the storage manager |
-| `JerdTunnels` | Tunnel tokens, the Keychain secret store, the cloudflared connector, the reconnect policy, and the tunnel supervisor |
+| `JerdTunnels` | Tunnel tokens, the Keychain secret store, local route rendering, the cloudflared connector, the reconnect policy, and the tunnel supervisor |
 | `JerdDesign` | Design tokens and reusable SwiftUI components |
 | `JerdUI` | Navigation, feature view models, screens, and the port protocols that the UI needs |
 | `JerdLive` | Live implementations of the UI ports, the composition of the live domain, and the launch steps |

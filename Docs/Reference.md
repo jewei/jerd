@@ -110,10 +110,18 @@ private (mode 0700).
 | `tunnels/settings.previous.json` | The registrations before the last save |
 | `tunnels/instances/<UUID>/service.lock` | The lock of the connector |
 | `tunnels/instances/<UUID>/active-run.json` | The run record of cloudflared |
-| `tunnels/instances/<UUID>/config.yml` | The empty cloudflared configuration (`{}`) |
+| `tunnels/instances/<UUID>/config.yml` | The local route and HTTPS settings, or `{}` for Cloudflare-managed routes; no token |
 | `tunnels/instances/<UUID>/server.log` | The output of the current connector run |
 | `tunnels/instances/<UUID>/server.previous.log` | The output of earlier runs (at most 4 MiB) |
 | `tunnels/instances/<UUID>/home` | The private `HOME` of cloudflared |
+
+Tunnel registrations can include `routing: "local"`. An absent `routing` key means
+`"cloudflare"`, so earlier registrations keep their existing remote routes. Saves
+omit that default key. The schema version and all earlier keys stay unchanged.
+New registrations made in the editor default to local routing. A local connector
+configuration accepts only the registered public hostname and returns 404 for
+other hostnames. Linked sites use Jerd's loopback HTTPS listener, their `.test`
+hostname for HTTP and TLS, and the installation CA above.
 
 ## Locks
 

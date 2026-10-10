@@ -40,9 +40,21 @@ import Testing
         #expect(loaded.runtime?.id == "cloudflared-2026.9.3")
         #expect(loaded.tunnels.first?.id == UUID(uuidString: "32394787-9B89-41AE-A065-57520475754A"))
         #expect(loaded.tunnels.first?.siteID == nil)
+        #expect(loaded.tunnels.first?.routing == .cloudflare)
         try store.save(loaded)
         #expect(text(layout.settingsFile) == Self.golden)
         #expect(text(layout.previousSettingsFile) == Self.golden)
+    }
+
+    @Test func localRoutingRoundTripsWithoutChangingTheOtherSavedKeys() throws {
+        let earlier = try JSONDecoder().decode(TunnelConfiguration.self, from: Data(Self.golden.utf8))
+        var local = earlier
+        local.tunnels[0].routing = .local
+        let bytes = try JSONEncoder().encode(local)
+        #expect(String(decoding: bytes, as: UTF8.self).contains("\"routing\":\"local\""))
+        let decoded = try JSONDecoder().decode(TunnelConfiguration.self, from: bytes)
+        #expect(decoded == local)
+        #expect(decoded.schemaVersion == earlier.schemaVersion)
     }
 
     /// Settings that an earlier build wrote with an IP address as hostname. That build accepted it;

@@ -3,11 +3,11 @@ import Foundation
 import JerdFoundation
 import JerdProcess
 
-/// Starts and stops cloudflared connectors for existing remote tunnels. It owns only the processes
+/// Starts and stops cloudflared connectors for existing tunnels. It owns only the processes
 /// that it started and never signals any other cloudflared on the Mac.
 ///
 /// A launch holds `service.lock`, refuses to start beside a live earlier process, checks the runtime
-/// version and that the metrics port is free, writes an empty `config.yml`, keeps the earlier log,
+/// version and that the metrics port is free, writes the private `config.yml`, keeps the earlier log,
 /// spawns cloudflared in its own process group, and saves `active-run.json`. A stop is graceful
 /// (SIGTERM, 30 s, never SIGKILL); a timeout keeps the process, its lock, and its record.
 public actor CloudflaredConnector: TunnelConnecting {
@@ -23,6 +23,7 @@ public actor CloudflaredConnector: TunnelConnecting {
     let gate: StartGate
     let recorder: ActiveRunRecorder
     let stopPolicy: StopPolicy
+    let sites: (any TunnelSiteResolving)?
     /// Connectors that run, by registration ID.
     var owned: [UUID: OwnedConnector] = [:]
     /// Registrations with a launch in progress, so a second launch cannot begin.
@@ -32,7 +33,7 @@ public actor CloudflaredConnector: TunnelConnecting {
         layout: TunnelsLayout, processes: any ProcessControlling = ProcessSupervisor(),
         commands: any CommandRunning = CommandRunner(), ports: LoopbackPortGuard = LoopbackPortGuard(),
         gate: StartGate = StartGate(), recorder: ActiveRunRecorder = ActiveRunRecorder(),
-        stopPolicy: StopPolicy = .graceful()
+        stopPolicy: StopPolicy = .graceful(), sites: (any TunnelSiteResolving)? = nil
     ) {
         self.layout = layout
         self.processes = processes
@@ -41,6 +42,7 @@ public actor CloudflaredConnector: TunnelConnecting {
         self.gate = gate
         self.recorder = recorder
         self.stopPolicy = stopPolicy
+        self.sites = sites
     }
 
     public func inspectRuntime(executable: URL) async throws -> TunnelRuntime {
@@ -109,14 +111,22 @@ public actor CloudflaredConnector: TunnelConnecting {
         try ConnectorLogHistory(instance: layout.instance(id)).recent(limit: Self.logViewBytes)
     }
 
-    /// Checks the runtime and the port, writes the empty configuration, and keeps the earlier log.
+    /// Resolves the current site at every launch, including retries after an unexpected exit.
     private func prepare(_ launch: TunnelLaunch, instance: TunnelInstanceLayout) async throws {
         let inspected = try await inspectRuntime(executable: launch.runtime.executable)
         guard inspected.version == launch.runtime.version else {
             throw JerdError.unavailable(TunnelMessage.versionMismatch)
         }
         try await ports.requireFree(launch.registration.metricsPort)
-        try AtomicFile.write(CloudflaredCommand.emptyConfiguration, to: instance.configurationFile)
+        let registration = launch.registration
+        var site: TunnelSiteDestination?
+        if registration.routing == .local, let id = registration.siteID {
+            guard let sites else {
+                throw JerdError.unavailable("Load the selected Jerd site before connecting this tunnel.")
+            }
+            site = try await sites.destination(for: id)
+        }
+        try AtomicFile.write(CloudflaredConfiguration.render(registration, site: site), to: instance.configurationFile)
         try ConnectorLogHistory(instance: instance).archiveCurrent()
         try Task.checkCancellation()
     }

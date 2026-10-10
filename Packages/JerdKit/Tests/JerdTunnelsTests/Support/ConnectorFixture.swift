@@ -16,7 +16,10 @@ struct ConnectorFixture {
     let runtime: TunnelRuntime
     let registration = TunnelRegistration(name: "Preview", hostname: "preview.example.com")
 
-    init(capture: @escaping ActiveRunRecorder.Capture = ConnectorFixture.fakeIdentity) throws {
+    init(
+        capture: @escaping ActiveRunRecorder.Capture = ConnectorFixture.fakeIdentity,
+        sites: (any TunnelSiteResolving)? = nil
+    ) throws {
         folder = try TemporaryDirectory(" tunnels")
         let runtimeFolder = folder.url.appendingPathComponent("runtime", isDirectory: true)
         try FileManager.default.createDirectory(at: runtimeFolder, withIntermediateDirectories: true)
@@ -28,7 +31,7 @@ struct ConnectorFixture {
             commands: portCommands, probe: LoopbackProbe(isAccepting: { _ in false }, requireBindable: { _ in }))
         connector = CloudflaredConnector(
             layout: folder.layout, processes: processes, commands: commands, ports: ports,
-            recorder: ActiveRunRecorder(capture: capture))
+            recorder: ActiveRunRecorder(capture: capture), sites: sites)
     }
 
     var instance: TunnelInstanceLayout { folder.layout.instance(registration.id) }

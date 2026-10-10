@@ -7,6 +7,64 @@ import JerdTunnels
 import Testing
 
 @Suite struct CloudflaredConnectorTests {
+    @Test func cloudflareRoutingNeverRequiresTheReferencedSite() async throws {
+        let sites = FakeTunnelSiteResolver()
+        await sites.fail()
+        let fixture = try ConnectorFixture(sites: sites)
+        defer { fixture.folder.remove() }
+        var registration = fixture.registration
+        registration.siteID = UUID()
+        let handle = try await fixture.connector.connect(
+            TunnelLaunch(
+                runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid)))
+        #expect(contents(fixture.instance.configurationFile) == Data("{}\n".utf8))
+        #expect(await sites.requests.isEmpty)
+        try await fixture.connector.disconnect(handle)
+    }
+
+    @Test func localRoutingIsWrittenBeforeSpawnAndResolvesTheSiteAgainOnRestart() async throws {
+        let sites = FakeTunnelSiteResolver()
+        let fixture = try ConnectorFixture(sites: sites)
+        defer { fixture.folder.remove() }
+        var registration = fixture.registration
+        registration.routing = .local
+        registration.siteID = UUID()
+        let launch = TunnelLaunch(
+            runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid))
+        let first = try await fixture.connector.connect(launch)
+        let firstConfig = text(fixture.instance.configurationFile)
+        #expect(firstConfig.contains("shop.test"))
+        #expect(!firstConfig.contains(TokenSamples.valid))
+        #expect(!firstConfig.contains(TokenSamples.secret))
+        try await fixture.connector.disconnect(first)
+        await sites.rename("renamed.test")
+        let second = try await fixture.connector.connect(launch)
+        #expect(text(fixture.instance.configurationFile).contains("renamed.test"))
+        #expect(!text(fixture.instance.configurationFile).contains("shop.test"))
+        #expect(await sites.requests.count == 2)
+        try await fixture.connector.disconnect(second)
+    }
+
+    @Test func anUnavailableLocalSiteStopsBeforeSpawnAndKeepsThePreviousConfig() async throws {
+        let sites = FakeTunnelSiteResolver()
+        await sites.fail()
+        let fixture = try ConnectorFixture(sites: sites)
+        defer { fixture.folder.remove() }
+        try OwnedDirectory.create(fixture.instance.root)
+        try AtomicFile.write(Data("previous config".utf8), to: fixture.instance.configurationFile)
+        var registration = fixture.registration
+        registration.routing = .local
+        registration.siteID = UUID()
+        await #expect(throws: JerdError.unavailable("Start the linked site first.")) {
+            try await fixture.connector.connect(
+                TunnelLaunch(
+                    runtime: fixture.runtime, registration: registration, token: try TunnelToken(TokenSamples.valid)))
+        }
+        #expect(await fixture.processes.started.isEmpty)
+        #expect(text(fixture.instance.configurationFile) == "previous config")
+        #expect(fixture.lockIsFree())
+    }
+
     @Test func aLaunchPreparesTheFolderLocksItAndSavesTheRunRecord() async throws {
         let fixture = try ConnectorFixture()
         defer { fixture.folder.remove() }

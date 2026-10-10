@@ -56,7 +56,10 @@ package struct LiveDomain: Sendable {
         databases = DatabaseManager(layout: layout.databases, effects: effects)
         mail = MailManager(layout: layout, effects: effects)
         storage = StorageManager(layout: layout, effects: effects)
-        connector = CloudflaredConnector(layout: layout.tunnels, processes: processes)
+        connector = CloudflaredConnector(
+            layout: layout.tunnels, processes: processes,
+            sites: LiveTunnelSiteResolver(
+                registry: web.registry, environment: web.coordinator, layout: layout.environment))
         tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
     }
 
