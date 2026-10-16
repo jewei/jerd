@@ -8,7 +8,8 @@ Jerd is a native macOS app for local PHP development. It does these tasks:
   PHP version of the registered project that contains the current folder.
 - It manages MySQL, PostgreSQL, and Redis services, a Mailpit inbox for test
   mail, and RustFS storage with an S3 API.
-- It runs connectors for Cloudflare Tunnels that you already have.
+- It creates Cloudflare Tunnels with their DNS record for you, and runs
+  connectors for tunnels that you already have.
 - It can set the route of a locally managed tunnel to a site, with verified
   HTTPS, or to a local address. The public hostname must already point to the
   tunnel in Cloudflare. Jerd warns you when a connected tunnel's hostname has no
@@ -81,7 +82,8 @@ Jerd keeps its data in `~/Library/Application Support/Jerd`. The helper keeps
 its records in `/Library/Application Support/JerdHelper`. To remove all data,
 first remove the system setup. Then quit Jerd and delete these two folders.
 The second folder needs administrator approval. Also remove the tunnel tokens
-(service `dev.jerd.cloudflared.tunnel-token`) in Keychain Access.
+(service `dev.jerd.cloudflared.tunnel-token`) and the Cloudflare API token
+(service `dev.jerd.cloudflare.api-token`) in Keychain Access.
 
 ## Privacy and safety
 
@@ -91,7 +93,9 @@ The second folder needs administrator approval. Also remove the tunnel tokens
 - PHP, the web server, and the data services run as your user, not as root.
 - Jerd never deletes a project folder. Stop and Quit keep your databases,
   captured mail, buckets, objects, and credentials.
-- Jerd keeps tunnel tokens only in your Keychain.
+- Jerd keeps tunnel tokens and the Cloudflare API token only in your Keychain.
+- Jerd changes Cloudflare only when you create or delete a tunnel. It never
+  replaces a DNS record, and it never deletes a tunnel that it did not create.
 - When Jerd finds a damaged settings file, it keeps the file and tells you. It
   does not replace the file with empty settings.
 

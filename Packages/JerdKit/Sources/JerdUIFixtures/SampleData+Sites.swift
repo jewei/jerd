@@ -74,6 +74,18 @@ extension SampleData {
         id: previewTunnelID, name: "Studio preview", hostname: "preview.example.com", siteID: studioID,
         metricsPort: 20_241, routing: .local)
     /// The states of the sample tunnels: the user connected Studio preview after Studio started.
+    /// The domains of the sample Cloudflare account.
+    public static let cloudflareZones = [
+        CloudflareZone(
+            id: String(repeating: "b", count: 32), name: "example.com", accountID: String(repeating: "a", count: 32)),
+        CloudflareZone(
+            id: String(repeating: "d", count: 32), name: "example.dev", accountID: String(repeating: "a", count: 32)),
+    ]
+    /// The record of a tunnel that Jerd created in Cloudflare.
+    public static let cloudflareRecord = CloudflareTunnelRecord(
+        accountID: String(repeating: "a", count: 32),
+        tunnelID: UUID(uuidString: "5C1F2B7E-3A48-4C2D-9E61-0B7A8D4F2C11") ?? UUID(),
+        zoneID: String(repeating: "b", count: 32), dnsRecordID: String(repeating: "c", count: 32))
     public static let tunnelStates: [UUID: TunnelState] = [previewTunnelID: .connected]
     public static let docsTunnel = TunnelRegistration(
         id: docsTunnelID, name: "Docs staging", hostname: "docs.example.com", originURL: "http://127.0.0.1:8000",

@@ -124,6 +124,15 @@ becomes a dashboard route, and its connector gets the empty configuration. A
 `routing` value that this build does not know makes the file unreadable. The file
 then stays as it is, and only the tunnels are affected; sites still start.
 
+A registration of a tunnel that Jerd created has a `cloudflare` object with
+`accountID`, `tunnelID`, `zoneID`, and `dnsRecordID`. Saves omit the key for
+other tunnels, so their bytes stay unchanged. Only Create adds the record; an
+edit keeps it and cannot change the public hostname. Remove can then delete the
+DNS record and the tunnel in Cloudflare. An ID that is not 32 lower-case hex
+characters makes the file unreadable, and the file stays as it is. An earlier
+build ignores the key, and its next save drops it: the tunnel then stays
+in Cloudflare, and the user deletes it in the dashboard.
+
 New registrations made in the editor default to local routing, with no local
 address. Only a locally managed tunnel (made with cloudflared) uses a local
 route; for a tunnel from the dashboard, cloudflared uses the dashboard routes.
@@ -179,4 +188,5 @@ A Debug run with another data root uses the domain
 | Item | Name |
 | --- | --- |
 | Tunnel token | Generic password, service `dev.jerd.cloudflared.tunnel-token`, account = the registration UUID in upper case. `TunnelKeychainReferenceTests` checks the service |
+| Cloudflare API token | Generic password, service `dev.jerd.cloudflare.api-token`, account `default`. `CloudflareAccount` reads and writes it |
 | Installation CA | Certificate `Jerd Local CA <installation ID>` in the System keychain, with admin trust settings for TLS. The helper adds and removes it |

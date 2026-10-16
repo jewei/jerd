@@ -1,7 +1,7 @@
 import JerdDesign
 import SwiftUI
 
-/// Add or edit the registration of an existing Cloudflare tunnel. Save never connects.
+/// Create a tunnel in Cloudflare, add an existing one, or edit a registration. Only Create connects.
 struct TunnelEditorSheet: View {
     let model: TunnelsModel
     @Bindable var editor: TunnelEditorModel
@@ -9,21 +9,28 @@ struct TunnelEditorSheet: View {
     var body: some View {
         SheetScaffold(
             editor.title,
-            message: "Connect an existing tunnel to this Mac. Save adds the registration; it does not connect.",
-            size: .wide,
+            message: message, size: .wide,
             confirmation: SheetConfirmation(
-                "Save Registration", isEnabled: editor.canSave && model.canChange, identifier: "tunnel-editor"
+                editor.isCreating ? "Create and Connect" : "Save Registration",
+                isEnabled: editor.canSave && model.canChange, identifier: "tunnel-editor"
             ) {
                 model.save(editor)
             },
             workingMessage: model.operation.workingMessage, cancel: model.cancelEditor
         ) {
             SheetTopMessage(message: topMessage?.text, kind: topMessage?.kind ?? .info, identifier: topIdentifier)
+            if editor.isNew { TunnelEditorSourceSection(model: model, editor: editor) }
             TunnelEditorTunnelSection(editor: editor)
             TunnelEditorDestinationSection(editor: editor)
             startup
-            routeConfirmation
+            if !editor.isCreating { routeConfirmation }
         }
+    }
+
+    private var message: String {
+        editor.isCreating
+            ? "Create a tunnel and its DNS record in Cloudflare, then connect it to this Mac."
+            : "Connect an existing tunnel to this Mac. Save adds the registration; it does not connect."
     }
 
     private var startup: some View {

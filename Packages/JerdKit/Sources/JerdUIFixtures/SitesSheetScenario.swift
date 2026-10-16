@@ -12,6 +12,8 @@ public enum SitesSheetScenario: String, CaseIterable, Sendable {
     case httpsApprovalRunning = "sheet-https-approval-running"
     case httpsApprovalFailure = "sheet-https-approval-failure"
     case tunnelEditorAdd = "sheet-tunnel-editor-add"
+    /// Create in Cloudflare with a connected account, a subdomain, and Studio as destination.
+    case tunnelEditorCreate = "sheet-tunnel-editor-create"
     case tunnelEditorRoute = "sheet-tunnel-editor-route"
     case tunnelEditorEdit = "sheet-tunnel-editor-edit"
     case tunnelEditorFailure = "sheet-tunnel-editor-failure"
@@ -41,7 +43,7 @@ public enum SitesSheetScenario: String, CaseIterable, Sendable {
         switch self {
         case .siteEditorAdd, .siteEditorEdit, .siteEditorFailure: await prepareSiteEditor(fixture)
         case .httpsApproval, .httpsApprovalRunning, .httpsApprovalFailure: await prepareApproval(fixture)
-        case .tunnelEditorAdd, .tunnelEditorRoute, .tunnelEditorEdit, .tunnelEditorFailure:
+        case .tunnelEditorAdd, .tunnelEditorCreate, .tunnelEditorRoute, .tunnelEditorEdit, .tunnelEditorFailure:
             await prepareTunnelEditor(fixture)
         case .tunnelLog, .tunnelLogLong:
             if self == .tunnelLogLong { await fixture.tunnels.configure { $0.logText = SampleData.longTunnelLog } }
@@ -58,7 +60,9 @@ public enum SitesSheetScenario: String, CaseIterable, Sendable {
         case .httpsApproval: return model.sheet?.approval != nil
         case .httpsApprovalRunning: return model.runningApprovalID != nil
         case .httpsApprovalFailure: return model.approvalFailure != nil
-        case .tunnelEditorAdd, .tunnelEditorRoute: return model.tunnels.sheet?.editor?.metricsPort.isEmpty == false
+        case .tunnelEditorAdd, .tunnelEditorCreate, .tunnelEditorRoute:
+            guard let editor = model.tunnels.sheet?.editor else { return false }
+            return !editor.metricsPort.isEmpty && editor.isCloudflareConnected != nil
         case .tunnelEditorFailure: return model.tunnels.sheet?.editor?.failure != nil
         default: return model.sheet != nil || model.tunnels.sheet != nil
         }

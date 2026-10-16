@@ -12,6 +12,7 @@ import Testing
 struct TunnelEditorRouteTests {
     private func filledDraft() -> TunnelEditorModel {
         let editor = TunnelEditorModel(tunnel: nil, sites: [SampleData.studio], suggestedPort: 20_243)
+        editor.source = .existing
         editor.name = "Preview"
         editor.hostname = "preview.example.com"
         editor.token = "token"

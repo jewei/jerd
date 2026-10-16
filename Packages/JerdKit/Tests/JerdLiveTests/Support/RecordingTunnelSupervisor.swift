@@ -21,6 +21,8 @@ actor RecordingTunnelSupervisor: TunnelControlling {
     func suggestedPort() -> UInt16 { 20_241 }
     func save(_ registration: TunnelRegistration, token text: String?) { calls.append("save") }
     func remove(id: UUID) { calls.append("remove") }
+    func create(_ registration: TunnelRegistration, in zone: CloudflareZone) { calls.append("create \(zone.name)") }
+    func removeFromCloudflare(id: UUID) { calls.append("removeFromCloudflare") }
     func start(id: UUID) { calls.append("start \(id)") }
     func stop(id: UUID) { calls.append("stop \(id)") }
 

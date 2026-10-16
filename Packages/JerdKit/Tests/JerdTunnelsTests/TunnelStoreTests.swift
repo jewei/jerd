@@ -75,6 +75,64 @@ import Testing
         #expect(text(folder.layout.settingsFile) == Self.golden)
     }
 
+    /// `goldenLocal` with the record of a tunnel that Jerd created in Cloudflare.
+    static let goldenCreated = """
+        {
+          "runtime" : {
+            "id" : "cloudflared-2026.9.3",
+            "path" : "/Users/me/Library/Application Support/Jerd/runtimes/cloudflared",
+            "version" : "2026.9.3"
+          },
+          "schemaVersion" : 1,
+          "tunnels" : [
+            {
+              "cloudflare" : {
+                "accountID" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "dnsRecordID" : "cccccccccccccccccccccccccccccccc",
+                "tunnelID" : "32394787-9B89-41AE-A065-57520475754A",
+                "zoneID" : "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              },
+              "hostname" : "preview.example.com",
+              "id" : "32394787-9B89-41AE-A065-57520475754A",
+              "metricsPort" : 20241,
+              "name" : "Preview",
+              "originURL" : "http://127.0.0.1:8000",
+              "restartOnFailure" : true,
+              "routing" : "local",
+              "startOnLaunch" : false
+            }
+          ]
+        }
+        """
+
+    @Test func aCreatedTunnelSavesItsCloudflareRecordWithTheExactBytes() throws {
+        let folder = try TemporaryDirectory(" tunnels")
+        defer { folder.remove() }
+        let store = TunnelStore(layout: folder.layout)
+        var configuration = try JSONDecoder().decode(TunnelConfiguration.self, from: Data(Self.goldenLocal.utf8))
+        configuration.tunnels[0].cloudflare = CloudflareTunnelRecord(
+            accountID: String(repeating: "a", count: 32), tunnelID: configuration.tunnels[0].id,
+            zoneID: String(repeating: "b", count: 32), dnsRecordID: String(repeating: "c", count: 32))
+        try store.save(configuration)
+        #expect(text(folder.layout.settingsFile) == Self.goldenCreated)
+        #expect(try store.load() == configuration)
+    }
+
+    /// A record with an ID that could change an API path cannot be read. The file stays as it is.
+    @Test func aCloudflareRecordWithABadIDIsCorruptAndPreserved() throws {
+        let folder = try TemporaryDirectory(" tunnels")
+        defer { folder.remove() }
+        try OwnedDirectory.create(folder.layout.root)
+        let bad = Self.goldenCreated.replacingOccurrences(of: String(repeating: "b", count: 32), with: "../zones")
+        try AtomicFile.write(Data(bad.utf8), to: folder.layout.settingsFile)
+        #expect {
+            try TunnelStore(layout: folder.layout).load()
+        } throws: { error in
+            (error as? JerdError)?.kind == .corrupt
+        }
+        #expect(text(folder.layout.settingsFile) == bad)
+    }
+
     /// A routing value from a later build cannot be read. The file stays as it is.
     @Test func anUnknownRoutingValueIsCorruptAndPreserved() throws {
         let folder = try TemporaryDirectory(" tunnels")

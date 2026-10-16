@@ -125,8 +125,12 @@ These rules protect user data and the user's Mac. Do not weaken them.
 - Never reuse a database folder with a different runtime version.
 - Keep captured mail, buckets, objects, and credentials after Stop and Quit.
 - New buckets are private. Never allow anonymous writes.
-- Keep tunnel tokens out of settings, command arguments, and logs. Save does
-  not connect a tunnel. Never change remote Cloudflare routes.
+- Keep tunnel tokens and the Cloudflare API token out of settings, command
+  arguments, and logs. Save does not connect a tunnel.
+- Change Cloudflare only to create a tunnel and its one DNS record after the
+  user asks, and to delete them after the user confirms. Never replace an
+  existing DNS record. Never change or delete a tunnel or record that Jerd did
+  not create.
 - Keep all data-service listeners on loopback.
 
 ## Compatibility contract
@@ -153,7 +157,8 @@ Implement only the approved features:
 - Provide `php`, `composer`, and `laravel` commands that select PHP from the
   registered project that contains the working directory.
 - Manage independent MySQL, PostgreSQL, and Redis services, a Mailpit inbox,
-  RustFS storage, and connectors for existing Cloudflare Tunnels.
+  RustFS storage, and Cloudflare Tunnels: connectors for existing tunnels, and
+  new tunnels with their DNS record, created through the Cloudflare API.
 - Tabs in this order: Dashboard, Sites, Databases, Storage, Mail. Dashboard
   pages in this order: Dashboard, Appearance, Runtimes, Advanced, About.
 - Independent menu bar and Dock controls, and the shipped icon designs.

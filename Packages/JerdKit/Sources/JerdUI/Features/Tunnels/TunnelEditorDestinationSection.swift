@@ -9,9 +9,11 @@ struct TunnelEditorDestinationSection: View {
 
     var body: some View {
         Section {
-            Picker(TunnelRouteCopy.label, selection: $editor.routing) {
-                ForEach(TunnelRouting.allCases, id: \.self) { routing in
-                    Text(TunnelRouteCopy.setter(routing)).tag(routing)
+            if !editor.isCreating && editor.original?.cloudflare == nil {
+                Picker(TunnelRouteCopy.label, selection: $editor.routing) {
+                    ForEach(TunnelRouting.allCases, id: \.self) { routing in
+                        Text(TunnelRouteCopy.setter(routing)).tag(routing)
+                    }
                 }
             }
             Picker("Local destination", selection: $editor.siteID) {

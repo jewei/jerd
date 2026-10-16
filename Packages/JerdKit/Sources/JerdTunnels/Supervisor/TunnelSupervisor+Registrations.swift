@@ -5,12 +5,16 @@ extension TunnelSupervisor {
     /// Adds or changes a registration. A new token replaces the saved one; nil keeps it.
     ///
     /// Save never connects. When the settings cannot be saved, the token that was there before
-    /// is put back (or the new one is removed).
-    public func save(_ registration: TunnelRegistration, token text: String? = nil) async throws {
+    /// is put back (or the new one is removed). The Cloudflare record always comes from the saved
+    /// settings, so only `create(_:in:)` adds one.
+    public func save(_ edited: TunnelRegistration, token text: String? = nil) async throws {
         try requireLoaded()
         try beginEdit()
         defer { editing = false }
-        guard !isActive(registration.id) else { throw JerdError.unavailable(TunnelMessage.stopBeforeEdit) }
+        guard !isActive(edited.id) else { throw JerdError.unavailable(TunnelMessage.stopBeforeEdit) }
+        var registration = edited
+        registration.cloudflare = configuration.registration(edited.id)?.cloudflare
+        try requireCreatedTunnelKept(registration, token: text)
         try registration.validate()
         let next = configuration.upserting(registration)
         try next.validate()
@@ -39,6 +43,11 @@ extension TunnelSupervisor {
         try beginEdit()
         defer { editing = false }
         guard !isActive(id) else { throw JerdError.unavailable(TunnelMessage.stopBeforeRemove) }
+        try await removeRegistration(id)
+    }
+
+    /// The local part of every Remove: the registration and its token. Callers hold the edit.
+    func removeRegistration(_ id: UUID) async throws {
         guard configuration.registration(id) != nil else { return }
         let previous = try await secrets.read(id: id)
         var next = configuration
@@ -51,6 +60,21 @@ extension TunnelSupervisor {
         }
         configuration = next
         lifecycles[id] = nil
+    }
+
+    /// A tunnel that Jerd created keeps its hostname, which its DNS record names, and its Jerd
+    /// route, because it is locally managed. It accepts only a token of the same remote tunnel.
+    private func requireCreatedTunnelKept(_ registration: TunnelRegistration, token text: String?) throws {
+        guard let record = registration.cloudflare,
+            let saved = configuration.registration(registration.id)
+        else { return }
+        guard saved.hostname == registration.hostname else {
+            throw JerdError.invalid(CloudflareMessage.hostnameFixed)
+        }
+        guard registration.routing == .local else { throw JerdError.invalid(CloudflareMessage.routingFixed) }
+        if let text, try TunnelToken(text).tunnelID != record.tunnelID {
+            throw JerdError.invalid(CloudflareMessage.otherTunnelToken)
+        }
     }
 
     /// Refuses a second registration for the same remote tunnel, also with a rotated token.
