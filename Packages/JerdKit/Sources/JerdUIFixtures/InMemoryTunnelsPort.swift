@@ -19,15 +19,19 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public var saveGate: FixtureGate?
     public var logText = SampleData.tunnelLog
     public var suggestedPortValue: UInt16 = 20_243
+    /// The DNS answer for each public hostname. A name without a value resolves.
+    public var hostnameStatuses: [String: PublicHostnameStatus] = [:]
     public private(set) var calls: [String] = []
 
     /// By default the sample tunnels run as the user left them: Studio preview is connected.
     public init(
         configuration: TunnelConfiguration = SampleData.tunnelConfiguration,
-        states: [UUID: TunnelState] = SampleData.tunnelStates
+        states: [UUID: TunnelState] = SampleData.tunnelStates,
+        hostnameStatuses: [String: PublicHostnameStatus] = [:]
     ) {
         configurationValue = configuration
         self.states = states
+        self.hostnameStatuses = hostnameStatuses
     }
 
     public func configure(_ change: @Sendable (isolated InMemoryTunnelsPort) -> Void) {
@@ -92,6 +96,11 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public func log(id: UUID) async throws -> String {
         try record("log")
         return logText
+    }
+
+    public func publicHostnameStatus(_ hostname: String) async -> PublicHostnameStatus {
+        calls.append("look up \(hostname)")
+        return hostnameStatuses[hostname] ?? .resolves
     }
 
     public func useRuntime(at executable: URL) async throws -> TunnelRuntime {

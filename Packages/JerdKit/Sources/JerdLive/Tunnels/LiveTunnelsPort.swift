@@ -7,9 +7,13 @@ import JerdUI
 /// cancels Quit.
 package struct LiveTunnelsPort: TunnelsPort {
     let supervisor: any TunnelControlling
+    let hostnames: any PublicHostnameResolving
 
-    package init(supervisor: any TunnelControlling) {
+    package init(
+        supervisor: any TunnelControlling, hostnames: any PublicHostnameResolving = PublicHostnameResolver()
+    ) {
         self.supervisor = supervisor
+        self.hostnames = hostnames
     }
 
     package func load() async throws -> TunnelConfiguration {
@@ -58,6 +62,10 @@ package struct LiveTunnelsPort: TunnelsPort {
 
     package func log(id: UUID) async throws -> String {
         try await supervisor.log(id: id)
+    }
+
+    package func publicHostnameStatus(_ hostname: String) async -> PublicHostnameStatus {
+        await hostnames.status(of: hostname)
     }
 
     package func useRuntime(at executable: URL) async throws -> TunnelRuntime {

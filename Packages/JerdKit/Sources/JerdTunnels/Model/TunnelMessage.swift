@@ -60,6 +60,13 @@ package enum TunnelMessage {
     package static let certificateAuthorityMissing =
         "Jerd's local certificate authority is missing. Start the linked site in Sites to set up HTTPS, then connect."
 
+    // Public hostname
+    package static func hostnameMissing(_ hostname: String) -> String {
+        "\(hostname) has no DNS record, so browsers cannot open it. In Cloudflare DNS, add a proxied CNAME "
+            + "record for this name. Its target is the tunnel ID followed by .cfargotunnel.com. macOS can take "
+            + "some minutes to see a new record."
+    }
+
     // Connector
     package static let executableName = "Select an executable named cloudflared."
     package static let noVersion = "The selected executable did not report a cloudflared version."
