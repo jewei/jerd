@@ -19,6 +19,8 @@ public final class TunnelsModel {
     /// Connectors that did not stop, with the reason, shown on their tunnel page.
     public internal(set) var stopFailures: [UUID: String] = [:]
     public internal(set) var isShuttingDown = false
+    /// Connected tunnels whose public hostname has no DNS record, with the message.
+    public internal(set) var hostnameWarnings: [UUID: String] = [:]
     public var sheet: TunnelsSheet?
     public var confirmation: TunnelConfirmation?
     /// Navigation and the window, shared with the Sites model.
@@ -30,6 +32,9 @@ public final class TunnelsModel {
     @ObservationIgnored let clipboard: Clipboard
     @ObservationIgnored var currentWork: Task<Void, Never>?
     @ObservationIgnored var stopWork: [UUID: Task<Void, Never>] = [:]
+    /// The hostname that a lookup checked or checks, by connected tunnel.
+    @ObservationIgnored var checkedHostnames: [UUID: String] = [:]
+    @ObservationIgnored var hostnameCheck: Task<Void, Never>?
 
     public init(
         port: any TunnelsPort, panels: any FilePanelPresenting, workspace: any WorkspaceOpening, clipboard: Clipboard,
@@ -111,6 +116,7 @@ public final class TunnelsModel {
         let latest = Dictionary(await port.snapshots().map { ($0.registration.id, $0) }) { first, _ in first }
         if latestConfiguration != configuration { configuration = latestConfiguration }
         if latest != snapshots { snapshots = latest }
+        checkHostnames()
     }
 
     public func dismissFailure() {

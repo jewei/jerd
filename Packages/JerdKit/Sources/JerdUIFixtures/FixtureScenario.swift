@@ -42,6 +42,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case tunnelFailed = "tunnel-failed"
     case tunnelSettingsIssue = "tunnel-settings-issue"
     case tunnelSiteRemoved = "tunnel-site-removed"
+    /// Studio preview is connected, but its public hostname has no DNS record.
+    case tunnelHostnameMissing = "tunnel-hostname-missing"
 
     /// Long pages also render at a tall size, so every section can be reviewed.
     public var showsFullPage: Bool {

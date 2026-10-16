@@ -2,8 +2,8 @@ import JerdDesign
 import JerdTunnels
 import SwiftUI
 
-/// The public address and what "Connected" means. Jerd never calls the public hostname, so
-/// the page shows no website health result.
+/// The public address and what "Connected" means. Jerd only looks up the public hostname in DNS
+/// and never calls it, so the page shows no website health result.
 struct TunnelConnectionSection: View {
     let model: TunnelsModel
     let tunnel: TunnelRegistration
@@ -16,7 +16,7 @@ struct TunnelConnectionSection: View {
             Text("Connection")
         } footer: {
             FormFooter(
-                "Connected means that Cloudflare accepts this connector. It does not confirm that your website responds. Other connectors can also serve this address."
+                "Connected means that Cloudflare accepts this connector. It does not confirm that your website responds. Jerd checks only that the public address has a DNS record. Other connectors can also serve this address."
             )
         }
     }
