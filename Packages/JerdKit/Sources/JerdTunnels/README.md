@@ -20,10 +20,19 @@ JerdFoundation and JerdProcess.
 | `TunnelSiteRoutes` | Reads the public hostnames of saved local routes for the web run. It never writes. |
 | `TunnelReconnectPolicy` | The pure reducer of each tunnel's lifecycle: backoff, readiness, and failures. |
 | `TunnelAuthFailureClassifier` | Finds a token rejection in anchored cloudflared log lines. |
+| `CloudflareAccount` (`CloudflareProvisioning`), `CloudflareClient`, `CloudflareTransport` | The API token in the Keychain, and the API calls that create and delete a tunnel and its DNS record. |
+| `CloudflareTunnelRecord`, `CloudflareZone` | What Jerd created in Cloudflare, saved with the registration, and the domains of the token. |
 | `PublicHostnameResolver` (`PublicHostnameResolving`), `PublicHostnameStatus` | Looks up the public hostname of a connected tunnel in DNS, so the app can warn about a missing record. |
 | `TunnelState`, `TunnelSnapshot`, `TunnelStartupFailure` | What the app shows. `TunnelSnapshot.settingsIssue` tells the user to edit settings that an earlier build saved and the current rules refuse. |
 
 ## Rules
+
+- Only `create(_:in:)` and `removeFromCloudflare(id:)` change Cloudflare. Create first checks
+  that the hostname has no DNS record, then creates a locally managed tunnel, reads its token,
+  and adds one proxied CNAME. A failure after the tunnel exists deletes it again. Remove deletes
+  the record first, then the tunnel. A registration without `cloudflare` is never deleted there.
+- The Cloudflare API token is only in the Keychain and in the Authorization header. Requests go
+  only to `api.cloudflare.com` without redirects, and each path segment is a checked ID.
 
 - The token is only in the Keychain and in the `TUNNEL_TOKEN` variable of the child. It is not
   in settings, in arguments, or in logs. The log replaces the token and its secret with

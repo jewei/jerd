@@ -1,10 +1,11 @@
 import Foundation
 import JerdFoundation
 
-/// Controls Jerd's connectors for existing Cloudflare tunnels.
+/// Controls Jerd's tunnel connectors, and the tunnels that Jerd creates in Cloudflare.
 ///
 /// Rules:
-/// - No method changes a Cloudflare account, a remote tunnel route, or DNS.
+/// - Only `create(_:in:)` and `removeFromCloudflare(id:)` change Cloudflare, and only the tunnel
+///   and DNS record that Jerd created. No method replaces a record or changes another tunnel.
 /// - Tokens live in the secret store, never in settings, arguments, or logs.
 /// - Load and Save never connect. `connectStartupTunnels()` connects only on request.
 /// - Each tunnel has one work slot keyed by generation, and one reducer
@@ -15,6 +16,7 @@ public actor TunnelSupervisor {
     let store: TunnelStore
     let secrets: any TunnelSecretStoring
     let connector: any TunnelConnecting
+    let cloudflare: any CloudflareProvisioning
     let policy: TunnelReconnectPolicy
     let clock: any TunnelClocking
     let root: URL
@@ -40,12 +42,13 @@ public actor TunnelSupervisor {
 
     public init(
         layout: TunnelsLayout, secrets: any TunnelSecretStoring = TunnelSecretStore(),
-        connector: any TunnelConnecting, policy: TunnelReconnectPolicy = .standard,
-        clock: any TunnelClocking = TunnelClock()
+        connector: any TunnelConnecting, cloudflare: any CloudflareProvisioning = CloudflareAccount(),
+        policy: TunnelReconnectPolicy = .standard, clock: any TunnelClocking = TunnelClock()
     ) {
         store = TunnelStore(layout: layout)
         self.secrets = secrets
         self.connector = connector
+        self.cloudflare = cloudflare
         self.policy = policy
         self.clock = clock
         root = layout.root

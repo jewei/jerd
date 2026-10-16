@@ -2,7 +2,7 @@ import Foundation
 
 extension TunnelRegistration {
     private enum CodingKeys: String, CodingKey {
-        case id, name, hostname, siteID, originURL, startOnLaunch, restartOnFailure, metricsPort, routing
+        case id, name, hostname, siteID, originURL, startOnLaunch, restartOnFailure, metricsPort, routing, cloudflare
     }
 
     /// A registration without `routing` uses the Cloudflare dashboard, as in earlier builds, and
@@ -18,9 +18,10 @@ extension TunnelRegistration {
         restartOnFailure = try values.decode(Bool.self, forKey: .restartOnFailure)
         metricsPort = try values.decode(UInt16.self, forKey: .metricsPort)
         routing = try values.decodeIfPresent(TunnelRouting.self, forKey: .routing) ?? .cloudflare
+        cloudflare = try values.decodeIfPresent(CloudflareTunnelRecord.self, forKey: .cloudflare)
     }
 
-    /// Omitting the default routing key preserves the exact format of earlier registrations.
+    /// Omitting the default routing key and an absent Cloudflare record preserves the exact format of earlier registrations.
     public func encode(to encoder: any Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(id, forKey: .id)
@@ -32,5 +33,6 @@ extension TunnelRegistration {
         try values.encode(restartOnFailure, forKey: .restartOnFailure)
         try values.encode(metricsPort, forKey: .metricsPort)
         if routing != .cloudflare { try values.encode(routing, forKey: .routing) }
+        try values.encodeIfPresent(cloudflare, forKey: .cloudflare)
     }
 }

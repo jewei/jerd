@@ -30,6 +30,7 @@ extension TunnelRegistration {
         if let originURL, siteID != nil || !Self.isLocalOrigin(originURL) {
             throw JerdError.invalid(TunnelMessage.invalidOrigin)
         }
+        try cloudflare?.validate()
     }
 
     /// A local route needs a destination. cloudflared sends the request path unchanged, so an

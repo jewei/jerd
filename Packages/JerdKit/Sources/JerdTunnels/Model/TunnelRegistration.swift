@@ -3,7 +3,8 @@ import Foundation
 /// One connector for an existing Cloudflare tunnel. Local routing configures only this connector.
 ///
 /// The stored keys are a compatibility contract: `id, name, hostname, siteID?, originURL?,
-/// startOnLaunch, restartOnFailure, metricsPort, routing?`. Missing routing means Cloudflare.
+/// startOnLaunch, restartOnFailure, metricsPort, routing?, cloudflare?`. Missing routing means
+/// Cloudflare. Missing `cloudflare` means that the user brought an existing tunnel.
 public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Sendable {
     /// The first metrics port that Jerd suggests.
     public static let defaultMetricsPort: UInt16 = 20_241
@@ -24,11 +25,13 @@ public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Se
     public var restartOnFailure: Bool
     /// The loopback port of the connector's metrics and `/ready` endpoint.
     public var metricsPort: UInt16
+    /// The tunnel and DNS record that Jerd created in Cloudflare, or nil for an existing tunnel.
+    public var cloudflare: CloudflareTunnelRecord?
 
     public init(
         id: UUID = UUID(), name: String, hostname: String, siteID: UUID? = nil, originURL: String? = nil,
         startOnLaunch: Bool = false, restartOnFailure: Bool = true, metricsPort: UInt16 = defaultMetricsPort,
-        routing: TunnelRouting = .cloudflare
+        routing: TunnelRouting = .cloudflare, cloudflare: CloudflareTunnelRecord? = nil
     ) {
         self.id = id
         self.name = name
@@ -39,6 +42,7 @@ public struct TunnelRegistration: Codable, Equatable, Hashable, Identifiable, Se
         self.startOnLaunch = startOnLaunch
         self.restartOnFailure = restartOnFailure
         self.metricsPort = metricsPort
+        self.cloudflare = cloudflare
     }
 
     /// `https://<hostname>`.
