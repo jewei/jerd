@@ -45,6 +45,16 @@ struct LiveTunnelsPortTests {
         #expect(await supervisor.calls == ["useRuntime /runtimes/cloudflared/cloudflared"])
     }
 
+    @Test func hostnameLookupUsesTheResolverAndNotTheSupervisor() async {
+        let supervisor = RecordingTunnelSupervisor()
+        let resolver = FakePublicHostnameResolver(answer: .missing)
+        let port = LiveTunnelsPort(supervisor: supervisor, hostnames: resolver)
+
+        #expect(await port.publicHostnameStatus("dev.example.com") == .missing)
+        #expect(await resolver.hostnames == ["dev.example.com"])
+        #expect(await supervisor.calls.isEmpty)
+    }
+
     /// Stop is written to the app log, as Connect is.
     @Test func stopAndStopAllAreWrittenToTheAppLogLikeConnect() async throws {
         let start = Date().addingTimeInterval(-1)

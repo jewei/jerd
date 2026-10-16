@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The banners of a tunnel page. Each message shows once, with a title: the failed operation,
 /// the reason of a failed connector, a failed connect at launch, a connector that did not
-/// stop, and saved settings that need an edit. Only one banner carries Edit Tunnel….
+/// stop, saved settings that need an edit, and a public hostname without a DNS record. Only one
+/// banner carries Edit Tunnel….
 struct TunnelMessages: View {
     let model: TunnelsModel
     @Environment(\.isQuitting) private var isQuitting
@@ -22,6 +23,13 @@ struct TunnelMessages: View {
             InlineMessage(
                 issue, kind: .warning, title: "These settings need an edit", style: .banner, action: editAction,
                 identifier: "tunnel.settings-issue")
+        }
+        if let warning = model.hostnameWarnings[tunnel.id] {
+            InlineMessage(
+                warning, kind: .warning, title: "The public hostname has no DNS record", style: .banner,
+                action: PageAction("Check Again", identifier: "tunnel.hostname-check") {
+                    model.checkHostnameAgain(tunnel.id)
+                }, identifier: "tunnel.hostname-missing")
         }
     }
 

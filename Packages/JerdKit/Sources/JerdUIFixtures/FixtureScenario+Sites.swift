@@ -64,6 +64,8 @@ extension FixtureScenario {
                     SampleData.docsTunnelID: .failed(
                         "Cloudflare rejected the tunnel token. Edit this tunnel to replace its token."),
                 ])
+        case .tunnelHostnameMissing:
+            return InMemoryTunnelsPort(hostnameStatuses: [SampleData.previewTunnel.hostname: .missing])
         case .sitesStopped, .tunnelStopped, .sitesApproving:
             return InMemoryTunnelsPort(states: [:])
         case .tunnelSettingsIssue:
@@ -109,7 +111,7 @@ extension FixtureScenario {
     /// The page that a Sites scenario shows.
     var sitesDestination: Destination {
         switch self {
-        case .tunnelConnected: .item(.tunnel(SampleData.previewTunnelID))
+        case .tunnelConnected, .tunnelHostnameMissing: .item(.tunnel(SampleData.previewTunnelID))
         case .tunnelStopped, .tunnelFailed, .tunnelSettingsIssue, .tunnelSiteRemoved:
             .item(.tunnel(SampleData.docsTunnelID))
         case .sitesDisabled: .item(.site(SampleData.legacyID))
@@ -142,6 +144,7 @@ extension FixtureScenario {
         switch self {
         case .sitesBusy, .dashboardBusy: fixture.state.sites.operation.isWorking
         case .sitesApproving: fixture.state.sites.runningApprovalID != nil
+        case .tunnelHostnameMissing: !fixture.state.sites.tunnels.hostnameWarnings.isEmpty
         default: true
         }
     }

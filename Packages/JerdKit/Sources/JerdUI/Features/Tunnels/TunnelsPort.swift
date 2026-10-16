@@ -28,6 +28,8 @@ public protocol TunnelsPort: Sendable {
     func connectStartupTunnels() async throws -> [TunnelStartupFailure]
     /// The recent connector output, with the token redacted.
     func log(id: UUID) async throws -> String
+    /// Looks up a public hostname in DNS. It never sends a request to the hostname.
+    func publicHostnameStatus(_ hostname: String) async -> PublicHostnameStatus
     /// Checks a trusted cloudflared executable and uses it for every tunnel.
     func useRuntime(at executable: URL) async throws -> TunnelRuntime
 }

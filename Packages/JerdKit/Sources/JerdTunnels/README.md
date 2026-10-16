@@ -20,6 +20,7 @@ JerdFoundation and JerdProcess.
 | `TunnelSiteRoutes` | Reads the public hostnames of saved local routes for the web run. It never writes. |
 | `TunnelReconnectPolicy` | The pure reducer of each tunnel's lifecycle: backoff, readiness, and failures. |
 | `TunnelAuthFailureClassifier` | Finds a token rejection in anchored cloudflared log lines. |
+| `PublicHostnameResolver` (`PublicHostnameResolving`), `PublicHostnameStatus` | Looks up the public hostname of a connected tunnel in DNS, so the app can warn about a missing record. |
 | `TunnelState`, `TunnelSnapshot`, `TunnelStartupFailure` | What the app shows. `TunnelSnapshot.settingsIssue` tells the user to edit settings that an earlier build saved and the current rules refuse. |
 
 ## Rules
@@ -56,6 +57,9 @@ JerdFoundation and JerdProcess.
   check reads only the output of the current run.
 - "Connected" means that `http://127.0.0.1:<metricsPort>/ready` answers 200 and that the owned
   process is the only listener, on that port only. Jerd never calls the public hostname.
+- After a tunnel connects, the app looks up its public hostname once with the system resolver.
+  Only "no such name" or an empty answer shows a warning; a network failure shows none and is
+  retried on the next refresh.
 - Backoff after an exit: 2, 5, 15, 30, then 60 seconds. It starts again at 2 seconds after
   30 seconds of connection. A retry stops at an error that needs the user.
 - A retry continues only after a timeout, or after a launch failure with
