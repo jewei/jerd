@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+- A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+
 ## [0.1.5] - 2026-10-10
 
 - A damaged tunnel settings file no longer stops your sites from starting or changing.
