@@ -68,6 +68,24 @@ struct TunnelCreateTests {
         #expect(harness.recorder.shown.last == .item(.tunnel(created.id)))
     }
 
+    @Test("A Create that ends after Cancel keeps the tunnel stopped and says so")
+    func cancelledCreateDoesNotConnect() async throws {
+        let (harness, editor) = try await openEditor(connected: true)
+        let model = harness.model.tunnels
+        let gate = FixtureGate()
+        await harness.tunnels.configure { $0.saveGate = gate }
+        editor.subdomain = "dev"
+        editor.originURL = TunnelEditorModel.defaultOrigin
+        let save = model.save(editor)
+        model.cancelEditor()
+        await gate.open()
+        await save?.value
+        let created = try #require(model.registrations.first)
+        #expect(model.state(of: created.id) == .stopped)
+        #expect(model.operation.failureMessage?.contains("before Cancel took effect") == true)
+        #expect(harness.recorder.shown.isEmpty)
+    }
+
     @Test("A failed Create stays in the editor and connects nothing")
     func failedCreateStaysInEditor() async throws {
         let (harness, editor) = try await openEditor(connected: true)

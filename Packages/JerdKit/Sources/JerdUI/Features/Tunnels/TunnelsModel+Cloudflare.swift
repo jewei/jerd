@@ -45,7 +45,13 @@ extension TunnelsModel {
     }
 
     /// Connects a tunnel that Jerd just created, so Create is one step. A failure shows on the page.
-    func connectCreated(_ tunnel: TunnelRegistration) async {
+    /// After Cancel, Jerd never publishes the site: the created tunnel stays stopped.
+    func connectCreated(_ tunnel: TunnelRegistration, afterCancel: Bool) async {
+        guard !afterCancel else {
+            operation = .failed(
+                message: "Jerd created \(tunnel.name) in Cloudflare before Cancel took effect. It is not connected.")
+            return
+        }
         operation = .working("Connecting \(tunnel.name)…")
         do {
             try await port.connect(id: tunnel.id)

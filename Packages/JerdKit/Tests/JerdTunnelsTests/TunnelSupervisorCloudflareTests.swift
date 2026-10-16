@@ -101,6 +101,11 @@ extension TunnelSupervisorCloudflareTests {
         try await supervisor.save(edited, token: nil)
         #expect(
             await supervisor.currentConfiguration().registration(registration.id)?.cloudflare == FakeCloudflare.record)
+        edited.routing = .cloudflare
+        await #expect(throws: JerdError.invalid(CloudflareMessage.routingFixed)) {
+            try await supervisor.save(edited, token: nil)
+        }
+        edited.routing = .local
         edited.hostname = "b.example.com"
         await #expect(throws: JerdError.invalid(CloudflareMessage.hostnameFixed)) {
             try await supervisor.save(edited, token: nil)

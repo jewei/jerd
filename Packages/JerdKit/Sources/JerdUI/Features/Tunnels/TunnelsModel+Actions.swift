@@ -56,11 +56,12 @@ extension TunnelsModel {
                 editor.clearToken()
                 operation = .idle
                 startupFailures[registration.id] = nil
-                if sheet?.editor === editor {
+                let isEditorOpen = sheet?.editor === editor
+                if isEditorOpen {
                     sheet = nil
                     shell.show(.item(.tunnel(registration.id)))
                 }
-                if zone != nil { await connectCreated(registration) }
+                if zone != nil { await connectCreated(registration, afterCancel: !isEditorOpen) }
             } catch {
                 reportEditorFailure(ErrorText.message(for: error), editor: editor)
             }

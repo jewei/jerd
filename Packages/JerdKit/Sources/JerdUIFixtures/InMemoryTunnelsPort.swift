@@ -15,7 +15,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     /// When true, Stop leaves the connector running and throws.
     public var stopFails = false
     public var startupFailures: [TunnelStartupFailure] = []
-    /// When set, Save waits at this gate, so a test can cancel the editor during the save.
+    /// When set, Save and Create wait at this gate, so a test can cancel the editor during the save.
     public var saveGate: FixtureGate?
     public var logText = SampleData.tunnelLog
     public var suggestedPortValue: UInt16 = 20_243
@@ -90,6 +90,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
 
     /// Adds the registration with a sample record, as Create does.
     public func create(_ registration: TunnelRegistration, in zone: CloudflareZone) async throws {
+        if let saveGate { await saveGate.pass() }
         try recordCloudflare("create \(registration.hostname) in \(zone.name)")
         var created = registration
         created.cloudflare = SampleData.cloudflareRecord

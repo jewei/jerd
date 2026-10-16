@@ -62,8 +62,8 @@ extension TunnelSupervisor {
         lifecycles[id] = nil
     }
 
-    /// A tunnel that Jerd created keeps its hostname, which its DNS record names, and accepts only
-    /// a token of the same remote tunnel.
+    /// A tunnel that Jerd created keeps its hostname, which its DNS record names, and its Jerd
+    /// route, because it is locally managed. It accepts only a token of the same remote tunnel.
     private func requireCreatedTunnelKept(_ registration: TunnelRegistration, token text: String?) throws {
         guard let record = registration.cloudflare,
             let saved = configuration.registration(registration.id)
@@ -71,6 +71,7 @@ extension TunnelSupervisor {
         guard saved.hostname == registration.hostname else {
             throw JerdError.invalid(CloudflareMessage.hostnameFixed)
         }
+        guard registration.routing == .local else { throw JerdError.invalid(CloudflareMessage.routingFixed) }
         if let text, try TunnelToken(text).tunnelID != record.tunnelID {
             throw JerdError.invalid(CloudflareMessage.otherTunnelToken)
         }

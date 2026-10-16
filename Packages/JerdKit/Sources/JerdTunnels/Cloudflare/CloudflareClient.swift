@@ -10,7 +10,7 @@ struct CloudflareClient: Sendable {
     /// The active zones that the token can read, in name order.
     func zones() async throws -> [CloudflareZone] {
         var zones: [CloudflareZone] = []
-        for page in 1...20 {
+        for page in 1...100 {
             let response: CloudflareResponse<[ZoneResult]> = try await call(
                 "GET", ["zones"], query: ["status": "active", "per_page": "50", "page": String(page)])
             zones += try response.requireResult().compactMap(\.zone)
@@ -33,19 +33,33 @@ struct CloudflareClient: Sendable {
         return try response.requireResult()
     }
 
-    /// The number of DNS records of any type with exactly this name.
-    func recordCount(zoneID: String, hostname: String) async throws -> Int {
+    /// The DNS records of any type with exactly this name.
+    func records(zoneID: String, hostname: String) async throws -> [RecordResult] {
         let response: CloudflareResponse<[RecordResult]> = try await call(
             "GET", ["zones", zoneID, "dns_records"], query: ["name": hostname])
-        return try response.requireResult().count
+        return try response.requireResult()
+    }
+
+    /// One DNS record, or nil when it is gone.
+    func record(zoneID: String, recordID: String) async throws -> RecordResult? {
+        let (status, body) = try await send("GET", ["zones", zoneID, "dns_records", recordID], query: [:], body: nil)
+        if status == 404 { return nil }
+        return try CloudflareResponse<RecordResult>.decode(status: status, body: body).requireResult()
+    }
+
+    /// True when the tunnel is gone or deleted, so a repeated Remove does not fail.
+    func isTunnelDeleted(accountID: String, tunnelID: UUID) async throws -> Bool {
+        let path = ["accounts", accountID, "cfd_tunnel", tunnelID.uuidString.lowercased()]
+        let (status, body) = try await send("GET", path, query: [:], body: nil)
+        if status == 404 { return true }
+        return try CloudflareResponse<TunnelResult>.decode(status: status, body: body).requireResult().deletedAt
+            != nil
     }
 
     /// A proxied CNAME from the hostname to the tunnel. Returns the record ID.
     func createRoute(zoneID: String, hostname: String, tunnelID: UUID) async throws -> String {
         let body = try JSONEncoder().encode(
-            RouteBody(
-                name: hostname, content: "\(tunnelID.uuidString.lowercased()).cfargotunnel.com",
-                comment: "Created by Jerd"))
+            RouteBody(name: hostname, content: Self.routeTarget(tunnelID), comment: "Created by Jerd"))
         let response: CloudflareResponse<RecordResult> = try await call(
             "POST", ["zones", zoneID, "dns_records"], body: body)
         let id = try response.requireResult().id
@@ -69,6 +83,9 @@ struct CloudflareClient: Sendable {
     func deleteTunnel(accountID: String, tunnelID: UUID) async throws {
         try await delete(["accounts", accountID, "cfd_tunnel", tunnelID.uuidString.lowercased()])
     }
+
+    /// The CNAME content of a tunnel route.
+    static func routeTarget(_ tunnelID: UUID) -> String { "\(tunnelID.uuidString.lowercased()).cfargotunnel.com" }
 
     private func delete(_ path: [String]) async throws {
         let (status, body) = try await send("DELETE", path, query: [:], body: nil)

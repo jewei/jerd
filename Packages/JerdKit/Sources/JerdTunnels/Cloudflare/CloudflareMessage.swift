@@ -10,6 +10,8 @@ package enum CloudflareMessage {
     package static let invalidResponse = "Cloudflare sent a response that Jerd cannot read. Try again later."
     package static let hostnameFixed =
         "Jerd created this tunnel with its DNS record, so its public hostname cannot change. Create a new tunnel instead."
+    package static let routingFixed =
+        "Jerd created this tunnel as locally managed, so Jerd sets its route. Keep the route set by Jerd."
     package static let otherTunnelToken = "This token belongs to another tunnel. Paste a token of this tunnel."
     package static let notCreatedByJerd = "Jerd did not create this tunnel, so it cannot delete it in Cloudflare."
     package static func unreachable(_ detail: String) -> String {

@@ -19,10 +19,23 @@ extension CloudflareClient {
 
     struct TunnelResult: Decodable {
         let id: UUID
+        let deletedAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case deletedAt = "deleted_at"
+        }
     }
 
     struct RecordResult: Decodable {
         let id: String
+        let type: String?
+        let content: String?
+
+        /// True only for a CNAME to this tunnel: the only record that Jerd may delete.
+        func routes(to tunnelID: UUID) -> Bool {
+            type == "CNAME" && content?.lowercased() == CloudflareClient.routeTarget(tunnelID)
+        }
     }
 
     struct RouteBody: Encodable {

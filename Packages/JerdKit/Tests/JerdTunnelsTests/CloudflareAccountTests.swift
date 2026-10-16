@@ -134,18 +134,50 @@ struct CloudflareAccountTests {
     @Test("Deprovision deletes the record first, then the connections, then the tunnel")
     func deprovisionOrder() async throws {
         let account = try await connected()
-        for key in [
-            "DELETE /client/v4/zones/\(FakeCloudflareTransport.zone)/dns_records/\(FakeCloudflareTransport.record)",
-            "DELETE \(FakeCloudflareTransport.tunnelPath)/connections", "DELETE \(FakeCloudflareTransport.tunnelPath)",
-        ] {
-            transport.answer(key, FakeCloudflareTransport.success("null"))
-        }
+        transport.answerRemove()
         try await account.deprovision(FakeCloudflare.record)
+        let recordPath =
+            "/client/v4/zones/\(FakeCloudflareTransport.zone)/dns_records/\(FakeCloudflareTransport.record)"
         #expect(
             transport.keys.dropFirst() == [
-                "DELETE /client/v4/zones/\(FakeCloudflareTransport.zone)/dns_records/\(FakeCloudflareTransport.record)",
+                "GET \(recordPath)", "DELETE \(recordPath)", "GET \(FakeCloudflareTransport.tunnelPath)",
                 "DELETE \(FakeCloudflareTransport.tunnelPath)/connections",
                 "DELETE \(FakeCloudflareTransport.tunnelPath)",
+            ])
+    }
+
+    @Test("A record that the user changed since Create is never deleted")
+    func changedRecordIsKept() async throws {
+        let account = try await connected()
+        transport.answerRemove(route: #"{"id":"\#(FakeCloudflareTransport.record)","type":"A","content":"192.0.2.1"}"#)
+        try await account.deprovision(FakeCloudflare.record)
+        #expect(!transport.keys.contains { $0.hasPrefix("DELETE /client/v4/zones") })
+        #expect(transport.keys.last == "DELETE \(FakeCloudflareTransport.tunnelPath)")
+    }
+
+    @Test("A repeated Remove skips a tunnel that is already deleted")
+    func deletedTunnelIsDone() async throws {
+        let account = try await connected()
+        transport.answerRemove(deletedAt: #""2026-10-16T10:00:00Z""#)
+        try await account.deprovision(FakeCloudflare.record)
+        #expect(transport.keys.last == "GET \(FakeCloudflareTransport.tunnelPath)")
+    }
+
+    @Test("A lost CNAME answer deletes the route that Cloudflare made, then the tunnel")
+    func lostRouteAnswerIsUndone() async throws {
+        let account = try await connected()
+        transport.answerCreate()
+        let records = "/client/v4/zones/\(FakeCloudflareTransport.zone)/dns_records"
+        transport.answer("GET \(records)", FakeCloudflareTransport.success("[\(FakeCloudflareTransport.route)]"))
+        transport.answerNext("GET \(records)", FakeCloudflareTransport.success("[]"))
+        transport.answer("POST \(records)", status: 504, "<html>")
+        transport.answer("DELETE \(records)/\(FakeCloudflareTransport.record)", FakeCloudflareTransport.success("null"))
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.invalidResponse)) {
+            _ = try await account.provision(hostname: "a.example.com", zone: zone, tunnelName: "jerd-a.example.com")
+        }
+        #expect(
+            transport.keys.suffix(2) == [
+                "DELETE \(records)/\(FakeCloudflareTransport.record)", "DELETE \(FakeCloudflareTransport.tunnelPath)",
             ])
     }
 }
