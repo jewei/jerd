@@ -14,4 +14,10 @@ package struct TunnelKeychainItem: Equatable, Hashable, Sendable {
         self.service = service
         account = id.uuidString
     }
+
+    /// An item outside the tunnel-token service, for example the Cloudflare API token.
+    package init(service: String, account: String) {
+        self.service = service
+        self.account = account
+    }
 }
