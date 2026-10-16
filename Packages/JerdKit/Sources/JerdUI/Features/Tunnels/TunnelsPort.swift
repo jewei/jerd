@@ -1,8 +1,9 @@
 import Foundation
 import JerdTunnels
 
-/// The cloudflared connectors for existing Cloudflare tunnels. JerdLive implements it with
-/// `TunnelSupervisor`. No call changes a Cloudflare account, a remote route, or DNS.
+/// The cloudflared connectors, and the tunnels that Jerd creates in Cloudflare. JerdLive implements
+/// it with `TunnelSupervisor` and `CloudflareAccount`. Only `create(_:in:)` and
+/// `removeFromCloudflare(id:)` change Cloudflare, and only what Jerd created.
 public protocol TunnelsPort: Sendable {
     /// Reads the saved settings once. It never connects a tunnel.
     /// - Throws: When the file cannot be read. The file stays as it is.
@@ -18,6 +19,18 @@ public protocol TunnelsPort: Sendable {
     func save(_ registration: TunnelRegistration, token: String?) async throws
     /// Removes a registration and its token. The tunnel and DNS at Cloudflare stay.
     func remove(id: UUID) async throws
+    /// True when a Cloudflare API token is saved.
+    func isCloudflareConnected() async throws -> Bool
+    /// Checks and saves a Cloudflare API token. Returns the zones that it can edit.
+    func connectCloudflare(apiToken: String) async throws -> [CloudflareZone]
+    /// Removes the saved API token. Tunnels and DNS records stay.
+    func disconnectCloudflare() async throws
+    /// The zones of the saved API token.
+    func cloudflareZones() async throws -> [CloudflareZone]
+    /// Creates a tunnel and its DNS record in Cloudflare, and saves the registration. It never connects.
+    func create(_ registration: TunnelRegistration, in zone: CloudflareZone) async throws
+    /// Deletes the tunnel and DNS record that Jerd created, then removes the registration.
+    func removeFromCloudflare(id: UUID) async throws
     /// Starts a connector for one tunnel.
     func connect(id: UUID) async throws
     /// Stops one connector gracefully. A connector that does not stop stays owned.

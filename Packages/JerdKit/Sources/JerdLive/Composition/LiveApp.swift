@@ -37,7 +37,7 @@ public final class LiveApp {
             workspace: SystemWorkspace(), filePanels: SheetFilePanels(), sleeper: TaskSleeper(),
             services: Self.servicePorts(domain, commandLineTools: commandLineTools),
             sites: LiveSitesPort(domain: domain),
-            tunnels: LiveTunnelsPort(supervisor: domain.tunnels))
+            tunnels: LiveTunnelsPort(supervisor: domain.tunnels, cloudflare: domain.cloudflare))
         state = AppState(dependencies: dependencies)
         activity = AppActivityMonitor(state: state, center: notifications)
         activity.start(isAppActive: NSApplication.shared.isActive)

@@ -61,6 +61,7 @@ struct SheetRulesTests {
     @Test("A disabled tunnel Save names its reason, also the route confirmation at the end of the form")
     func tunnelSaveRequirement() {
         let editor = TunnelEditorModel(tunnel: nil, sites: [SampleData.studio], suggestedPort: 20_243)
+        editor.source = .existing
         #expect(
             editor.saveRequirement
                 == "To save, enter a name, a public hostname, a tunnel token, and a local address.")

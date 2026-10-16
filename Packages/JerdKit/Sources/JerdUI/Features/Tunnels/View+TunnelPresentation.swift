@@ -24,6 +24,9 @@ extension View {
         ) { step in
             Button(step.confirmTitle, role: step.isDestructive ? .destructive : nil) { model.confirm() }
                 .keyboardShortcut(step.isDestructive ? nil : .defaultAction)
+            if let title = step.cloudflareDeleteTitle {
+                Button(title, role: .destructive) { model.confirm(deleteInCloudflare: true) }
+            }
             Button("Cancel", role: .cancel) {}
         } message: { step in
             Text(step.message)

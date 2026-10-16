@@ -82,6 +82,7 @@ struct TunnelsModelTests {
         let model = harness.model.tunnels
         model.beginAdd(sites: harness.model.sites)
         let editor = try #require(model.sheet?.editor)
+        editor.source = .existing
         await waitUntil { !editor.metricsPort.isEmpty }
         #expect(editor.metricsPort == "20243")
         editor.name = "Studio preview"

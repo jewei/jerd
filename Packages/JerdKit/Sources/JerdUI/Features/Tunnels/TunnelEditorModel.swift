@@ -3,8 +3,9 @@ import JerdTunnels
 import JerdWeb
 import Observation
 
-/// The draft of the tunnel editor sheet. The token is write-only: an edit starts with an empty
-/// token field, and Cancel and Save clear what the user typed.
+/// The draft of the tunnel editor sheet. A new tunnel is created in Cloudflare or uses the token of
+/// an existing tunnel. Tokens are write-only: an edit starts with empty token fields, and Cancel
+/// and Save clear what the user typed.
 @MainActor
 @Observable
 public final class TunnelEditorModel: Identifiable {
@@ -33,6 +34,17 @@ public final class TunnelEditorModel: Identifiable {
     public var failure: String?
     /// The registered sites that a route can point to.
     public let sites: [Site]
+    /// Where a new tunnel comes from. An edit always uses its existing tunnel.
+    public var source: TunnelSource = .create
+    /// The Cloudflare connection state; nil until Jerd has checked the Keychain.
+    public var isCloudflareConnected: Bool?
+    /// The API token that the user types to connect Cloudflare. It goes only to the Keychain.
+    public var apiToken = ""
+    /// The domains of the connected account, and the selected one.
+    public var zones: [CloudflareZone] = []
+    public var zoneID: String?
+    /// The label in front of the domain. Empty means the domain itself.
+    public var subdomain = ""
 
     public init(tunnel: TunnelRegistration?, sites: [Site], suggestedPort: UInt16? = nil) {
         original = tunnel
@@ -48,6 +60,18 @@ public final class TunnelEditorModel: Identifiable {
     }
 
     public var isNew: Bool { original == nil }
+
+    /// True when Save creates the tunnel and its DNS record in Cloudflare.
+    public var isCreating: Bool { isNew && source == .create }
+
+    /// The selected Cloudflare domain.
+    public var zone: CloudflareZone? { zones.first { $0.id == zoneID } }
+
+    /// The public hostname that Save uses: the domain and subdomain when creating, else the field.
+    public var publicHostname: String {
+        if isCreating { return zone?.hostname(subdomain: subdomain) ?? "" }
+        return hostname.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 
     /// The confirmation of the current route mode (`TunnelRouteCopy.check`). Save needs it in
     /// both modes: a dashboard route can point anywhere, and a dashboard tunnel ignores a Jerd route.
@@ -67,7 +91,10 @@ public final class TunnelEditorModel: Identifiable {
         get { startOnLaunch && canConnectOnLaunch }
         set { startOnLaunch = newValue }
     }
-    public var title: String { isNew ? "Add Cloudflare Tunnel" : "Edit Cloudflare Tunnel" }
+    public var title: String {
+        if isCreating { return "Create Cloudflare Tunnel" }
+        return isNew ? "Add Cloudflare Tunnel" : "Edit Cloudflare Tunnel"
+    }
 
     /// True when the linked site was removed after this registration was saved.
     public var isSiteMissing: Bool {
@@ -80,14 +107,16 @@ public final class TunnelEditorModel: Identifiable {
     }
 
     /// The registration that Save sends: a trimmed name and a lower-case hostname, and an
-    /// origin only without a site.
+    /// origin only without a site. A created tunnel uses a Jerd route, and its hostname as the
+    /// default name.
     public var registration: TunnelRegistration? {
         guard let port = parsedPort else { return nil }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return TunnelRegistration(
-            id: original?.id ?? UUID(), name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            hostname: hostname.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), siteID: siteID,
-            originURL: siteID == nil ? address : nil, startOnLaunch: connectsOnLaunch,
-            restartOnFailure: restartOnFailure, metricsPort: port, routing: routing)
+            id: original?.id ?? UUID(), name: isCreating && trimmedName.isEmpty ? publicHostname : trimmedName,
+            hostname: publicHostname, siteID: siteID, originURL: siteID == nil ? address : nil,
+            startOnLaunch: connectsOnLaunch, restartOnFailure: restartOnFailure, metricsPort: port,
+            routing: isCreating ? .local : routing, cloudflare: original?.cloudflare)
     }
 
     /// The trimmed address, or nil when the field is empty.
@@ -98,7 +127,7 @@ public final class TunnelEditorModel: Identifiable {
 
     /// True while a Jerd route has no destination yet. Save then asks for the address, as for
     /// any empty field, instead of showing a broken rule.
-    private var needsAddress: Bool { routing == .local && siteID == nil && address == nil }
+    private var needsAddress: Bool { (routing == .local || isCreating) && siteID == nil && address == nil }
 
     /// The first broken rule of the filled fields, inline in the sheet. Empty fields say nothing.
     public var validationMessage: String? {
@@ -113,19 +142,22 @@ public final class TunnelEditorModel: Identifiable {
         }
     }
 
-    /// Every rule holds: a valid registration with a destination, a token for a new tunnel, an
-    /// existing site, and the route confirmation.
+    /// Every rule holds: a valid registration with a destination and an existing site. A created
+    /// tunnel needs a connected account and a domain; Jerd makes it locally managed, so it needs no
+    /// route confirmation. Another new tunnel needs a token, and every other save the confirmation.
     public var canSave: Bool {
         guard let registration, !registration.name.isEmpty, !registration.hostname.isEmpty, !needsAddress else {
             return false
         }
-        return validationMessage == nil && routeChecked && !isSiteMissing
-            && (!isNew || !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        guard validationMessage == nil, !isSiteMissing else { return false }
+        if isCreating { return isCloudflareConnected == true && zone != nil }
+        return routeChecked && (!isNew || !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     /// Why Save is off, or nil. A broken rule and a failure have their own message.
     public var saveRequirement: String? {
         guard !canSave, failure == nil, validationMessage == nil else { return nil }
+        if isCreating { return createRequirement }
         var fields = [(name, "a name"), (hostname, "a public hostname")]
         if isNew { fields.append((token, "a tunnel token")) }
         fields.append((metricsPort, "a metrics port"))
@@ -142,8 +174,9 @@ public final class TunnelEditorModel: Identifiable {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// Forgets the typed token.
+    /// Forgets the typed tokens.
     public func clearToken() {
         token = ""
+        apiToken = ""
     }
 }

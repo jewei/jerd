@@ -19,6 +19,11 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public var saveGate: FixtureGate?
     public var logText = SampleData.tunnelLog
     public var suggestedPortValue: UInt16 = 20_243
+    /// True when a Cloudflare API token is saved.
+    public var cloudflareConnected = false
+    public var zones = SampleData.cloudflareZones
+    /// The message of a failed Cloudflare call: Connect, Create, or Remove from Cloudflare.
+    public var cloudflareFailure: String?
     /// The DNS answer for each public hostname. A name without a value resolves.
     public var hostnameStatuses: [String: PublicHostnameStatus] = [:]
     public private(set) var calls: [String] = []
@@ -68,6 +73,34 @@ public actor InMemoryTunnelsPort: TunnelsPort {
         tokens[id] = nil
     }
 
+    public func isCloudflareConnected() async throws -> Bool { cloudflareConnected }
+
+    public func connectCloudflare(apiToken: String) async throws -> [CloudflareZone] {
+        try recordCloudflare("connect cloudflare")
+        cloudflareConnected = true
+        return zones
+    }
+
+    public func disconnectCloudflare() async throws {
+        try record("disconnect cloudflare")
+        cloudflareConnected = false
+    }
+
+    public func cloudflareZones() async throws -> [CloudflareZone] { zones }
+
+    /// Adds the registration with a sample record, as Create does.
+    public func create(_ registration: TunnelRegistration, in zone: CloudflareZone) async throws {
+        try recordCloudflare("create \(registration.hostname) in \(zone.name)")
+        var created = registration
+        created.cloudflare = SampleData.cloudflareRecord
+        configurationValue.tunnels.append(created)
+    }
+
+    public func removeFromCloudflare(id: UUID) async throws {
+        try recordCloudflare("remove from cloudflare \(id.uuidString.prefix(8))")
+        configurationValue.tunnels.removeAll { $0.id == id }
+    }
+
     public func connect(id: UUID) async throws {
         try record("connect \(id.uuidString.prefix(8))")
         states[id] = .connected
@@ -108,6 +141,11 @@ public actor InMemoryTunnelsPort: TunnelsPort {
         let runtime = TunnelRuntime(version: "2025.9.1", directory: executable.deletingLastPathComponent())
         configurationValue.runtime = runtime
         return runtime
+    }
+
+    private func recordCloudflare(_ call: String) throws {
+        try record(call)
+        if let cloudflareFailure { throw JerdError.unavailable(cloudflareFailure) }
     }
 
     private func record(_ call: String) throws {

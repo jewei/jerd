@@ -81,6 +81,7 @@ struct SitesPolicyTests {
     @Test("Tunnel editor: a hostname with a scheme, an IP address, a low port, or a removed site blocks Save")
     func tunnelEditorRules() {
         let editor = TunnelEditorModel(tunnel: nil, sites: [studio], suggestedPort: 20_241)
+        editor.source = .existing
         editor.name = "Preview"
         editor.token = "token"
         editor.originURL = TunnelEditorModel.defaultOrigin

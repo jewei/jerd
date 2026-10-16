@@ -9,6 +9,8 @@ package protocol TunnelControlling: Sendable {
     func suggestedPort() async throws -> UInt16
     func save(_ registration: TunnelRegistration, token text: String?) async throws
     func remove(id: UUID) async throws
+    func create(_ registration: TunnelRegistration, in zone: CloudflareZone) async throws
+    func removeFromCloudflare(id: UUID) async throws
     func start(id: UUID) async throws
     func stop(id: UUID) async throws
     func stopAll() async throws

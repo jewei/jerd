@@ -6,17 +6,20 @@ extension TunnelsModel {
     /// Cloudflare's dashboard, where the user checks routes. Jerd never changes them.
     public static let cloudflareDashboard = URL(string: "https://one.dash.cloudflare.com/")
 
-    /// Opens the editor for a new tunnel and asks for a free metrics port.
-    public func beginAdd(sites: [Site]) {
-        guard canChange else { return }
+    /// Opens the editor for a new tunnel, asks for a free metrics port, and reads the Cloudflare
+    /// connection.
+    @discardableResult
+    public func beginAdd(sites: [Site]) -> Task<Void, Never>? {
+        guard canChange else { return nil }
         let editor = TunnelEditorModel(tunnel: nil, sites: sites)
         sheet = .editor(editor)
-        Task {
+        return Task {
             do {
                 editor.metricsPort = String(try await port.suggestedPort())
             } catch {
                 editor.failure = ErrorText.message(for: error)
             }
+            await loadCloudflare(into: editor)
         }
     }
 
@@ -32,17 +35,24 @@ extension TunnelsModel {
         sheet = nil
     }
 
-    /// Saves the registration and its token. It never connects. A failure shows in the editor
-    /// while it is open, else on the page; only a save from the open editor shows the tunnel.
+    /// Saves the registration and its token, or creates the tunnel in Cloudflare. Only Create
+    /// connects. A failure shows in the editor while it is open, else on the page; only a save
+    /// from the open editor shows the tunnel.
     @discardableResult
     public func save(_ editor: TunnelEditorModel) -> Task<Void, Never>? {
         guard canChange, editor.canSave, let registration = editor.registration else { return nil }
         let token = editor.tokenToSave
+        let zone = editor.isCreating ? editor.zone : nil
         editor.failure = nil
-        operation = .working("Saving \(registration.name)…")
+        operation = .working(
+            zone == nil ? "Saving \(registration.name)…" : "Creating \(registration.hostname) in Cloudflare…")
         let task = Task {
             do {
-                try await port.save(registration, token: token)
+                if let zone {
+                    try await port.create(registration, in: zone)
+                } else {
+                    try await port.save(registration, token: token)
+                }
                 editor.clearToken()
                 operation = .idle
                 startupFailures[registration.id] = nil
@@ -50,6 +60,7 @@ extension TunnelsModel {
                     sheet = nil
                     shell.show(.item(.tunnel(registration.id)))
                 }
+                if zone != nil { await connectCreated(registration) }
             } catch {
                 reportEditorFailure(ErrorText.message(for: error), editor: editor)
             }
@@ -60,7 +71,7 @@ extension TunnelsModel {
     }
 
     /// A failed save shows in its editor while it is open. After Cancel it shows on the page.
-    private func reportEditorFailure(_ message: String, editor: TunnelEditorModel) {
+    func reportEditorFailure(_ message: String, editor: TunnelEditorModel) {
         if sheet?.editor === editor {
             editor.failure = message
             operation = .idle
@@ -69,9 +80,10 @@ extension TunnelsModel {
         }
     }
 
-    /// Runs the confirmed step and clears the confirmation.
+    /// Runs the confirmed step and clears the confirmation. `deleteInCloudflare` also deletes the
+    /// tunnel and DNS record that Jerd created.
     @discardableResult
-    public func confirm() -> Task<Void, Never>? {
+    public func confirm(deleteInCloudflare: Bool = false) -> Task<Void, Never>? {
         guard let step = confirmation else { return nil }
         confirmation = nil
         switch step {
@@ -83,7 +95,11 @@ extension TunnelsModel {
         case .remove(let tunnel):
             return perform("Removing \(tunnel.name)…") { model in
                 if model.isActive(tunnel.id) { try await model.port.stop(id: tunnel.id) }
-                try await model.port.remove(id: tunnel.id)
+                if deleteInCloudflare && tunnel.cloudflare != nil {
+                    try await model.port.removeFromCloudflare(id: tunnel.id)
+                } else {
+                    try await model.port.remove(id: tunnel.id)
+                }
                 model.startupFailures[tunnel.id] = nil
             }
         }

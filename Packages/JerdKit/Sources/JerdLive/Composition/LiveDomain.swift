@@ -36,6 +36,8 @@ package struct LiveDomain: Sendable {
     package let storage: StorageManager
     package let connector: CloudflaredConnector
     package let tunnels: TunnelSupervisor
+    /// The Cloudflare account that creates tunnels. The supervisor and the Tunnels port share it.
+    package let cloudflare = CloudflareAccount()
 
     package init(
         configuration: LiveConfiguration, helper: any HelperControlling = HelperClient(),
@@ -62,7 +64,7 @@ package struct LiveDomain: Sendable {
             layout: layout.tunnels,
             sites: LiveTunnelSiteResolver(sites: web.transaction, registry: web.registry, layout: layout.environment),
             processes: processes)
-        tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector)
+        tunnels = TunnelSupervisor(layout: layout.tunnels, connector: connector, cloudflare: cloudflare)
         siteChanges = RouteGuardedSiteChanges(changes: web.transaction, served: web.transaction, routes: tunnels)
         developmentRuntimes = DevelopmentRuntimeSetup(
             layout: layout, bootstrap: bootstrap, registry: web.registry, sites: siteChanges)
