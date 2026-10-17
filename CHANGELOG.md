@@ -16,6 +16,7 @@ code marks.
 - The Storage page now tells you to install RustFS first when Add Bucket is not available.
 - The Edit Cloudflare Tunnel sheet now says that Save changes the registration. It no longer says that Save adds one.
 - The Advanced page and the shell setup report now describe the PHP selection of php, composer, and laravel with one sentence, and each registered PHP runtime labels its registration ID and default mark.
+- Text on the Runtimes, Advanced, About, Sites, and Mail pages now uses short, active sentences, and the Connection Checks use one result text for both checks.
 
 ## [0.1.5] - 2026-10-10
 

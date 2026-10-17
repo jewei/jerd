@@ -19,7 +19,7 @@ struct SiteChecksSection: View {
         } header: {
             Text("Connection Checks")
         } footer: {
-            FormFooter("PHP-FPM and system HTTPS are checked each time the site starts.")
+            FormFooter("Jerd checks PHP-FPM and system HTTPS each time the site starts.")
         }
     }
 }

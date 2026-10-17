@@ -52,9 +52,9 @@ struct CopyConsistencyTests {
 
     @Test("Before the first check the page says it once; a section footer never repeats it")
     func notCheckedOnce() {
-        #expect(RuntimeCopy.notCheckedMessage.hasPrefix("Updates have not been checked."))
+        #expect(RuntimeCopy.notCheckedMessage.hasPrefix("Jerd has not checked for updates."))
         for kind in RuntimeKind.allCases {
-            #expect(RuntimeCopy.footer(kind, checkedAt: nil)?.contains("not been checked") != true)
+            #expect(RuntimeCopy.footer(kind, checkedAt: nil)?.contains("not checked") != true)
         }
     }
 

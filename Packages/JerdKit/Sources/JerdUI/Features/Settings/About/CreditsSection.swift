@@ -29,7 +29,7 @@ struct CreditsSection: View {
             Text("Credits")
         } footer: {
             FormFooter(
-                "Made by Jerd contributors. These projects belong to their respective authors. Their license terms apply. License notices are included with the managed runtimes."
+                "Made by Jerd contributors. These projects belong to their respective authors. Their license terms apply. The managed runtimes include their license notices."
             )
         }
     }

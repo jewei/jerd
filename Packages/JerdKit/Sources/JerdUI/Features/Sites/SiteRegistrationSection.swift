@@ -11,7 +11,7 @@ struct SiteRegistrationSection: View {
         Section {
             ActionRow(
                 "Site availability",
-                detail: site.isEnabled ? "Included when you start all sites." : "Excluded when you start all sites."
+                detail: site.isEnabled ? "Start All Sites includes this site." : "Start All Sites skips this site."
             ) {
                 Button(site.isEnabled ? "Disable Site" : "Enable Site") { model.setEnabled(site, !site.isEnabled) }
                     .disabled(!model.canChange)

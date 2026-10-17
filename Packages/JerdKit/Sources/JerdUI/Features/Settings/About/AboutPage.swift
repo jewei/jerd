@@ -24,7 +24,7 @@ struct AboutPage: View {
             CreditsSection()
             Section {
                 Text(
-                    "Jerd is intended for local development. It does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project and is not affiliated with Laravel or the projects listed above."
+                    "Use Jerd only for local development. Jerd does not isolate project code from your user account. Use trusted projects and keep backups of important data. Jerd is an independent project. It has no affiliation with Laravel or the projects above."
                 )
                 .textRole(.detail)
                 .fixedSize(horizontal: false, vertical: true)

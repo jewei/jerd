@@ -28,7 +28,7 @@ struct HTTPSRecoverySection: View {
         } header: {
             Text("Interrupted HTTPS Setup")
         } footer: {
-            FormFooter("Sites cannot start until this setup is recovered.")
+            FormFooter("Sites cannot start until you recover this setup.")
         }
     }
 

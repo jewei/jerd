@@ -10,7 +10,7 @@ import JerdWeb
 /// usable with the runtimes the user has, and Advanced shows the setup message.
 package actor DevelopmentRuntimeSetup {
     package static let readyMessage =
-        "PHP, Caddy, Composer, and the Laravel installer are installed and managed by Jerd."
+        "Jerd installs and manages PHP, Caddy, Composer, and the Laravel installer."
 
     let registry: any SiteConfigurationLoading
     let sites: any SiteChangeApplying
