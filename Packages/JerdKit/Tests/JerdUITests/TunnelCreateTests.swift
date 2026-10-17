@@ -110,6 +110,58 @@ struct TunnelCreateTests {
         #expect(await !harness.tunnels.cloudflareConnected)
     }
 
+    @Test("A failed Keychain read shows the error and the Connect field")
+    func failedKeychainReadShowsConnect() async throws {
+        let port = InMemoryTunnelsPort(configuration: TunnelConfiguration(), states: [:])
+        await port.configure { $0.cloudflareReadFailure = "Jerd cannot read the Keychain." }
+        let harness = await SitesHarness.launched(tunnels: port)
+        await harness.model.tunnels.beginAdd(sites: harness.model.sites)?.value
+        let editor = try #require(harness.model.tunnels.sheet?.editor)
+        #expect(editor.isCloudflareConnected == false)
+        #expect(editor.failure == "Jerd cannot read the Keychain.")
+    }
+
+    @Test("A failed domain load shows in the editor, and Load Domains loads them again")
+    func failedZoneLoadCanBeRetried() async throws {
+        let port = InMemoryTunnelsPort(configuration: TunnelConfiguration(), states: [:])
+        await port.configure {
+            $0.cloudflareConnected = true
+            $0.zonesFailure = "Jerd cannot reach the Cloudflare API."
+        }
+        let harness = await SitesHarness.launched(tunnels: port)
+        let model = harness.model.tunnels
+        await model.beginAdd(sites: harness.model.sites)?.value
+        let editor = try #require(model.sheet?.editor)
+        #expect(editor.failure == "Jerd cannot reach the Cloudflare API.")
+        #expect(editor.zones.isEmpty)
+        #expect(model.operation == .idle)
+        await port.configure { $0.zonesFailure = nil }
+        await model.loadCloudflareZones(editor)?.value
+        #expect(editor.failure == nil)
+        #expect(editor.zones == SampleData.cloudflareZones)
+    }
+
+    @Test("Disconnect is off while the domains load, so a late answer cannot connect the account again")
+    func disconnectWaitsForZoneLoad() async throws {
+        let port = InMemoryTunnelsPort(configuration: TunnelConfiguration(), states: [:])
+        let gate = FixtureGate()
+        await port.configure {
+            $0.cloudflareConnected = true
+            $0.zonesGate = gate
+        }
+        let harness = await SitesHarness.launched(tunnels: port)
+        let model = harness.model.tunnels
+        let open = model.beginAdd(sites: harness.model.sites)
+        while await !gate.isHolding { await Task.yield() }
+        let editor = try #require(model.sheet?.editor)
+        #expect(!model.canChange)
+        #expect(model.disconnectCloudflare(editor) == nil)
+        await gate.open()
+        await open?.value
+        #expect(model.canChange)
+        #expect(editor.zones == SampleData.cloudflareZones)
+    }
+
     @Test("Remove offers to delete in Cloudflare only for a tunnel that Jerd created")
     func removeChoices() async throws {
         var created = SampleData.docsTunnel

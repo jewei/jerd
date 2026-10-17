@@ -5,18 +5,29 @@ extension TunnelsModel {
     /// Cloudflare's API token page, where the user creates the token that Jerd asks for.
     public static let cloudflareTokenPage = URL(string: "https://dash.cloudflare.com/profile/api-tokens")
 
-    /// Reads the Cloudflare connection and its domains into a new editor. A failure shows in the
-    /// editor; "Use an existing token" still works.
+    /// Reads the Cloudflare connection and its domains into a new editor. A failed Keychain read
+    /// shows the Connect field, so a new API token can replace the saved one. The domain load is an
+    /// operation, so Disconnect cannot run while it waits.
     func loadCloudflare(into editor: TunnelEditorModel) async {
+        let isConnected: Bool
         do {
-            guard try await port.isCloudflareConnected() else {
-                editor.isCloudflareConnected = false
-                return
-            }
-            editor.isCloudflareConnected = true
-            editor.useZones(try await port.cloudflareZones())
+            isConnected = try await port.isCloudflareConnected()
         } catch {
+            editor.isCloudflareConnected = false
             editor.failure = ErrorText.message(for: error)
+            return
+        }
+        editor.isCloudflareConnected = isConnected
+        // Keep a failed port suggestion in view.
+        if isConnected { await loadCloudflareZones(editor, clearsFailure: false)?.value }
+    }
+
+    /// Loads the domains of the connected account again, for example after a network failure.
+    @discardableResult
+    public func loadCloudflareZones(_ editor: TunnelEditorModel, clearsFailure: Bool = true) -> Task<Void, Never>? {
+        guard canChange else { return nil }
+        return runAccountStep("Loading Cloudflare domains…", editor: editor, clearsFailure: clearsFailure) { model in
+            editor.useZones(try await model.port.cloudflareZones())
         }
     }
 
@@ -64,10 +75,10 @@ extension TunnelsModel {
     }
 
     private func runAccountStep(
-        _ message: String, editor: TunnelEditorModel,
+        _ message: String, editor: TunnelEditorModel, clearsFailure: Bool = true,
         _ work: @escaping @MainActor (TunnelsModel) async throws -> Void
     ) -> Task<Void, Never> {
-        editor.failure = nil
+        if clearsFailure { editor.failure = nil }
         operation = .working(message)
         let task = Task {
             do {

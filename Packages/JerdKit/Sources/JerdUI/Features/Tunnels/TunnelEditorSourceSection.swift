@@ -50,6 +50,11 @@ struct TunnelEditorSourceSection: View {
             TextField("Subdomain", text: $editor.subdomain, prompt: Text("dev"))
                 .accessibilityIdentifier("tunnel-editor.subdomain")
             ValueRow("Public address", value: "https://\(editor.publicHostname)", isCode: true)
+            if editor.zones.isEmpty && !model.operation.isWorking {
+                ActionRow("Domains", detail: "Jerd has no domains of this account. Load them again.") {
+                    Button("Load Domains") { model.loadCloudflareZones(editor) }.disabled(!model.canChange)
+                }
+            }
             ActionRow("Cloudflare account", detail: "Jerd keeps the API token in your macOS Keychain.") {
                 Button("Disconnect") { model.disconnectCloudflare(editor) }.disabled(!model.canChange)
             }
