@@ -22,7 +22,7 @@ struct SidebarPlaceholder: View {
     var body: some View {
         Text(text)
             .textRole(.detail)
-            .lineLimit(2...3)
+            .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, Spacing.tight)
             .selectionDisabled()
