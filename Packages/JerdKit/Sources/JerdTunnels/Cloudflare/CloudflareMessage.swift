@@ -32,4 +32,16 @@ package enum CloudflareMessage {
         "\(failure) Jerd could not delete the new tunnel \(tunnelName) in Cloudflare: \(detail) "
             + "Delete it in the Cloudflare dashboard."
     }
+    package static func keychainRead(_ status: Int32) -> String {
+        "Cannot read the Cloudflare API token from Keychain (\(status))."
+    }
+    package static func keychainAdd(_ status: Int32) -> String {
+        "Cannot save the Cloudflare API token in Keychain (\(status))."
+    }
+    package static func keychainUpdate(_ status: Int32) -> String {
+        "Cannot update the Cloudflare API token in Keychain (\(status))."
+    }
+    package static func keychainRemove(_ status: Int32) -> String {
+        "Cannot remove the Cloudflare API token from Keychain (\(status))."
+    }
 }

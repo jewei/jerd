@@ -180,4 +180,27 @@ struct CloudflareAccountTests {
                 "DELETE \(records)/\(FakeCloudflareTransport.record)", "DELETE \(FakeCloudflareTransport.tunnelPath)",
             ])
     }
+
+    @Test("A Keychain failure of the API token names the Cloudflare API token, not a tunnel token")
+    func keychainFailuresNameTheAPIToken() async throws {
+        let account = try await connected()
+        let locked = errSecInteractionNotAllowed
+        keychain.state.withLock { $0.forcedStatus = locked }
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.keychainRead(locked))) {
+            _ = try await account.isConnected()
+        }
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.keychainRemove(locked))) {
+            try await account.disconnect()
+        }
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.keychainUpdate(locked))) {
+            _ = try await account.connect(apiToken: "api-token")
+        }
+        keychain.state.withLock { $0.forcedStatus = errSecItemNotFound }
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.keychainAdd(errSecItemNotFound))) {
+            _ = try await account.connect(apiToken: "api-token")
+        }
+        #expect(
+            CloudflareMessage.keychainRemove(locked) == "Cannot remove the Cloudflare API token from Keychain (-25308)."
+        )
+    }
 }

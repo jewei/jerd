@@ -12,6 +12,7 @@ code marks.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
 - When the Jerd helper is turned off in Login Items or is not registered, starting sites now tells you what to do and offers Open Login Items or Reconnect Helper.
+- A Keychain failure of the Cloudflare API token now names the Cloudflare API token, not a tunnel token.
 
 ## [0.1.5] - 2026-10-10
 
