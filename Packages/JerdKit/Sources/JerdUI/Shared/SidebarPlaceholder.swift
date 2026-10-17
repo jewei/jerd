@@ -15,13 +15,15 @@ struct SidebarPlaceholder: View {
         switch loadState {
         case .loading: "Loading \(items)…"
         case .loaded: "No \(items) added"
-        case .failed: "\(settings) settings could not be loaded"
+        case .failed: "\(settings) settings did not load"
         }
     }
 
     var body: some View {
         Text(text)
             .textRole(.detail)
+            .lineLimit(2...3)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, Spacing.tight)
             .selectionDisabled()
     }

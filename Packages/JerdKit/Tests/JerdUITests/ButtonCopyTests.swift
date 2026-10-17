@@ -65,6 +65,6 @@ struct ButtonCopyTests {
         #expect(SidebarPlaceholder.text(for: .loaded, items: "services", settings: "Database") == "No services added")
         #expect(
             SidebarPlaceholder.text(for: .failed(message: "x"), items: "buckets", settings: "Storage")
-                == "Storage settings could not be loaded")
+                == "Storage settings did not load")
     }
 }
