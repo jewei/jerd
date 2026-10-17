@@ -45,6 +45,8 @@ extension ServiceScenario {
             state.storage.beginAddBucket()
             state.storage.bucketDraft = BucketDraft(name: "Studio_Uploads", publicRead: true)
         case .storagePorts:
+            // Ports can change only while storage is stopped, as in the app.
+            await state.storage.stop()?.value
             state.storage.editPorts()
         case .mail:
             await state.mail.sendTestEmail()?.value
