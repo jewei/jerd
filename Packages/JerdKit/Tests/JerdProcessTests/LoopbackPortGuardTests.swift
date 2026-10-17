@@ -65,6 +65,38 @@ import Testing
         }
     }
 
+    /// A credentialed probe may run only while the owned process alone listens on each port.
+    @Test func onlyListenerRequiresTheOwnedLoopbackListenerAndNoOtherProcess() async throws {
+        let pid: pid_t = 4_242
+        let own = CommandResult(status: 0, output: "p4242\nf5\nn127.0.0.1:5432\nf6\nn127.0.0.1:9187\n")
+        let mine = CommandResult(status: 0, output: "p4242\n")
+        #expect(
+            try await guarded([LsofQuery.tcp(of: pid): own, LsofQuery.listeners(on: 5_432): mine])
+                .isOnlyListener(pid: pid, on: [5_432]))
+        let shared = CommandResult(status: 0, output: "p4242\np777\n")
+        #expect(
+            try await !guarded([LsofQuery.tcp(of: pid): own, LsofQuery.listeners(on: 5_432): shared])
+                .isOnlyListener(pid: pid, on: [5_432]))
+        let elsewhere = CommandResult(status: 0, output: "p4242\nf5\nn*:5432\n")
+        #expect(
+            try await !guarded([LsofQuery.tcp(of: pid): elsewhere, LsofQuery.listeners(on: 5_432): mine])
+                .isOnlyListener(pid: pid, on: [5_432]))
+        #expect(
+            try await !guarded([LsofQuery.tcp(of: pid): CommandResult(status: 1, output: "")])
+                .isOnlyListener(pid: pid, on: [5_432]))
+        #expect(try await guarded([:]).isOnlyListener(pid: pid, on: []))
+    }
+
+    @Test func onlyListenerDoesNotTreatAFailedPortInspectionAsSafe() async {
+        let pid: pid_t = 4_242
+        let own = CommandResult(status: 0, output: "p4242\nf5\nn127.0.0.1:5432\n")
+        let broken = CommandResult(status: 2, output: "lsof: error")
+        await #expect(throws: JerdError.unavailable("Cannot inspect local port 5432. No process was stopped.")) {
+            _ = try await guarded([LsofQuery.tcp(of: pid): own, LsofQuery.listeners(on: 5_432): broken])
+                .isOnlyListener(pid: pid, on: [5_432])
+        }
+    }
+
     @Test func ownershipRequiresExactlyTheExpectedLoopbackListeners() async throws {
         let pid: pid_t = 4_242
         let exact = CommandResult(status: 0, output: "p4242\nf5\nn127.0.0.1:3306\n")
