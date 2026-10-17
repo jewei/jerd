@@ -54,16 +54,6 @@ func makeSparseFile(_ url: URL, size: off_t = longFileSize) throws {
     guard truncate(url.path, size) == 0 else { throw JerdError.unavailable("Cannot resize \(url.path).") }
 }
 
-/// Starts `operation`, waits until it runs, cancels it, and returns its result.
-func cancelWhileRunning<T: Sendable>(
-    after delay: Duration = .milliseconds(100), _ operation: @escaping @Sendable () async throws -> T
-) async -> Result<T, any Error> {
-    let task = Task { try await operation() }
-    try? await Task.sleep(for: delay)
-    task.cancel()
-    return await task.result
-}
-
 /// Starts `operation`, waits until `isRunning` proves that it reached its long work, cancels it, and
 /// returns its result. A fixed delay is not enough under parallel load: the cancellation can then
 /// arrive before the work starts.

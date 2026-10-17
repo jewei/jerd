@@ -48,6 +48,9 @@ extension TunnelSupervisor {
             registration.routing == .local,
             registration.hostname == zone.name || registration.hostname.hasSuffix(".\(zone.name)")
         else { throw JerdError.invalid(TunnelMessage.invalidConfiguration) }
+        guard zone.isCertificateCovered(registration.hostname) else {
+            throw JerdError.invalid(CloudflareMessage.subdomainLevel)
+        }
         try registration.validate()
         try configuration.upserting(registration).validate()
     }

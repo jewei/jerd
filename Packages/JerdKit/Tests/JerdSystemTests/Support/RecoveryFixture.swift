@@ -33,13 +33,8 @@ enum RecoveryFixture {
         return (client, opener)
     }
 
-    /// Lets started tasks run until they wait, without waiting for real time.
-    static func settle() async {
-        for _ in 0..<50 { await Task.yield() }
-    }
-
     /// Returns once `condition` holds, checking between yields.
-    static func until(_ condition: () -> Bool) async {
-        while !condition() { await Task.yield() }
+    static func until(_ condition: () async -> Bool) async {
+        while !(await condition()) { await Task.yield() }
     }
 }

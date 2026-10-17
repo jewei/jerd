@@ -27,6 +27,13 @@ struct CloudflareClient: Sendable {
         return try response.requireResult().id
     }
 
+    /// True when the account has a tunnel with exactly this name that is not deleted.
+    func hasTunnel(accountID: String, name: String) async throws -> Bool {
+        let response: CloudflareResponse<[TunnelResult]> = try await call(
+            "GET", ["accounts", accountID, "cfd_tunnel"], query: ["name": name, "is_deleted": "false"])
+        return try response.requireResult().contains { $0.name == name && $0.deletedAt == nil }
+    }
+
     func tunnelToken(accountID: String, tunnelID: UUID) async throws -> String {
         let response: CloudflareResponse<String> = try await call(
             "GET", ["accounts", accountID, "cfd_tunnel", tunnelID.uuidString.lowercased(), "token"])

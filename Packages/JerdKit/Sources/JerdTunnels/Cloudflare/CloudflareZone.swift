@@ -16,4 +16,13 @@ public struct CloudflareZone: Equatable, Hashable, Identifiable, Sendable {
         let label = subdomain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return label.isEmpty ? name : "\(label).\(name)"
     }
+
+    /// True for the domain itself or one label below it: Cloudflare's free Universal SSL
+    /// certificate covers only these names, so a deeper proxied name fails in the browser.
+    public func isCertificateCovered(_ hostname: String) -> Bool {
+        guard hostname != name else { return true }
+        guard hostname.hasSuffix(".\(name)") else { return false }
+        let label = hostname.dropLast(name.count + 1)
+        return !label.isEmpty && !label.contains(".")
+    }
 }

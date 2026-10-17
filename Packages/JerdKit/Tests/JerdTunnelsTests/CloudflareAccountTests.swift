@@ -64,6 +64,15 @@ struct CloudflareAccountTests {
         }
     }
 
+    @Test("Without a saved token, Remove from Cloudflare says where to connect, not how to create")
+    func deprovisionNeedsToken() async {
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.notConnected)) {
+            try await account.deprovision(FakeCloudflare.record)
+        }
+        #expect(CloudflareMessage.notConnected.contains("Add Cloudflare Tunnel"))
+        #expect(transport.sent.isEmpty)
+    }
+
     @Test("Provision checks the name, creates the tunnel, reads its token, then adds the CNAME")
     func provisionOrder() async throws {
         let account = try await connected()
@@ -92,6 +101,37 @@ struct CloudflareAccountTests {
             _ = try await account.provision(hostname: "a.example.com", zone: zone, tunnelName: "jerd-a.example.com")
         }
         #expect(!transport.keys.contains { $0.hasPrefix("POST") })
+    }
+
+    @Test("A failed Create that left a tunnel with the name asks the user to delete it, and deletes nothing")
+    func leftoverTunnelIsNamed() async throws {
+        let account = try await connected()
+        transport.answerCreate()
+        let tunnels = "/client/v4/accounts/\(FakeCloudflareTransport.account)/cfd_tunnel"
+        transport.answer(
+            "POST \(tunnels)", status: 400, FakeCloudflareTransport.failure(code: 1013, message: "Name exists"))
+        transport.answer(
+            "GET \(tunnels)",
+            FakeCloudflareTransport.success(
+                #"[{"id":"\#(FakeCloudflareTransport.tunnel)","name":"jerd-a.example.com","deleted_at":null}]"#))
+        await #expect(throws: JerdError.partialChange(CloudflareMessage.tunnelExists("jerd-a.example.com"))) {
+            _ = try await account.provision(hostname: "a.example.com", zone: zone, tunnelName: "jerd-a.example.com")
+        }
+        let lookup = try #require(transport.sent.last)
+        #expect(lookup.query == "is_deleted=false&name=jerd-a.example.com")
+        #expect(!transport.keys.contains { $0.hasPrefix("DELETE") })
+    }
+
+    @Test("A failed Create without a tunnel of that name reports the first failure")
+    func failedCreateWithoutLeftover() async throws {
+        let account = try await connected()
+        transport.answerCreate()
+        let tunnels = "/client/v4/accounts/\(FakeCloudflareTransport.account)/cfd_tunnel"
+        transport.answer("POST \(tunnels)", status: 400, FakeCloudflareTransport.failure(code: 1003, message: "Bad"))
+        transport.answer("GET \(tunnels)", FakeCloudflareTransport.success("[]"))
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.failed("Bad (1003)"))) {
+            _ = try await account.provision(hostname: "a.example.com", zone: zone, tunnelName: "jerd-a.example.com")
+        }
     }
 
     @Test("A failed CNAME deletes the new tunnel and reports the first failure")

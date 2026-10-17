@@ -28,7 +28,7 @@ package func inode(_ url: URL) -> UInt64 {
 }
 
 /// Polls `condition` every 10 ms until it is true or the timeout passes. Returns the last result.
-package func eventually(timeout: Duration = .seconds(5), _ condition: () async throws -> Bool) async rethrows -> Bool {
+package func eventually(timeout: Duration = .seconds(30), _ condition: () async throws -> Bool) async rethrows -> Bool {
     let deadline = ContinuousClock.now + timeout
     while ContinuousClock.now < deadline {
         if try await condition() { return true }

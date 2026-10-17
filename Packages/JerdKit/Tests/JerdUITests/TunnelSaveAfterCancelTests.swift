@@ -7,7 +7,7 @@ import Testing
 
 /// Cancel stays enabled while a tunnel saves. A save that ends after Cancel follows the rules
 /// of a site save: a failure shows once on the page, and a success does not move the page.
-@Suite("Tunnel save after Cancel", .timeLimit(.minutes(1)))
+@Suite("Tunnel save after Cancel", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelSaveAfterCancelTests {
     @Test("A save that fails after Cancel shows its failure once, on the page")

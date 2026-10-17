@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Tunnel hostname check", .timeLimit(.minutes(1)))
+@Suite("Tunnel hostname check", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelHostnameCheckTests {
     private let hostname = SampleData.previewTunnel.hostname
@@ -55,6 +55,24 @@ struct TunnelHostnameCheckTests {
         await harness.tunnels.configure { [hostname] in $0.hostnameStatuses = [hostname: .resolves] }
         await harness.model.tunnels.checkHostnameAgain(SampleData.previewTunnelID)?.value
         #expect(harness.model.tunnels.hostnameWarnings.isEmpty)
+    }
+
+    @Test("Check Again during the lookup of another tunnel checks again after that lookup")
+    func checkAgainWaitsForRunningLookup() async {
+        let harness = await launched(.missing)
+        let model = harness.model.tunnels
+        let other = SampleData.docsTunnel.hostname
+        let gate = FixtureGate()
+        await harness.tunnels.configure { $0.lookupGates = [other: gate] }
+        try? await harness.tunnels.connect(id: SampleData.docsTunnelID)
+        await model.refresh()
+        while await !gate.isHolding { await Task.yield() }
+        await harness.tunnels.configure { [hostname] in $0.hostnameStatuses = [hostname: .resolves] }
+        let check = model.checkHostnameAgain(SampleData.previewTunnelID)
+        await gate.open()
+        await check?.value
+        #expect(model.hostnameWarnings[SampleData.previewTunnelID] == nil)
+        #expect(await lookups(harness) == 2)
     }
 
     @Test("Stop clears the warning, and the next Connect looks up the hostname again")

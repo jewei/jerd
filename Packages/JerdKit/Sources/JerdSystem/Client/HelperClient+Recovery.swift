@@ -24,7 +24,7 @@ extension HelperClient {
     /// - Throws: The error of the restart, which names what to do.
     func waitForRunningRestart() async throws {
         guard case .running(_, let task) = automaticRestart else { return }
-        try await Self.wait(for: task, timeout: nil)
+        try await wait(for: task, timeout: nil)
     }
 
     /// Waits until no restart runs. A failed restart is no error here: the caller continues.
@@ -33,7 +33,7 @@ extension HelperClient {
         while case .running(let id, let task) = automaticRestart, !waited.contains(id) {
             waited.insert(id)
             do {
-                try await Self.wait(for: task, timeout: nil)
+                try await wait(for: task, timeout: nil)
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
@@ -50,7 +50,7 @@ extension HelperClient {
         while case .running(let id, let task) = automaticRestart, !joined.contains(id) {
             joined.insert(id)
             do {
-                try await Self.wait(for: task, timeout: nil)
+                try await wait(for: task, timeout: nil)
                 completeJoinedRestart(id)
                 return true
             } catch is CancellationError {
@@ -63,8 +63,10 @@ extension HelperClient {
     }
 
     /// Waits for `task` without cancelling it. Cancellation of the caller or the timeout ends only
-    /// this wait (`ReplyGate`).
-    static func wait(for task: Task<Void, any Error>, timeout: Duration?) async throws {
+    /// this wait (`ReplyGate`). It counts in `restartWaiters` while it waits.
+    func wait(for task: Task<Void, any Error>, timeout: Duration?) async throws {
+        restartWaiters += 1
+        defer { restartWaiters -= 1 }
         try await ReplyGate<Void>.wait(cancellation: .readOnly, timeout: timeout) { gate in
             Task {
                 do {

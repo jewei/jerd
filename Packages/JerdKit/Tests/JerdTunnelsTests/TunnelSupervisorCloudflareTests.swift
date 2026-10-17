@@ -46,6 +46,27 @@ struct TunnelSupervisorCloudflareTests {
         #expect(await cloudflare.calls.isEmpty)
     }
 
+    @Test("Create refuses a hostname two levels below the zone, which the free certificate does not cover")
+    func deepHostnameIsRefused() async throws {
+        defer { folder.remove() }
+        var deep = registration
+        deep.hostname = "app.dev.example.com"
+        await #expect(throws: JerdError.invalid(CloudflareMessage.subdomainLevel)) {
+            try await supervisor.create(deep, in: FakeCloudflareTransport.exampleZone)
+        }
+        #expect(await cloudflare.calls.isEmpty)
+    }
+
+    @Test("The free certificate covers the domain and one level below it")
+    func certificateCoverage() {
+        let zone = FakeCloudflareTransport.exampleZone
+        #expect(zone.isCertificateCovered("example.com"))
+        #expect(zone.isCertificateCovered("dev.example.com"))
+        #expect(!zone.isCertificateCovered("app.dev.example.com"))
+        #expect(!zone.isCertificateCovered("example.org"))
+        #expect(!zone.isCertificateCovered("badexample.com"))
+    }
+
     @Test("A failed save deletes the new token and the Cloudflare resources")
     func failedSaveUndoes() async throws {
         defer { folder.remove() }

@@ -20,13 +20,20 @@ extension TunnelsModel {
         }
     }
 
-    /// Looks up the public hostname again, for example after the user added the DNS record.
+    /// Looks up the public hostname again, for example after the user added the DNS record. While
+    /// another lookup runs, this one waits for it, so the click is never lost.
     @discardableResult
     public func checkHostnameAgain(_ id: UUID) -> Task<Void, Never>? {
-        guard hostnameCheck == nil else { return hostnameCheck }
         checkedHostnames[id] = nil
-        checkHostnames()
-        return hostnameCheck
+        guard let running = hostnameCheck else {
+            checkHostnames()
+            return hostnameCheck
+        }
+        return Task {
+            await running.value
+            checkHostnames()
+            await hostnameCheck?.value
+        }
     }
 
     /// An unknown answer, for example without network, shows no warning and is retried on the
