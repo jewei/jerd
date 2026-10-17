@@ -14,6 +14,7 @@ code marks.
 - When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
 - When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
 - When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
+- Create in Cloudflare now accepts only a subdomain without a dot, because Cloudflare's free certificate covers only one level below the domain.
 
 ## [0.1.5] - 2026-10-10
 

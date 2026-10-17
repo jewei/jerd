@@ -9,6 +9,9 @@ package enum CloudflareMessage {
         "Cloudflare rejected the API token. Create a token with the permissions that Jerd lists, then connect again."
     package static let noZones =
         "The API token cannot edit any domain. Give it Zone: DNS: Edit and Zone: Read for your domain."
+    package static let subdomainLevel =
+        "Enter the subdomain without a dot, for example dev. Cloudflare's free certificate covers only one level "
+        + "below the domain."
     package static let invalidRecord = "The saved Cloudflare record of this tunnel is invalid."
     package static let invalidResponse = "Cloudflare sent a response that Jerd cannot read. Try again later."
     package static let hostnameFixed =

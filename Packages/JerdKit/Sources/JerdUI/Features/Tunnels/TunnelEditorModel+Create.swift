@@ -13,6 +13,12 @@ extension TunnelEditorModel {
         return nil
     }
 
+    /// A subdomain deeper than one level, which Cloudflare's free certificate does not cover.
+    var subdomainMessage: String? {
+        guard isCreating, let zone, !zone.isCertificateCovered(publicHostname) else { return nil }
+        return CloudflareMessage.subdomainLevel
+    }
+
     /// The API token that Connect sends, or nil when the field is empty.
     public var apiTokenToConnect: String? {
         let trimmed = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)

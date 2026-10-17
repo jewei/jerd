@@ -131,6 +131,7 @@ public final class TunnelEditorModel: Identifiable {
 
     /// The first broken rule of the filled fields, inline in the sheet. Empty fields say nothing.
     public var validationMessage: String? {
+        if let subdomainMessage { return subdomainMessage }
         guard !metricsPort.isEmpty else { return nil }
         guard let registration else { return "Enter a metrics port from 1024 to 65535." }
         guard !registration.name.isEmpty, !registration.hostname.isEmpty, !needsAddress else { return nil }

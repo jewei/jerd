@@ -68,6 +68,18 @@ struct TunnelCreateTests {
         #expect(harness.recorder.shown.last == .item(.tunnel(created.id)))
     }
 
+    @Test("A subdomain with a dot is refused, because the free certificate covers one level only")
+    func deepSubdomainIsRefused() async throws {
+        let (_, editor) = try await openEditor(connected: true)
+        editor.subdomain = "app.dev"
+        editor.siteID = SampleData.studioID
+        #expect(editor.validationMessage == CloudflareMessage.subdomainLevel)
+        #expect(!editor.canSave)
+        editor.subdomain = "app"
+        #expect(editor.validationMessage == nil)
+        #expect(editor.canSave)
+    }
+
     @Test("A Create that ends after Cancel keeps the tunnel stopped and says so")
     func cancelledCreateDoesNotConnect() async throws {
         let (harness, editor) = try await openEditor(connected: true)
