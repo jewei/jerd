@@ -17,6 +17,7 @@ code marks.
 - The Edit Cloudflare Tunnel sheet now says that Save changes the registration. It no longer says that Save adds one.
 - The Advanced page and the shell setup report now describe the PHP selection of php, composer, and laravel with one sentence, and each registered PHP runtime labels its registration ID and default mark.
 - Text on the Runtimes, Advanced, About, Sites, and Mail pages now uses short, active sentences, and the Connection Checks use one result text for both checks.
+- A database service page no longer repeats that database files remain after Stop, Quit, or removal.
 
 ## [0.1.5] - 2026-10-10
 
