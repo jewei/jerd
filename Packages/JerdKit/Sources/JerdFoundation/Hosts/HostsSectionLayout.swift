@@ -4,8 +4,10 @@ import Foundation
 /// one parser of the section, for the app-side conflict check and for the helper that writes it.
 ///
 /// Lines end at LF. A marker is a full line, `# BEGIN JERD` or `# END JERD`, with an optional CR.
-/// The section range starts at the BEGIN line (plus one LF before it) and ends after the END line
-/// (plus its LF). Removing that range from a file that Jerd extended gives back the original bytes.
+/// The section range starts at the BEGIN line and ends after the END line (plus its LF). It also
+/// takes the LF before BEGIN only when Jerd wrote that LF: when it is a blank line, or when the
+/// section ends the file. So removing the range from a file that Jerd extended gives back the
+/// original bytes, and never joins two user lines.
 public struct HostsSectionLayout: Sendable {
     /// The first line of the section.
     public static let beginMarker = "# BEGIN JERD"
@@ -50,9 +52,10 @@ public struct HostsSectionLayout: Sendable {
             return HostsSectionLayout(bytes: bytes, section: nil, markersReversed: true)
         }
         let body = lines.filter { $0.lowerBound > begin.upperBound && $0.upperBound < end.lowerBound }
-        let start =
-            begin.lowerBound > 0 && bytes[begin.lowerBound - 1] == lineFeed ? begin.lowerBound - 1 : begin.lowerBound
         let finish = end.upperBound < bytes.count ? end.upperBound + 1 : end.upperBound
+        let start =
+            ownsLineFeed(before: begin.lowerBound, endsFile: finish == bytes.count, in: bytes)
+            ? begin.lowerBound - 1 : begin.lowerBound
         let section = Section(range: start..<finish, mappedNames: mappedNames(body.map { bytes[$0] }))
         return HostsSectionLayout(bytes: bytes, section: section, markersReversed: false)
     }
@@ -67,6 +70,16 @@ public struct HostsSectionLayout: Sendable {
     public var outsideText: String { String(decoding: outside, as: UTF8.self) }
 
     private static let lineFeed: UInt8 = 0x0A
+    private static let carriageReturn: UInt8 = 0x0D
+
+    /// True when the LF before the BEGIN line is Jerd's: a blank line (after an LF or at the start
+    /// of the file), or the separator that Jerd added to a file without a final LF. A user line
+    /// before a section in the middle of the file keeps its LF, so removal never joins two lines.
+    private static func ownsLineFeed(before beginStart: Int, endsFile: Bool, in bytes: [UInt8]) -> Bool {
+        guard beginStart > 0, bytes[beginStart - 1] == lineFeed else { return false }
+        let previous = beginStart > 1 ? bytes[beginStart - 2] : lineFeed
+        return previous == lineFeed || (endsFile && previous != carriageReturn)
+    }
 
     /// The range of each line without its LF.
     private static func lineRanges(_ bytes: [UInt8]) -> [Range<Int>] {
@@ -81,7 +94,7 @@ public struct HostsSectionLayout: Sendable {
     }
 
     private static func isMarker(_ line: ArraySlice<UInt8>, _ marker: String) -> Bool {
-        let content = line.last == 0x0D ? line.dropLast() : line
+        let content = line.last == carriageReturn ? line.dropLast() : line
         return content.elementsEqual(marker.utf8)
     }
 

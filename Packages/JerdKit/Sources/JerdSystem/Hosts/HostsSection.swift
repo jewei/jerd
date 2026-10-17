@@ -39,8 +39,10 @@ public enum HostsSection {
         for host in hostnames.sorted() where HostsMapping.hasMapping(of: host.value, in: outsideText) {
             throw JerdError.invalid("The hostname \(host.value) already has an external hosts mapping.")
         }
-        let block = Array(render(hostnames).utf8)
+        var block = Array(render(hostnames).utf8)
         guard let range = layout.section?.range else { return Data(layout.bytes + block) }
+        // A range without its leading LF keeps the user's line ending, so the block drops its own.
+        if !block.isEmpty, layout.bytes[range.lowerBound] != 0x0A { block.removeFirst() }
         var result = layout.bytes
         result.replaceSubrange(range, with: block)
         return Data(result)
