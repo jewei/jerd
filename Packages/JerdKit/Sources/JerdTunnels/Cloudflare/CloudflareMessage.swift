@@ -31,6 +31,10 @@ package enum CloudflareMessage {
         "\(hostname) already has a DNS record in Cloudflare. Jerd never replaces a record. Choose another name, "
             + "or delete the record in Cloudflare first."
     }
+    package static func tunnelExists(_ tunnelName: String) -> String {
+        "Cloudflare already has a tunnel named \(tunnelName), for example from an earlier Create whose answer was "
+            + "lost. Delete \(tunnelName) in the Cloudflare dashboard, then create the tunnel again."
+    }
     package static func undoFailed(_ failure: String, detail: String) -> String {
         "\(failure) Jerd could not fully undo the new tunnel: \(detail) Check the tunnel and its DNS record in "
             + "the Cloudflare dashboard."
