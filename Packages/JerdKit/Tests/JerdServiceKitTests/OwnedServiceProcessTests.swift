@@ -81,9 +81,11 @@ import Testing
             // Exit detection completes no stop while a group member still runs.
             #expect(await instance.refresh() == .stuck(pid: stuckPID, reason: reason))
             #expect(contents(setup.folder.appendingPathComponent("active-run.json")) == record)
+            let child = try #require(pid_t(text(setup.folder.appendingPathComponent("child.pid")).trimmingCharacters(in: .whitespacesAndNewlines)))
             FileManager.default.createFile(
                 atPath: setup.folder.appendingPathComponent("finish-child").path, contents: nil)
-            try await Task.sleep(for: .milliseconds(100))
+            // Wait for the child's exit, so that the short stop timeout covers only the stop.
+            #expect(await eventually { ProcessExit.hasExited(child) })
             try await instance.stop()
             #expect(await instance.state == .stopped)
             #expect(!exists(setup.folder.appendingPathComponent("active-run.json")))
@@ -120,6 +122,7 @@ import Testing
         #expect(!isLockFree(setup.folder.appendingPathComponent("service.lock")))
         // The fixture ends on SIGINT. A Stop then releases the lock and the record.
         kill(pid, SIGINT)
+        #expect(await eventually { ProcessExit.hasExited(pid) })
         try await instance.stop()
         #expect(await instance.state == .stopped)
         #expect(!exists(record))
@@ -138,6 +141,7 @@ import Testing
         #expect(kill(pid, 0) == 0)
         // The fixture ignores SIGTERM and ends on SIGINT. A retry then stops it.
         kill(pid, SIGINT)
+        #expect(await eventually { ProcessExit.hasExited(pid) })
         try await instance.stop()
         #expect(await instance.state == .stopped)
     }
@@ -184,6 +188,7 @@ import Testing
         #expect(contents(record) == saved)
         #expect(!isLockFree(setup.folder.appendingPathComponent("service.lock")))
         kill(pid, SIGINT)
+        #expect(await eventually { ProcessExit.hasExited(pid) })
         try await instance.stop()
         #expect(await instance.state == .stopped)
     }

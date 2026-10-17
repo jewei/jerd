@@ -79,8 +79,10 @@ import os
             await #expect(throws: (any Error).self) { try await manager.start(service.id) }
             await #expect(throws: (any Error).self) { try await manager.remove(service.id) }
             #expect(contents(instance.activeRunFile) == record)
+            let child = try #require(pid_t(text(instance.file(named: "child.pid")).trimmingCharacters(in: .whitespacesAndNewlines)))
             FileManager.default.createFile(atPath: instance.file(named: "finish-child").path, contents: nil)
-            try await Task.sleep(for: .milliseconds(100))
+            // Wait for the child's exit, so that the short stop timeout covers only the stop.
+            #expect(await eventually { ProcessExit.hasExited(child) })
             try await manager.stop(service.id)
             #expect(await manager.snapshot().state(of: service.id) == .stopped)
             #expect(!exists(instance.activeRunFile))
@@ -121,6 +123,7 @@ import os
             #expect(!isLockFree(instance.lockFile))
             // The supervisor still owns the unreaped fixture, so its PID is not reused yet.
             kill(pid, SIGINT)
+            #expect(await eventually { ProcessExit.hasExited(pid) })
             try await manager.stop(service.id)
             #expect(await manager.snapshot().state(of: service.id) == .stopped)
             #expect(!exists(instance.activeRunFile))
