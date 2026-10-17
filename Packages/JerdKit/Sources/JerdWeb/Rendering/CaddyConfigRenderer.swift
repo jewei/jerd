@@ -9,13 +9,13 @@ import JerdFoundation
 /// known host gets 308 to HTTPS with the full request URI. Within a matched site, only an exact
 /// `X-Forwarded-Host` of its forwarded hosts replaces the Host, with the saved name
 /// (`ForwardedHostRoutePolicy`). The output is deterministic.
-public enum CaddyConfigRenderer {
+package enum CaddyConfigRenderer {
     /// Apple's pretty format with sorted keys and unescaped slashes, as the old generator wrote.
     static let options: JSONSerialization.WritingOptions = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
 
     /// - Throws: `.invalid` for 0 or more than 256 sites, duplicate hostnames, invalid ports, or a
     ///   document root with braces.
-    public static func render(
+    package static func render(
         sites: [CaddySite], authority: LocalAuthority, storage: URL, binding: ListenerBinding
     ) throws -> Data {
         let hostnames = try HostnamePolicy.validateSet(sites.map(\.hostname.value))

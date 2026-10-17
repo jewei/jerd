@@ -2,16 +2,16 @@ import Foundation
 import JerdFoundation
 
 /// What Caddy needs about one site: its validated hostname, its paths, its FPM socket, and the
-/// public hostnames that it restores from a forwarder.
-public struct CaddySite: Equatable, Sendable {
-    public let hostname: Hostname
-    public let projectPath: String
-    public let documentRoot: String
-    public let socket: URL
+/// package hostnames that it restores from a forwarder.
+package struct CaddySite: Equatable, Sendable {
+    package let hostname: Hostname
+    package let projectPath: String
+    package let documentRoot: String
+    package let socket: URL
     /// Sorted, so the output is deterministic (`ForwardedHostRoutePolicy`).
     package let forwardedHosts: [PublicHostname]
 
-    public init(hostname: Hostname, projectPath: String, documentRoot: String, socket: URL) {
+    package init(hostname: Hostname, projectPath: String, documentRoot: String, socket: URL) {
         self.init(
             hostname: hostname, projectPath: projectPath, documentRoot: documentRoot, socket: socket, forwardedHosts: []
         )
@@ -27,6 +27,6 @@ public struct CaddySite: Equatable, Sendable {
         self.forwardedHosts = forwardedHosts.sorted()
     }
 
-    /// Laravel's `public/storage` link is public only when the document root is a separate folder.
+    /// Laravel's `package/storage` link is package only when the document root is a separate folder.
     var servesProjectRoot: Bool { documentRoot == projectPath }
 }

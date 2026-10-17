@@ -5,14 +5,14 @@ import JerdFoundation
 ///
 /// The file has no `user` or `group` line: FPM runs as the app user, and the engine refuses to
 /// run as root. The socket is private (`listen.mode = 0600`) in a private folder.
-public enum FPMPoolRenderer {
+package enum FPMPoolRenderer {
     /// FPM's built-in ping path. It runs no project file.
-    public static let pingPath = "/.jerd/fpm-ping"
+    package static let pingPath = "/.jerd/fpm-ping"
     /// The body of a successful ping.
-    public static let pingResponse = "Jerd FPM is ready."
+    package static let pingResponse = "Jerd FPM is ready."
 
     /// - Throws: `.invalid` when the socket path is 104 bytes or longer, or cannot be quoted.
-    public static func render(socket: URL) throws -> String {
+    package static func render(socket: URL) throws -> String {
         guard socket.path.utf8.count < RunLayout.socketPathLimit else {
             throw JerdError.invalid("PHP socket path is too long.")
         }

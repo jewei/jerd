@@ -12,13 +12,13 @@ import JerdFoundation
 ///    FPM runs exactly this script (`SCRIPT_FILENAME`); see `PHPIniPolicy.fpm` for why.
 /// 7. Any other PHP-like file answers 404, so source never reaches the static server.
 /// 8. Everything else is a static file, with source and secrets hidden.
-public enum SiteRoutePolicy {
+package enum SiteRoutePolicy {
     /// The readiness path of the HTTPS server.
-    public static let healthPath = "/.jerd/ready"
+    package static let healthPath = "/.jerd/ready"
     /// The readiness body.
-    public static let healthResponse = "Jerd is ready."
+    package static let healthResponse = "Jerd is ready."
     /// Files that the static server never lists or serves.
-    public static let hiddenFiles = [
+    package static let hiddenFiles = [
         ".git", ".env", "*.php", "*.PHP", "*.php[0-9]", "*.pht", "*.phtml", "*.phar", "*.phps", "*.phpt", "*.inc",
     ]
 
@@ -30,18 +30,18 @@ public enum SiteRoutePolicy {
     /// for this one prefix only. The route also requires an existing regular file and refuses
     /// every PHP-like or otherwise denied name, and it uses the static server only. So it can
     /// never run PHP, and a hidden file (`/.well-known/.env`) or a missing path still answers 404.
-    public static let wellKnownPattern = "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
+    package static let wellKnownPattern = "^/\\.well-known/([^./][^/]*/)*[^./][^/]*$"
 
     /// Any PHP-like file name, also with a suffix (`.php5`, `.pht`, `.phtml`, `.php.txt`, `.inc`).
     ///
     /// The list covers every extension that PHP-FPM, Apache (`.ph(ar|p|tml)`, `.pht`, `.php[3-8]`,
     /// `.phps` source), and nginx setups commonly hand to PHP or show as PHP source, plus `.phpt` tests.
-    public static let phpLikePattern = "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
+    package static let phpLikePattern = "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
 
     /// The 404 pattern: any dot segment, private folders, Composer files, `artisan`, PHP below
     /// `/storage/`, `.php` followed by anything but `/`, and PHP-like suffixes. Case-insensitive.
     /// `storage` is private too when the document root is the project root.
-    public static func deniedPathPattern(servesProjectRoot: Bool) -> String {
+    package static func deniedPathPattern(servesProjectRoot: Bool) -> String {
         "(?i)(^|/)\\.|" + sensitiveAlternatives(servesProjectRoot: servesProjectRoot)
     }
 

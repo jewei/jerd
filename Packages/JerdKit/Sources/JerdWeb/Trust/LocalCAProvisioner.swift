@@ -6,14 +6,14 @@ import JerdProcess
 ///
 /// `caddy validate` with a PKI-only configuration creates the CA in Caddy's storage. It opens no
 /// listener and never installs trust. Approval of the CA is the helper's job, not this type's.
-public struct LocalCAProvisioner: Sendable {
+package struct LocalCAProvisioner: Sendable {
     /// The timeout of the CA creation command.
-    public static let commandTimeout: Duration = .seconds(15)
+    package static let commandTimeout: Duration = .seconds(15)
 
     private let environment: EnvironmentLayout
     private let commands: any CommandRunning
 
-    public init(environment: EnvironmentLayout, commands: any CommandRunning = CommandRunner()) {
+    package init(environment: EnvironmentLayout, commands: any CommandRunning = CommandRunner()) {
         self.environment = environment
         self.commands = commands
     }
@@ -22,7 +22,7 @@ public struct LocalCAProvisioner: Sendable {
     ///
     /// Creation holds the web environment lock, so it cannot race the engine or recovery of
     /// another Jerd instance.
-    public func provision(installationID: UUID, caddy: CaddyRuntime) async throws -> LocalCertificateAuthority {
+    package func provision(installationID: UUID, caddy: CaddyRuntime) async throws -> LocalCertificateAuthority {
         if FileProbe.presence(at: environment.rootCertificateFile) == .absent {
             try await create(installationID: installationID, caddy: caddy)
         }
@@ -30,7 +30,7 @@ public struct LocalCAProvisioner: Sendable {
     }
 
     /// The saved installation CA, read strictly and checked against the installation ID.
-    public func load(installationID: UUID) throws -> LocalCertificateAuthority {
+    package func load(installationID: UUID) throws -> LocalCertificateAuthority {
         let authority = try LocalCertificateAuthority.read(environment.rootCertificateFile)
         try InstallationCertificate.validate(authority.der, installationID: installationID)
         return authority

@@ -3,7 +3,7 @@ import Foundation
 /// The bytes of the FastCGI request to FPM's built-in ping handler (protocol version 1, request 1).
 ///
 /// The ping path is answered by FPM itself, so no project file runs.
-public enum FastCGIPingCodec {
+package enum FastCGIPingCodec {
     /// FastCGI record types.
     enum RecordType: UInt8 {
         case beginRequest = 1
@@ -21,7 +21,7 @@ public enum FastCGIPingCodec {
     ]
 
     /// BEGIN_REQUEST (role responder, close after the request), PARAMS, empty PARAMS, empty STDIN.
-    public static func request() -> Data {
+    package static func request() -> Data {
         record(.beginRequest, Data([0, 1, 0, 0, 0, 0, 0, 0])) + record(.parameters, encode(parameters))
             + record(.parameters, Data()) + record(.standardInput, Data())
     }
