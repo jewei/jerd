@@ -33,12 +33,17 @@ public struct SidebarFooter<MenuItems: View>: View {
                         .textRole(.caption)
                         .monospacedDigit()
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .layoutPriority(1)
                         .help(caption)
                 }
             }
             .padding(.horizontal, Spacing.medium)
             .frame(minHeight: Self.rowHeight)
         }
+        // The list scrolls under a safe-area inset, so the footer needs its own backdrop:
+        // without it, rows draw through the Add button and the caption.
+        .background(.bar)
     }
 
     @ViewBuilder private var addControl: some View {
