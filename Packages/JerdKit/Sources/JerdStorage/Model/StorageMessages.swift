@@ -2,7 +2,7 @@ import JerdFoundation
 import JerdServiceKit
 
 /// Every user message of the storage area, in one place.
-public enum StorageMessages {
+enum StorageMessages {
     // MARK: Settings
 
     static let bucketNameInvalid = JerdError.invalid(
