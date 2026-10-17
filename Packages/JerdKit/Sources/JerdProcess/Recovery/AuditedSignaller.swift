@@ -61,7 +61,8 @@ public struct AuditedSignaller: Sendable {
         let code = send(words, signal)
         guard code == 0 || code == ESRCH else {
             throw JerdError.processFailed(
-                "The saved process could not stop safely (\(code)). Its record was preserved.")
+                "The saved process could not be stopped (\(SystemError.describe(code))). Its record was preserved. "
+                    + "Quit the process in Activity Monitor, then inspect recovery again.")
         }
     }
 
