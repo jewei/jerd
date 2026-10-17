@@ -64,6 +64,15 @@ struct CloudflareAccountTests {
         }
     }
 
+    @Test("Without a saved token, Remove from Cloudflare says where to connect, not how to create")
+    func deprovisionNeedsToken() async {
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.notConnected)) {
+            try await account.deprovision(FakeCloudflare.record)
+        }
+        #expect(CloudflareMessage.notConnected.contains("Add Cloudflare Tunnel"))
+        #expect(transport.sent.isEmpty)
+    }
+
     @Test("Provision checks the name, creates the tunnel, reads its token, then adds the CNAME")
     func provisionOrder() async throws {
         let account = try await connected()

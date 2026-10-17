@@ -1,6 +1,8 @@
 /// Every user-visible message of the Cloudflare account and the tunnels that Jerd creates.
 package enum CloudflareMessage {
-    package static let notConnected = "Connect Cloudflare with an API token before you create a tunnel."
+    /// Create and Remove both need the account, and only the editor of a new tunnel can connect it.
+    package static let notConnected =
+        "Connect Cloudflare with an API token first: choose Add Cloudflare Tunnel, then Create in Cloudflare."
     /// The API token permissions that Create needs, in the words of the Cloudflare token page.
     package static let tokenPermissions =
         "Account › Cloudflare Tunnel › Edit, Zone › DNS › Edit, and Zone › Zone › Read"

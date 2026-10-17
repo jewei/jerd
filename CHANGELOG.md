@@ -15,6 +15,7 @@ code marks.
 - When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
 - When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
 - Create in Cloudflare now accepts only a subdomain without a dot, because Cloudflare's free certificate covers only one level below the domain.
+- When Cloudflare is not connected, Remove and Delete in Cloudflare now says where to connect it.
 
 ## [0.1.5] - 2026-10-10
 
