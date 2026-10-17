@@ -13,10 +13,27 @@ import Testing
         #expect(LoopbackProbe.system.isAccepting(listener.port))
     }
 
-    @Test func aClosedPortPassesTheBindCheckAndRefusesConnections() throws {
-        let port = try UnusedLoopbackPort.find()
-        try LoopbackProbe.system.requireBindable(port)
-        #expect(!LoopbackProbe.system.isAccepting(port))
+    /// The bound socket does not listen, and it keeps the port reserved, so no parallel test can
+    /// start a listener on it between the check and the connection.
+    @Test func aBoundPortWithoutAListenerRefusesConnections() throws {
+        let reserved = try LoopbackListener(listening: false)
+        #expect(!LoopbackProbe.system.isAccepting(reserved.port))
+    }
+
+    /// A parallel test can take a found port before the bind check. A real defect fails every
+    /// attempt; such a race fails only one.
+    @Test func aFreePortPassesTheBindCheck() throws {
+        var failures: [String] = []
+        for _ in 0..<5 {
+            let port = try UnusedLoopbackPort.find()
+            do {
+                try LoopbackProbe.system.requireBindable(port)
+                return
+            } catch {
+                failures.append("\(port): \(error)")
+            }
+        }
+        Issue.record("No free port passed the bind check: \(failures.joined(separator: "; "))")
     }
 
     @Test func theRealInspectionSeesAChildListenerAndVerifiesItsOwnership() async throws {
