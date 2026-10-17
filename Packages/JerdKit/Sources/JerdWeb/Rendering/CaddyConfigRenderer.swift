@@ -21,6 +21,23 @@ public enum CaddyConfigRenderer {
         let hostnames = try HostnamePolicy.validateSet(sites.map(\.hostname.value))
         try requireValid(binding)
         let ordered = sites.sorted { $0.hostname < $1.hostname }
+        let routes = try siteRoutes(ordered, binding: binding)
+        let document: JSONValue = [
+            "admin": ["disabled": true],
+            "storage": storageValue(storage),
+            "apps": [
+                "pki": pki(authority),
+                "tls": tls(hostnames: hostnames, authority: authority),
+                "http": http(binding, secure: routes.secure, redirects: routes.redirects),
+            ],
+        ]
+        return try document.serialized(options)
+    }
+
+    /// Each site gets an HTTPS route and an HTTP redirect; both servers end with a 421 fallback.
+    private static func siteRoutes(
+        _ ordered: [CaddySite], binding: ListenerBinding
+    ) throws -> (secure: [JSONValue], redirects: [JSONValue]) {
         var secure: [JSONValue] = []
         var redirects: [JSONValue] = []
         for site in ordered {
@@ -39,25 +56,7 @@ public enum CaddyConfigRenderer {
         }
         secure.append(["handle": [SiteRoutePolicy.response(421)]])
         redirects.append(["handle": [SiteRoutePolicy.response(421)]])
-        let document: JSONValue = [
-            "admin": ["disabled": true],
-            "storage": storageValue(storage),
-            "apps": [
-                "pki": pki(authority),
-                "tls": [
-                    "automation": [
-                        "policies": [
-                            [
-                                "subjects": .array(hostnames.map { .string($0.value) }),
-                                "issuers": [["module": "internal", "ca": .string(authority.id)]],
-                            ]
-                        ]
-                    ]
-                ],
-                "http": http(binding, secure: secure, redirects: redirects),
-            ],
-        ]
-        return try document.serialized(options)
+        return (secure, redirects)
     }
 
     private static func requireValid(_ binding: ListenerBinding) throws {
@@ -96,6 +95,19 @@ public enum CaddyConfigRenderer {
         return [
             "certificate_authorities": [
                 authority.id: ["name": name, "root_common_name": name, "install_trust": false]
+            ]
+        ]
+    }
+
+    private static func tls(hostnames: [Hostname], authority: LocalAuthority) -> JSONValue {
+        [
+            "automation": [
+                "policies": [
+                    [
+                        "subjects": .array(hostnames.map { .string($0.value) }),
+                        "issuers": [["module": "internal", "ca": .string(authority.id)]],
+                    ]
+                ]
             ]
         ]
     }
