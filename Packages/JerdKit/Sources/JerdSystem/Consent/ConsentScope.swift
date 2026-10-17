@@ -12,8 +12,9 @@ package struct ConsentScope: Equatable, Sendable {
     package let policies: Set<CertificateTrustPolicy>
 
     /// Validates every hostname. The certificate is already validated.
-    package init(certificate: InstallationCertificate, hostnames: [String], policies: Set<CertificateTrustPolicy>) throws
-    {
+    package init(
+        certificate: InstallationCertificate, hostnames: [String], policies: Set<CertificateTrustPolicy>
+    ) throws {
         certificateDER = certificate.der
         self.hostnames = Set(try hostnames.map { try HostnamePolicy.validate($0).value })
         self.policies = policies

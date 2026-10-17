@@ -18,7 +18,8 @@ package enum RecoveryClassifier {
     }
 
     /// True when a live group member is not a recorded identity that still runs.
-    package static func hasUnverifiedGroupMembers(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool {
+    package static func hasUnverifiedGroupMembers(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool
+    {
         if observation.master == .replaced { return false }
         let members: [pid_t]
         switch observation.group {
