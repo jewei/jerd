@@ -31,6 +31,26 @@ import Testing
         #expect(!tail.contains("cdef"))
     }
 
+    /// Regression test: a second full copy of a secret makes the redacted text shorter, but the
+    /// part of the first copy that the read cut must still not show.
+    /// The filler sizes put the start of a read of 4 160 bytes (4 096 plus one secret) or 4 224
+    /// bytes (plus two secrets) 30 bytes into the first copy.
+    @Test(arguments: [4_062, 4_126])
+    func theTailRedactsACutSecretWhenAFullCopyFollows(fillerCount: Int) throws {
+        let directory = try TemporaryDirectory(" service kit ü")
+        defer { directory.remove() }
+        let secret = String(repeating: "0123456789abcdef", count: 4)
+        let filler = String(repeating: "y", count: fillerCount)
+        let body = "header " + secret + filler + secret
+        try write(body, to: directory.path("server.log"))
+        let log = ServiceLog(file: directory.path("server.log"), previousFile: directory.path("server.previous.log"))
+        let tail = log.tail(redacting: [secret], fallback: "fallback")
+        #expect(tail.hasSuffix("y[redacted]"))
+        #expect(!tail.contains("0123"))
+        #expect(!tail.contains("cdef"))
+        #expect(!tail.contains("89ab"))
+    }
+
     @Test func aMissingOrEmptyLogGivesTheFallback() throws {
         let directory = try TemporaryDirectory(" service kit ü")
         defer { directory.remove() }

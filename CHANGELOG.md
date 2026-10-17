@@ -13,6 +13,7 @@ code marks.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
 - Removing the Jerd section from the hosts file no longer joins your line before the section with the line after it.
 - A database start no longer sends the database password to another program that took the database port. Jerd now checks that its own server holds the port before each readiness check.
+- A service error message can no longer show part of a password from the end of the service log.
 
 ## [0.1.5] - 2026-10-10
 
