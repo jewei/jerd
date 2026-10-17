@@ -7,17 +7,17 @@ import JerdFoundation
 /// `trustPolicy`). Versions 1 and 2 always mean the `hostnames` policy, so an old record never gets
 /// broader trust. Write: always version 3. Hostnames are validated, lowercase, unique, and sorted.
 /// Equality ignores the stored version.
-public struct RegistrationRecord: Codable, Equatable, Sendable {
+package struct RegistrationRecord: Codable, Equatable, Sendable {
     /// The version that `encode` writes.
-    public static let currentVersion = 3
+    package static let currentVersion = 3
 
-    public let ownerUID: uid_t
-    public let installationID: UUID
-    public let hostnames: ValidatedHostnames
-    public let certificateDER: Data
-    public let trustPolicy: CertificateTrustPolicy
+    package let ownerUID: uid_t
+    package let installationID: UUID
+    package let hostnames: ValidatedHostnames
+    package let certificateDER: Data
+    package let trustPolicy: CertificateTrustPolicy
 
-    public init(
+    package init(
         ownerUID: uid_t, installationID: UUID, hostnames: ValidatedHostnames, certificateDER: Data,
         trustPolicy: CertificateTrustPolicy
     ) {
@@ -32,7 +32,7 @@ public struct RegistrationRecord: Codable, Equatable, Sendable {
         case schemaVersion, ownerUID, installationID, hostnames, hostname, certificateDER, trustPolicy
     }
 
-    public init(from decoder: any Decoder) throws {
+    package init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         let version = try values.decode(Int.self, forKey: .schemaVersion)
         guard (1...Self.currentVersion).contains(version) else {
@@ -48,7 +48,7 @@ public struct RegistrationRecord: Codable, Equatable, Sendable {
         trustPolicy = version < 3 ? .hostnames : try values.decode(CertificateTrustPolicy.self, forKey: .trustPolicy)
     }
 
-    public func encode(to encoder: any Encoder) throws {
+    package func encode(to encoder: any Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(Self.currentVersion, forKey: .schemaVersion)
         try values.encode(ownerUID, forKey: .ownerUID)
@@ -59,7 +59,7 @@ public struct RegistrationRecord: Codable, Equatable, Sendable {
     }
 
     /// The validated trust of this setup.
-    public func trust() throws -> CertificateTrust {
+    package func trust() throws -> CertificateTrust {
         CertificateTrust(
             certificate: try InstallationCertificate(installationID: installationID, der: certificateDER),
             hostnames: hostnames, policy: trustPolicy)

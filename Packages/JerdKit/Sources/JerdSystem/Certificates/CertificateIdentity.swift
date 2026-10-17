@@ -7,15 +7,15 @@ import Security
 /// The identity rule is a consistency check, not a signature check: the common name must be
 /// `Jerd Local CA <installation UUID>`, the certificate must be self-issued, and Basic Constraints
 /// must mark it as a CA. The helper believes the installation ID that the signed app sends.
-public enum CertificateIdentity {
+package enum CertificateIdentity {
     /// A certificate (PEM or DER) must be smaller than this (bytes).
-    public static let maximumSize = 16_384
+    package static let maximumSize = 16_384
 
     /// The common name of the CA of `installationID` (uppercase UUID).
-    public static func commonName(for installationID: UUID) -> String { "Jerd Local CA \(installationID.uuidString)" }
+    package static func commonName(for installationID: UUID) -> String { "Jerd Local CA \(installationID.uuidString)" }
 
     /// Decodes one PEM certificate to DER. Text after the END marker is refused.
-    public static func decodePEM(_ data: Data) throws -> Data {
+    package static func decodePEM(_ data: Data) throws -> Data {
         guard data.count < maximumSize, let pem = String(data: data, encoding: .utf8) else {
             throw JerdError.invalid("The Jerd CA certificate is invalid.")
         }
@@ -31,10 +31,10 @@ public enum CertificateIdentity {
     }
 
     /// Lowercase hexadecimal SHA-256 of `data` (a certificate, a hosts file, or a journal).
-    public static func sha256Hex(_ data: Data) -> String { FileDigest.hexSHA256(of: data) }
+    package static func sha256Hex(_ data: Data) -> String { FileDigest.hexSHA256(of: data) }
 
     /// Requires `der` to be the CA of `installationID` and returns it.
-    public static func validateInstallationCA(_ der: Data, installationID: UUID) throws -> SecCertificate {
+    package static func validateInstallationCA(_ der: Data, installationID: UUID) throws -> SecCertificate {
         guard der.count < maximumSize, let certificate = SecCertificateCreateWithData(nil, der as CFData) else {
             throw JerdError.invalid("The Jerd CA certificate is invalid.")
         }

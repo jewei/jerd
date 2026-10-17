@@ -10,7 +10,7 @@ import JerdFoundation
 /// call without a timeout (a change that can wait for macOS approval): dropping it would interrupt
 /// that change. A transport error is a `HelperTransportError` with its cause; `HelperClient`
 /// decides about a retry and shows its `JerdError`.
-public actor HelperConnection {
+package actor HelperConnection {
     private let opener: any HelperLinkOpening
     private let responder: ConsentResponder
     private let requireEnabled: @Sendable () throws -> Void
@@ -18,7 +18,7 @@ public actor HelperConnection {
     /// The number of calls without a timeout that wait on each link.
     private var openChanges: [UUID: Int] = [:]
 
-    public init(
+    package init(
         opener: any HelperLinkOpening, responder: ConsentResponder,
         requireEnabled: @escaping @Sendable () throws -> Void
     ) {
@@ -28,12 +28,12 @@ public actor HelperConnection {
     }
 
     /// True while a link is open.
-    public var isConnected: Bool { link != nil }
+    package var isConnected: Bool { link != nil }
 
     /// Sends one request and waits for its result.
     ///
     /// - Parameter timeout: nil for calls that can wait for a macOS approval prompt.
-    public func call<Value: Sendable>(
+    package func call<Value: Sendable>(
         timeout: Duration? = .seconds(20), cancellation: ReplyGate<Value>.CancellationPolicy = .awaitReply,
         _ send: @escaping @Sendable (any JerdHelperProtocol, ReplyGate<Value>) -> Void
     ) async throws -> Value {
@@ -55,7 +55,7 @@ public actor HelperConnection {
     }
 
     /// Closes the current link. The next call opens a new one.
-    public func invalidate() {
+    package func invalidate() {
         link?.link.invalidate()
         link = nil
     }
