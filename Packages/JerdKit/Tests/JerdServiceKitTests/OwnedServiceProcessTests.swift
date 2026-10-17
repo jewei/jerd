@@ -81,7 +81,8 @@ import Testing
             // Exit detection completes no stop while a group member still runs.
             #expect(await instance.refresh() == .stuck(pid: stuckPID, reason: reason))
             #expect(contents(setup.folder.appendingPathComponent("active-run.json")) == record)
-            let child = try #require(pid_t(text(setup.folder.appendingPathComponent("child.pid")).trimmingCharacters(in: .whitespacesAndNewlines)))
+            let childFile = setup.folder.appendingPathComponent("child.pid")
+            let child = try #require(pid_t(text(childFile).trimmingCharacters(in: .whitespacesAndNewlines)))
             FileManager.default.createFile(
                 atPath: setup.folder.appendingPathComponent("finish-child").path, contents: nil)
             // Wait for the child's exit, so that the short stop timeout covers only the stop.

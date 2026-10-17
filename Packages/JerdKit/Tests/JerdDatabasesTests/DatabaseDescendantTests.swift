@@ -79,7 +79,8 @@ import os
             await #expect(throws: (any Error).self) { try await manager.start(service.id) }
             await #expect(throws: (any Error).self) { try await manager.remove(service.id) }
             #expect(contents(instance.activeRunFile) == record)
-            let child = try #require(pid_t(text(instance.file(named: "child.pid")).trimmingCharacters(in: .whitespacesAndNewlines)))
+            let child = try #require(
+                pid_t(text(instance.file(named: "child.pid")).trimmingCharacters(in: .whitespacesAndNewlines)))
             FileManager.default.createFile(atPath: instance.file(named: "finish-child").path, contents: nil)
             // Wait for the child's exit, so that the short stop timeout covers only the stop.
             #expect(await eventually { ProcessExit.hasExited(child) })
