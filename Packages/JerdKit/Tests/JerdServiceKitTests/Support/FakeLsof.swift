@@ -8,6 +8,7 @@ import os
 final class FakeLsof: Sendable {
     private struct Table {
         var foreign: Set<UInt16> = []
+        var takenAfterLaunch: Set<UInt16> = []
         var servicePorts: Set<UInt16> = []
         var portsByPID: [pid_t: Set<UInt16>] = [:]
         var extraListener: String?
@@ -24,6 +25,9 @@ final class FakeLsof: Sendable {
     /// Simulates another program that listens on `port`.
     func occupy(_ port: UInt16) { table.withLock { _ = $0.foreign.insert(port) } }
 
+    /// Simulates another program that takes `port` after the port check, while the service runs.
+    func takeAfterLaunch(_ port: UInt16) { table.withLock { _ = $0.takenAfterLaunch.insert(port) } }
+
     /// Simulates a service that opens one more listener, for example `*:3306`.
     func addListener(_ address: String) { table.withLock { $0.extraListener = address } }
 
@@ -34,7 +38,11 @@ final class FakeLsof: Sendable {
         let table = table.withLock { $0 }
         if let query = arguments.first(where: { $0.hasPrefix("-iTCP:") }), let port = UInt16(query.dropFirst(6)) {
             if table.foreign.contains(port) { return CommandResult(status: 0, output: "p1\n") }
-            if table.servicePorts.contains(port), let pid = await processes.runningPIDs.first {
+            let running = await processes.runningPIDs
+            if table.takenAfterLaunch.contains(port), !running.isEmpty {
+                return CommandResult(status: 0, output: "p1\n")
+            }
+            if table.servicePorts.contains(port), let pid = running.first {
                 return CommandResult(status: 0, output: "p\(pid)\n")
             }
             return CommandResult(status: 1, output: "")

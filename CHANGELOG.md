@@ -11,6 +11,9 @@ code marks.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+- Removing the Jerd section from the hosts file no longer joins your line before the section with the line after it.
+- A database start no longer sends the database password to another program that took the database port. Jerd now checks that its own server holds the port before each readiness check.
+- A service error message can no longer show part of a password from the end of the service log.
 - When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
 - When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
 - When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
