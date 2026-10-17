@@ -1,11 +1,19 @@
 /// Every user-visible message of the Cloudflare account and the tunnels that Jerd creates.
 package enum CloudflareMessage {
-    package static let notConnected = "Connect Cloudflare with an API token before you create a tunnel."
+    /// Create and Remove both need the account, and only the editor of a new tunnel can connect it.
+    package static let notConnected =
+        "Connect Cloudflare with an API token first: choose Add Cloudflare Tunnel, then Create in Cloudflare."
+    /// The API token permissions that Create needs, in the words of the Cloudflare token page.
+    package static let tokenPermissions =
+        "Account › Cloudflare Tunnel › Edit, Zone › DNS › Edit, and Zone › Zone › Read"
     package static let tokenFormat = "Paste the Cloudflare API token without spaces."
     package static let tokenRejected =
         "Cloudflare rejected the API token. Create a token with the permissions that Jerd lists, then connect again."
     package static let noZones =
         "The API token cannot edit any domain. Give it Zone: DNS: Edit and Zone: Read for your domain."
+    package static let subdomainLevel =
+        "Enter the subdomain without a dot, for example dev. Cloudflare's free certificate covers only one level "
+        + "below the domain."
     package static let invalidRecord = "The saved Cloudflare record of this tunnel is invalid."
     package static let invalidResponse = "Cloudflare sent a response that Jerd cannot read. Try again later."
     package static let hostnameFixed =
@@ -20,9 +28,17 @@ package enum CloudflareMessage {
     package static func failed(_ detail: String) -> String {
         "Cloudflare refused the request: \(detail)"
     }
+    package static func missingPermission(_ detail: String) -> String {
+        "Cloudflare refused the request because the API token lacks a permission: \(detail). Edit the token in "
+            + "Cloudflare so that it has \(tokenPermissions), then try again."
+    }
     package static func recordExists(_ hostname: String) -> String {
         "\(hostname) already has a DNS record in Cloudflare. Jerd never replaces a record. Choose another name, "
             + "or delete the record in Cloudflare first."
+    }
+    package static func tunnelExists(_ tunnelName: String) -> String {
+        "Cloudflare already has a tunnel named \(tunnelName), for example from an earlier Create whose answer was "
+            + "lost. Delete \(tunnelName) in the Cloudflare dashboard, then create the tunnel again."
     }
     package static func undoFailed(_ failure: String, detail: String) -> String {
         "\(failure) Jerd could not fully undo the new tunnel: \(detail) Check the tunnel and its DNS record in "
@@ -31,5 +47,17 @@ package enum CloudflareMessage {
     package static func rollbackFailed(_ failure: String, tunnelName: String, detail: String) -> String {
         "\(failure) Jerd could not delete the new tunnel \(tunnelName) in Cloudflare: \(detail) "
             + "Delete it in the Cloudflare dashboard."
+    }
+    package static func keychainRead(_ status: Int32) -> String {
+        "Cannot read the Cloudflare API token from Keychain (\(status))."
+    }
+    package static func keychainAdd(_ status: Int32) -> String {
+        "Cannot save the Cloudflare API token in Keychain (\(status))."
+    }
+    package static func keychainUpdate(_ status: Int32) -> String {
+        "Cannot update the Cloudflare API token in Keychain (\(status))."
+    }
+    package static func keychainRemove(_ status: Int32) -> String {
+        "Cannot remove the Cloudflare API token from Keychain (\(status))."
     }
 }

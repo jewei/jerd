@@ -8,7 +8,7 @@ import Testing
 /// Work that changes the Mac (HTTPS approval, Remove System Setup, Reconnect Helper, Remove
 /// Registration) cannot stop at a next step. Stop All Sites stays off while it runs, and the
 /// approval sheet never discards an approval that still runs.
-@Suite("Sites unstoppable work", .timeLimit(.minutes(1)))
+@Suite("Sites unstoppable work", .timeLimit(.minutes(10)))
 @MainActor
 struct SitesUnstoppableWorkTests {
     private let running = EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID])

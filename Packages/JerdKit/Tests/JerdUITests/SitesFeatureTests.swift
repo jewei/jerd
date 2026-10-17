@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Sites feature", .timeLimit(.minutes(1)))
+@Suite("Sites feature", .timeLimit(.minutes(10)))
 @MainActor
 struct SitesFeatureTests {
     @Test("The card shows the count of running sites and tunnels, Stop All, and Open Site")

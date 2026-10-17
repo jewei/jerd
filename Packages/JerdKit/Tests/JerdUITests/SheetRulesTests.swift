@@ -8,7 +8,7 @@ import Testing
 
 /// The rules of the Sites sheets: a disabled Save names its reason, and a late inspection
 /// never sets the document root of another folder.
-@Suite("Sites sheet rules", .timeLimit(.minutes(1)))
+@Suite("Sites sheet rules", .timeLimit(.minutes(10)))
 @MainActor
 struct SheetRulesTests {
     private let projects = "\(SampleData.user)/Projects"

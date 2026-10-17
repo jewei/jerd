@@ -98,11 +98,14 @@ import Testing
     }
 
     @Test func anInvalidationEndsARequestInFlightWithAMessage() async throws {
+        // The handler answers only after the test, so no response can arrive before the invalidation.
+        let answer = DispatchSemaphore(value: 0)
         let server = try LoopbackHTTPServer { _ in
-            Thread.sleep(forTimeInterval: 2)
+            answer.wait()
             return LoopbackHTTPServer.response(status: 200)
         }
         defer { server.stop() }
+        defer { answer.signal() }
         let transport = S3Transport()
         let request = try Self.request(server)
         let pending = Task { try await transport.send(request) }

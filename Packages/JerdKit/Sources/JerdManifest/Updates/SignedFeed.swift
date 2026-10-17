@@ -7,18 +7,18 @@ import JerdFoundation
 /// `<!-- sparkle-signatures:\n` and appends `edSignature: <base64>` and `length: <count>` lines
 /// and `-->`. `sign_update` always writes the exact content length; a different length means the
 /// feed changed after signing.
-public struct SignedFeed: Equatable, Sendable {
+package struct SignedFeed: Equatable, Sendable {
     static let prefix = Data("<!-- sparkle-signatures:\n".utf8)
     static let suffix = Data("-->".utf8)
 
     /// The signed bytes.
-    public let content: Data
+    package let content: Data
     /// The 64-byte Ed25519 signature.
-    public let signature: Data
+    package let signature: Data
 
     /// Splits feed bytes.
     /// - Throws: `.invalid` when the block is missing or malformed, or when its length is not the content length.
-    public init(_ data: Data) throws {
+    package init(_ data: Data) throws {
         guard let start = data.range(of: Self.prefix, options: .backwards),
             let end = data.range(of: Self.suffix, in: start.upperBound..<data.endIndex)
         else { throw JerdError.invalid("The app update feed has no signature.") }

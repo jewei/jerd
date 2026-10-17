@@ -3,33 +3,37 @@ import JerdFoundation
 
 /// The app's one cached link to the helper and the calls over it.
 ///
-/// A link is opened on the first call, only while the daemon is enabled. Its invalidation, its
+/// A link is opened on the first call, only while the daemon is enabled; otherwise the call throws
+/// the registration error that names the step to take (Login Items or Reconnect Helper). Its invalidation, its
 /// interruption, or a reply timeout drops it, but only if it is still the current link, so a late
 /// event of an old link never drops a newer one. A reply timeout does not drop a link that carries a
 /// call without a timeout (a change that can wait for macOS approval): dropping it would interrupt
 /// that change. A transport error is a `HelperTransportError` with its cause; `HelperClient`
 /// decides about a retry and shows its `JerdError`.
-public actor HelperConnection {
+package actor HelperConnection {
     private let opener: any HelperLinkOpening
     private let responder: ConsentResponder
-    private let isEnabled: @Sendable () -> Bool
+    private let requireEnabled: @Sendable () throws -> Void
     private var link: (id: UUID, link: any HelperLink)?
     /// The number of calls without a timeout that wait on each link.
     private var openChanges: [UUID: Int] = [:]
 
-    public init(opener: any HelperLinkOpening, responder: ConsentResponder, isEnabled: @escaping @Sendable () -> Bool) {
+    package init(
+        opener: any HelperLinkOpening, responder: ConsentResponder,
+        requireEnabled: @escaping @Sendable () throws -> Void
+    ) {
         self.opener = opener
         self.responder = responder
-        self.isEnabled = isEnabled
+        self.requireEnabled = requireEnabled
     }
 
     /// True while a link is open.
-    public var isConnected: Bool { link != nil }
+    package var isConnected: Bool { link != nil }
 
     /// Sends one request and waits for its result.
     ///
     /// - Parameter timeout: nil for calls that can wait for a macOS approval prompt.
-    public func call<Value: Sendable>(
+    package func call<Value: Sendable>(
         timeout: Duration? = .seconds(20), cancellation: ReplyGate<Value>.CancellationPolicy = .awaitReply,
         _ send: @escaping @Sendable (any JerdHelperProtocol, ReplyGate<Value>) -> Void
     ) async throws -> Value {
@@ -51,7 +55,7 @@ public actor HelperConnection {
     }
 
     /// Closes the current link. The next call opens a new one.
-    public func invalidate() {
+    package func invalidate() {
         link?.link.invalidate()
         link = nil
     }
@@ -75,7 +79,7 @@ public actor HelperConnection {
 
     private func connect() throws -> (UUID, any HelperLink) {
         if let link { return (link.id, link.link) }
-        guard isEnabled() else { throw JerdError.unavailable("Approved helper setup is required.") }
+        try requireEnabled()
         let id = UUID()
         let opened = try opener.open(exporting: responder) { [weak self] in
             Task { await self?.drop(id) }

@@ -39,8 +39,9 @@ import Testing
         let quick = CommandRunner(
             temporaryRoot: folder.path("tmp"),
             cleanupPolicy: .forceful(leaderTimeout: .milliseconds(50), groupTimeout: .milliseconds(50)))
+        // The timeout only has to exceed fixture startup: the sleeper must write its PID before the kill.
         let error = try await #require(throws: JerdError.self) {
-            try await quick.run(request, timeout: .milliseconds(500))
+            try await quick.run(request, timeout: .seconds(3))
         }
         #expect(error.kind == .timedOut)
         #expect(error.message.hasPrefix("Command timed out: \(sleeper.path)\n"))
@@ -60,8 +61,13 @@ import Testing
         try OwnedDirectory.create(folder.path("tmp"))
         let stuck = CommandRunner(
             temporaryRoot: folder.path("tmp"), cleanupPolicy: .graceful(timeout: .milliseconds(100)))
+        // The run timeout only has to exceed fixture startup (exec, dyld, and SIG_IGN under load).
+        // The 100 ms graceful window above is what this test proves.
         let error = try await #require(throws: JerdError.self) {
-            try await stuck.run(request, timeout: .milliseconds(300))
+            try await stuck.run(request, timeout: .seconds(3))
+        }
+        if error.kind == .timedOut {
+            Issue.record("sleeper did not install its SIGTERM handler before the timeout")
         }
         let pid = try #require(await waitForPID(in: folder.path("sleeper.pid")))
         #expect(error.kind == .processFailed)

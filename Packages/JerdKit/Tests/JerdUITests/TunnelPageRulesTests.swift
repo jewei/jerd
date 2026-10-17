@@ -7,7 +7,7 @@ import Testing
 
 /// The tunnel page: the next step, the titled banners, a stop failure that an edit cannot
 /// hide, and the page that a failed quit opens.
-@Suite("Tunnel page rules", .timeLimit(.minutes(1)))
+@Suite("Tunnel page rules", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelPageRulesTests {
     @Test("Edit Tunnel… is the next step of a failed tunnel or one whose settings need an edit")

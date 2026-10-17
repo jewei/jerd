@@ -2,9 +2,9 @@ import Foundation
 import JerdFoundation
 
 /// Everything `posix_spawn` receives, computed from a request without any side effect.
-public struct SpawnPlan: Equatable, Sendable {
+package struct SpawnPlan: Equatable, Sendable {
     /// Where a child descriptor comes from.
-    public enum DescriptorSource: Equatable, Sendable {
+    package enum DescriptorSource: Equatable, Sendable {
         /// `/dev/null`, opened read-only.
         case nullDevice
         /// The log file or the redacting pipe.
@@ -16,26 +16,26 @@ public struct SpawnPlan: Equatable, Sendable {
     }
 
     /// One child descriptor and its source. All other descriptors close on exec.
-    public struct DescriptorAction: Equatable, Sendable {
-        public let target: Int32
-        public let source: DescriptorSource
+    package struct DescriptorAction: Equatable, Sendable {
+        package let target: Int32
+        package let source: DescriptorSource
     }
 
     /// The variables every child receives unless the request replaces them. `HOME` is the working folder.
-    public static let baseEnvironment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "en_US.UTF-8"]
+    package static let baseEnvironment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "en_US.UTF-8"]
 
-    public let executablePath: String
+    package let executablePath: String
     /// `argv`, starting with the executable path.
-    public let arguments: [String]
+    package let arguments: [String]
     /// `envp` as `NAME=value` strings, sorted by name.
-    public let environment: [String]
-    public let workingDirectory: String
+    package let environment: [String]
+    package let workingDirectory: String
     /// Descriptor actions in the order they run.
-    public let descriptors: [DescriptorAction]
+    package let descriptors: [DescriptorAction]
 
     /// Builds the plan. Nothing from Jerd's own environment is inherited.
     /// - Throws: `.invalid` for a relative executable, an unsafe variable name, or a NUL character.
-    public init(request: ProcessRequest) throws {
+    package init(request: ProcessRequest) throws {
         guard request.executable.isFileURL, request.executable.path.hasPrefix("/") else {
             throw JerdError.invalid("Use an absolute executable path: \(request.executable.path)")
         }

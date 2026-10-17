@@ -1,7 +1,7 @@
 /// Parses the output of `php-fpm -n -m`.
-public enum PHPModuleList {
+package enum PHPModuleList {
     /// The trimmed, non-empty lines after `[PHP Modules]` up to the next `[` section, unique and sorted.
-    public static func parse(_ output: String) -> [String] {
+    package static func parse(_ output: String) -> [String] {
         var inSection = false
         var modules: Set<String> = []
         for raw in output.components(separatedBy: .newlines) {

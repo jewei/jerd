@@ -14,51 +14,12 @@ extension ServiceScenario {
         if await prepareMailOnDemand(state) { return }
         if await prepareStorageOnDemand(state) { return }
         if await prepareOnDemand(state) { return }
-        switch self {
-        case .databaseEditor:
-            state.databases.beginAdd(.postgresql)
-            await waitForPort(state.databases)
-        case .databaseEditorInvalid:
-            state.databases.beginAdd(.mysql)
-            state.databases.editor?.setName("Studio cache")
-            state.databases.editor?.setPort("6379")
-        case .databaseStarting:
-            state.databases.start(SampleServices.reportingID)
-        case .databaseCancelledSave:
-            state.databases.beginEdit(SampleServices.reportingID)
-            state.databases.saveEditor()
-            state.databases.closeEditor()
-        case .databaseQuitting, .mailQuitting:
-            _ = state.requestTermination { _ in }
-        case .databaseRuntimeMissing:
-            state.databases.requestRemove(SampleServices.reportingID)
-            await state.databases.confirmRemove()?.value
-        case .retainedDatabases:
-            state.databases.showRetained()
-            await state.databases.inspectRetained()?.value
-        case .restoreDatabase:
-            state.databases.beginRestore(SampleServices.retained[0])
-        case .addBucket:
-            state.storage.beginAddBucket()
-            state.storage.bucketDraft?.name = "studio-uploads"
-        case .addBucketInvalid:
-            state.storage.beginAddBucket()
-            state.storage.bucketDraft = BucketDraft(name: "Studio_Uploads", publicRead: true)
-        case .storagePorts:
-            // Ports can change only while storage is stopped, as in the app.
-            await state.storage.stop()?.value
-            state.storage.editPorts()
-        case .mail:
-            await state.mail.sendTestEmail()?.value
-        case .mailPorts:
-            await state.mail.stop()?.value
-            state.mail.editPorts()
-            state.mail.portsDraft?.second = "1025"
-        case .advancedCommandLineTools:
+        if await prepareDatabaseScenario(state) { return }
+        if await prepareStorageScenario(state) { return }
+        if await prepareMailScenario(state) { return }
+        if self == .advancedCommandLineTools {
             await state.commandLineTools.load()
             await state.commandLineTools.install()?.value
-        default:
-            break
         }
     }
 

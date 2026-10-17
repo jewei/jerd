@@ -3,7 +3,7 @@ import JerdFoundation
 import JerdServiceKit
 
 /// Every user message of the database area, in one place.
-public enum DatabaseMessages {
+package enum DatabaseMessages {
     // MARK: Settings
 
     static let unsupportedSettings = JerdError.corrupt(

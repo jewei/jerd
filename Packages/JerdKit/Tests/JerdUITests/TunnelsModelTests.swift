@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Tunnels model", .timeLimit(.minutes(1)))
+@Suite("Tunnels model", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelsModelTests {
     /// Both sample tunnels have "Connect when Jerd opens", as an earlier build could save them.

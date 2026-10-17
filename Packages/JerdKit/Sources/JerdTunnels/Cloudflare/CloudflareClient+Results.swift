@@ -19,10 +19,11 @@ extension CloudflareClient {
 
     struct TunnelResult: Decodable {
         let id: UUID
+        let name: String?
         let deletedAt: String?
 
         enum CodingKeys: String, CodingKey {
-            case id
+            case id, name
             case deletedAt = "deleted_at"
         }
     }

@@ -65,7 +65,9 @@ import Testing
         try signaller(result: ESRCH, sent: sent).signal(IdentityFactory.make(), with: SIGQUIT)
         #expect(sent.values == [SIGQUIT])
         #expect(
-            throws: JerdError.processFailed("The saved process could not stop safely (1). Its record was preserved.")
+            throws: JerdError.processFailed(
+                "The saved process could not be stopped (Operation not permitted). Its record was preserved. "
+                    + "Quit the process in Activity Monitor, then inspect recovery again.")
         ) {
             try signaller(result: EPERM, sent: sent).signal(IdentityFactory.make(), with: SIGTERM)
         }

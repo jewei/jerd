@@ -101,7 +101,10 @@ import Testing
                 == "127.0.0.1:13306:*:jerd:\(Self.password)\n")
         let client = Self.postgres.clientRequest(["SELECT 1", "SELECT 2"], credentials: Self.credentials)
         #expect(client.arguments.last == "SELECT 1;SELECT 2")
-        #expect(client.environment == ["PGPASSFILE": "\(Self.root.path)/pgpass", "PGCONNECT_TIMEOUT": "1"])
+        #expect(
+            client.environment == [
+                "PGPASSFILE": "\(Self.root.path)/pgpass", "PGCONNECT_TIMEOUT": "1", "PGREQUIREAUTH": "scram-sha-256",
+            ])
         #expect(Self.postgres.setupPhase(Self.credentials, sockets: Self.sockets) == nil)
     }
 

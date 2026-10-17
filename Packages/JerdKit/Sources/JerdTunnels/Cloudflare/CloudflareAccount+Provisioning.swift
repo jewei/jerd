@@ -13,7 +13,12 @@ extension CloudflareAccount {
         guard try await client.records(zoneID: zone.id, hostname: hostname).isEmpty else {
             throw JerdError.invalid(CloudflareMessage.recordExists(hostname))
         }
-        let tunnelID = try await client.createTunnel(accountID: zone.accountID, name: tunnelName)
+        let tunnelID: UUID
+        do {
+            tunnelID = try await client.createTunnel(accountID: zone.accountID, name: tunnelName)
+        } catch {
+            throw await createFailure(error, client: client, zone: zone, name: tunnelName)
+        }
         do {
             let token = try TunnelToken(try await client.tunnelToken(accountID: zone.accountID, tunnelID: tunnelID))
             guard token.tunnelID == tunnelID else { throw JerdError.unavailable(CloudflareMessage.invalidResponse) }
@@ -40,6 +45,20 @@ extension CloudflareAccount {
         guard try await !client.isTunnelDeleted(accountID: record.accountID, tunnelID: record.tunnelID) else { return }
         try await client.cleanUpConnections(accountID: record.accountID, tunnelID: record.tunnelID)
         try await client.deleteTunnel(accountID: record.accountID, tunnelID: record.tunnelID)
+    }
+
+    /// A Create whose answer was lost leaves a tunnel with this name, and Cloudflare then refuses
+    /// each new tunnel with the same name. Jerd cannot prove that it made that tunnel, so it does
+    /// not delete it; the message names it. When the lookup fails, the first failure says more.
+    private func createFailure(
+        _ failure: any Error, client: CloudflareClient, zone: CloudflareZone, name: String
+    ) async -> any Error {
+        do {
+            guard try await client.hasTunnel(accountID: zone.accountID, name: name) else { return failure }
+            return JerdError.partialChange(CloudflareMessage.tunnelExists(name))
+        } catch {
+            return failure
+        }
     }
 
     /// Deletes a route that Cloudflare may have created although its answer was lost, then the

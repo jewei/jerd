@@ -19,7 +19,7 @@ public final class ConsentGate: Sendable {
 
     /// Opens `scope` for one operation.
     /// - Throws: `.unavailable` while another operation holds a scope.
-    public func open(_ scope: ConsentScope) throws -> ConsentToken {
+    package func open(_ scope: ConsentScope) throws -> ConsentToken {
         let token = ConsentToken()
         let opened = state.withLock { current -> Bool in
             guard current == nil else { return false }
@@ -31,14 +31,14 @@ public final class ConsentGate: Sendable {
     }
 
     /// Closes the scope of `token`. A stale token changes nothing.
-    public func close(_ token: ConsentToken) {
+    package func close(_ token: ConsentToken) {
         state.withLock { current in
             if current?.token == token { current = nil }
         }
     }
 
     /// True when the open scope allows `request`. Without an open scope, nothing is allowed.
-    public func allows(_ request: TrustConsentRequest) -> Bool {
+    package func allows(_ request: TrustConsentRequest) -> Bool {
         state.withLock { $0?.scope.allows(request) == true }
     }
 }

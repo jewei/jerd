@@ -3,10 +3,10 @@ import JerdFoundation
 import JerdProcess
 
 /// Reads the ports of inherited listeners and checks that each one is a listening loopback socket.
-public enum ListenerPorts {
+package enum ListenerPorts {
     /// The HTTP and HTTPS ports of `listeners`.
     /// - Throws: `.invalid` unless both are bound, listening IPv4 TCP sockets on `127.0.0.1`.
-    public static func read(_ listeners: InheritedListeners) throws -> (http: UInt16, https: UInt16) {
+    package static func read(_ listeners: InheritedListeners) throws -> (http: UInt16, https: UInt16) {
         (try port(of: listeners.http.fileDescriptor), try port(of: listeners.https.fileDescriptor))
     }
 

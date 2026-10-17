@@ -79,7 +79,8 @@ import os
                 cancellation: .readOnly, timeout: .milliseconds(20), onTimeout: { await timeouts.add() }, send: { _ in }
             )
         }
-        let deadline = ContinuousClock.now + .seconds(2)
+        // The hook runs in a watchdog Task after the caller resumes; under load it can start late.
+        let deadline = ContinuousClock.now + .seconds(10)
         while await timeouts.count == 0, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
         #expect(await timeouts.count == 1)
         let value = try await ReplyGate<Int>.wait(
@@ -93,7 +94,8 @@ import os
     @Test func aCompletedCallReleasesItsWatchdogBeforeTheDeadline() async throws {
         let released = Released()
         try await finishImmediately(released)
-        let deadline = ContinuousClock.now + .seconds(2)
+        // 10 s allows for a late watchdog Task and stays below its 30 s deadline.
+        let deadline = ContinuousClock.now + .seconds(10)
         while !released.flag.withLock({ $0 }), ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(10))
         }

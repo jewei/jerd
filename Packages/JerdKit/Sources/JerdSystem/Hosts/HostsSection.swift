@@ -8,16 +8,16 @@ import JerdFoundation
 /// One rule reads a section for both `replacing` and `maps`, so a section that `replacing` accepts
 /// is also reported as configured. The parser and its rule are `HostsSectionLayout` and
 /// `HostsMapping` in JerdFoundation, which the app-side conflict check (`HostsConflictRule`) uses too.
-public enum HostsSection {
-    public static let beginMarker = HostsSectionLayout.beginMarker
-    public static let endMarker = HostsSectionLayout.endMarker
+package enum HostsSection {
+    package static let beginMarker = HostsSectionLayout.beginMarker
+    package static let endMarker = HostsSectionLayout.endMarker
     /// The only address that the section maps.
-    public static let address = HostsSectionLayout.address
+    package static let address = HostsSectionLayout.address
     /// The largest hosts file that Jerd reads or writes (bytes).
-    public static let maximumSize = HostsSectionLayout.maximumSize
+    package static let maximumSize = HostsSectionLayout.maximumSize
 
     /// The section text for `hostnames`, or "" when there are none.
-    public static func render(_ hostnames: [Hostname]) -> String {
+    package static func render(_ hostnames: [Hostname]) -> String {
         guard !hostnames.isEmpty else { return "" }
         let lines = Set(hostnames).sorted().map { "\(address) \($0.value)" }
         return "\n\(beginMarker)\n" + lines.joined(separator: "\n") + "\n\(endMarker)\n"
@@ -28,7 +28,7 @@ public enum HostsSection {
     /// An empty `expected` means "no section"; an empty `hostnames` removes the section.
     /// - Throws: `.invalid` when the file has invalid markers, an untracked or changed section,
     ///   a missing section, or an external mapping of a new hostname. The file is never changed here.
-    public static func replacing(
+    package static func replacing(
         in data: Data, with hostnames: [Hostname], expecting expected: [Hostname]
     ) throws
         -> Data
@@ -39,8 +39,10 @@ public enum HostsSection {
         for host in hostnames.sorted() where HostsMapping.hasMapping(of: host.value, in: outsideText) {
             throw JerdError.invalid("The hostname \(host.value) already has an external hosts mapping.")
         }
-        let block = Array(render(hostnames).utf8)
+        var block = Array(render(hostnames).utf8)
         guard let range = layout.section?.range else { return Data(layout.bytes + block) }
+        // A range without its leading LF keeps the user's line ending, so the block drops its own.
+        if !block.isEmpty, layout.bytes[range.lowerBound] != 0x0A { block.removeFirst() }
         var result = layout.bytes
         result.replaceSubrange(range, with: block)
         return Data(result)
@@ -59,7 +61,7 @@ public enum HostsSection {
 
     /// True when the file is valid, its section maps exactly `hostnames` (no section for an empty
     /// list), and no line outside the section maps one of them.
-    public static func maps(_ hostnames: [Hostname], in data: Data) -> Bool {
+    package static func maps(_ hostnames: [Hostname], in data: Data) -> Bool {
         do {
             _ = try replacing(in: data, with: hostnames, expecting: hostnames)
             return true

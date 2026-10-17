@@ -9,12 +9,12 @@ import JerdManifest
 /// replaced. Otherwise the bundle copy is verified (exact file set, hashes, executable flags), the
 /// files are copied into a staging folder with modes 0700/0600, the receipt bytes are added, the
 /// copy is verified again, and one rename publishes it. All file work runs off the cooperative pool.
-public struct VerifiedPayloadInstaller: Sendable {
-    public let directory: URL
+package struct VerifiedPayloadInstaller: Sendable {
+    package let directory: URL
 
-    public init(directory: URL) { self.directory = directory }
+    package init(directory: URL) { self.directory = directory }
 
-    public func install(_ payload: BundledPayload) async throws -> InstalledPayload {
+    package func install(_ payload: BundledPayload) async throws -> InstalledPayload {
         let directory = directory
         return try await BlockingWork.run { try Self.install(payload, into: directory) }
     }

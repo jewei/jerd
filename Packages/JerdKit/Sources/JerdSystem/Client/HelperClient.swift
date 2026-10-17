@@ -18,6 +18,8 @@ public actor HelperClient {
     /// The number of finished automatic restarts. A call compares it to see whether its link is
     /// older than a restart.
     var finishedRestarts = 0
+    /// The number of calls that wait for a running restart. Tests wait for it instead of yielding.
+    var restartWaiters = 0
 
     public init(
         registration: HelperRegistration = HelperRegistration(), opener: any HelperLinkOpening = XPCHelperLinkOpener(),
@@ -27,7 +29,7 @@ public actor HelperClient {
         self.gate = gate
         connection = HelperConnection(
             opener: opener, responder: ConsentResponder(gate: gate, settings: trustSettings),
-            isEnabled: { registration.availability == .enabled })
+            requireEnabled: { try registration.requireEnabled() })
     }
 
     /// The daemon state and, when it is enabled, the setup it reports.
@@ -137,7 +139,7 @@ public actor HelperClient {
     public func finishRunningRestart(within limit: Duration) async -> Bool {
         guard case .running(_, let task) = automaticRestart else { return true }
         do {
-            try await Self.wait(for: task, timeout: limit)
+            try await wait(for: task, timeout: limit)
         } catch let error as JerdError where error == ReplyGate<Void>.timeoutError {
             return false
         } catch {

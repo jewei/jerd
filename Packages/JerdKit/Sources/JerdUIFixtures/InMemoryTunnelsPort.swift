@@ -24,8 +24,15 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public var zones = SampleData.cloudflareZones
     /// The message of a failed Cloudflare call: Connect, Create, or Remove from Cloudflare.
     public var cloudflareFailure: String?
+    /// The message of a failed Keychain read of the API token.
+    public var cloudflareReadFailure: String?
+    /// The message of a failed domain load, and a gate that holds the load.
+    public var zonesFailure: String?
+    public var zonesGate: FixtureGate?
     /// The DNS answer for each public hostname. A name without a value resolves.
     public var hostnameStatuses: [String: PublicHostnameStatus] = [:]
+    /// Gates that hold the lookup of a public hostname, for a slow resolver.
+    public var lookupGates: [String: FixtureGate] = [:]
     public private(set) var calls: [String] = []
 
     /// By default the sample tunnels run as the user left them: Studio preview is connected.
@@ -73,7 +80,10 @@ public actor InMemoryTunnelsPort: TunnelsPort {
         tokens[id] = nil
     }
 
-    public func isCloudflareConnected() async throws -> Bool { cloudflareConnected }
+    public func isCloudflareConnected() async throws -> Bool {
+        if let cloudflareReadFailure { throw JerdError.unavailable(cloudflareReadFailure) }
+        return cloudflareConnected
+    }
 
     public func connectCloudflare(apiToken: String) async throws -> [CloudflareZone] {
         try recordCloudflare("connect cloudflare")
@@ -86,7 +96,12 @@ public actor InMemoryTunnelsPort: TunnelsPort {
         cloudflareConnected = false
     }
 
-    public func cloudflareZones() async throws -> [CloudflareZone] { zones }
+    public func cloudflareZones() async throws -> [CloudflareZone] {
+        if let zonesGate { await zonesGate.pass() }
+        calls.append("load zones")
+        if let zonesFailure { throw JerdError.unavailable(zonesFailure) }
+        return zones
+    }
 
     /// Adds the registration with a sample record, as Create does.
     public func create(_ registration: TunnelRegistration, in zone: CloudflareZone) async throws {
@@ -134,6 +149,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
 
     public func publicHostnameStatus(_ hostname: String) async -> PublicHostnameStatus {
         calls.append("look up \(hostname)")
+        if let gate = lookupGates[hostname] { await gate.pass() }
         return hostnameStatuses[hostname] ?? .resolves
     }
 

@@ -29,6 +29,19 @@ extension LoopbackPortGuard {
         }
     }
 
+    /// True when `pid` listens on `127.0.0.1:<port>` and no other process listens on that port, for
+    /// each of `ports`. A client that sends credentials to the port checks this first, so they
+    /// cannot reach another process that took the port.
+    public func isOnlyListener(pid: pid_t, on ports: Set<UInt16>) async throws -> Bool {
+        guard !ports.isEmpty else { return true }
+        let own = try await inspect(["-nP", "-a", "-p", String(pid), "-iTCP", "-sTCP:LISTEN", "-Fn"])
+        let expected = Set(ports.map { "127.0.0.1:\($0)" })
+        guard own.status == 0, let report = ListenerReport.parse(own.output), expected.isSubset(of: report.addresses)
+        else { return false }
+        for port in ports.sorted() where try await listeningProcessIDs(on: port) != [pid] { return false }
+        return true
+    }
+
     /// The PIDs with a TCP listener on `port` (any address). `lsof` status 1 with no output means none.
     func listeningProcessIDs(on port: UInt16) async throws -> Set<pid_t> {
         let result = try await inspect(["-nP", "-a", "-iTCP:\(port)", "-sTCP:LISTEN", "-Fp"])

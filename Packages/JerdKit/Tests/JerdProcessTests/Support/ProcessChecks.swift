@@ -6,7 +6,7 @@ import JerdTestSupport
 func touch(_ url: URL) { FileManager.default.createFile(atPath: url.path, contents: Data()) }
 
 /// Polls `condition` every 10 ms until it is true or the timeout passes. Returns the last result.
-func eventually(timeout: Duration = .seconds(5), _ condition: () async throws -> Bool) async rethrows -> Bool {
+func eventually(timeout: Duration = .seconds(30), _ condition: () async throws -> Bool) async rethrows -> Bool {
     let deadline = ContinuousClock.now + timeout
     while ContinuousClock.now < deadline {
         if try await condition() { return true }

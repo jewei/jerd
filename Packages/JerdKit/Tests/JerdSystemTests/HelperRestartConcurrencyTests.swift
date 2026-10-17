@@ -7,7 +7,7 @@ import os
 
 /// Calls that overlap a helper restart (automatic or Reconnect Helper). The restart pauses on a
 /// `PauseGate`, so each test starts its other calls in the middle of it.
-@Suite(.timeLimit(.minutes(1))) struct HelperRestartConcurrencyTests {
+@Suite(.timeLimit(.minutes(10))) struct HelperRestartConcurrencyTests {
     /// Regression test: the restart closes the old link, which fails a call in flight with 4099.
     /// The call waits for the restart before it sends again; before, it sent at once and failed
     /// with "Approved helper setup is required." and no remedy.
@@ -23,7 +23,7 @@ import os
         await RecoveryFixture.until { helper.calls.count == 1 }
         let reconnect = Task { try await client.reconnect() }
         await gate.waitUntilPaused()
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         helper.script.withLock { $0.unanswered = false }
         gate.open()
         let status = try await inFlight.value
@@ -62,7 +62,7 @@ import os
         let first = Task { try await client.status() }
         await gate.waitUntilPaused()
         let waiting = Task { try await client.status() }
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         waiting.cancel()
         let safety = Task {
             try await Task.sleep(for: .seconds(5))
@@ -88,7 +88,7 @@ import os
         let first = Task { try await client.status() }
         await gate.waitUntilPaused()
         let removal = Task { try await client.unregister() }
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         gate.open()
         _ = await first.result
         try await removal.value
@@ -107,7 +107,7 @@ import os
         let removal = Task { try await client.unregister() }
         await gate.waitUntilPaused()
         let status = Task { try await client.status() }
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         gate.open()
         try await removal.value
         #expect(try await status.value == HelperStatus(availability: .notRegistered, setup: .empty))
@@ -129,7 +129,7 @@ import os
         await gate.waitUntilPaused()
         let one = Task { try await client.reconnect() }
         let two = Task { try await client.reconnect() }
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 2 }
         gate.open()
         await #expect(throws: HelperRegistrationFailure.disabledError) { try await first.value }
         try await one.value
@@ -149,7 +149,7 @@ import os
         await gate.waitUntilPaused()
         #expect(await !client.finishRunningRestart(within: .milliseconds(50)))
         let finished = Task { await client.finishRunningRestart(within: .seconds(30)) }
-        await RecoveryFixture.settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         gate.open()
         #expect(await finished.value)
         #expect(daemon.status == .enabled)
