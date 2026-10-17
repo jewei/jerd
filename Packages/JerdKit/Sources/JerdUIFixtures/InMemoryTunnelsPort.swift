@@ -31,6 +31,8 @@ public actor InMemoryTunnelsPort: TunnelsPort {
     public var zonesGate: FixtureGate?
     /// The DNS answer for each public hostname. A name without a value resolves.
     public var hostnameStatuses: [String: PublicHostnameStatus] = [:]
+    /// Gates that hold the lookup of a public hostname, for a slow resolver.
+    public var lookupGates: [String: FixtureGate] = [:]
     public private(set) var calls: [String] = []
 
     /// By default the sample tunnels run as the user left them: Studio preview is connected.
@@ -147,6 +149,7 @@ public actor InMemoryTunnelsPort: TunnelsPort {
 
     public func publicHostnameStatus(_ hostname: String) async -> PublicHostnameStatus {
         calls.append("look up \(hostname)")
+        if let gate = lookupGates[hostname] { await gate.pass() }
         return hostnameStatuses[hostname] ?? .resolves
     }
 
