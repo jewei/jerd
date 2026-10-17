@@ -24,19 +24,20 @@ struct PHPRegistrationsSection: View {
             }
         } header: {
             Text("Registered PHP Runtimes")
-        } footer: {
-            FormFooter("CLI commands use the current site’s PHP selection, or the default outside registered sites.")
         }
     }
 
     private func label(_ runtime: DevelopmentRuntime) -> some View {
         HStack(spacing: Spacing.small) {
             Text("PHP \(runtime.version)")
-            Text(runtime.id.uuidString.prefix(6))
-                .textRole(.path)
+            // The ID tells two registrations of one version apart. It is not a build ID.
+            Text("Registration \(runtime.id.uuidString.prefix(6))")
+                .textRole(.detail)
             if runtime.id == model.registrations.defaultPHPID {
-                Text("Default")
-                    .textRole(.caption)
+                Label("Default", systemImage: "checkmark.circle.fill")
+                    .font(TextRole.detail.font.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("PHP \(runtime.version) is the default")
             }
         }
     }

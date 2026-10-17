@@ -27,7 +27,8 @@ struct CommandLineToolsSection: View {
             Text("Command-Line Tools")
         } footer: {
             FormFooter(
-                "php, composer, and laravel select the PHP of the registered site that contains the working folder.")
+                "php, composer, and laravel use the PHP of the registered site that contains the working folder. Outside a site, they use the default PHP."
+            )
         }
         .task { await model.load() }
         .confirmationDialog(
