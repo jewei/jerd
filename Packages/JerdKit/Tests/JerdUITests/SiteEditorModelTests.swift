@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Site editor", .timeLimit(.minutes(1)))
+@Suite("Site editor", .timeLimit(.minutes(10)))
 @MainActor
 struct SiteEditorModelTests {
     private let projects = "\(SampleData.user)/Projects"

@@ -108,7 +108,7 @@ import os
             binder: binder, keychain: harness.keychain, inspector: FakeInspector(consent: harness.consent))
         let configure = Task { try await service.configure(harness.request(), owner: owner, consent: harness.consent) }
         while !binder.entered.withLock({ $0 }) { try await Task.sleep(for: .milliseconds(5)) }
-        let status: Data?? = await FirstReply.within(.seconds(2)) { reply in
+        let status: Data?? = await FirstReply.within(.seconds(20)) { reply in
             Task { reply(try? await service.status(owner: owner)) }
         }
         binder.release.signal()

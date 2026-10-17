@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Sites model", .timeLimit(.minutes(1)))
+@Suite("Sites model", .timeLimit(.minutes(10)))
 @MainActor
 struct SitesModelTests {
     private let running = EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID])

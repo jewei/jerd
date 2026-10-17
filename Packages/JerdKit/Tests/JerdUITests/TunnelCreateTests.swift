@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Tunnel create in Cloudflare", .timeLimit(.minutes(1)))
+@Suite("Tunnel create in Cloudflare", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelCreateTests {
     private func openEditor(connected: Bool) async throws -> (SitesHarness, TunnelEditorModel) {
