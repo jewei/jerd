@@ -11,6 +11,12 @@ code marks.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+- When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
+- When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
+- When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
+- Create in Cloudflare now accepts only a subdomain without a dot, because Cloudflare's free certificate covers only one level below the domain.
+- When Cloudflare is not connected, Remove and Delete in Cloudflare now says where to connect it.
+- Check Again on a missing DNS record warning now works while Jerd checks another tunnel.
 
 ## [0.1.5] - 2026-10-10
 
