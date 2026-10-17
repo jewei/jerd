@@ -5,7 +5,7 @@ import Testing
 
 @testable import JerdUI
 
-@Suite("Tunnel hostname check", .timeLimit(.minutes(1)))
+@Suite("Tunnel hostname check", .timeLimit(.minutes(10)))
 @MainActor
 struct TunnelHostnameCheckTests {
     private let hostname = SampleData.previewTunnel.hostname

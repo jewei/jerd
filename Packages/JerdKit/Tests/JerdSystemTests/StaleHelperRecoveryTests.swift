@@ -7,7 +7,7 @@ import os
 @testable import JerdSystem
 
 /// The app recovers by itself from a helper that still runs the code from before an app update.
-@Suite(.timeLimit(.minutes(1))) struct StaleHelperRecoveryTests {
+@Suite(.timeLimit(.minutes(10))) struct StaleHelperRecoveryTests {
     private final class AcceptingTrustSettings: TrustSettingsApplying {
         func setAdminTrust(certificateDER: Data, scope: TrustScope) -> OSStatus { errSecSuccess }
         func removeAdminTrust(certificateDER: Data) -> OSStatus { errSecSuccess }

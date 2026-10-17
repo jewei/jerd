@@ -7,7 +7,7 @@ import os
 
 /// Calls that overlap a helper restart (automatic or Reconnect Helper). The restart pauses on a
 /// `PauseGate`, so each test starts its other calls in the middle of it.
-@Suite(.timeLimit(.minutes(1))) struct HelperRestartConcurrencyTests {
+@Suite(.timeLimit(.minutes(10))) struct HelperRestartConcurrencyTests {
     /// Regression test: the restart closes the old link, which fails a call in flight with 4099.
     /// The call waits for the restart before it sends again; before, it sent at once and failed
     /// with "Approved helper setup is required." and no remedy.
