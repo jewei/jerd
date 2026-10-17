@@ -13,7 +13,7 @@ code marks.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
 - Sidebar rows no longer show through the Add button and the count at the bottom of a long Sites, Databases, or Storage list, and the count no longer gets cut off in a narrow window.
 - A sidebar that cannot load its settings now shows the full message on two lines.
-- The Storage page now tells you to install RustFS first when Add Bucket is not available.
+- The Storage page now tells you to install RustFS first when its settings load and RustFS is not installed.
 - The Edit Cloudflare Tunnel sheet now says that Save changes the registration. It no longer says that Save adds one.
 - The Advanced page and the shell setup report now describe the PHP selection of php, composer, and laravel with one sentence, and each registered PHP runtime labels its registration ID and default mark.
 - Text on the Runtimes, Advanced, About, Sites, and Mail pages now uses short, active sentences, and the Connection Checks use one result text for both checks.
