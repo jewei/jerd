@@ -176,8 +176,9 @@ struct ProcessRecoveryStopTests {
                 processID: pid, runtimeID: "stubborn", identity: identity, controller: controller, gracefulSignal: 15),
             to: mail.activeRunFile)
         let service = ProcessRecoveryService(layout: DataLayout(root: folder.url), pollInterval: .milliseconds(20))
-        let first = Task { try await service.recover("Mail", timeout: .milliseconds(400)) }
-        try await Task.sleep(for: .milliseconds(100))
+        // The fixture ignores SIGTERM, so the first recovery still times out; 2 s keeps it busy under load.
+        let first = Task { try await service.recover("Mail", timeout: .seconds(2)) }
+        try #require(await eventually { await service.isBusy })
         await #expect(throws: JerdError.unavailable("Wait for process recovery to finish.")) {
             try await service.recover("Mail")
         }
