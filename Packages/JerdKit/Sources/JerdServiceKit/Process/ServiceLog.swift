@@ -22,13 +22,29 @@ public struct ServiceLog: Hashable, Sendable {
 
     /// The last 4 096 characters of the log with every secret replaced by `[redacted]`.
     ///
-    /// The read includes room for the longest secret, and redaction happens before the cut, so a
-    /// secret that crosses the cut cannot leave a fragment. Returns `fallback` when the log is
-    /// missing, empty, or unreadable.
+    /// The read includes room for two of the longest secret, and redaction happens before the cut.
+    /// When the read starts inside the file, the first `room` bytes are dropped after redaction,
+    /// because only they can hold the end of a secret that the read cut. So no fragment of a secret
+    /// shows, even when redaction or multibyte text makes the text shorter. Returns `fallback` when
+    /// the log is missing, empty, or unreadable.
     public func tail(redacting secrets: [String], fallback: String) -> String {
         let room = secrets.map(\.utf8.count).max() ?? 0
-        guard let raw = try? file.readTail(limit: Self.tailLimit + room), !raw.isEmpty else { return fallback }
+        let limit = Self.tailLimit + 2 * room
+        guard let raw = try? file.readTail(limit: limit), !raw.isEmpty else { return fallback }
         let redacted = LogRedactor.redact(raw, values: secrets)
-        return String(redacted.suffix(Self.tailLimit))
+        let whole = raw.utf8.count < limit
+        let safe = whole ? Substring(redacted) : Self.dropping(leadingBytes: room, of: redacted)
+        return String(safe.suffix(Self.tailLimit))
+    }
+
+    /// `text` without its first characters that together have at least `count` UTF-8 bytes.
+    private static func dropping(leadingBytes count: Int, of text: String) -> Substring {
+        var index = text.startIndex
+        var dropped = 0
+        while dropped < count, index < text.endIndex {
+            dropped += text[index].utf8.count
+            index = text.index(after: index)
+        }
+        return text[index...]
     }
 }

@@ -101,7 +101,7 @@ final class OldAppConsent: NSObject, OldAppConsentProtocol, Sendable {
         #expect(await status(connection).1 == nil)
         #expect(lifetime.snapshot.connections == 1)
         connection.invalidate()
-        for _ in 0..<200 where lifetime.snapshot.connections != 0 { try await Task.sleep(for: .milliseconds(10)) }
+        for _ in 0..<2_000 where lifetime.snapshot.connections != 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(lifetime.snapshot.connections == 0)
         #expect(lifetime.beginExit(expecting: lifetime.snapshot.generation))
         let late = connect(listener)

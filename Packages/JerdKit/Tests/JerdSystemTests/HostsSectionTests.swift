@@ -29,6 +29,34 @@ import Testing
         #expect(removed == data)
     }
 
+    /// Regression test: removal keeps the LF of a user line before the section and never joins two lines.
+    @Test(arguments: [
+        ("a\nb\n# BEGIN JERD\n127.0.0.1 demo.test\n# END JERD\nc\n", "a\nb\nc\n"),
+        ("a\r\n# BEGIN JERD\r\n127.0.0.1 demo.test\r\n# END JERD\r\nc\r\n", "a\r\nc\r\n"),
+        ("a\n# BEGIN JERD\n127.0.0.1 demo.test\n# END JERD\n10.0.0.5 db.local\n", "a\n10.0.0.5 db.local\n"),
+        ("# BEGIN JERD\n127.0.0.1 demo.test\n# END JERD\nc\n", "c\n"),
+        ("a\n\n# BEGIN JERD\n127.0.0.1 demo.test\n# END JERD\nc\n", "a\nc\n"),
+    ])
+    func removalKeepsTheLinesAroundTheSection(contents: String, expected: String) throws {
+        let data = Data(contents.utf8)
+        let removed = try HostsSection.replacing(in: data, with: [], expecting: hosts("demo.test"))
+        #expect(String(decoding: removed, as: UTF8.self) == expected)
+        let renamed = try HostsSection.replacing(
+            in: data, with: hosts("demo.test", "two.test"), expecting: hosts("demo.test"))
+        let again = try HostsSection.replacing(in: renamed, with: [], expecting: hosts("demo.test", "two.test"))
+        #expect(String(decoding: again, as: UTF8.self) == expected)
+    }
+
+    @Test func appendThenRemoveOnAFileWithoutAFinalLineFeedGivesBackTheFile() throws {
+        let original = Data("a".utf8)
+        let added = try HostsSection.replacing(in: original, with: hosts("demo.test"), expecting: [])
+        #expect(String(decoding: added, as: UTF8.self) == "a\n# BEGIN JERD\n127.0.0.1 demo.test\n# END JERD\n")
+        #expect(try HostsSection.replacing(in: added, with: [], expecting: hosts("demo.test")) == original)
+        let appended = added + Data("10.0.0.5 db.local\n".utf8)
+        let removed = try HostsSection.replacing(in: appended, with: [], expecting: hosts("demo.test"))
+        #expect(String(decoding: removed, as: UTF8.self) == "a\n10.0.0.5 db.local\n")
+    }
+
     @Test func multipleHostsPreserveUnrelatedMappings() throws {
         let original = Data("127.0.0.1 localhost\n10.0.0.1 nas.lan\n".utf8)
         let three = try HostsSection.replacing(in: original, with: hosts("a.test", "b.test", "c.test"), expecting: [])

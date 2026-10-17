@@ -50,6 +50,9 @@ package struct PostgresDefinition: DatabaseEngineDefinition {
                 "--no-psqlrc", "--no-password", "--host=127.0.0.1", "--port=\(service.port)", "--username=jerd",
                 "--dbname=postgres", "--tuples-only", "--no-align", "--set=ON_ERROR_STOP=1", "--command",
                 command.joined(separator: ";"),
-            ], environment: ["PGPASSFILE": files.pgpass.path, "PGCONNECT_TIMEOUT": "1"])
+            ],
+            environment: [
+                "PGPASSFILE": files.pgpass.path, "PGCONNECT_TIMEOUT": "1", "PGREQUIREAUTH": "scram-sha-256",
+            ])
     }
 }

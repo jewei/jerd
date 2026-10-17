@@ -142,10 +142,13 @@ import os
             files: [try #require(RelativePath("cloudflared")): digest("0")])
         try AtomicFile.write(try receipt.encoded(), to: build.appendingPathComponent(BuildReceipt.fileName))
         let installer = fixture.installer(directory: folder.url)
-        let result = await cancelWhileRunning { try await installer.install(fixture.release) }
+        let long = build.appendingPathComponent("cloudflared")
+        // The hash holds the long file open, so the cancellation arrives while it runs.
+        let hashRuns: @Sendable () -> Bool = { isOpenInThisProcess(long) }
+        let result = await cancel(when: hashRuns) { try await installer.install(fixture.release) }
         #expect(throws: CancellationError.self) { try result.get() }
         #expect(fixture.fetcher.requests.isEmpty)
-        #expect(FileProbe.presence(at: build.appendingPathComponent("cloudflared")) == .present)
+        #expect(FileProbe.presence(at: long) == .present)
     }
 
     @Test func incompatibleReleaseIsRefusedBeforeAnyDownload() async throws {

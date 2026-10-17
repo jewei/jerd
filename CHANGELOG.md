@@ -14,6 +14,15 @@ code marks.
 - When the Jerd helper is turned off in Login Items or is not registered, starting sites now tells you what to do and offers Open Login Items or Reconnect Helper.
 - A Keychain failure of the Cloudflare API token now names the Cloudflare API token, not a tunnel token.
 - When recovery cannot stop a saved process, the message now shows the system cause and tells you to quit the process in Activity Monitor.
+- Removing the Jerd section from the hosts file no longer joins your line before the section with the line after it.
+- A database start no longer sends the database password to another program that took the database port. Jerd now checks that its own server holds the port before each readiness check.
+- A service error message can no longer show part of a password from the end of the service log.
+- When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
+- When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
+- When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
+- Create in Cloudflare now accepts only a subdomain without a dot, because Cloudflare's free certificate covers only one level below the domain.
+- When Cloudflare is not connected, Remove and Delete in Cloudflare now says where to connect it.
+- Check Again on a missing DNS record warning now works while Jerd checks another tunnel.
 
 ## [0.1.5] - 2026-10-10
 

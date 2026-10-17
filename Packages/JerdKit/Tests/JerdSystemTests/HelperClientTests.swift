@@ -165,10 +165,16 @@ import os
         let handlers = opener.closeHandlers.withLock { $0 }
         handlers[0]()
         try await Task.sleep(for: .milliseconds(20))
+        #expect(await client.connection.isConnected)
         _ = try await client.status()
         #expect(opener.opened.withLock { $0 } == 2)
         handlers[1]()
-        try await Task.sleep(for: .milliseconds(20))
+        // The close handler drops the link in a Task, so wait for the drop instead of a fixed sleep.
+        let deadline = ContinuousClock.now + .seconds(10)
+        while await client.connection.isConnected, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(!(await client.connection.isConnected))
         _ = try await client.status()
         #expect(opener.opened.withLock { $0 } == 3)
     }

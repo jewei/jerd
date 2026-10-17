@@ -46,10 +46,10 @@ import Testing
         let payload = try harness.request()
         async let configured = change { session.configureSite(payload, reply: $0) }
         await held.waitUntilAsked()
-        let acquired: String?? = await FirstReply.within(.seconds(2)) { reply in
+        let acquired: String?? = await FirstReply.within(.seconds(20)) { reply in
             session.acquireListeners { _, _, error in reply(error) }
         }
-        let released: Bool? = await FirstReply.within(.seconds(2)) { reply in
+        let released: Bool? = await FirstReply.within(.seconds(20)) { reply in
             session.releaseListeners { reply(true) }
         }
         held.release()

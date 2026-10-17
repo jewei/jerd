@@ -73,7 +73,7 @@ extension ManagedInstance {
 
     /// Polls readiness, then requires exact loopback listener ownership and a live process.
     func awaitReadiness(of owned: OwnedServiceProcess) async throws {
-        let check = owned.plan.readiness
+        let check = Self.onlyWhenOwned(owned.plan.readiness, by: owned, ports: effects.ports)
         let poller = ReadinessPoller(clock: effects.clock)
         switch try await poller.poll(check, secrets: owned.plan.secrets, isAlive: { await owned.isAlive() }) {
         case .ready:
@@ -86,6 +86,27 @@ extension ManagedInstance {
         }
         try await effects.ports.verifyOwnership(pid: owned.processID, expected: owned.plan.ports)
         guard await owned.isAlive() else { throw JerdError.processFailed(messages.exitedDuringCheck) }
+    }
+
+    static let notOnlyListener =
+        "The service does not listen on its port yet, or another process also uses the port."
+
+    /// Runs the probe of `check` only while the owned process is the only listener on its ports.
+    /// A probe can send the service password, so it must never reach a process that took the port.
+    static func onlyWhenOwned(
+        _ check: ReadinessCheck, by owned: OwnedServiceProcess, ports: LoopbackPortGuard
+    ) -> ReadinessCheck {
+        let probe = check.probe
+        let pid = owned.processID
+        let expected = owned.plan.ports
+        var gated = check
+        gated.probe = {
+            guard try await ports.isOnlyListener(pid: pid, on: expected) else {
+                return .notReady(notOnlyListener)
+            }
+            return try await probe()
+        }
+        return gated
     }
 
     /// Runs `step` (a launch and its readiness check), then removes the secret files of `plan`,

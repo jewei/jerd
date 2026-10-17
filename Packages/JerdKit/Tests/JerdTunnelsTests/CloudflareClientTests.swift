@@ -46,10 +46,34 @@ struct CloudflareClientTests {
     @Test("A refusal shows Cloudflare's message and code")
     func refusalShowsMessage() async {
         transport.answer(
+            "POST /client/v4/accounts/\(FakeCloudflareTransport.account)/cfd_tunnel", status: 400,
+            FakeCloudflareTransport.failure(code: 1003, message: "Invalid name"))
+        await #expect(throws: JerdError.unavailable(CloudflareMessage.failed("Invalid name (1003)"))) {
+            _ = try await client.createTunnel(accountID: FakeCloudflareTransport.account, name: "jerd-a.example.com")
+        }
+    }
+
+    @Test("A token without a needed permission gets the list of permissions to add")
+    func missingPermissionListsPermissions() async {
+        transport.answer(
             "POST /client/v4/accounts/\(FakeCloudflareTransport.account)/cfd_tunnel", status: 403,
             FakeCloudflareTransport.failure(code: 10000, message: "Authentication error"))
-        await #expect(throws: JerdError.unavailable(CloudflareMessage.failed("Authentication error (10000)"))) {
+        let expected = CloudflareMessage.missingPermission("Authentication error (10000)")
+        #expect(expected.contains(CloudflareMessage.tokenPermissions))
+        await #expect(throws: JerdError.invalid(expected)) {
             _ = try await client.createTunnel(accountID: FakeCloudflareTransport.account, name: "jerd-a.example.com")
+        }
+    }
+
+    @Test("Code 10000 means a missing permission even without HTTP 403")
+    func authenticationCodeListsPermissions() async {
+        transport.answer(
+            "GET /client/v4/zones/\(FakeCloudflareTransport.zone)/dns_records", status: 400,
+            FakeCloudflareTransport.failure(code: 10000, message: "Authentication error"))
+        await #expect(
+            throws: JerdError.invalid(CloudflareMessage.missingPermission("Authentication error (10000)"))
+        ) {
+            _ = try await client.records(zoneID: FakeCloudflareTransport.zone, hostname: "a.example.com")
         }
     }
 

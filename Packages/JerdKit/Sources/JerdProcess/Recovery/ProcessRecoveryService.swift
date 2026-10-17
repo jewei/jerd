@@ -18,6 +18,9 @@ public actor ProcessRecoveryService {
     let pollInterval: Duration
     private var busy = false
 
+    /// True while a recovery runs; tests wait for it instead of sleeping.
+    package var isBusy: Bool { busy }
+
     public init(
         layout: DataLayout, observer: ProcessObserver = .system, signaller: AuditedSignaller = .system,
         capture: @escaping Capture = ProcessIdentity.capture, pollInterval: Duration = .milliseconds(100)

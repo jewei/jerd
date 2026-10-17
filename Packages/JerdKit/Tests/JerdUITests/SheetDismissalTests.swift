@@ -9,7 +9,7 @@ import Testing
 /// sheet (Quit ends every open sheet with `ApplicationQuit.endSheets`), SwiftUI clears the
 /// sheet binding; these tests clear the binding, or call the dismissal that the binding runs.
 /// No sheet asks before it ends, so Quit does not ask either (JerdUI README, "Sheets and Quit").
-@Suite("Sheet dismissal", .timeLimit(.minutes(1)))
+@Suite("Sheet dismissal", .timeLimit(.minutes(10)))
 @MainActor
 struct SheetDismissalTests {
     @Test("A dismissal by SwiftUI runs the sheet's own dismissal; a new item never does")

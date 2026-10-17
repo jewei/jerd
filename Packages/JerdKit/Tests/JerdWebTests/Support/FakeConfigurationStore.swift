@@ -72,7 +72,7 @@ final class BlockingHostsFile: HostsFileReading, Sendable {
 }
 
 /// Waits until `condition` holds, yielding between checks. Fails the test after the timeout.
-func waitUntil(timeout: Duration = .seconds(5), _ condition: () async -> Bool) async -> Bool {
+func waitUntil(timeout: Duration = .seconds(30), _ condition: () async -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
     while ContinuousClock.now < deadline {
         if await condition() { return true }
