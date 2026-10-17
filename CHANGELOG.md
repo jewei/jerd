@@ -12,6 +12,7 @@ code marks.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
 - When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
+- When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
 
 ## [0.1.5] - 2026-10-10
 

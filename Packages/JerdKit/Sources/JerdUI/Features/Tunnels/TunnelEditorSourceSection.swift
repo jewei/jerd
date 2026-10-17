@@ -62,8 +62,7 @@ struct TunnelEditorSourceSection: View {
     }
 
     /// The permissions of the API token, in the words of the Cloudflare token page.
-    static let permissions =
-        "Create a token with Account › Cloudflare Tunnel › Edit, Zone › DNS › Edit, and Zone › Zone › Read."
+    static let permissions = "Create a token with \(CloudflareMessage.tokenPermissions)."
 
     private var footer: String {
         switch editor.source {

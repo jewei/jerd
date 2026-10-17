@@ -1,6 +1,9 @@
 /// Every user-visible message of the Cloudflare account and the tunnels that Jerd creates.
 package enum CloudflareMessage {
     package static let notConnected = "Connect Cloudflare with an API token before you create a tunnel."
+    /// The API token permissions that Create needs, in the words of the Cloudflare token page.
+    package static let tokenPermissions =
+        "Account › Cloudflare Tunnel › Edit, Zone › DNS › Edit, and Zone › Zone › Read"
     package static let tokenFormat = "Paste the Cloudflare API token without spaces."
     package static let tokenRejected =
         "Cloudflare rejected the API token. Create a token with the permissions that Jerd lists, then connect again."
@@ -19,6 +22,10 @@ package enum CloudflareMessage {
     }
     package static func failed(_ detail: String) -> String {
         "Cloudflare refused the request: \(detail)"
+    }
+    package static func missingPermission(_ detail: String) -> String {
+        "Cloudflare refused the request because the API token lacks a permission: \(detail). Edit the token in "
+            + "Cloudflare so that it has \(tokenPermissions), then try again."
     }
     package static func recordExists(_ hostname: String) -> String {
         "\(hostname) already has a DNS record in Cloudflare. Jerd never replaces a record. Choose another name, "
