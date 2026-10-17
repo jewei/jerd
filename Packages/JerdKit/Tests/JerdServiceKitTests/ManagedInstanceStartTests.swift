@@ -116,6 +116,20 @@ import Testing
         }
     }
 
+    /// Regression test: a probe can send the service password, so it never runs while another
+    /// process holds the service port.
+    @Test func theProbeNeverRunsWhileAnotherProcessHoldsThePort() async throws {
+        let harness = try InstanceHarness()
+        harness.lsof.takeAfterLaunch(41_001)
+        let instance = harness.instance()
+        let message = "The service does not listen on its port yet, or another process also uses the port."
+        await #expect(throws: JerdError.timedOut("The fake service timed out. \(message)")) {
+            try await instance.start()
+        }
+        #expect(harness.probe.calls == 0)
+        #expect(await harness.processes.runningPIDs.isEmpty)
+    }
+
     @Test func anUnexpectedListenerFailsTheStart() async throws {
         let harness = try InstanceHarness()
         harness.lsof.addListener("*:41001")

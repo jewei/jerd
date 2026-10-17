@@ -47,6 +47,9 @@ A start does these steps in this order. A failure stops the steps and keeps all 
   server that continued and exited): it sends no signal, and the record and the lock go as after
   a Stop.
 - A start failure keeps the kind of the error of the failed step.
+- A readiness probe runs only after the owned process listens on `127.0.0.1` on each of its
+  ports and no other process listens on them. A probe can send the service password, so it must
+  never reach a process that took the port.
 - `refresh()` detects an exit, but it never waits for the stop of the group. A user Stop joins
   that stop. An exit stop never makes Quit fail.
 - A child that something else reaped is checked through its record. A live group keeps the
