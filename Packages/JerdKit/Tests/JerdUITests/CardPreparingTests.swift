@@ -36,7 +36,7 @@ struct CardPreparingTests {
 
         let failed = ServiceCardNotice.notice(
             load: .failed(message: "mail.json"), hasRuntime: false, runtime: "Mailpit", settings: "Mail")
-        #expect(failed?.text == "Mail settings could not be loaded.")
+        #expect(failed?.text == "Mail settings did not load.")
         #expect(ServiceCardNotice.notice(load: .loaded, hasRuntime: true, runtime: "Mailpit", settings: "Mail") == nil)
     }
 

@@ -29,7 +29,7 @@ struct ServiceCardNotice: Equatable {
             return ServiceCardNotice(
                 text: "Preparing \(runtime)…", reason: "Jerd is preparing \(runtime).", isPreparing: true)
         case .failed:
-            let text = "\(settings) settings could not be loaded."
+            let text = "\(settings) settings did not load."
             return ServiceCardNotice(text: text, reason: text, isPreparing: false)
         case .loaded:
             guard !hasRuntime else { return nil }

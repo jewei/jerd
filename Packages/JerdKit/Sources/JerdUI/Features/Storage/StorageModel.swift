@@ -58,7 +58,7 @@ public final class StorageModel {
         self.workspace = workspace
     }
 
-    static let loadFailed = "Storage settings could not be loaded. The existing file was preserved."
+    static let loadFailed = "Storage settings did not load. Jerd kept the existing file."
 
     public var state: ServiceState { snapshot.state }
     public var settings: StorageSettings { snapshot.settings }

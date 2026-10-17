@@ -56,7 +56,7 @@ public final class MailModel {
     }
 
     static let testCaptured = "Test email captured. Open the inbox to view it."
-    static let loadFailed = "Mail settings could not be loaded. The existing file was preserved."
+    static let loadFailed = "Mail settings did not load. Jerd kept the existing file."
 
     public var state: ServiceState { snapshot.state }
     public var settings: MailSettings { snapshot.settings }

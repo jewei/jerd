@@ -62,7 +62,7 @@ public final class DatabasesModel {
         self.workspace = workspace
     }
 
-    static let loadFailed = "Database settings could not be loaded. The existing file was preserved."
+    static let loadFailed = "Database settings did not load. Jerd kept the existing file."
 
     public var configuration: DatabaseConfiguration { snapshot.configuration }
     public var services: [DatabaseService] { configuration.services }
