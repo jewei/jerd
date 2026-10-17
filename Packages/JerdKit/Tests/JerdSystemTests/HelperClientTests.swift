@@ -38,9 +38,21 @@ import os
         let (client, opener) = client(helper, .requiresApproval)
         #expect(try await client.status() == HelperStatus(availability: .requiresApproval, setup: .empty))
         #expect(opener.opened.withLock { $0 } == 0)
-        await #expect(throws: JerdError.unavailable("Approved helper setup is required.")) {
+        let loginItems = JerdError.unavailable(
+            "Allow Jerd in System Settings → General → Login Items & Extensions, then retry the operation."
+        ).with(.openLoginItems)
+        await #expect(throws: loginItems) { try await client.acquireListeners() }
+    }
+
+    @Test func anUnregisteredHelperAsksToReconnectBeforeAnXPCCall() async throws {
+        let helper = FakeHelper()
+        let (client, opener) = client(helper, .notRegistered)
+        await #expect {
             try await client.acquireListeners()
+        } throws: { error in
+            (error as? JerdError)?.remedy == .reconnectHelper
         }
+        #expect(opener.opened.withLock { $0 } == 0)
     }
 
     @Test func statusDecodesTheSetupAndMapsErrors() async throws {

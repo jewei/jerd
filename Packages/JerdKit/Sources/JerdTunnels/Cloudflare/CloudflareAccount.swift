@@ -40,7 +40,7 @@ public actor CloudflareAccount: CloudflareProvisioning {
     public func disconnect() throws {
         let status = keychain.delete(item)
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw JerdError.unavailable(TunnelMessage.keychainRemove(status))
+            throw JerdError.unavailable(CloudflareMessage.keychainRemove(status))
         }
     }
 
@@ -57,7 +57,7 @@ public actor CloudflareAccount: CloudflareProvisioning {
         let result = keychain.copyData(item)
         if result.status == errSecItemNotFound { return nil }
         guard result.status == errSecSuccess, let data = result.data, let token = String(data: data, encoding: .utf8)
-        else { throw JerdError.unavailable(TunnelMessage.keychainRead(result.status)) }
+        else { throw JerdError.unavailable(CloudflareMessage.keychainRead(result.status)) }
         return token
     }
 
@@ -65,11 +65,10 @@ public actor CloudflareAccount: CloudflareProvisioning {
         let data = Data(token.utf8)
         let status = keychain.update(item, data: data)
         if status == errSecItemNotFound {
-            guard keychain.add(item, data: data) == errSecSuccess else {
-                throw JerdError.unavailable(TunnelMessage.keychainAdd)
-            }
+            let added = keychain.add(item, data: data)
+            guard added == errSecSuccess else { throw JerdError.unavailable(CloudflareMessage.keychainAdd(added)) }
         } else if status != errSecSuccess {
-            throw JerdError.unavailable(TunnelMessage.keychainUpdate(status))
+            throw JerdError.unavailable(CloudflareMessage.keychainUpdate(status))
         }
     }
 }

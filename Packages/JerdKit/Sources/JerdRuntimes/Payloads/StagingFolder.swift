@@ -6,16 +6,16 @@ import JerdFoundation
 ///
 /// The folder is locked (`flock`) while any copy of this value lives, so `removeAbandoned(in:)`
 /// never removes a folder that an installation in this or another process still uses.
-public struct StagingFolder: Sendable {
+package struct StagingFolder: Sendable {
     /// The name prefix of every staging folder. Listings skip hidden names.
-    public static let prefix = ".install-"
+    package static let prefix = ".install-"
 
-    public let url: URL
+    package let url: URL
     private let lock: FolderLock
 
     /// Creates and locks a new staging folder (mode 0700) inside `directory`.
     /// - Throws: `.unavailable` when the folder cannot be created or locked.
-    public init(in directory: URL) throws {
+    package init(in directory: URL) throws {
         let url = directory.appendingPathComponent("\(Self.prefix)\(UUID().uuidString)", isDirectory: true)
         try OwnedDirectory.create(url)
         guard let lock = FolderLock(url) else {
@@ -26,7 +26,7 @@ public struct StagingFolder: Sendable {
     }
 
     /// A child folder (mode 0700).
-    public func folder(_ name: String) throws -> URL {
+    package func folder(_ name: String) throws -> URL {
         let child = url.appendingPathComponent(name, isDirectory: true)
         try OwnedDirectory.create(child)
         return child
@@ -34,7 +34,7 @@ public struct StagingFolder: Sendable {
 
     /// Removes the folder and its contents. Removal errors are ignored: a leftover is removed by
     /// `removeAbandoned(in:)` at the next start.
-    public func remove() {
+    package func remove() {
         try? FileManager.default.removeItem(at: url)
     }
 
@@ -44,7 +44,7 @@ public struct StagingFolder: Sendable {
     /// folder in use, a link, and a file with the prefix stay. Safe to call at any time.
     /// - Returns: the names that were removed.
     @discardableResult
-    public static func removeAbandoned(in directory: URL) -> [String] {
+    package static func removeAbandoned(in directory: URL) -> [String] {
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return [] }
         return names.filter { $0.hasPrefix(prefix) }.sorted().filter { name in
             let url = directory.appendingPathComponent(name)

@@ -5,7 +5,7 @@ extension CaddyConfigRenderer {
     ///
     /// The file is compact with escaped slashes, as the old generator wrote it. Keys are sorted
     /// so the output is deterministic.
-    public static func renderAuthorityPreparation(authority: LocalAuthority, storage: URL) throws -> Data {
+    package static func renderAuthorityPreparation(authority: LocalAuthority, storage: URL) throws -> Data {
         let document: JSONValue = [
             "admin": ["disabled": true],
             "storage": storageValue(storage),

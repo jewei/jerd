@@ -2,10 +2,10 @@ import Foundation
 
 /// HTTPS to the Cloudflare API: an ephemeral session without cookies, cache, proxies from a
 /// redirect, or redirects, so the API token goes only to `api.cloudflare.com`.
-public struct CloudflareTransport: CloudflareTransporting {
-    public init() {}
+package struct CloudflareTransport: CloudflareTransporting {
+    package init() {}
 
-    public func send(_ request: URLRequest) async throws -> (status: Int, body: Data) {
+    package func send(_ request: URLRequest) async throws -> (status: Int, body: Data) {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpCookieStorage = nil
         configuration.urlCache = nil

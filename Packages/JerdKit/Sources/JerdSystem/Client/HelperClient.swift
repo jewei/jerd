@@ -29,7 +29,7 @@ public actor HelperClient {
         self.gate = gate
         connection = HelperConnection(
             opener: opener, responder: ConsentResponder(gate: gate, settings: trustSettings),
-            isEnabled: { registration.availability == .enabled })
+            requireEnabled: { try registration.requireEnabled() })
     }
 
     /// The daemon state and, when it is enabled, the setup it reports.

@@ -2,7 +2,7 @@ import JerdFoundation
 import JerdServiceKit
 
 /// Every user message of the mail area, in one place.
-public enum MailMessages {
+enum MailMessages {
     // MARK: Settings
 
     static let settingsInvalid = JerdError.invalid(

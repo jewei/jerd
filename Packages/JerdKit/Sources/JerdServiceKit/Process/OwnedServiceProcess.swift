@@ -6,17 +6,17 @@ import JerdProcess
 ///
 /// It joins the supervisor, the server log, and the run record: a launch rotates the log and
 /// spawns the process, and only an owned process gets a record.
-public struct OwnedServiceProcess: Sendable {
-    public let token: ProcessToken
-    public let processID: pid_t
-    public let plan: LaunchPlan
+package struct OwnedServiceProcess: Sendable {
+    package let token: ProcessToken
+    package let processID: pid_t
+    package let plan: LaunchPlan
     private let processes: any ProcessControlling
 
     /// Rotates the log and starts `plan`. Returns only a process that the supervisor owns.
     ///
     /// When the spawn fails or produces no owned child, the launch ends (`LaunchPlan.didStop`
     /// runs) and the error names the end of the log.
-    public static func launch(
+    package static func launch(
         _ plan: LaunchPlan, log: ServiceLog, processes: any ProcessControlling, policy: StopPolicy,
         messages: ServiceMessages
     ) async throws -> OwnedServiceProcess {
@@ -38,18 +38,18 @@ public struct OwnedServiceProcess: Sendable {
     }
 
     /// True while the leader has not exited.
-    public func isAlive() async -> Bool {
+    package func isAlive() async -> Bool {
         await processes.state(of: token) == .running
     }
 
     /// Stops the process group with `policy`. Concurrent stops share one outcome.
-    public func stop(policy: StopPolicy) async -> StopOutcome {
+    package func stop(policy: StopPolicy) async -> StopOutcome {
         await processes.stop(token, policy: policy)
     }
 
     /// Saves the run record of this process at the cleared location.
     /// - Throws: when the identity cannot be captured. A fallback record is then saved.
-    public func saveRecord(
+    package func saveRecord(
         runtimeID: String, signal: Int32, clearance: StartClearance, recorder: ActiveRunRecorder
     )
         throws

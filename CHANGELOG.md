@@ -11,6 +11,9 @@ code marks.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+- When the Jerd helper is turned off in Login Items or is not registered, starting sites now tells you what to do and offers Open Login Items or Reconnect Helper.
+- A Keychain failure of the Cloudflare API token now names the Cloudflare API token, not a tunnel token.
+- When recovery cannot stop a saved process, the message now shows the system cause and tells you to quit the process in Activity Monitor.
 - Removing the Jerd section from the hosts file no longer joins your line before the section with the line after it.
 - A database start no longer sends the database password to another program that took the database port. Jerd now checks that its own server holds the port before each readiness check.
 - A service error message can no longer show part of a password from the end of the service log.

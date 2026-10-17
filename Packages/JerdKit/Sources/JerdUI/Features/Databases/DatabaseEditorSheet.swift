@@ -20,56 +20,68 @@ package struct DatabaseEditorSheet: View {
             ) { model.saveEditor() },
             workingMessage: model.editorOperation.workingMessage, cancel: model.closeEditor
         ) {
+            fieldsSection
+            runtimeSection
+            failureSection
+        }
+    }
+
+    private var fieldsSection: some View {
+        Section {
+            Picker("Engine", selection: engine) {
+                ForEach(engines, id: \.self) { engine in
+                    Text(
+                        DatabaseRuntimeCopy.engineLabel(
+                            engine, isInstalled: model.availableEngines.contains(engine))
+                    )
+                    .tag(engine)
+                }
+            }
+            .disabled(!draft.isAdding || isInstalling)
+            if let offer {
+                ValueRow("Version", value: offer.versionLabel)
+            } else {
+                Picker("Version", selection: runtimeID) {
+                    ForEach(runtimes) { Text($0.version).tag(Optional($0.id)) }
+                }
+                .disabled(!draft.isAdding)
+            }
+            TextField("Name", text: name)
+                .accessibilityIdentifier("database-editor.name")
+            TextField("Port", text: port, prompt: Text(PortInput.prompt))
+                .accessibilityIdentifier("database-editor.port")
+            if let issue = draft.issue(in: model.configuration, installsRuntime: offer != nil) {
+                InlineMessage(issue, kind: .warning, identifier: "database-editor.issue")
+            }
+        } footer: {
+            FormFooter("The service listens only on 127.0.0.1. Jerd suggests the first free port.")
+        }
+    }
+
+    @ViewBuilder private var runtimeSection: some View {
+        // After a failure, the error below replaces the note, so the sheet stays short.
+        if let offer, model.editorOperation.failureMessage == nil {
             Section {
-                Picker("Engine", selection: engine) {
-                    ForEach(engines, id: \.self) { engine in
-                        Text(
-                            DatabaseRuntimeCopy.engineLabel(
-                                engine, isInstalled: model.availableEngines.contains(engine))
-                        )
-                        .tag(engine)
-                    }
-                }
-                .disabled(!draft.isAdding || isInstalling)
-                if let offer {
-                    ValueRow("Version", value: offer.versionLabel)
+                if let installation = model.runtimeInstallation, installation.addsService {
+                    RuntimeInstallProgressRow(installation, cancel: nil)
+                } else if let other = model.runtimeInstallation {
+                    InlineMessage(
+                        "Wait for the \(other.engine.title) installation to finish.", kind: .info,
+                        identifier: "database-editor.install-waits")
                 } else {
-                    Picker("Version", selection: runtimeID) {
-                        ForEach(runtimes) { Text($0.version).tag(Optional($0.id)) }
-                    }
-                    .disabled(!draft.isAdding)
+                    InlineMessage(
+                        DatabaseRuntimeCopy.addNote(offer), kind: .info, identifier: "database-editor.install-note")
                 }
-                TextField("Name", text: name)
-                    .accessibilityIdentifier("database-editor.name")
-                TextField("Port", text: port, prompt: Text(PortInput.prompt))
-                    .accessibilityIdentifier("database-editor.port")
-                if let issue = draft.issue(in: model.configuration, installsRuntime: offer != nil) {
-                    InlineMessage(issue, kind: .warning, identifier: "database-editor.issue")
-                }
-            } footer: {
-                FormFooter("The service listens only on 127.0.0.1. Jerd suggests the first free port.")
+            } header: {
+                Text("Runtime")
             }
-            // After a failure, the error below replaces the note, so the sheet stays short.
-            if let offer, model.editorOperation.failureMessage == nil {
-                Section {
-                    if let installation = model.runtimeInstallation, installation.addsService {
-                        RuntimeInstallProgressRow(installation, cancel: nil)
-                    } else if let other = model.runtimeInstallation {
-                        InlineMessage(
-                            "Wait for the \(other.engine.title) installation to finish.", kind: .info,
-                            identifier: "database-editor.install-waits")
-                    } else {
-                        InlineMessage(
-                            DatabaseRuntimeCopy.addNote(offer), kind: .info, identifier: "database-editor.install-note")
-                    }
-                } header: {
-                    Text("Runtime")
-                }
-            }
-            if let failure = model.editorOperation.failureMessage {
-                Section {
-                    InlineMessage(failure, kind: .error, identifier: "database-editor.error")
-                }
+        }
+    }
+
+    @ViewBuilder private var failureSection: some View {
+        if let failure = model.editorOperation.failureMessage {
+            Section {
+                InlineMessage(failure, kind: .error, identifier: "database-editor.error")
             }
         }
     }

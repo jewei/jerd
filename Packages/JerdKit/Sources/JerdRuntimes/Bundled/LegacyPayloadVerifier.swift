@@ -11,15 +11,15 @@ import JerdManifest
 /// strictly: a real folder that the user owns, a valid receipt of the group's
 /// form, exactly the recorded files with their SHA-256 (only `.DS_Store` is ignored), and for the
 /// database form every recorded executable with its execute bit. Nothing is ever changed.
-public struct LegacyPayloadVerifier: Sendable {
+package struct LegacyPayloadVerifier: Sendable {
     private let layout: RuntimeLayout
 
-    public init(layout: DataLayout) { self.layout = layout.runtimes }
+    package init(layout: DataLayout) { self.layout = layout.runtimes }
 
     /// Verifies `<group folder>/<id>/` off the cooperative pool.
     /// - Throws: `.invalid` for an unsafe ID, a folder that is not real or not owned, a receipt that
     ///   cannot be read, or any changed, extra, or missing file; `CancellationError`.
-    public func verify(id: String, group: PayloadGroup) async throws -> LegacyInstalledPayload {
+    package func verify(id: String, group: PayloadGroup) async throws -> LegacyInstalledPayload {
         guard PayloadIdentifier.isValid(id) else { throw JerdError.invalid("The runtime ID \(id) is invalid.") }
         let folder = layout.payloadDirectory(for: group).appendingPathComponent(id, isDirectory: true)
         let format = LegacyPayloadReceipt.Format(group: group)

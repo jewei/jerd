@@ -1,14 +1,14 @@
 import Darwin
 
 /// The pure recovery rules: when a record is stale, and what recovery may do with it.
-public enum RecoveryClassifier {
+package enum RecoveryClassifier {
     /// True when no saved process can still use the service data.
     ///
     /// - With an identity: the leader and every saved descendant exited or were replaced, and
     ///   either the leader PID was replaced or its group is proven empty. (macOS does not give a
     ///   new process a PID that is still a group ID, so a replaced PID proves the group is gone.)
     /// - Without an identity: the PID is proven gone and its group is proven empty.
-    public static func isStale(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool {
+    package static func isStale(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool {
         guard let master = observation.master else {
             return observation.legacyLeaderGone && observation.group == .empty
         }
@@ -18,7 +18,8 @@ public enum RecoveryClassifier {
     }
 
     /// True when a live group member is not a recorded identity that still runs.
-    public static func hasUnverifiedGroupMembers(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool {
+    package static func hasUnverifiedGroupMembers(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Bool
+    {
         if observation.master == .replaced { return false }
         let members: [pid_t]
         switch observation.group {
@@ -35,18 +36,18 @@ public enum RecoveryClassifier {
     }
 
     /// A classification: the row state and its user detail.
-    public struct Verdict: Equatable, Sendable {
-        public let state: RecoveryFinding.State
-        public let detail: String
+    package struct Verdict: Equatable, Sendable {
+        package let state: RecoveryFinding.State
+        package let detail: String
 
-        public init(state: RecoveryFinding.State, detail: String) {
+        package init(state: RecoveryFinding.State, detail: String) {
             self.state = state
             self.detail = detail
         }
     }
 
     /// Classifies a record. The first matching rule wins: stale, legacy, managed, recoverable, manual.
-    public static func classify(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Verdict {
+    package static func classify(_ record: ActiveRunRecord, _ observation: ProcessObservation) -> Verdict {
         let pid = record.processID
         if isStale(record, observation) {
             return Verdict(state: .stale, detail: RecoveryMessages.stale)
