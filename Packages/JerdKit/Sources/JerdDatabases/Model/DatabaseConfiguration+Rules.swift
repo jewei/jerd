@@ -21,7 +21,7 @@ extension DatabaseConfiguration {
     }
 
     /// The rules of a save: the structural rules and unique trimmed names.
-    public func validateForSave() throws {
+    package func validateForSave() throws {
         try validate()
         guard Self.isUnique(services.map { Self.trimmed($0.name) }) else { throw DatabaseMessages.duplicateName }
     }

@@ -8,16 +8,16 @@ import JerdServiceKit
 /// Start steps after the shared lock, record, and version checks: data identity
 /// (`runtime.json`) → credentials → first initialization (`initialized.json`) → engine
 /// configuration and a new socket folder → the launch plan.
-public struct DatabaseServiceDefinition: ServiceDefinition {
+package struct DatabaseServiceDefinition: ServiceDefinition {
     /// The limit of `initdb` and `mysqld --initialize-insecure`.
-    public static let initializationTimeout: Duration = .seconds(120)
+    package static let initializationTimeout: Duration = .seconds(120)
 
     package let engine: any DatabaseEngineDefinition
-    public let profile: ServiceProfile
+    package let profile: ServiceProfile
     let temporaryRoot: URL
 
     /// - Parameter temporaryRoot: where socket folders are made (`$TMPDIR` in the app).
-    public init(service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL) {
+    package init(service: DatabaseService, runtime: DatabaseRuntime, layout: DatabasesLayout, temporaryRoot: URL) {
         let instance = layout.instance(service.id)
         engine = Self.engine(runtime: runtime, service: service, files: DatabaseInstanceFiles(layout: instance))
         profile = ServiceProfile(
@@ -41,16 +41,16 @@ public struct DatabaseServiceDefinition: ServiceDefinition {
     }
 
     /// `<server> --version` must name the registered version as a whole token.
-    public var versionProbe: VersionProbe {
+    package var versionProbe: VersionProbe {
         VersionProbe(
             request: engine.request(engine.runtime.engine.serverName, ["--version"]),
             rule: .standalone(version: engine.runtime.version), mismatchMessage: DatabaseMessages.versionMismatch)
     }
 
-    public var identity: DatabaseIdentity { DatabaseIdentity(service: engine.service, runtime: engine.runtime) }
+    package var identity: DatabaseIdentity { DatabaseIdentity(service: engine.service, runtime: engine.runtime) }
     var files: DatabaseInstanceFiles { engine.files }
 
-    public func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
+    package func prepareStart(_ tools: StartTools) async throws -> LaunchPlan {
         let identityGuard = DataIdentityGuard<DatabaseIdentity>(
             file: files.layout.runtimeIdentityFile,
             messages: .init(mismatch: DatabaseMessages.identityMismatch, untracked: DatabaseMessages.untracked))
