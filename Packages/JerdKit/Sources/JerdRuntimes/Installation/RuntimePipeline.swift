@@ -30,7 +30,7 @@ public struct RuntimePipeline: Sendable {
     }
 
     /// Prepares `release` inside `staging/payload`.
-    public func prepare(
+    package func prepare(
         _ release: RuntimeRelease, tools: PreparationTools, staging: StagingFolder,
         progress: @escaping @Sendable (RuntimeInstallProgress) -> Void
     ) async throws -> PreparedPayload {

@@ -3,10 +3,10 @@ import Foundation
 import JerdFoundation
 
 /// A prepared payload has only private folders (0700), executables (0700), and other files (0600).
-public enum PayloadPermissions {
+package enum PayloadPermissions {
     /// Sets the modes below `folder`. A file is executable when the user execute bit is set.
     /// - Throws: `.invalid` for a symbolic link or a file that is not regular.
-    public static func apply(_ folder: URL) throws {
+    package static func apply(_ folder: URL) throws {
         try setMode(of: folder, 0o700)
         let names: [String]
         do {

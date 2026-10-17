@@ -6,16 +6,16 @@ import Security
 ///
 /// Not checked (as before): signature creation and expiration time, key expiration or
 /// revocation, and the issuer key ID subpacket. The pinned key and fingerprint replace them.
-public struct PinnedRSAVerifier: Sendable {
-    public let key: PinnedRSAKey
+package struct PinnedRSAVerifier: Sendable {
+    package let key: PinnedRSAKey
 
-    public init(key: PinnedRSAKey) { self.key = key }
+    package init(key: PinnedRSAKey) { self.key = key }
 
     /// Verifies `armoredSignature` over the bytes of `file`.
     ///
     /// - Throws: the key's single `.invalid` error for any signature problem. An unreadable file
     ///   throws the read error of `FileDigest`, and cancellation throws `CancellationError`.
-    public func verify(file: URL, armoredSignature: Data) throws {
+    package func verify(file: URL, armoredSignature: Data) throws {
         let signature = try OpenPGPSignatureParser.parse(
             armored: armoredSignature, expectedFingerprint: key.fingerprint, rejecting: key.failure)
         let digest = try FileDigest.sha256(of: file, appending: OpenPGPTrailer.bytes(for: signature.signedHeader))
