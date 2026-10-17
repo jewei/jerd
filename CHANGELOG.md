@@ -13,6 +13,7 @@ code marks.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
 - Sidebar rows no longer show through the Add button and the count at the bottom of a long Sites, Databases, or Storage list, and the count no longer gets cut off in a narrow window.
 - A sidebar that cannot load its settings now shows the full message on two lines.
+- The Storage page now tells you to install RustFS first when Add Bucket is not available.
 
 ## [0.1.5] - 2026-10-10
 

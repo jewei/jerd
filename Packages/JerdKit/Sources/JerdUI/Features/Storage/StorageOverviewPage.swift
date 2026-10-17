@@ -55,7 +55,7 @@ struct StorageOverviewPage: View {
     }
 
     private var bucketDetail: String {
-        if model.startInstallsRuntime, model.buckets.isEmpty {
+        if !model.hasRuntime, model.buckets.isEmpty {
             return "Install RustFS first. Then give your application an S3 bucket for uploads and files."
         }
         return model.buckets.isEmpty
