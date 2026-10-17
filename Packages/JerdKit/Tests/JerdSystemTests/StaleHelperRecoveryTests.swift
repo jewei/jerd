@@ -38,11 +38,6 @@ import os
         return (client, opener)
     }
 
-    /// Lets started tasks run until they wait, without waiting for real time.
-    private func settle() async {
-        for _ in 0..<50 { await Task.yield() }
-    }
-
     /// Regression test: calls that start while the automatic restart runs wait for it. Before,
     /// a status read "not registered, no setup", an acquire failed with "Approved helper setup is
     /// required", and an approval registered the daemon in parallel with the restart.
@@ -61,7 +56,7 @@ import os
         let second = Task { try await client.status() }
         let acquire = Task { try await client.acquireListeners() }
         let approve = Task { try await client.approve() }
-        await settle()
+        await RecoveryFixture.until { await client.restartWaiters == 3 }
         gate.open()
         #expect(try await first.value.setup.hostnames == ["games-jp.test"])
         let status = try await second.value
@@ -98,7 +93,7 @@ import os
             try await client.reconnect()
             reconnected.withLock { $0 = true }
         }
-        await settle()
+        await RecoveryFixture.until { await client.restartWaiters == 1 }
         // No second registration runs in parallel: the Reconnect ends only with the running restart.
         #expect(!reconnected.withLock { $0 })
         gate.open()
