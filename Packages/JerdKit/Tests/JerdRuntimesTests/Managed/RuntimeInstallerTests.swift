@@ -144,7 +144,8 @@ import os
         let installer = fixture.installer(directory: folder.url)
         let long = build.appendingPathComponent("cloudflared")
         // The hash holds the long file open, so the cancellation arrives while it runs.
-        let result = await cancel(when: { isOpenInThisProcess(long) }) { try await installer.install(fixture.release) }
+        let hashRuns: @Sendable () -> Bool = { isOpenInThisProcess(long) }
+        let result = await cancel(when: hashRuns) { try await installer.install(fixture.release) }
         #expect(throws: CancellationError.self) { try result.get() }
         #expect(fixture.fetcher.requests.isEmpty)
         #expect(FileProbe.presence(at: long) == .present)
