@@ -17,7 +17,7 @@ struct SiteCheck: Equatable {
                 title: "HTTPS setup", result: approved ? "Approved for this hostname" : "Approval required",
                 passed: approved),
             SiteCheck(
-                title: "PHP-FPM", result: served ? "Ping passed at start" : "Checked when the site starts",
+                title: "PHP-FPM", result: served ? "Passed at start" : "Checked when the site starts",
                 passed: served),
             SiteCheck(
                 title: "System HTTPS", result: served ? "Passed at start" : "Checked when the site starts",

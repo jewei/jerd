@@ -22,7 +22,7 @@ public struct ShellSetupReport: Equatable, Sendable {
     /// The lines that tell the user what changed and what to do next.
     public var summary: [String] {
         var lines = [
-            "php, composer, and laravel now select the registered site's PHP, or the Jerd default outside a site."
+            "php, composer, and laravel use the PHP of the registered site that contains the working folder. Outside a site, they use the default PHP."
         ]
         if let backupDirectory {
             lines.append("Shell backups: \(backupDirectory.path)")

@@ -9,7 +9,7 @@ public actor InMemoryCommandLineTools: CommandLineToolsPort {
     public private(set) var installCount = 0
 
     public static let report = [
-        "php, composer, and laravel now select the registered site's PHP, or the Jerd default outside a site.",
+        "php, composer, and laravel use the PHP of the registered site that contains the working folder. Outside a site, they use the default PHP.",
         "Shell backups: /Users/developer/Library/Application Support/Jerd/shell-backups/2026-10-06-094100",
         "Run exec zsh -l in an existing terminal to load the PATH change.",
     ]

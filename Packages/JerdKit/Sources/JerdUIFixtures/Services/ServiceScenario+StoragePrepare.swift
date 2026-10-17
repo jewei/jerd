@@ -13,6 +13,8 @@ extension ServiceScenario {
             model.beginAddBucket()
             model.bucketDraft = BucketDraft(name: "Studio_Uploads", publicRead: true)
         case .storagePorts:
+            // Ports can change only while storage is stopped, as in the app.
+            await model.stop()?.value
             model.editPorts()
         default:
             return false

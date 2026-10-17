@@ -10,7 +10,7 @@ public final class TunnelsModel {
     public internal(set) var configuration = TunnelConfiguration()
     public internal(set) var snapshots: [UUID: TunnelSnapshot] = [:]
     public internal(set) var isLoaded = false
-    /// Why the settings could not be loaded. The file stays as it is.
+    /// Why the settings did not load. The file stays as it is.
     public internal(set) var loadFailure: String?
     public internal(set) var operation: OperationState = .idle
     public internal(set) var stoppingIDs: Set<UUID> = []
@@ -130,7 +130,7 @@ public final class TunnelsModel {
             loadFailure = nil
         } catch {
             loadFailure =
-                "Tunnel settings could not be loaded. The existing file was preserved. " + ErrorText.message(for: error)
+                "Tunnel settings did not load. Jerd kept the existing file. " + ErrorText.message(for: error)
         }
         await refresh()
     }

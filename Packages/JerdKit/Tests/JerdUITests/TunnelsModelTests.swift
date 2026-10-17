@@ -45,7 +45,7 @@ struct TunnelsModelTests {
         #expect(!harness.model.tunnels.isLoaded)
         #expect(
             harness.model.tunnels.loadFailure
-                == "Tunnel settings could not be loaded. The existing file was preserved. Cannot read tunnel settings.")
+                == "Tunnel settings did not load. Jerd kept the existing file. Cannot read tunnel settings.")
         #expect(await !port.calls.contains("connect startup"))
     }
 

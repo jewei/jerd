@@ -46,7 +46,7 @@ extension SampleData {
                 inspectedAt: now),
         ],
         defaultPHPID: php84ID, caddyVersion: "2.10.2",
-        setupMessage: "PHP, Caddy, Composer, and the Laravel installer are installed and managed by Jerd.")
+        setupMessage: "Jerd installs and manages PHP, Caddy, Composer, and the Laravel installer.")
 
     public static let httpsRecovery = SystemRecoveryStatus(
         id: "5d41402abc4b2a76b9719d911017c592", operation: "Configure", phase: "Trust",

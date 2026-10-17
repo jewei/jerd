@@ -28,9 +28,10 @@ struct TunnelEditorSheet: View {
     }
 
     private var message: String {
-        editor.isCreating
+        if !editor.isNew { return "Save changes the registration. It does not connect the tunnel." }
+        return editor.isCreating
             ? "Create a tunnel and its DNS record in Cloudflare, then connect it to this Mac."
-            : "Connect an existing tunnel to this Mac. Save adds the registration; it does not connect."
+            : "Connect an existing tunnel to this Mac. Save adds the registration. It does not connect the tunnel."
     }
 
     private var startup: some View {

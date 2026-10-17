@@ -66,7 +66,7 @@ extension SitesModel: WorkspaceFeature {
 
     private var cardSummary: String {
         if !isLoaded {
-            return operation.failureMessage == nil ? "Preparing your sites…" : "Site settings could not be loaded."
+            return operation.failureMessage == nil ? "Preparing your sites…" : "Site settings did not load."
         }
         guard !configuration.sites.isEmpty else { return "Register an existing PHP project to serve it over HTTPS." }
         var text = "\(configuration.sites.count) registered · \(enabledSiteIDs.count) enabled"
@@ -101,7 +101,7 @@ extension SitesModel: WorkspaceFeature {
     private var addSiteUnavailableReason: String {
         if !isLoaded {
             return operation.failureMessage == nil
-                ? "Jerd is preparing your sites." : "Site settings could not be loaded."
+                ? "Jerd is preparing your sites." : "Site settings did not load."
         }
         if needsRecovery { return "Recover the interrupted HTTPS setup in Advanced first." }
         return "Wait for the current work to end."

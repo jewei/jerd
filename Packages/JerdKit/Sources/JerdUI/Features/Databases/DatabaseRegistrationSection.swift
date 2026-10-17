@@ -23,10 +23,10 @@ struct DatabaseRegistrationSection: View {
         } header: {
             Text("Service")
         } footer: {
-            FormFooter(
-                model.state(of: service.id).offersStop
-                    ? "Stop the service to change its name or port. Database files remain after Stop, Quit, or removal."
-                    : "Database files remain after Stop, Quit, or removal.")
+            // The Files section above already says that the data stays.
+            if model.state(of: service.id).offersStop {
+                FormFooter("Stop the service to change its name or port.")
+            }
         }
     }
 }

@@ -23,7 +23,7 @@ struct SiteEnvironmentSection: View {
             Text("All Sites")
         } footer: {
             FormFooter(
-                "Start All includes every enabled site. Ready means that PHP-FPM and HTTPS passed their checks; project code is not checked. Changes briefly restart the shared PHP and HTTPS services."
+                "Start All Sites includes every enabled site. Ready means that PHP-FPM and HTTPS passed their checks. Jerd does not check project code. Changes restart the shared PHP and HTTPS services for a moment."
             )
         }
     }

@@ -67,7 +67,7 @@ enum RuntimeCopy {
     }
 
     /// The one page line before the first check.
-    static let notCheckedMessage = "Updates have not been checked. Select \(checkTitle) to see new versions."
+    static let notCheckedMessage = "Jerd has not checked for updates. Select \(checkTitle) to see new versions."
 
     /// The detail of a pinned release whose install reuses a copy on this Mac.
     static func reuseDetail(_ release: RuntimeRelease) -> String {
@@ -88,7 +88,7 @@ enum RuntimeCopy {
         case .digest(let digest):
             "Package build \(digest.prefix(12))"
         case .publisherSignature:
-            "Install checks the publisher signature of this package. Its digest is known only after download."
+            "Install checks the publisher signature of this package. Jerd knows its digest only after the download."
         case .composerLock:
             "Composer verifies this installer with its lock file. Jerd has no independent check."
         }

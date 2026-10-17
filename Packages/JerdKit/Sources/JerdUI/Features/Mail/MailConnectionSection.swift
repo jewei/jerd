@@ -14,7 +14,7 @@ struct MailConnectionSection: View {
         } footer: {
             FormFooter(
                 model.hasRuntime
-                    ? "Available only on this Mac. Messages are captured here; they are not sent to external recipients."
+                    ? "Available only on this Mac. Jerd keeps messages in this inbox. Jerd does not send them to external recipients."
                     : ServiceRuntimeCopy.mail.portsNotChosen)
         }
         Section {

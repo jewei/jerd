@@ -11,6 +11,14 @@ code marks.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+- Sidebar rows no longer show through the Add button and the count at the bottom of a long Sites, Databases, or Storage list, and the count no longer gets cut off in a narrow window.
+- A sidebar that cannot load its settings now shows the full message on two lines.
+- The Storage page now tells you to install RustFS first when its settings load and RustFS is not installed.
+- The Edit Cloudflare Tunnel sheet now says that Save changes the registration. It no longer says that Save adds one.
+- The Advanced page and the shell setup report now describe the PHP selection of php, composer, and laravel with one sentence, and each registered PHP runtime labels its registration ID and default mark.
+- Text on the Runtimes, Advanced, About, Sites, and Mail pages now uses short, active sentences, and the Connection Checks use one result text for both checks.
+- A database service page no longer repeats that database files remain after Stop, Quit, or removal.
+- When the settings of sites, tunnels, databases, storage, or mail do not load, the sidebar, the page, and the Dashboard card now use the same message.
 - When the Jerd helper is turned off in Login Items or is not registered, starting sites now tells you what to do and offers Open Login Items or Reconnect Helper.
 - A Keychain failure of the Cloudflare API token now names the Cloudflare API token, not a tunnel token.
 - When recovery cannot stop a saved process, the message now shows the system cause and tells you to quit the process in Activity Monitor.

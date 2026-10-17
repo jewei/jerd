@@ -46,13 +46,15 @@ struct GalleryRowsPage: View {
         } header: {
             Text("Values")
         } footer: {
-            FormFooter("Available only on this Mac. Messages are captured here; they are not sent to recipients.")
+            FormFooter(
+                "Available only on this Mac. Jerd keeps messages in this inbox. Jerd does not send them to external recipients."
+            )
         }
     }
 
     static func sampleText(_ kind: MessageKind) -> String {
         switch kind {
-        case .info: "PHP, Caddy, Composer, and the Laravel installer are installed and managed by Jerd."
+        case .info: "Jerd installs and manages PHP, Caddy, Composer, and the Laravel installer."
         case .success: "Updated to 1.31.3."
         case .warning: "Redis builds need the Xcode command line tools."
         case .error: "The port 5432 is in use by another process. Select a different port."

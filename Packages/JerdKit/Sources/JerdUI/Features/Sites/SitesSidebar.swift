@@ -36,11 +36,11 @@ struct SitesSidebar: View {
 
     private var sitePlaceholder: String {
         if model.isLoaded { return "No sites added" }
-        return model.operation.failureMessage == nil ? "Loading sites…" : "Site settings could not be loaded"
+        return model.operation.failureMessage == nil ? "Loading sites…" : "Site settings did not load"
     }
 
     private var tunnelPlaceholder: String {
-        if model.tunnels.loadFailure != nil { return "Tunnel settings could not be loaded" }
+        if model.tunnels.loadFailure != nil { return "Tunnel settings did not load" }
         return model.tunnels.isLoaded ? "No tunnels added" : "Loading tunnels…"
     }
 

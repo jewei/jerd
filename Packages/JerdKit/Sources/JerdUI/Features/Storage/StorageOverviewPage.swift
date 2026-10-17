@@ -55,10 +55,16 @@ struct StorageOverviewPage: View {
     }
 
     private var bucketDetail: String {
-        if model.startInstallsRuntime, model.buckets.isEmpty {
+        Self.bucketDetail(loadState: model.loadState, hasRuntime: model.hasRuntime, bucketCount: model.buckets.count)
+    }
+
+    /// Asks for RustFS only after a successful load: before it, or after a failed load, the
+    /// runtime is unknown, and the real problem can be the preserved settings file.
+    nonisolated static func bucketDetail(loadState: ServiceLoadState, hasRuntime: Bool, bucketCount: Int) -> String {
+        if loadState.isLoaded, !hasRuntime, bucketCount == 0 {
             return "Install RustFS first. Then give your application an S3 bucket for uploads and files."
         }
-        return model.buckets.isEmpty
+        return bucketCount == 0
             ? "Give your application an S3 bucket for uploads and files. Jerd starts storage and checks the bucket when you create it."
             : "Select a bucket in the sidebar to see its connection and access settings."
     }

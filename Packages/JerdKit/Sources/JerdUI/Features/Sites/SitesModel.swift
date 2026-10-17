@@ -116,7 +116,7 @@ public final class SitesModel {
             operation = .idle
         } catch {
             operation = .failed(
-                message: "Site settings could not be loaded. The existing file was preserved. "
+                message: "Site settings did not load. Jerd kept the existing file. "
                     + ErrorText.message(for: error))
         }
         environment = await port.environment()

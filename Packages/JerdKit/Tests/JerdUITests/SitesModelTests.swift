@@ -29,7 +29,7 @@ struct SitesModelTests {
         #expect(!harness.model.isLoaded)
         #expect(
             harness.model.operation.failureMessage
-                == "Site settings could not be loaded. The existing file was preserved. The JSON is not valid.")
+                == "Site settings did not load. Jerd kept the existing file. The JSON is not valid.")
         harness.model.beginAdd()
         #expect(harness.model.sheet == nil)
         #expect(harness.model.shownItem(for: nil) == nil)

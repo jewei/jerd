@@ -99,7 +99,7 @@ public enum SampleData {
         .laravel: check(.laravel, [release(.laravel, "5.19.0", digest: nil)]),
         .mysql: check(.mysql, [release(.mysql, "8.4.7", digest: nil, signed: true)]),
         .postgresql: check(.postgresql, [release(.postgresql, "2.9.1")]),
-        .redis: check(.redis, [], error: "The Redis release list could not be read. Try again later."),
+        .redis: check(.redis, [], error: "Jerd cannot read the Redis release list. Try again later."),
         .mailpit: check(.mailpit, [release(.mailpit, "1.28.0")]),
         .rustfs: check(.rustfs, [release(.rustfs, "1.0.1")]),
         .cloudflared: check(.cloudflared, [release(.cloudflared, "2025.10.0")]),

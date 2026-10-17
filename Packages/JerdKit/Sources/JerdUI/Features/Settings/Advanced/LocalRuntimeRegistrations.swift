@@ -8,7 +8,7 @@ public struct LocalRuntimeRegistrations: Equatable, Sendable {
     /// The version of the registered Caddy, or nil when none is registered.
     public var caddyVersion: String?
     /// The result of the bundled runtime setup at launch, for example
-    /// "PHP, Caddy, Composer, and the Laravel installer are installed and managed by Jerd."
+    /// "Jerd installs and manages PHP, Caddy, Composer, and the Laravel installer."
     public var setupMessage: String?
 
     public init(
