@@ -9,6 +9,8 @@ actor FakeSystem: SystemSetupPort {
     private(set) var current: HTTPSSetupStatus
     private(set) var configurations: [HTTPSRegistration] = []
     private(set) var removals = 0
+    private(set) var replacements: [HTTPSRegistration] = []
+    private var failReplace = false
     private(set) var acquired = 0
     private(set) var released = 0
     private(set) var isPausedInAcquire = false
@@ -73,6 +75,17 @@ actor FakeSystem: SystemSetupPort {
         current = HTTPSSetupStatus()
     }
 
+    func replaceCA(_ registration: HTTPSRegistration) throws {
+        replacements.append(registration)
+        if failReplace {
+            failReplace = false
+            throw JerdError.approvalInterrupted("Test replacement failure")
+        }
+        current.certificateDER = registration.certificateDER
+        current.certificateSHA256 = LocalCertificateAuthority.fingerprint(of: registration.certificateDER)
+    }
+
+    func failNextReplace() { failReplace = true }
     func set(_ status: HTTPSSetupStatus) { current = status }
     func pauseNextAcquire() { pauseAcquire = true }
     func pauseNextConfigure() { pauseConfigure = true }

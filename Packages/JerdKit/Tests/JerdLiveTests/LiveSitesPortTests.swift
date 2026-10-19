@@ -217,6 +217,21 @@ struct LiveSitesPortTests {
             await harness.journal.entries == ["transaction.requestStop", "gateway.removeSetup", "helper.unregister"])
     }
 
+    /// The CA update stops the sites first, because the helper refuses a change while they hold
+    /// the ports. With no site running, nothing starts again.
+    @Test func theCAUpdateStopsTheSitesBeforeTheGatewayMigrates() async throws {
+        let harness = try Harness()
+        defer { harness.remove() }
+
+        #expect(try await harness.port.prepareCAMigration() == String(repeating: "b", count: 64))
+        try await harness.port.migrateCA()
+
+        #expect(
+            await harness.journal.entries == [
+                "gateway.prepareCAMigration", "transaction.requestStop", "gateway.migrateCA",
+            ])
+    }
+
     @Test func aFailedRemovalKeepsTheHelperRegistered() async throws {
         let harness = try Harness()
         defer { harness.remove() }
@@ -272,7 +287,8 @@ struct LiveSitesPortTests {
         #expect(
             try await harness.port.localAuthority()
                 == InstallationAuthority(
-                    installationID: Fixture.installationID, fingerprint: FileDigest.hexSHA256(of: der)))
+                    installationID: Fixture.installationID, fingerprint: FileDigest.hexSHA256(of: der),
+                    signsOnlyTestNames: false))
     }
 
     @Test func aCorruptCACertificateIsReportedAndPreserved() async throws {

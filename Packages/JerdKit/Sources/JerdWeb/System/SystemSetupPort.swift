@@ -14,4 +14,7 @@ public protocol SystemSetupPort: Sendable {
     func releaseListeners() async
     /// Removes Jerd's hosts section and the CA trust.
     func removeSetup() async throws
+    /// Replaces the approved CA with `registration`'s CA, which may sign only `.test` names. The
+    /// hostnames and policy stay; macOS asks for approval.
+    func replaceCA(_ registration: HTTPSRegistration) async throws
 }

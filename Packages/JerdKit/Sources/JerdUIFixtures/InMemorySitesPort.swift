@@ -40,10 +40,11 @@ public actor InMemorySitesPort: SitesPort {
         configuration: AppConfiguration = SampleData.siteConfiguration,
         environment: EnvironmentSnapshot = EnvironmentSnapshot(state: .stopped, siteIDs: []),
         setup: HTTPSSetupStatus = SampleData.approvedSetup, loadFailure: String? = nil,
-        setupFailure: JerdError? = nil
+        setupFailure: JerdError? = nil, authority: InstallationAuthority? = SampleData.authority
     ) {
         self.loadFailure = loadFailure
         self.setupFailure = setupFailure
+        self.authority = authority
         configurationValue = configuration
         environmentValue = environment
         self.setup = setup
@@ -157,6 +158,19 @@ public actor InMemorySitesPort: SitesPort {
         try await record("remove system setup")
         setup = HTTPSSetupStatus()
         environmentValue = EnvironmentSnapshot(state: .setupRequired, siteIDs: [])
+    }
+
+    public func prepareCAMigration() async throws -> String {
+        try await record("prepare CA migration")
+        return SampleData.constrainedCAFingerprint
+    }
+
+    /// The approved setup and the local CA move to Jerd's CA for `.test` names together.
+    public func migrateCA() async throws {
+        try await record("migrate CA")
+        let fingerprint = SampleData.constrainedCAFingerprint
+        setup.certificateSHA256 = fingerprint
+        authority = authority.map { InstallationAuthority(installationID: $0.installationID, fingerprint: fingerprint) }
     }
 
     public func openLoginItems() async {

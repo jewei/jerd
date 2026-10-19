@@ -1,3 +1,4 @@
+import Foundation
 import JerdFoundation
 import JerdWeb
 
@@ -20,6 +21,15 @@ actor FakeHTTPSSetup: HTTPSSetupControlling {
     func failRemoval(_ error: JerdError) { removalFailure = error }
 
     func status() throws -> HTTPSSetupStatus { try current.get() }
+
+    func prepareCAMigration() async throws -> InstallationAuthority {
+        await journal?.record("gateway.prepareCAMigration")
+        return InstallationAuthority(installationID: UUID(), fingerprint: String(repeating: "b", count: 64))
+    }
+
+    func migrateCA() async throws {
+        await journal?.record("gateway.migrateCA")
+    }
 
     func removeSetup() async throws {
         await journal?.record("gateway.removeSetup")

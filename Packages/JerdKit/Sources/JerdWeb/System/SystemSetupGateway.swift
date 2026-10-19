@@ -8,10 +8,10 @@ import JerdProcess
 /// under it). The gateway checks no ports: the coordinator checks 80 and 443 right before it
 /// leases them, which is the one place where they matter.
 public actor SystemSetupGateway: SystemSetupManaging {
-    private let environment: EnvironmentLayout
-    private let system: any SystemSetupPort
-    private let coordinator: any EnvironmentCoordinating
-    private let provisioner: LocalCAProvisioner
+    let environment: EnvironmentLayout
+    let system: any SystemSetupPort
+    let coordinator: any EnvironmentCoordinating
+    let provisioner: LocalCAProvisioner
 
     public init(layout: DataLayout, system: any SystemSetupPort, coordinator: any EnvironmentCoordinating) {
         environment = layout.environment

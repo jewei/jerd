@@ -16,6 +16,20 @@ extension LiveSitesPort {
         try await helper.unregister()
     }
 
+    /// The fingerprint of Jerd's CA for `.test` names, made when it is missing.
+    package func prepareCAMigration() async throws -> String {
+        try await gateway.prepareCAMigration().fingerprint
+    }
+
+    /// Stops the sites, replaces the CA, and starts again the sites that ran before. A failed
+    /// start after a done replacement is reported like any other start.
+    package func migrateCA() async throws {
+        let running = await environment().siteIDs
+        await sites.requestStop()
+        try await gateway.migrateCA()
+        if !running.isEmpty { _ = try await run(running) }
+    }
+
     package func openLoginItems() async {
         await loginItems.openLoginItems()
     }

@@ -40,6 +40,11 @@ public protocol SitesPort: Sendable {
     func reconnectHelper() async throws
     /// Stops the sites, removes the host entries and the CA trust, and unregisters the helper.
     func removeSystemSetup() async throws
+    /// Makes Jerd's CA for `.test` names when it is missing, and returns its SHA-256 fingerprint.
+    func prepareCAMigration() async throws -> String
+    /// Stops the sites, replaces the CA that Caddy made with Jerd's CA for `.test` names, and
+    /// starts again the sites that ran before.
+    func migrateCA() async throws
     /// Opens Login Items & Extensions in System Settings, where the user allows the helper.
     func openLoginItems() async
 }

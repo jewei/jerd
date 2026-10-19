@@ -33,4 +33,10 @@ package struct HelperSystemSetup: SystemSetupPort {
     package func removeSetup() async throws {
         try await helper.removeSetup()
     }
+
+    package func replaceCA(_ registration: HTTPSRegistration) async throws {
+        try await helper.replaceCA(
+            with: JerdSystem.InstallationCertificate(
+                installationID: registration.installationID, der: registration.certificateDER))
+    }
 }

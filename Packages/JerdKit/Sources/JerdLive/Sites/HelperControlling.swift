@@ -10,6 +10,7 @@ package protocol HelperControlling: Sendable {
     func acquireListeners() async throws -> LoopbackListenerPair
     func releaseListeners() async
     func removeSetup() async throws
+    func replaceCA(with certificate: JerdSystem.InstallationCertificate) async throws
     func recover(report: SystemRecoveryStatus, action: SystemRecoveryAction) async throws
     /// Registers the helper daemon after the user approved HTTPS setup.
     func approve() async throws
