@@ -165,10 +165,11 @@ public actor InMemorySitesPort: SitesPort {
 
     /// Serves `ids`, or asks for approval when the setup does not cover their hostnames.
     private func serve(_ ids: Set<UUID>) async throws -> SiteChangeOutcome {
-        let hostnames = configurationValue.sites.filter { ids.contains($0.id) }.map(\.hostname)
+        let hostnames = configurationValue.sites.filter { ids.contains($0.id) }.flatMap(\.servedHostnames)
         guard ids.isEmpty || ApprovalPredicate.approves(setup, hostnames: hostnames, authority: authority) else {
             let approval = HTTPSApproval(
-                hostnames: configurationValue.sites.map(\.hostname).sorted(), fingerprint: SampleData.caFingerprint)
+                hostnames: configurationValue.sites.flatMap(\.servedHostnames).sorted(),
+                fingerprint: SampleData.caFingerprint)
             pending[approval.id] = ids
             return .needsApproval(approval)
         }

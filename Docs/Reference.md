@@ -14,7 +14,7 @@ private (mode 0700).
 
 | Path | Contents |
 | --- | --- |
-| `configuration.json` | Sites and PHP runtimes (pretty, sorted keys) |
+| `configuration.json` | Sites and PHP runtimes (pretty, sorted keys). A site writes `aliases` only when it has aliases; a site without the key has none |
 | `configuration.previous.json` | The bytes of `configuration.json` before the last save |
 | `bin` | The optional `php`, `composer`, and `laravel` launcher links |
 | `shell-backups` | Shell file backups, one folder per change |

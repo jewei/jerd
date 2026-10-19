@@ -49,10 +49,6 @@ import Testing
         #expect(CloudflaredCommand.parseVersion(output) == nil)
     }
 
-    @Test func theEmptyConfigurationIsAnEmptyMap() {
-        #expect(CloudflaredCommand.emptyConfiguration == Data("{}\n".utf8))
-    }
-
     @Test(arguments: [
         (CommandResult(status: 1, output: ""), MetricsEndpoint.ListenerVerdict.none),
         (CommandResult(status: 0, output: "p7\nf9\nn127.0.0.1:20241\n"), .expected),

@@ -124,6 +124,12 @@ local runtimes.
 | `database` | `JERD_DATABASE_RUNTIMES` | `JERD_OCCUPIED_DATABASE_PORT`, `JERD_RUNTIME_DOWNLOADS`, `JERD_ON_DEMAND_ENGINE` |
 | `mail` | `JERD_MAIL_RUNTIME` | |
 | `storage` | `JERD_STORAGE_RUNTIME` | |
+| `windows` | none | |
+
+The `windows` group needs no runtime. It sets `JERD_WINDOW_TESTS=1` and runs
+the tests that draw AppKit windows (the `.drawsWindows` trait). A default run
+skips them, so it draws no window. The CI check job runs them after
+`./dev check`.
 
 The `database` group also sets `JERD_ON_DEMAND_INTEGRATION=1` and
 `JERD_RUNTIME_DOWNLOADS=.build/runtimes/downloads` when that folder exists, so the

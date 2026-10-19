@@ -1,4 +1,5 @@
 import Foundation
+import JerdTestSupport
 import SwiftUI
 import Testing
 
@@ -58,7 +59,7 @@ struct SnapshotCommandTests {
         #expect(host.preparedContrast.isEmpty)
     }
 
-    @Test("A check renders the selected entries and writes no file")
+    @Test("A check renders the selected entries and writes no file", .drawsWindows)
     func checkWritesNothing() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -71,7 +72,7 @@ struct SnapshotCommandTests {
         #expect(try files(in: folder).isEmpty)
     }
 
-    @Test("A check fails with exit status 1 when an entry does not render")
+    @Test("A check fails with exit status 1 when an entry does not render", .drawsWindows)
     func checkFails() async throws {
         var catalog = SnapshotCatalog()
         catalog.add(
@@ -83,7 +84,7 @@ struct SnapshotCommandTests {
         #expect(host.errors.first?.contains("never") == true)
     }
 
-    @Test("A positional page name renders only that page")
+    @Test("A positional page name renders only that page", .drawsWindows)
     func rendersOnePage() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -95,7 +96,7 @@ struct SnapshotCommandTests {
         #expect(try files(in: folder) == ["b-light-tiny.png"])
     }
 
-    @Test("A full run removes stale PNG files and keeps other files")
+    @Test("A full run removes stale PNG files and keeps other files", .drawsWindows)
     func fullRunRemovesStaleFiles() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -110,7 +111,7 @@ struct SnapshotCommandTests {
         #expect(host.output.last == "Removed 1 stale snapshots: old-light-tiny.png")
     }
 
-    @Test("A filtered run keeps the files of other pages")
+    @Test("A filtered run keeps the files of other pages", .drawsWindows)
     func filteredRunKeepsFiles() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -121,7 +122,7 @@ struct SnapshotCommandTests {
         #expect(try files(in: folder) == ["a-light-tiny.png", "old-light-tiny.png"])
     }
 
-    @Test("Contrast variants render in a second process with the contrast pass option")
+    @Test("Contrast variants render in a second process with the contrast pass option", .drawsWindows)
     func startsContrastPass() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -136,7 +137,7 @@ struct SnapshotCommandTests {
         #expect(try files(in: folder) == ["contrast-dark-tiny.png", "contrast-light-tiny.png", "plain-light-tiny.png"])
     }
 
-    @Test("A failed contrast pass fails the run with exit status 1")
+    @Test("A failed contrast pass fails the run with exit status 1", .drawsWindows)
     func failedContrastPassFails() async throws {
         let host = RecordingSnapshotHost()
         host.contrastPassStatus = 1
@@ -149,7 +150,7 @@ struct SnapshotCommandTests {
         #expect(host.errors == ["The Increase Contrast pass failed with exit status 1."])
     }
 
-    @Test("The contrast pass prepares Increase Contrast and does not start another pass")
+    @Test("The contrast pass prepares Increase Contrast and does not start another pass", .drawsWindows)
     func contrastPassPreparesProcess() async throws {
         let host = RecordingSnapshotHost()
         let catalog = catalog(["contrast"], appearances: [.light, .lightContrast])

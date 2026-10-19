@@ -25,7 +25,7 @@ import Testing
         #expect(try await harness.registry.snapshot() == harness.before)
     }
 
-    /// The transaction's Stop ends the change, prevents its restart, and stops the run.
+    /// The transaction's Stop ends the change without saving it, prevents its restart, and stops the run.
     @Test func theTransactionStopEndsTheChangeAndStopsTheRun() async throws {
         let harness = try await TransactionHarness()
         defer { harness.remove() }
@@ -34,6 +34,7 @@ import Testing
         #expect(await waitUntil { await harness.coordinator.isWaitingInPreflight })
         await harness.transaction.requestStop()
         await #expect(throws: CancellationError.self) { try await change.value }
+        #expect(try await harness.registry.snapshot() == harness.before)
         #expect(await harness.coordinator.stops == 1)
         #expect(await harness.runningIDs() == nil)
         #expect(await harness.coordinator.launches == 0)

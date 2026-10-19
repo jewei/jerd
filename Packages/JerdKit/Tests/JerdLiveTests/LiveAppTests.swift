@@ -77,7 +77,7 @@ struct LiveAppTests {
     }
 
     /// A minimized or covered main window shows no live state, so polling slows down.
-    @Test func aHiddenMainWindowSlowsThePollingOfTheLiveApp() throws {
+    @Test(.drawsWindows) func aHiddenMainWindowSlowsThePollingOfTheLiveApp() throws {
         let center = NotificationCenter()
         let temporary = try TemporaryDirectory()
         defer { temporary.remove() }

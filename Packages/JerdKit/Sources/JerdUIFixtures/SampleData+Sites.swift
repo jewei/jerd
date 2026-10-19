@@ -20,7 +20,8 @@ extension SampleData {
 
     public static let studio = Site(
         id: studioID, displayName: "Studio", projectPath: "\(user)/Projects/studio",
-        documentRoot: "\(user)/Projects/studio/public", hostname: "studio.test")
+        documentRoot: "\(user)/Projects/studio/public", hostname: "studio.test",
+        aliases: ["admin.studio.test", "api.studio.test"])
     public static let northwind = Site(
         id: northwindID, displayName: "Northwind Shop", projectPath: "\(user)/Projects/northwind",
         documentRoot: "\(user)/Projects/northwind/public", hostname: "northwind.test", phpSelection: .pinned(php83ID))
@@ -37,7 +38,8 @@ extension SampleData {
 
     /// A setup that approves every sample hostname.
     public static let approvedSetup = HTTPSSetupStatus(
-        hostnames: ["legacy-blog.test", "northwind.test", "studio.test"], installationID: installationID,
+        hostnames: ["admin.studio.test", "api.studio.test", "legacy-blog.test", "northwind.test", "studio.test"],
+        installationID: installationID,
         certificateSHA256: caFingerprint,
         hostsConfigured: true, trustConfigured: true, trustPolicy: .serverTLS)
 

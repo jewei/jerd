@@ -1,10 +1,11 @@
 import AppKit
+import JerdTestSupport
 import SwiftUI
 import Testing
 
 @testable import JerdUI
 
-@Suite("Dashboard sidebar rows")
+@Suite("Dashboard sidebar rows", .drawsWindows)
 @MainActor
 struct DashboardSidebarRowTests {
     private func height(of page: DashboardPage, isSelected: Bool) -> CGFloat {

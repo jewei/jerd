@@ -1,5 +1,6 @@
 import Foundation
 import JerdDesign
+import JerdTestSupport
 import JerdUIFixtures
 import SwiftUI
 import Testing
@@ -29,7 +30,7 @@ struct PageSnapshotTests {
     /// Renders every page and Sites sheet once in the built `jerd-snapshots`, in its own
     /// process. In this process the renderings held the main actor for over a minute in slices
     /// of about 0.25 s, so other main-actor suites ran up to 30 s and could pass their limits.
-    @Test("Every registered page and Sites sheet renders, in a separate process")
+    @Test("Every registered page and Sites sheet renders, in a separate process", .drawsWindows)
     func everyPageAndSheetRenders() async throws {
         let names = FixtureScenario.allCases.map(\.rawValue) + SitesSheetScenario.allCases.map(\.rawValue)
         let result = try await SnapshotProcess.run(["--check"] + names)
@@ -37,7 +38,7 @@ struct PageSnapshotTests {
         #expect(result.output.contains("Checked "))
     }
 
-    @Test("Hidden retained pages announce nothing; the visible page speaks")
+    @Test("Hidden retained pages announce nothing; the visible page speaks", .drawsWindows)
     func retainedPagesAreSilent() async {
         var spoken: [String] = []
         let announcer = MessageAnnouncer { spoken.append($0) }

@@ -1,4 +1,5 @@
 import Foundation
+import JerdTestSupport
 import JerdUIFixtures
 import JerdWeb
 import Testing
@@ -52,7 +53,7 @@ struct RegistrationStoreTests {
         #expect(fixture.state.advanced.registrations.defaultPHPID == id)
     }
 
-    @Test("Runtimes and Advanced read their data again each time they appear")
+    @Test("Runtimes and Advanced read their data again each time they appear", .drawsWindows)
     func pagesReloadOnAppear() async throws {
         let ports = InMemoryAdvancedPorts(registrations: SampleData.registrations)
         let fixture = AppFixture(advanced: ports)

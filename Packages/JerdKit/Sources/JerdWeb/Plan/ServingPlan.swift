@@ -39,8 +39,8 @@ public struct ServingPlan: Equatable, Sendable {
 
     public var isEmpty: Bool { sites.isEmpty }
     public var siteIDs: Set<UUID> { Set(sites.map(\.site.id)) }
-    /// The hostnames as saved, in plan order.
-    public var hostnames: [String] { sites.map(\.site.hostname) }
+    /// Every served name as saved: each site's hostname, then its aliases, in plan order.
+    public var hostnames: [String] { sites.flatMap(\.site.servedHostnames) }
 
     /// The same sites and Caddy with `hosts`, limited to the planned sites.
     package func forwarding(_ hosts: ForwardedHosts) -> ServingPlan {
@@ -48,7 +48,7 @@ public struct ServingPlan: Equatable, Sendable {
     }
 
     /// True when both plans serve the same way: the same Caddy record, the same forwarded hosts,
-    /// and, for every site ID, the same hostname, paths, and runtime. Site order and display data
+    /// and, for every site ID, the same hostnames, paths, and runtime. Site order and display data
     /// do not count.
     public func isEquivalent(to other: ServingPlan) -> Bool {
         guard caddy == other.caddy, sites.count == other.sites.count, forwardedHosts == other.forwardedHosts else {

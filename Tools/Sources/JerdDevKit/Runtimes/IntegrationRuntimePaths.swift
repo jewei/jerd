@@ -32,6 +32,8 @@ struct IntegrationRuntimePaths: Sendable {
             return ["JERD_MAIL_RUNTIME": try payload(.mailpit).origin.path]
         case .storage:
             return ["JERD_STORAGE_RUNTIME": try payload(.rustfs).origin.path]
+        case .windows:
+            return [:]
         }
     }
 

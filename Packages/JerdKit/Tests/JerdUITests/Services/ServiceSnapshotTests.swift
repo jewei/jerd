@@ -1,4 +1,5 @@
 import JerdDesign
+import JerdTestSupport
 import JerdUIFixtures
 import SwiftUI
 import Testing
@@ -21,7 +22,7 @@ struct ServiceSnapshotTests {
     }
 
     /// In its own process; see `SnapshotProcess`.
-    @Test("Every service scenario renders and shows what it promises, in a separate process")
+    @Test("Every service scenario renders and shows what it promises, in a separate process", .drawsWindows)
     func everyScenarioRenders() async throws {
         let result = try await SnapshotProcess.run(["--check"] + ServiceScenario.allCases.map(\.rawValue))
         #expect(result.status == 0, "jerd-snapshots --check failed: \(result.errors)")

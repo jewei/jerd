@@ -1,5 +1,6 @@
 import AppKit
 import JerdDesign
+import JerdTestSupport
 import JerdUI
 import Testing
 
@@ -26,7 +27,7 @@ struct WorkspaceSplitTests {
 
     @Test(
         "The picker and the sidebar button stay in place in every section and with a hidden sidebar",
-        arguments: [WindowMetrics.standardSize.width, WindowMetrics.minimumSize.width])
+        .drawsWindows, arguments: [WindowMetrics.standardSize.width, WindowMetrics.minimumSize.width])
     func toolbarItemsStayInPlace(width: CGFloat) throws {
         let window = try WorkspaceWindow(width: width)
         defer { window.close() }
@@ -48,7 +49,7 @@ struct WorkspaceSplitTests {
 
     @Test(
         "The sidebar edge never reaches under the section picker, also at the widest sidebar",
-        arguments: [WindowMetrics.standardSize.width, WindowMetrics.minimumSize.width])
+        .drawsWindows, arguments: [WindowMetrics.standardSize.width, WindowMetrics.minimumSize.width])
     func sidebarStaysLeftOfThePicker(width: CGFloat) throws {
         let window = try WorkspaceWindow(width: width)
         defer { window.close() }
@@ -60,7 +61,9 @@ struct WorkspaceSplitTests {
         #expect(sidebar.maxX <= window.frame(of: window.picker).minX, "Sidebar \(sidebar.maxX)")
     }
 
-    @Test("The sidebar is a lone .sidebar item in a plain split item, so AppKit draws the system background")
+    @Test(
+        "The sidebar is a lone .sidebar item in a plain split item, so AppKit draws the system background",
+        .drawsWindows)
     func sidebarHasTheSystemSidebarItem() throws {
         let window = try WorkspaceWindow(width: WindowMetrics.standardSize.width)
         defer { window.close() }
@@ -75,7 +78,7 @@ struct WorkspaceSplitTests {
         #expect(sidebar.backgroundItem.allowsFullHeightLayout)
     }
 
-    @Test("The system sidebar background fills the column from the top edge of the window to the bottom")
+    @Test("The system sidebar background fills the column from the top edge of the window to the bottom", .drawsWindows)
     func sidebarBackgroundIsFullHeight() throws {
         let window = try WorkspaceWindow(width: WindowMetrics.standardSize.width)
         defer { window.close() }
@@ -94,7 +97,8 @@ struct WorkspaceSplitTests {
         #expect(window.frame(of: rows).maxY <= window.window.contentLayoutRect.maxY)
     }
 
-    @Test("Nothing of Jerd draws over the system sidebar background: no own material and no opaque layer")
+    @Test(
+        "Nothing of Jerd draws over the system sidebar background: no own material and no opaque layer", .drawsWindows)
     func nothingCoversTheSidebarBackground() throws {
         let window = try WorkspaceWindow(width: WindowMetrics.standardSize.width)
         defer { window.close() }
@@ -118,7 +122,9 @@ struct WorkspaceSplitTests {
         #expect(materials.allSatisfy { $0 == .selection }, "Materials: \(materials.map(\.rawValue))")
     }
 
-    @Test("Hiding the sidebar collapses the split item, and a collapse in the split updates the navigation")
+    @Test(
+        "Hiding the sidebar collapses the split item, and a collapse in the split updates the navigation", .drawsWindows
+    )
     func collapseFollowsNavigationBothWays() throws {
         let window = try WorkspaceWindow(width: WindowMetrics.standardSize.width)
         defer { window.close() }
@@ -138,7 +144,7 @@ struct WorkspaceSplitTests {
         #expect(window.state.navigation.isSidebarVisible(in: .sites))
     }
 
-    @Test("VoiceOver and Full Keyboard Access find a split group with a splitter")
+    @Test("VoiceOver and Full Keyboard Access find a split group with a splitter", .drawsWindows)
     func splitterIsAccessible() throws {
         let window = try WorkspaceWindow(width: WindowMetrics.standardSize.width)
         defer { window.close() }
@@ -150,7 +156,7 @@ struct WorkspaceSplitTests {
         #expect(roles.contains(.splitter), "Children: \(roles)")
     }
 
-    @Test("The sidebar width is saved under the autosave name and comes back in a new window")
+    @Test("The sidebar width is saved under the autosave name and comes back in a new window", .drawsWindows)
     func sidebarWidthIsSaved() throws {
         let name = "dev.jerd.live-tests.split.\(UUID().uuidString)"
         let key = "NSSplitView Subview Frames \(name)"

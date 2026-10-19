@@ -1,7 +1,7 @@
 import JerdDesign
 import SwiftUI
 
-/// The project folder, the name, and the hostname of the site editor.
+/// The project folder, the name, the hostname, and the aliases of the site editor.
 struct SiteEditorProjectSection: View {
     @Bindable var editor: SiteEditorModel
 
@@ -21,6 +21,11 @@ struct SiteEditorProjectSection: View {
             TextField("Hostname", text: $editor.hostname, prompt: Text("project.test"))
             if let message = editor.hostnameMessage {
                 InlineMessage(message, kind: .warning, identifier: "site-editor.hostname")
+            }
+            TextField("Aliases", text: $editor.aliasesText, prompt: Text("Optional, for example api.project.test"))
+                .accessibilityIdentifier("site-editor.aliases")
+            if let message = editor.aliasesMessage {
+                InlineMessage(message, kind: .warning, identifier: "site-editor.aliases-message")
             }
         }
     }
