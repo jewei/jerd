@@ -21,6 +21,10 @@ and small values.
 | `SecretGenerator`, `HexEncoding` | Make random secrets and hexadecimal text. |
 | `FileDigest` | Calculates SHA-256 of files in chunks of 1 MiB. |
 | `RelativePath` | A safe relative path for archives, receipts, and manifests. |
+| `DERWriter`, `DERElement` | Write and strictly read the ASN.1 DER values of a certificate. |
+| `CertificateBuilder` | Builds and signs an X.509 v3 certificate with a P-256 key. |
+| `LocalRootTemplate` | The installation CA: a CA that may sign only `.test` names and no IP address (name constraints). |
+| `NameConstraintsInspection` | Tells whether a CA certificate has exactly these constraints, none, or others. |
 
 ## Rules
 
