@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import JerdFoundation
 import Testing
@@ -10,6 +11,15 @@ import Testing
         let certificate = try InstallationCertificate(installationID: Fixture.installationID, der: der)
         #expect(certificate.sha256 == FileDigest.hexSHA256(of: der))
         #expect(certificate.sha256.count == 64)
+    }
+
+    /// The helper accepts the CA that Jerd makes, the same way as the CA that Caddy made.
+    @Test func acceptsAJerdMadeInstallationCA() throws {
+        let id = UUID()
+        let der = try LocalRootTemplate.certificate(
+            commonName: CertificateIdentity.commonName(for: id), key: P256.Signing.PrivateKey(), now: Date())
+        #expect(try InstallationCertificate(installationID: id, der: der).sha256 == FileDigest.hexSHA256(of: der))
+        #expect(throws: JerdError.self) { try InstallationCertificate(installationID: UUID(), der: der) }
     }
 
     @Test func decodesPEMWithSurroundingWhitespace() throws {

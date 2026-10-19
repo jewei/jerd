@@ -29,7 +29,7 @@ struct FixedTrust: TrustDecisionPort {
         try Certificates.install(in: environment)
         let output = folder.path("out/php-ca.pem")
         let bundle = try builder(folder).prepare(
-            rootCertificate: environment.rootCertificateFile, installationID: Certificates.installationID,
+            rootCertificate: environment.legacyRootCertificateFile, installationID: Certificates.installationID,
             output: output)
         #expect(bundle == output)
         #expect(contents(output) == roots + Data("\n".utf8) + (try Certificates.pem()))
@@ -43,9 +43,11 @@ struct FixedTrust: TrustDecisionPort {
         try Certificates.install(in: environment)
         let output = folder.path("php-ca.pem")
         let builder = try builder(folder)
-        _ = try builder.prepare(rootCertificate: environment.rootCertificateFile, installationID: nil, output: output)
+        _ = try builder.prepare(
+            rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output)
         let first = try FileManager.default.attributesOfItem(atPath: output.path)[.systemFileNumber] as? Int
-        _ = try builder.prepare(rootCertificate: environment.rootCertificateFile, installationID: nil, output: output)
+        _ = try builder.prepare(
+            rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output)
         #expect(try FileManager.default.attributesOfItem(atPath: output.path)[.systemFileNumber] as? Int == first)
     }
 
@@ -56,11 +58,11 @@ struct FixedTrust: TrustDecisionPort {
         let output = folder.path("php-ca.pem")
         #expect(
             try builder(folder).prepare(
-                rootCertificate: environment.rootCertificateFile, installationID: nil, output: output) == nil)
+                rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output) == nil)
         try Certificates.install(in: environment)
         #expect(
             try builder(folder, trusted: false).prepare(
-                rootCertificate: environment.rootCertificateFile, installationID: nil, output: output) == nil)
+                rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output) == nil)
         #expect(isAbsent(output))
     }
 
@@ -72,11 +74,11 @@ struct FixedTrust: TrustDecisionPort {
         let output = folder.path("php-ca.pem")
         #expect(throws: JerdError.unavailable("The macOS CA file contains no certificates.")) {
             try builder(folder, roots: Data("nothing".utf8)).prepare(
-                rootCertificate: environment.rootCertificateFile, installationID: nil, output: output)
+                rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output)
         }
         #expect(throws: JerdError.self) {
             try builder(folder).prepare(
-                rootCertificate: environment.rootCertificateFile, installationID: UUID(), output: output)
+                rootCertificate: environment.legacyRootCertificateFile, installationID: UUID(), output: output)
         }
     }
 
@@ -100,7 +102,8 @@ struct FixedTrust: TrustDecisionPort {
         try Certificates.install(in: environment)
         let builder = PHPCABundleBuilder(trust: FixedTrust(trusted: true))
         let output = folder.path("php-ca.pem")
-        _ = try builder.prepare(rootCertificate: environment.rootCertificateFile, installationID: nil, output: output)
+        _ = try builder.prepare(
+            rootCertificate: environment.legacyRootCertificateFile, installationID: nil, output: output)
         #expect(contents(output)?.starts(with: try Data(contentsOf: PHPCABundleBuilder.systemRootsFile)) == true)
     }
 }

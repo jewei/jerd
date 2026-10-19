@@ -29,7 +29,7 @@ import Testing
             (environment.prepareCAFile, "environment/configuration/prepare-ca.json"),
             (environment.phpCABundleFile, "environment/configuration/php-ca.pem"),
             (environment.emptyINIDirectory, "environment/configuration/empty-ini"),
-            (environment.rootCertificateFile, "environment/certificates/pki/authorities/jerd/root.crt"),
+            (environment.legacyRootCertificateFile, "environment/certificates/pki/authorities/jerd/root.crt"),
             (environment.caddyLogFile, "environment/logs/caddy.log"),
             (environment.fpmLogFile, "environment/logs/fpm.log"),
             (environment.recoveryLockFile, "environment/processes/recovery.lock"),

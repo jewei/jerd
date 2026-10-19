@@ -87,6 +87,11 @@ extension EngineRunner {
         try EngineFiles.writeCaddy(plan)
         for pool in plan.pools { try await validate(plan.fpmTest(pool)) }
         try checkpoint(epoch)
+        if plan.layout.authority.providesRoot {
+            try RootKeyCheck.requireMatch(
+                certificate: try LocalCertificateAuthority.read(plan.layout.rootCertificateFile).der,
+                keyFile: plan.layout.authority.rootKey(in: plan.layout.environment.certificatesDirectory))
+        }
         try await validate(plan.caddyValidation(listeners))
         let environment = plan.layout.environment
         if let bundle = try services.caBundle.prepare(

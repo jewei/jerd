@@ -1,42 +1,45 @@
+import CryptoKit
 import Foundation
 import JerdFoundation
-import JerdProcess
 
-/// Creates the installation CA with Caddy when it is missing, then loads and checks it.
+/// Makes the installation CA when it is missing, then loads and checks it.
 ///
-/// `caddy validate` with a PKI-only configuration creates the CA in Caddy's storage. It opens no
-/// listener and never installs trust. Approval of the CA is the helper's job, not this type's.
+/// Jerd makes the CA itself (`LocalRootTemplate`), so that it may sign only `.test` names. An
+/// installation that has the CA that Caddy made keeps it (`ActiveAuthority`). Making the CA never
+/// installs trust: approval of the CA is the helper's job, not this type's.
 package struct LocalCAProvisioner: Sendable {
-    /// The timeout of the CA creation command.
-    package static let commandTimeout: Duration = .seconds(15)
-
     private let environment: EnvironmentLayout
-    private let commands: any CommandRunning
+    private let now: @Sendable () -> Date
 
-    package init(environment: EnvironmentLayout, commands: any CommandRunning = CommandRunner()) {
+    package init(environment: EnvironmentLayout, now: @escaping @Sendable () -> Date = { Date() }) {
         self.environment = environment
-        self.commands = commands
+        self.now = now
     }
 
-    /// The installation CA, created first when `root.crt` is absent.
-    ///
-    /// Creation holds the web environment lock, so it cannot race the engine or recovery of
-    /// another Jerd instance.
-    package func provision(installationID: UUID, caddy: CaddyRuntime) async throws -> LocalCertificateAuthority {
-        if FileProbe.presence(at: environment.rootCertificateFile) == .absent {
-            try await create(installationID: installationID, caddy: caddy)
+    /// The installation CA, made first when the active root is absent.
+    package func provision(installationID: UUID) throws -> LocalCertificateAuthority {
+        if FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)) == .absent {
+            try create(installationID: installationID)
         }
         return try load(installationID: installationID)
     }
 
     /// The saved installation CA, read strictly and checked against the installation ID.
     package func load(installationID: UUID) throws -> LocalCertificateAuthority {
-        let authority = try LocalCertificateAuthority.read(environment.rootCertificateFile)
+        let authority = try LocalCertificateAuthority.read(ActiveAuthority.rootCertificateFile(environment))
         try InstallationCertificate.validate(authority.der, installationID: installationID)
+        if ActiveAuthority.resolve(environment, installationID: installationID).providesRoot {
+            try RootKeyCheck.requireMatch(certificate: authority.der, keyFile: environment.constrainedRootKeyFile)
+        }
         return authority
     }
 
-    private func create(installationID: UUID, caddy: CaddyRuntime) async throws {
+    /// Writes the key first and the certificate last, so that every `root.crt` has its key. The
+    /// intermediate of an earlier root goes first: Caddy would load it, and the new root did not
+    /// sign it.
+    /// Creation holds the web environment lock, so it cannot race the engine or recovery of
+    /// another Jerd instance; a CA that another instance made meanwhile is kept.
+    private func create(installationID: UUID) throws {
         for folder in [
             environment.configurationDirectory, environment.certificatesDirectory, environment.processesDirectory,
         ] {
@@ -44,21 +47,22 @@ package struct LocalCAProvisioner: Sendable {
         }
         let lock = try InstanceLock.acquire(at: environment.recoveryLockFile, messages: WebEnvironmentLock.messages)
         defer { lock.release() }
-        let file = environment.prepareCAFile
-        try AtomicFile.write(
-            try CaddyConfigRenderer.renderAuthorityPreparation(
-                authority: .installation(installationID), storage: environment.certificatesDirectory),
-            to: file)
-        let request = ProcessRequest(
-            executable: URL(fileURLWithPath: caddy.path), arguments: ["validate", "--config", file.path],
-            workingDirectory: environment.root,
-            environment: [
-                "XDG_DATA_HOME": environment.certificatesDirectory.path,
-                "XDG_CONFIG_HOME": environment.configurationDirectory.path,
-            ])
-        let result = try await commands.run(request, timeout: Self.commandTimeout)
-        guard result.succeeded else {
-            throw JerdError.processFailed("Cannot prepare the local CA: \(result.diagnosticOutput)")
+        guard FileProbe.presence(at: environment.constrainedRootCertificateFile) == .absent else { return }
+        let folder = environment.authorityDirectory(EnvironmentLayout.constrainedAuthorityID)
+        try OwnedDirectory.create(folder, within: environment.certificatesDirectory)
+        for name in ["intermediate.crt", "intermediate.key"] {
+            let file = folder.appendingPathComponent(name, isDirectory: false)
+            if FileProbe.presence(at: file) != .absent { try FileManager.default.removeItem(at: file) }
         }
+        let key = P256.Signing.PrivateKey()
+        try AtomicFile.write(Data(key.pemRepresentation.utf8), to: environment.constrainedRootKeyFile)
+        let name = LocalAuthority.constrainedInstallation(installationID).name
+        let der = try LocalRootTemplate.certificate(commonName: name, key: key, now: now())
+        try AtomicFile.write(Self.pem(der), to: environment.constrainedRootCertificateFile)
+    }
+
+    static func pem(_ der: Data) -> Data {
+        let body = der.base64EncodedString(options: [.lineLength64Characters, .endLineWithLineFeed])
+        return Data("-----BEGIN CERTIFICATE-----\n\(body)\n-----END CERTIFICATE-----\n".utf8)
     }
 }

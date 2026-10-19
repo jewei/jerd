@@ -12,7 +12,6 @@ import Testing
         let layout: DataLayout
         let system: FakeSystem
         let coordinator: FakeCoordinator
-        let commands: ScriptedCommandRunner
         let gateway: SystemSetupGateway
 
         init(_ status: HTTPSSetupStatus = HTTPSSetupStatus(), running: ServingPlan? = nil) throws {
@@ -21,8 +20,7 @@ import Testing
             self.layout = layout
             system = FakeSystem(status)
             coordinator = FakeCoordinator(running)
-            commands = LocalCAProvisionerTests.creatingCaddy(layout.environment)
-            gateway = SystemSetupGateway(layout: layout, system: system, coordinator: coordinator, commands: commands)
+            gateway = SystemSetupGateway(layout: layout, system: system, coordinator: coordinator)
         }
     }
 
@@ -35,9 +33,10 @@ import Testing
         let setup = try await context.gateway.prepare(hostnames: ["b.test", "A.test"], caddy: Samples.caddy())
         #expect(setup.hostnames == ["a.test", "b.test"])
         #expect(setup.registration.trustPolicy == .serverTLS)
-        #expect(setup.registration.certificateDER == (try Certificates.authority().der))
-        #expect(setup.fingerprint == (try Certificates.authority().fingerprint))
-        #expect(context.commands.requests.count == 1)
+        let made = try LocalCertificateAuthority.read(context.layout.environment.constrainedRootCertificateFile)
+        #expect(setup.registration.certificateDER == made.der)
+        #expect(setup.fingerprint == made.fingerprint)
+        #expect(try NameConstraintsInspection.inspect(certificate: made.der) == .limitedToTest)
         #expect(await context.system.configurations.isEmpty)
     }
 
@@ -47,7 +46,7 @@ import Testing
         await #expect(throws: JerdError.unavailable("Stop the environment before preparing a missing CA.")) {
             try await context.gateway.prepare(hostnames: ["a.test"], caddy: Samples.caddy())
         }
-        #expect(context.commands.requests.isEmpty)
+        #expect(isAbsent(context.layout.environment.constrainedRootKeyFile))
     }
 
     @Test func invalidHostnameSetsAreRefusedBeforeAnyChange() async throws {

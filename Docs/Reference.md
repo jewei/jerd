@@ -20,12 +20,14 @@ private (mode 0700).
 | `shell-backups` | Shell file backups, one folder per change |
 | `environment/installation-id` | The installation ID: an uppercase UUID without a newline |
 | `environment/configuration/caddy.json` | The Caddy configuration |
-| `environment/configuration/prepare-ca.json` | The Caddy configuration that creates the installation CA |
+| `environment/configuration/prepare-ca.json` | Legacy layout only: the configuration with which earlier builds let Caddy make the CA. No longer written |
 | `environment/configuration/php-ca.pem` | The CA bundle of PHP-FPM |
 | `environment/configuration/empty-ini` | An empty `PHP_INI_SCAN_DIR` |
 | `environment/configuration/php-fpm.conf` | Legacy layout only: the first pool of old builds. Removed when Jerd wrote it |
 | `environment/configuration/php.ini` | Legacy layout only: the `php.ini` of that pool. Removed when Jerd wrote it |
-| `environment/certificates/pki/authorities/jerd/root.crt` | The installation CA certificate (Caddy storage) |
+| `environment/certificates/pki/authorities/jerd/root.crt` | The installation CA that Caddy made for earlier builds. While it exists, Jerd keeps using it |
+| `environment/certificates/pki/authorities/jerd-2/root.crt` | The installation CA that Jerd makes when the `jerd` CA is absent. It may sign only `.test` names and no IP address |
+| `environment/certificates/pki/authorities/jerd-2/root.key` | The private key of that CA (mode 0600). Caddy loads it and writes its intermediate next to it |
 | `environment/logs/caddy.log` | The Caddy log |
 | `environment/logs/fpm.log` | Legacy layout only: the log of the old first pool. Removed |
 | `environment/php/<UUID>` | The FPM pool of one PHP runtime: `configuration/php-fpm.conf`, `configuration/php.ini`, `logs/fpm.log` |

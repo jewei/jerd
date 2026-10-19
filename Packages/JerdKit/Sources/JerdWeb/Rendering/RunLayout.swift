@@ -21,14 +21,15 @@ public struct RunLayout: Equatable, Hashable, Sendable {
         self.authority = authority
     }
 
-    /// The product run: `environment/` and a new `$TMPDIR/jerd-<12 characters>` socket folder.
+    /// The product run: `environment/`, the active installation CA (`ActiveAuthority`), and a new
+    /// `$TMPDIR/jerd-<12 characters>` socket folder.
     public static func product(
         environment: EnvironmentLayout, installationID: UUID,
         temporaryRoot: URL = FileManager.default.temporaryDirectory
     ) -> RunLayout {
         RunLayout(
             environment: environment, socketDirectory: socketFolder(in: temporaryRoot, prefix: "jerd-", length: 12),
-            authority: .installation(installationID))
+            authority: ActiveAuthority.resolve(environment, installationID: installationID))
     }
 
     /// A preflight run below `environment/preflight-<UUID>/`. Its socket folder is never created.
