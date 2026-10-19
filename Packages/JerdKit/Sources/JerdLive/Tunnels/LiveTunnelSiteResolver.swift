@@ -18,7 +18,8 @@ package struct LiveTunnelSiteResolver: TunnelSiteResolving {
 
     /// Checks the CA first: without it the route cannot verify TLS, so a restart would be wasted.
     package func prepareDestination(for siteID: UUID) async throws -> TunnelSiteDestination {
-        guard FileProbe.presence(at: layout.rootCertificateFile) == .present else {
+        let rootCertificate = ActiveAuthority.rootCertificateFile(layout)
+        guard FileProbe.presence(at: rootCertificate) == .present else {
             throw JerdError.unavailable(TunnelMessage.certificateAuthorityMissing)
         }
         guard let site = try await sites.applyForwardedHosts(servingSite: siteID) else {
@@ -26,7 +27,7 @@ package struct LiveTunnelSiteResolver: TunnelSiteResolving {
         }
         return TunnelSiteDestination(
             siteID: siteID, hostname: try Hostname(site.hostname), httpsPort: ListenerBinding.product.httpsPort,
-            certificateAuthorityFile: layout.rootCertificateFile)
+            certificateAuthorityFile: rootCertificate)
     }
 
     /// Why the run does not serve `siteID`: the site was removed, or it does not run.

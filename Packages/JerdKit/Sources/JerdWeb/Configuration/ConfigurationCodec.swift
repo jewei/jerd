@@ -39,7 +39,7 @@ public enum ConfigurationCodec {
         guard configuration.schemaVersion == AppConfiguration.currentVersion,
             Set(sites.map(\.id)).count == sites.count,
             Set(sites.flatMap { $0.servedHostnames.map { $0.lowercased() } }).count
-                == sites.reduce(0) { $0 + $1.servedHostnames.count },
+                == sites.reduce(0, { $0 + $1.servedHostnames.count }),
             Set(sites.map(\.projectPath)).count == sites.count,
             Set(configuration.runtimes.map(\.id)).count == configuration.runtimes.count
         else { throw JerdError.corrupt("Configuration contains an invalid version or duplicate records.") }

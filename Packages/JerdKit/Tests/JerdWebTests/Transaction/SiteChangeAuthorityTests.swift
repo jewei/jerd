@@ -74,7 +74,8 @@ import Testing
         await live.store.pauseNextSave()
         let edit = Task { try await live.transaction.apply(.enabled(live.site("two.test").id, true)) }
         #expect(await waitUntil { await live.store.isPaused })
-        try AtomicFile.write(try Certificates.pem("other-ca"), to: live.harness.layout.environment.rootCertificateFile)
+        try AtomicFile.write(
+            try Certificates.pem("other-ca"), to: live.harness.layout.environment.legacyRootCertificateFile)
         await live.store.resume()
         await #expect {
             try await edit.value

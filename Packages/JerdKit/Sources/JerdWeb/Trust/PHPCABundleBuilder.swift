@@ -56,7 +56,7 @@ public struct PHPCABundleBuilder: Sendable {
     public func prepareForCLI(layout: DataLayout) throws -> URL? {
         guard let installationID = try InstallationIdentity(environment: layout.environment).read() else { return nil }
         return try prepare(
-            rootCertificate: layout.environment.rootCertificateFile, installationID: installationID,
+            rootCertificate: ActiveAuthority.rootCertificateFile(layout.environment), installationID: installationID,
             output: layout.runtimes.cliCABundleFile)
     }
 }

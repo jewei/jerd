@@ -27,7 +27,7 @@ import Testing
             layout.configurationFile, layout.previousConfigurationFile, layout.binDirectory,
             layout.shellBackupsDirectory, environment.installationIDFile, environment.caddyConfigurationFile,
             environment.fpmConfigurationFile, environment.phpINIFile, environment.prepareCAFile,
-            environment.phpCABundleFile, environment.emptyINIDirectory, environment.rootCertificateFile,
+            environment.phpCABundleFile, environment.emptyINIDirectory, environment.legacyRootCertificateFile,
             environment.caddyLogFile, environment.fpmLogFile, environment.recoveryLockFile,
             environment.phpRuntimeDirectory(id), environment.preflightDirectory(id),
             environment.processRecord(id).recordFile, runtimes.developmentRuntimesDirectory, runtimes.cliToolsFile,

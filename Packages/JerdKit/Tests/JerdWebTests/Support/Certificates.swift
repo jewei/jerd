@@ -19,7 +19,7 @@ enum Certificates {
     static func install(in environment: EnvironmentLayout, name: String = "installation-ca") throws {
         try OwnedDirectory.create(environment.root)
         try AtomicFile.write(Data(installationID.uuidString.utf8), to: environment.installationIDFile)
-        try OwnedDirectory.create(environment.rootCertificateFile.deletingLastPathComponent())
-        try AtomicFile.write(try pem(name), to: environment.rootCertificateFile)
+        try OwnedDirectory.create(environment.legacyRootCertificateFile.deletingLastPathComponent())
+        try AtomicFile.write(try pem(name), to: environment.legacyRootCertificateFile)
     }
 }

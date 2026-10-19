@@ -27,7 +27,7 @@ package enum CaddyConfigRenderer {
             "admin": ["disabled": true],
             "storage": storageValue(storage),
             "apps": [
-                "pki": pki(authority),
+                "pki": pki(authority, storage: storage),
                 "tls": tls(hostnames: hostnames, authority: authority),
                 "http": http(binding, secure: routes.secure, redirects: routes.redirects),
             ],
@@ -97,13 +97,18 @@ package enum CaddyConfigRenderer {
         ]
     }
 
-    static func pki(_ authority: LocalAuthority) -> JSONValue {
+    /// The CA of the run. A CA that Jerd makes is loaded from its root and key; Caddy then makes
+    /// only the intermediate. A CA that Caddy made stays in Caddy's storage.
+    static func pki(_ authority: LocalAuthority, storage: URL) -> JSONValue {
         let name = JSONValue.string(authority.name)
-        return [
-            "certificate_authorities": [
-                authority.id: ["name": name, "root_common_name": name, "install_trust": false]
+        var entry: [String: JSONValue] = ["name": name, "root_common_name": name, "install_trust": false]
+        if authority.providesRoot {
+            entry["root"] = [
+                "certificate": .string(authority.rootCertificate(in: storage).path),
+                "private_key": .string(authority.rootKey(in: storage).path), "format": "pem_file",
             ]
-        ]
+        }
+        return ["certificate_authorities": [authority.id: .object(entry)]]
     }
 
     private static func tls(hostnames: [Hostname], authority: LocalAuthority) -> JSONValue {

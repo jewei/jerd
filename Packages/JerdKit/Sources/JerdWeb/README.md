@@ -17,7 +17,7 @@ JerdFoundation and JerdProcess. It does not import JerdSystem: the helper is a p
 | `ForwardedHosts` (`ForwardedHostsLoading`) | The saved public hostnames that each site restores as Host from a forwarder. |
 | `RunLayout`, `LocalAuthority` | Every path of a run and the one name of the CA. |
 | `CaddyConfigRenderer`, `SiteRoutePolicy`, `ForwardedHostRoutePolicy`, `FPMPoolRenderer`, `PHPIniPolicy` | The generated files. |
-| `InstallationIdentity`, `LocalCAProvisioner`, `PHPCABundleBuilder` | The installation CA and the PHP CA bundle. |
+| `InstallationIdentity`, `LocalCAProvisioner`, `ActiveAuthority`, `PHPCABundleBuilder` | The installation CA (made by Jerd with name constraints, or the legacy CA that Caddy made), the choice between them, and the PHP CA bundle. |
 | `FastCGIPing` (`FPMPinging`) | The FPM readiness ping over the pool socket. |
 | `PHPRuntimeInspector`, `CaddyRuntimeInspector` | Inspection of explicit executables into records. |
 | `EngineRunner` (`EngineControlling`) | Starts, checks, watches, and stops Caddy and PHP-FPM. |
