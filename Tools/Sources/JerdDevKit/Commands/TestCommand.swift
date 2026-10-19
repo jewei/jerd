@@ -13,7 +13,8 @@ struct TestCommand: DevSubcommand {
               database  JERD_DATABASE_RUNTIMES (required); JERD_OCCUPIED_DATABASE_PORT (optional)
               mail      JERD_MAIL_RUNTIME (required)
               storage   JERD_STORAGE_RUNTIME (required)
-            Each group also sets JERD_INTEGRATION=1 and its own switch, for example \
+              windows   no runtime; sets JERD_WINDOW_TESTS=1 for the tests that draw AppKit windows
+            Each runtime group also sets JERD_INTEGRATION=1 and its own switch, for example \
             JERD_WEB_INTEGRATION=1; only its own switch turns on its tests. The paths come from the receipts of ./dev runtimes prepare. \
             When you set every required path of a group, your paths win.
             """)
@@ -21,7 +22,8 @@ struct TestCommand: DevSubcommand {
     @Argument(help: ArgumentHelp("JerdKit targets to test, for example JerdWeb. Default: all.", valueName: "target"))
     var targets: [String] = []
 
-    @Option(help: ArgumentHelp("Integration groups to enable: web, database, mail, storage.", valueName: "groups"))
+    @Option(
+        help: ArgumentHelp("Integration groups to enable: web, database, mail, storage, windows.", valueName: "groups"))
     var integration: String?
 
     @Option(

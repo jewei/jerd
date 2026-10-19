@@ -1,4 +1,5 @@
 import AppKit
+import JerdTestSupport
 import Testing
 
 @testable import JerdLive
@@ -51,7 +52,7 @@ struct ApplicationQuitTests {
         #expect(window.hostedSheet == nil)
     }
 
-    @Test func aRealWindowWithoutASheetStaysAsItIs() {
+    @Test(.drawsWindows) func aRealWindowWithoutASheetStaysAsItIs() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 200, height: 200), styleMask: [.titled], backing: .buffered,
             defer: true)

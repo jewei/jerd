@@ -1,11 +1,12 @@
 import AppKit
 import JerdDesign
+import JerdTestSupport
 import SwiftUI
 import Testing
 
 @testable import JerdSnapshotSupport
 
-@Suite("Snapshot renderer")
+@Suite("Snapshot renderer", .drawsWindows)
 @MainActor
 struct SnapshotRendererTests {
     @Test("Renders a content snapshot at scale 2 with the exact pixel size")

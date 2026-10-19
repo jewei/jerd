@@ -1,4 +1,5 @@
 import AppKit
+import JerdTestSupport
 import SwiftUI
 import Testing
 
@@ -6,7 +7,7 @@ import Testing
 
 /// Every sidebar footer has one height, so the footer line stays
 /// in place when the user changes section.
-@Suite("Sidebar footer")
+@Suite("Sidebar footer", .drawsWindows)
 @MainActor
 struct SidebarFooterTests {
     private func height(of view: some View) -> CGFloat {

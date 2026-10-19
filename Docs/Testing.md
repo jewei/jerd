@@ -43,6 +43,12 @@ on.
 internet. It starts mail, captures a test email, stops, and checks that the
 inbox stays. `JERD_ON_DEMAND_MAIL_INTEGRATION=1` switches it on.
 
+Tests that draw AppKit windows, such as page renderings and layout checks, are
+opt-in too. Mark each one with the `.drawsWindows` trait of `JerdTestSupport`.
+`./dev test --integration windows` sets `JERD_WINDOW_TESTS=1` and runs them.
+A default run, and so a local `./dev check`, draws no window. CI runs them after
+`./dev check`.
+
 Without `--verbose`, a test run shows failures with their details, diagnostics,
 and the final count. A failed run writes its full output to `.build/logs`.
 
