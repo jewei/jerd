@@ -31,17 +31,16 @@ struct ReadinessChecks: Sendable {
         throw JerdError.processFailed("PHP-FPM did not create its socket. See fpm.log.")
     }
 
-    /// Checks verified HTTPS for every site in parallel, within one budget for all of them.
-    /// The first failure cancels the other checks.
+    /// Checks verified HTTPS for every hostname and alias in parallel, within one budget for all
+    /// of them. The first failure cancels the other checks.
     func waitForHTTPS(
         _ plan: EngineStartPlan, running: @escaping Liveness, checkpoint: @escaping Checkpoint
     ) async throws {
         let deadline = ContinuousClock.now + timings.tlsBudget
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for site in plan.caddySites {
+            for name in plan.caddySites.flatMap(\.servedHostnames) {
                 group.addTask {
-                    try await waitForHTTPS(
-                        site.hostname, plan, deadline: deadline, running: running, checkpoint: checkpoint)
+                    try await waitForHTTPS(name, plan, deadline: deadline, running: running, checkpoint: checkpoint)
                 }
             }
             try await group.waitForAll()

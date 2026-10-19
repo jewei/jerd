@@ -17,9 +17,9 @@ struct SiteChangeRequest: Sendable {
 
     /// Hostnames that the edit removes or renames. They leave the approved set.
     var removedHostnames: Set<String> {
-        Set(previous.sites.map(\.hostname)).subtracting(candidate.sites.map(\.hostname))
+        Set(previous.sites.flatMap(\.servedHostnames)).subtracting(candidate.sites.flatMap(\.servedHostnames))
     }
 
     /// Every registered hostname, enabled or not, so an approval keeps disabled sites approved.
-    var registeredHostnames: [String] { candidate.sites.map(\.hostname) }
+    var registeredHostnames: [String] { candidate.sites.flatMap(\.servedHostnames) }
 }

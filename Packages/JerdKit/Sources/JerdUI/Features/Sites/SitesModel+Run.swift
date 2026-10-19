@@ -36,10 +36,10 @@ extension SitesModel {
         return false
     }
 
-    /// True when the approved HTTPS setup covers the site's hostname for this installation's
-    /// CA, the same rule as the site transaction. Its Start then needs no approval sheet.
+    /// True when the approved HTTPS setup covers the site's hostname and aliases for this
+    /// installation's CA, the same rule as the site transaction. Its Start then needs no approval sheet.
     public func isApproved(_ site: Site) -> Bool {
-        setup.map { ApprovalPredicate.approves($0, hostnames: [site.hostname], authority: authority) } ?? false
+        setup.map { ApprovalPredicate.approves($0, hostnames: site.servedHostnames, authority: authority) } ?? false
     }
 
     /// Serves every enabled site.

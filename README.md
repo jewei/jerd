@@ -3,7 +3,8 @@
 Jerd is a native macOS app for local PHP development. It does these tasks:
 
 - It serves your registered `.test` sites over HTTPS. Each site uses the PHP
-  version that you select for it.
+  version that you select for it. A site can also have aliases, for example
+  `api.app.test`, that serve the same document root.
 - It gives you `php`, `composer`, and `laravel` commands. These commands use the
   PHP version of the registered project that contains the current folder.
 - It manages MySQL, PostgreSQL, and Redis services, a Mailpit inbox for test

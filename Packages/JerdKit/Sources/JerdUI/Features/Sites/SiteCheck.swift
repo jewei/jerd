@@ -12,10 +12,9 @@ struct SiteCheck: Equatable {
     static func checks(for site: Site, in model: SitesModel) -> [SiteCheck] {
         let approved = model.isApproved(site)
         let served = model.environment.siteIDs.contains(site.id)
+        let approval = site.aliases.isEmpty ? "Approved for this hostname" : "Approved for the hostname and aliases"
         return [
-            SiteCheck(
-                title: "HTTPS setup", result: approved ? "Approved for this hostname" : "Approval required",
-                passed: approved),
+            SiteCheck(title: "HTTPS setup", result: approved ? approval : "Approval required", passed: approved),
             SiteCheck(
                 title: "PHP-FPM", result: served ? "Passed at start" : "Checked when the site starts",
                 passed: served),

@@ -97,6 +97,22 @@ struct SiteEditorModelTests {
         #expect(editor.draft.hostname == "aurora.test")
     }
 
+    @Test("Aliases are optional; a broken alias says why at its field and turns Save off")
+    func aliasRules() {
+        let editor = makeEditor()
+        editor.useProjectFolder("\(projects)/aurora")
+        editor.documentRoot = "\(projects)/aurora"
+        editor.isRootConfirmed = true
+        #expect(editor.draft.hostname == "aurora.test")
+        #expect(editor.aliasesMessage == nil && editor.canSave && editor.draft.aliases.isEmpty)
+        editor.aliasesText = "api.aurora.test, aurora.test"
+        #expect(editor.aliasesMessage == "Remove the alias that is the same as the hostname.")
+        #expect(!editor.canSave && editor.saveRequirement == nil)
+        editor.aliasesText = "API.aurora.test admin.aurora.test"
+        #expect(editor.aliasesMessage == nil && editor.canSave)
+        #expect(editor.draft.aliases == ["api.aurora.test", "admin.aurora.test"])
+    }
+
     @Test("Choose asks for a folder and inspects it; Cancel in the panel changes nothing")
     func chooseFolder() async {
         let panels = InMemoryFilePanels(answers: [URL(fileURLWithPath: "\(projects)/aurora"), nil])

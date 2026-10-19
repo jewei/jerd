@@ -32,18 +32,19 @@ public enum ConfigurationCodec {
         try JSONFileFormat.settings.makeEncoder().encode(configuration)
     }
 
-    /// The structure rules: the current version, unique IDs, hostnames, and project paths, valid
-    /// hostnames, absolute paths, and a document root inside its project.
+    /// The structure rules: the current version, unique IDs, hostnames and aliases, and project
+    /// paths, valid hostnames, absolute paths, and a document root inside its project.
     public static func validate(_ configuration: AppConfiguration) throws {
         let sites = configuration.sites
         guard configuration.schemaVersion == AppConfiguration.currentVersion,
             Set(sites.map(\.id)).count == sites.count,
-            Set(sites.map { $0.hostname.lowercased() }).count == sites.count,
+            Set(sites.flatMap { $0.servedHostnames.map { $0.lowercased() } }).count
+                == sites.reduce(0) { $0 + $1.servedHostnames.count },
             Set(sites.map(\.projectPath)).count == sites.count,
             Set(configuration.runtimes.map(\.id)).count == configuration.runtimes.count
         else { throw JerdError.corrupt("Configuration contains an invalid version or duplicate records.") }
         for site in sites {
-            _ = try HostnamePolicy.validate(site.hostname)
+            for name in site.servedHostnames { _ = try HostnamePolicy.validate(name) }
             guard site.projectPath.hasPrefix("/"), site.documentRoot.hasPrefix("/"),
                 PathComponents.contains(site.documentRoot, in: site.projectPath)
             else { throw JerdError.corrupt("Configuration contains an invalid project path.") }

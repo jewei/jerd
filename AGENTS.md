@@ -153,7 +153,7 @@ the paths, helper records, defaults keys, and Keychain items:
 Implement only the approved features:
 
 - Serve all enabled registered `.test` sites over HTTPS, each with its selected
-  PHP runtime.
+  PHP runtime and its optional `.test` aliases.
 - Provide `php`, `composer`, and `laravel` commands that select PHP from the
   registered project that contains the working directory.
 - Manage independent MySQL, PostgreSQL, and Redis services, a Mailpit inbox,
