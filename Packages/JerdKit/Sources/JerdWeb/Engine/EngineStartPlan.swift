@@ -31,7 +31,8 @@ struct EngineStartPlan: Sendable {
             return CaddySite(
                 hostname: try HostnamePolicy.validate(site.hostname), projectPath: site.projectPath,
                 documentRoot: site.documentRoot, socket: pool.layout.socket,
-                forwardedHosts: plan.forwardedHosts.hosts(of: site.id))
+                forwardedHosts: plan.forwardedHosts.hosts(of: site.id),
+                aliases: try site.aliases.map(HostnamePolicy.validate))
         }
         self.pools = pools
         self.layout = layout

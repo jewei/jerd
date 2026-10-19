@@ -14,6 +14,8 @@ public final class SiteEditorModel: Identifiable {
     public let isNew: Bool
     public var displayName: String
     public var hostname: String
+    /// More names, separated by commas or spaces (`SiteAliases.parse(_:)`).
+    public var aliasesText: String
     public var projectPath: String {
         didSet {
             guard projectPath != oldValue else { return }
@@ -46,6 +48,7 @@ public final class SiteEditorModel: Identifiable {
         isNew = site == nil
         displayName = original.displayName
         hostname = original.hostname
+        aliasesText = SiteAliases.text(original.aliases)
         projectPath = original.projectPath
         documentRoot = original.documentRoot
         phpSelection = original.phpSelection
@@ -85,17 +88,30 @@ public final class SiteEditorModel: Identifiable {
         }
     }
 
-    /// Every field is filled, the hostname is valid, and the document root is confirmed.
+    /// The alias rules, inline while the user types. Nil when there are no aliases, when they are
+    /// valid, or when the hostname has its own message.
+    public var aliasesMessage: String? {
+        let aliases = SiteAliases.parse(aliasesText)
+        guard !aliases.isEmpty, hostnameMessage == nil else { return nil }
+        do {
+            _ = try SiteAliases.validate(aliases, hostname: hostname.trimmingCharacters(in: .whitespaces).lowercased())
+            return nil
+        } catch {
+            return ErrorText.message(for: error)
+        }
+    }
+
+    /// Every field is filled, the hostname and aliases are valid, and the document root is confirmed.
     public var canSave: Bool {
         let fields = [displayName, hostname, projectPath, documentRoot]
         return fields.allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty } && hostnameMessage == nil
-            && (isRootConfirmed || !requiresConfirmation) && !isInspecting
+            && aliasesMessage == nil && (isRootConfirmed || !requiresConfirmation) && !isInspecting
     }
 
     /// Why Save is off, or nil. An invalid hostname says so at its field; an inspection shows
     /// its own progress.
     public var saveRequirement: String? {
-        guard !canSave, !isInspecting, hostnameMessage == nil else { return nil }
+        guard !canSave, !isInspecting, hostnameMessage == nil, aliasesMessage == nil else { return nil }
         let missing = SaveRequirement.missing([
             (projectPath, "a project folder"), (displayName, "a display name"), (hostname, "a hostname"),
             (documentRoot, "a document root"),
@@ -109,6 +125,7 @@ public final class SiteEditorModel: Identifiable {
         var site = original
         site.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         site.hostname = hostname.trimmingCharacters(in: .whitespaces).lowercased()
+        site.aliases = SiteAliases.parse(aliasesText)
         site.projectPath = projectPath.trimmingCharacters(in: .whitespaces)
         site.documentRoot = documentRoot.trimmingCharacters(in: .whitespaces)
         site.phpSelection = phpSelection

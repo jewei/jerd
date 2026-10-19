@@ -6,19 +6,20 @@ import JerdFoundation
 /// Invariants of the output: the admin API is off; no ACME, only the internal issuer of the
 /// run's CA with `install_trust: false`; loopback or inherited listeners only; no HTTP/3; TLS on
 /// every HTTPS connection; strict SNI and Host; unknown hosts get 421 on both servers; HTTP for a
-/// known host gets 308 to HTTPS with the full request URI. Within a matched site, only an exact
+/// known host or alias gets 308 to HTTPS on the same name with the full request URI. A site's
+/// aliases share its route. Within a matched site, only an exact
 /// `X-Forwarded-Host` of its forwarded hosts replaces the Host, with the saved name
 /// (`ForwardedHostRoutePolicy`). The output is deterministic.
 package enum CaddyConfigRenderer {
     /// Apple's pretty format with sorted keys and unescaped slashes, as the old generator wrote.
     static let options: JSONSerialization.WritingOptions = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
 
-    /// - Throws: `.invalid` for 0 or more than 256 sites, duplicate hostnames, invalid ports, or a
+    /// - Throws: `.invalid` for 0 or more than 256 names, duplicate hostnames, invalid ports, or a
     ///   document root with braces.
     package static func render(
         sites: [CaddySite], authority: LocalAuthority, storage: URL, binding: ListenerBinding
     ) throws -> Data {
-        let hostnames = try HostnamePolicy.validateSet(sites.map(\.hostname.value))
+        let hostnames = try HostnamePolicy.validateSet(sites.flatMap { $0.servedHostnames.map(\.value) })
         try requireValid(binding)
         let ordered = sites.sorted { $0.hostname < $1.hostname }
         let routes = try siteRoutes(ordered, binding: binding)
@@ -34,16 +35,17 @@ package enum CaddyConfigRenderer {
         return try document.serialized(options)
     }
 
-    /// Each site gets an HTTPS route and an HTTP redirect; both servers end with a 421 fallback.
+    /// Each site gets an HTTPS route for all its names and an HTTP redirect for each name; both
+    /// servers end with a 421 fallback.
     private static func siteRoutes(
         _ ordered: [CaddySite], binding: ListenerBinding
     ) throws -> (secure: [JSONValue], redirects: [JSONValue]) {
         var secure: [JSONValue] = []
         var redirects: [JSONValue] = []
         for site in ordered {
-            let host: JSONValue = [["host": [.string(site.hostname.value)]]]
+            let names = site.servedHostnames
             secure.append([
-                "match": host, "terminal": true,
+                "match": [["host": .array(names.map { .string($0.value) })]], "terminal": true,
                 "handle": [
                     [
                         "handler": "subroute",
@@ -52,7 +54,12 @@ package enum CaddyConfigRenderer {
                     ]
                 ],
             ])
-            redirects.append(["match": host, "handle": [redirect(to: site.hostname, httpsPort: binding.httpsPort)]])
+            for name in names {
+                redirects.append([
+                    "match": [["host": [.string(name.value)]]],
+                    "handle": [redirect(to: name, httpsPort: binding.httpsPort)],
+                ])
+            }
         }
         secure.append(["handle": [SiteRoutePolicy.response(421)]])
         redirects.append(["handle": [SiteRoutePolicy.response(421)]])

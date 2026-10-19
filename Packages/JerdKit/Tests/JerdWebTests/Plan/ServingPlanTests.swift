@@ -15,6 +15,14 @@ import Testing
         #expect(try ServingPlan(configuration, siteIDs: []).isEmpty)
     }
 
+    @Test func aPlanServesEachHostnameThenItsAliases() throws {
+        var one = Samples.site(URL(fileURLWithPath: "/p/one"), hostname: "one.test")
+        one.aliases = ["a.one.test", "b.one.test"]
+        let two = Samples.site(URL(fileURLWithPath: "/p/two"), hostname: "two.test")
+        let plan = try ServingPlan(Samples.configuration([one, two]))
+        #expect(plan.hostnames == ["one.test", "a.one.test", "b.one.test", "two.test"])
+    }
+
     @Test func aSelectedRunDoesNotResolveStoppedSitesRuntimes() throws {
         let active = Samples.site(URL(fileURLWithPath: "/p/a"), hostname: "a.test")
         let stopped = Samples.site(URL(fileURLWithPath: "/p/b"), hostname: "b.test", selection: .pinned(UUID()))
@@ -77,7 +85,7 @@ import Testing
 /// One field change and whether it makes the plan different.
 enum PlanField: CaseIterable, Sendable {
     case displayName, enabled, selection, inspectedAt
-    case siteID, hostname, project, documentRoot
+    case siteID, hostname, aliases, project, documentRoot
     case runtimeID, cliPath, fpmPath, version, architectures, cliExtensions, fpmExtensions
     case caddyPath, caddyVersion, caddyArchitectures
     case forwardedHost
@@ -99,6 +107,7 @@ enum PlanField: CaseIterable, Sendable {
         case .inspectedAt: runtime.inspectedAt = Date(timeIntervalSinceReferenceDate: 99)
         case .siteID: site.id = UUID()
         case .hostname: site.hostname = "z.test"
+        case .aliases: site.aliases = ["api.a.test"]
         case .project: site.projectPath = "/p"
         case .documentRoot: site.documentRoot = "/p/a/public"
         case .runtimeID: runtime.id = UUID()

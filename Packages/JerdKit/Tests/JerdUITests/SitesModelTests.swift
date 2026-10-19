@@ -92,8 +92,11 @@ struct SitesModelTests {
         #expect(!harness.model.isApproved(SampleData.studio))
         await harness.model.startAll()?.value
         let approval = try #require(harness.model.sheet?.approval)
-        #expect(approval.hostnames == ["legacy-blog.test", "northwind.test", "studio.test"])
-        #expect(approval.title == "Enable HTTPS for 3 hostnames?")
+        #expect(
+            approval.hostnames == [
+                "admin.studio.test", "api.studio.test", "legacy-blog.test", "northwind.test", "studio.test",
+            ])
+        #expect(approval.title == "Enable HTTPS for 5 hostnames?")
         #expect(HTTPSApproval(hostnames: ["studio.test"], fingerprint: "ab").title == "Enable HTTPS for studio.test?")
         #expect(harness.model.environment.siteIDs.isEmpty)
         await harness.model.approve(approval)?.value
@@ -285,6 +288,16 @@ struct SitesModelTests {
         model.openAdvanced()
         #expect(harness.recorder.shown == [.dashboard(.advanced)])
         #expect(await !harness.sites.calls.contains { $0.hasPrefix("apply") || $0.hasPrefix("run") })
+    }
+
+    @Test("A site whose alias the setup does not cover still needs approval")
+    func anUnapprovedAliasNeedsApproval() async {
+        var setup = SampleData.approvedSetup
+        setup.hostnames.removeAll { $0 == "api.studio.test" }
+        let harness = await SitesHarness.launched(sites: InMemorySitesPort(setup: setup))
+        #expect(!harness.model.isApproved(SampleData.studio))
+        #expect(harness.model.nextStep(for: SampleData.studio) == .start(needsApproval: true))
+        #expect(harness.model.isApproved(SampleData.northwind))
     }
 
     @Test("Start Site and Start All Sites end with … only when a site still needs approval for this CA")
