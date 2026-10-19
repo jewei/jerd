@@ -37,6 +37,15 @@ struct RepositoryPolicy: Sendable {
         RepositoryPolicy(title: "Source file length") { repository in
             try SourceLengthPolicy.findings(files: swiftSources(in: repository))
         },
+        RepositoryPolicy(title: "Function length") { repository in
+            try FunctionLengthPolicy.findings(files: swiftSources(in: repository))
+        },
+        RepositoryPolicy(title: "JerdUI side effects through ports") { repository in
+            let sources = try swiftSources(in: repository).filter { $0.path.hasPrefix(UIBoundaryPolicy.sourcesFolder) }
+            let isUI = { (file: (path: String, text: String)) in file.path.hasPrefix(UIBoundaryPolicy.uiFolder + "/") }
+            return UIBoundaryPolicy.findings(
+                uiFiles: sources.filter(isUI), otherFiles: sources.filter { !isUI($0) })
+        },
         RepositoryPolicy(title: "Markdown links") { repository in
             let files = RepositoryFiles(repository: repository)
             return try markdownFiles(in: repository).flatMap { path in

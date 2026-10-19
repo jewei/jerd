@@ -33,8 +33,7 @@ extension FixtureScenario {
             return InMemorySitesPort(
                 environment: EnvironmentSnapshot(state: .setupRequired, siteIDs: []), setup: HTTPSSetupStatus())
         case .sitesLoadFailed:
-            return InMemorySitesPort(
-                loadFailure: "The JSON is not valid at line 14.")
+            return InMemorySitesPort(loadFailure: "The JSON is not valid at line 14.")
         case .sitesRecovery:
             var setup = SampleData.approvedSetup
             setup.hasPendingRecovery = true
