@@ -38,6 +38,20 @@ extension SystemSetupGateway {
         }
     }
 
+    /// Retires the legacy CA when the helper trusts no CA and has nothing to recover, for example
+    /// after Remove System Setup. A recovery could trust the legacy CA again, so it keeps the CA.
+    func retireUntrustedLegacyAuthority() async throws {
+        guard let legacy = try InstallationAuthority.read(environment), !legacy.signsOnlyTestNames else { return }
+        let status = try await system.status()
+        guard status.certificateSHA256 == nil, !status.hasPendingRecovery else { return }
+        guard await coordinator.runningPlan() == nil else {
+            throw JerdError.unavailable("Stop the sites before Jerd retires its old CA.")
+        }
+        // Another call can retire the CA while this one waits for the helper.
+        guard FileProbe.presence(at: environment.legacyRootCertificateFile) != .absent else { return }
+        _ = try retireLegacyAuthority()
+    }
+
     /// Moves the retired folder back. A failed move names the folder and keeps the first error.
     private func restore(_ retired: URL, after error: any Error) throws {
         do {

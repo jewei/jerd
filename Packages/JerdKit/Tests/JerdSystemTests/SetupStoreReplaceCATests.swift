@@ -33,11 +33,23 @@ import Testing
             installationID: Fixture.installationID, hostnames: hostnames, certificateDER: der, trustPolicy: .serverTLS)
     }
 
+    /// The setup that an earlier Jerd approved with the CA that Caddy made. A new setup can no
+    /// longer trust such a CA, so the records are written directly.
+    private func legacySetup(_ harness: StoreHarness) throws {
+        let record = RegistrationRecord(
+            ownerUID: owner, installationID: Fixture.installationID, hostnames: try ValidatedHostnames(["demo.test"]),
+            certificateDER: try Fixture.certificate(), trustPolicy: .serverTLS)
+        try HostsSection.replacing(in: harness.hosts, with: record.hostnames.values, expecting: [])
+            .write(to: harness.hostsURL)
+        try harness.directory.write(HelperRecordCodec.encode(record), to: .registration)
+        harness.trust.seed(try record.trust())
+    }
+
     @Test func theReplacementTrustsTheNewCARemovesTheOldOneAndKeepsTheHosts() async throws {
         let harness = try StoreHarness()
         defer { harness.remove() }
         let store = harness.store()
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let hosts = harness.hosts
         let new = try Self.jerdCA()
         try await store.replaceCA(replacement(harness, new), ownerUID: owner, trust: harness.trust)
@@ -56,7 +68,7 @@ import Testing
         await #expect(throws: JerdError.invalid("There is no Jerd system setup whose CA can be replaced.")) {
             try await store.replaceCA(replacement(harness, try Self.jerdCA()), ownerUID: owner, trust: harness.trust)
         }
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let bytes = harness.record(.registration)
         await #expect(
             throws: JerdError.invalid("Only a Jerd CA that may sign only .test names can replace the current CA.")
@@ -82,7 +94,7 @@ import Testing
         let harness = try StoreHarness()
         defer { harness.remove() }
         let store = harness.store()
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let configured = try await store.status(ownerUID: owner)
         let bytes = harness.record(.registration)
         let new = try Self.jerdCA()
@@ -104,7 +116,7 @@ import Testing
         let harness = try StoreHarness()
         defer { harness.remove() }
         let store = harness.store()
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let bytes = harness.record(.registration)
         let new = try Self.jerdCA()
         harness.trust.failNextRemoval(.interrupted)
@@ -146,7 +158,7 @@ import Testing
         let harness = try StoreHarness()
         defer { harness.remove() }
         let store = harness.store()
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let bytes = harness.record(.registration)
         let new = try Self.jerdCA()
         harness.trust.failNextInstall(.interrupted)
@@ -169,7 +181,7 @@ import Testing
         let harness = try StoreHarness()
         defer { harness.remove() }
         let store = harness.store()
-        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        try legacySetup(harness)
         let bytes = try #require(harness.record(.registration))
         let old = try HelperRecordCodec.decodeRegistration(bytes)
         let new = RegistrationRecord(

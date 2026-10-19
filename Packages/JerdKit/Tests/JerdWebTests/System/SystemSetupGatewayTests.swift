@@ -89,8 +89,9 @@ import Testing
         }
     }
 
+    /// The helper still trusts the CA (a changed host set), so the saved status comes back.
     @Test func restoreRecreatesAStatusOrRemovesAnEmptyOne() async throws {
-        let context = try Context()
+        let context = try Context(try FakeSystem.approved(["a.test", "b.test"]))
         defer { context.folder.remove() }
         let saved = try FakeSystem.approved(["a.test"], policy: .hostnames)
         try await context.gateway.restore(saved)

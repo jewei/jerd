@@ -15,13 +15,14 @@ import Testing
         try await store.configure(harness.request(["b.test", "a.test"]), ownerUID: owner, trust: harness.trust)
         let status = try await store.status(ownerUID: owner)
         #expect(status.hostnames == ["a.test", "b.test"] && status.isReadyForServing)
-        #expect(status.certificateSHA256 == FileDigest.hexSHA256(of: try Fixture.certificate()))
+        #expect(status.certificateSHA256 == FileDigest.hexSHA256(of: try Fixture.certificate(Fixture.constrainedCA)))
         let saved = try #require(harness.record(.registration))
         #expect(
             try JSONSerialization.jsonObject(with: saved) as? NSDictionary == [
                 "schemaVersion": 3, "ownerUID": 501,
                 "installationID": Fixture.installationID.uuidString, "hostnames": ["a.test", "b.test"],
-                "certificateDER": try Fixture.certificate().base64EncodedString(), "trustPolicy": "serverTLS",
+                "certificateDER": try Fixture.certificate(Fixture.constrainedCA).base64EncodedString(),
+                "trustPolicy": "serverTLS",
             ])
         #expect(harness.record(.pending) == nil)
         #expect(harness.record(.hostsBackup) == nil)
@@ -57,7 +58,7 @@ import Testing
         let store = harness.store()
         let before = try await store.status(ownerUID: owner)
         #expect(before.trustConfigured && before.hostsConfigured && before.trustPolicy == .hostnames)
-        let upgrade = try harness.request(record.hostnames.strings + ["new.test"])
+        let upgrade = try harness.request(record.hostnames.strings + ["new.test"], certificate: "jerd-ca")
         harness.trust.failNextInstall(.partial)
         await #expect(throws: JerdError.self) {
             try await store.configure(upgrade, ownerUID: owner, trust: harness.trust)
@@ -86,6 +87,24 @@ import Testing
         try await store.remove(ownerUID: owner, trust: harness.trust)
         #expect(harness.hosts == StoreHarness.originalHosts)
         #expect(try await store.status(ownerUID: owner) == .empty)
+        #expect(harness.trust.installed(try Fixture.certificate(Fixture.constrainedCA)) == nil)
+    }
+
+    /// A new setup trusts only Jerd's CA for `.test` names; a CA that is trusted already keeps working
+    /// (see the record upgrade above).
+    @Test func aNewSetupRefusesACAThatCanSignAnyName() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        let refusal = JerdError.invalid(
+            "Jerd trusts a new CA only when it may sign only .test names. Set up HTTPS again, so that "
+                + "Jerd uses its CA for .test names.")
+        await #expect(throws: refusal) {
+            try await store.configure(
+                harness.request(["demo.test"], certificate: "jerd-ca"), ownerUID: owner, trust: harness.trust)
+        }
+        #expect(harness.hosts == StoreHarness.originalHosts)
+        #expect(harness.record(.registration) == nil && harness.record(.pending) == nil)
         #expect(harness.trust.installed(try Fixture.certificate()) == nil)
     }
 
@@ -129,7 +148,7 @@ import Testing
         #expect(try await store.status(ownerUID: owner).hostsConfigured == false)
         try await store.remove(ownerUID: owner, trust: harness.trust)
         #expect(harness.hosts == rewritten)
-        #expect(harness.trust.installed(try Fixture.certificate()) == nil)
+        #expect(harness.trust.installed(try Fixture.certificate(Fixture.constrainedCA)) == nil)
         #expect(harness.record(.registration) == nil && harness.record(.pending) == nil)
         #expect(try await store.status(ownerUID: owner) == .empty)
     }
@@ -148,7 +167,7 @@ import Testing
         }
         #expect(harness.hosts == StoreHarness.originalHosts)
         #expect(harness.record(.registration) == bytes && harness.record(.pending) == nil)
-        #expect(harness.trust.installed(try Fixture.certificate()) != nil)
+        #expect(harness.trust.installed(try Fixture.certificate(Fixture.constrainedCA)) != nil)
     }
 
     /// Regression test: configure writes a deleted section again, but still refuses an external mapping.
@@ -255,7 +274,7 @@ import Testing
         let retained = try harness.folder.names(withPrefix: ".jerd-hosts-")
         #expect(retained.count == 1)
         #expect(try Data(contentsOf: harness.folder.path(try #require(retained.first))) == raced)
-        #expect((harness.trust.installed(try Fixture.certificate()) != nil) == removing)
+        #expect((harness.trust.installed(try Fixture.certificate(Fixture.constrainedCA)) != nil) == removing)
     }
 
     /// Regression test: status during a transaction reports it as running, not interrupted.

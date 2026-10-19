@@ -28,7 +28,7 @@ private (mode 0700).
 | `environment/certificates/pki/authorities/jerd/root.crt` | The installation CA that Caddy made for earlier builds. While it exists, Jerd keeps using it |
 | `environment/certificates/pki/authorities/jerd-2/root.crt` | The installation CA that Jerd makes when the `jerd` CA is absent. It may sign only `.test` names and no IP address |
 | `environment/certificates/pki/authorities/jerd-2/root.key` | The private key of that CA (mode 0600). Caddy loads it and writes its intermediate next to it |
-| `environment/certificates/pki/authorities/jerd-retired-<UTC time>` | The folder of the CA that Caddy made, kept after Update CA replaced it. Jerd no longer uses it |
+| `environment/certificates/pki/authorities/jerd-retired-<UTC time>` | The folder of the CA that Caddy made, kept after Update CA replaced it, or when a new HTTPS setup starts without an approved CA. Jerd no longer uses it |
 | `environment/logs/caddy.log` | The Caddy log |
 | `environment/logs/fpm.log` | Legacy layout only: the log of the old first pool. Removed |
 | `environment/php/<UUID>` | The FPM pool of one PHP runtime: `configuration/php-fpm.conf`, `configuration/php.ini`, `logs/fpm.log` |

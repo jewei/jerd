@@ -5,8 +5,9 @@ import JerdFoundation
 extension SetupStore {
     /// Applies the approved hostnames and CA for `ownerUID`: hosts section, then trust, then registration.
     ///
-    /// A changed host set keeps the same CA. A different CA needs a removal first. A recorded section
-    /// that is already gone is written again.
+    /// A changed host set keeps the same CA. A different CA needs a removal first. A new trust needs
+    /// Jerd's CA for `.test` names; an approved CA keeps its trust. A recorded section that is
+    /// already gone is written again.
     public func configure(
         _ request: SystemRegistrationRequest, ownerUID: uid_t, trust: any CertificateTrustChanging
     )
@@ -24,6 +25,7 @@ extension SetupStore {
         if let previous, !previous.record.hasSameCertificate(as: next) {
             throw JerdError.invalid("Remove the previous Jerd system setup before replacing its CA.")
         }
+        if previous == nil { try NewTrustRule.require(next) }
         let before = try hosts.read()
         let after = try HostsSection.replacing(
             in: before, with: next.hostnames.values, recorded: previous?.record.hostnames.values ?? [])

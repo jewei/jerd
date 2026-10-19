@@ -14,6 +14,9 @@ gen() {
 }
 gen jerd-ca "/CN=Jerd Local CA $ID" "basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign"
 gen jerd-ca-other "/CN=Jerd Local CA $OTHER" "basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign"
+LIMIT="nameConstraints=critical,permitted;DNS:test,excluded;IP:0.0.0.0/0.0.0.0,excluded;IP:0:0:0:0:0:0:0:0/0:0:0:0:0:0:0:0"
+gen jerd-ca-constrained "/CN=Jerd Local CA $ID" "basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\n$LIMIT"
+gen jerd-ca-other-constrained "/CN=Jerd Local CA $OTHER" "basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\n$LIMIT"
 gen not-ca "/CN=Jerd Local CA $ID" "basicConstraints=critical,CA:FALSE"
 gen wrong-name "/CN=Other Local CA $ID" "basicConstraints=critical,CA:TRUE"
 openssl ecparam -name prime256v1 -genkey -noout -out issued.key

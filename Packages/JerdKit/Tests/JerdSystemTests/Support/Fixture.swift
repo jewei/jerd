@@ -8,6 +8,9 @@ enum Fixture {
     /// The installation of `jerd-ca-other.der`.
     static let otherInstallationID = UUID(uuidString: "3F2504E0-4F89-41D3-9A0C-0305E82C3301")!
 
+    /// `jerd-ca.der` with Jerd's name constraints: the only kind of CA that a new setup may trust.
+    static let constrainedCA = "jerd-ca-constrained"
+
     static func data(_ path: String) throws -> Data {
         guard let url = Bundle.module.url(forResource: "Fixtures/\(path)", withExtension: nil) else {
             throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: path])

@@ -29,10 +29,12 @@ public actor SystemSetupGateway: SystemSetupManaging {
     }
 
     /// The request always uses server-TLS trust. A missing CA is made only while nothing runs, so
-    /// that no running Caddy still uses the intermediate of an earlier CA.
+    /// that no running Caddy still uses the intermediate of an earlier CA. A legacy CA that the
+    /// helper does not trust retires first, because the helper trusts no new unconstrained CA.
     public func prepare(hostnames: [String], caddy: CaddyRuntime) async throws -> HTTPSSetup {
         let validated = try HostnamePolicy.validateSet(hostnames).map(\.value)
         let installationID = try InstallationIdentity(environment: environment).readOrCreate()
+        try await retireUntrustedLegacyAuthority()
         if FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)) == .absent,
             await coordinator.runningPlan() != nil
         {
@@ -66,9 +68,16 @@ public actor SystemSetupGateway: SystemSetupManaging {
         try await system.configure(registration)
     }
 
+    /// The helper trusts no new legacy CA. So a legacy setup that is gone already (the last site
+    /// was removed) is not set up again; the next approval uses Jerd's CA for `.test` names.
     public func restore(_ status: HTTPSSetupStatus) async throws {
         await coordinator.halt()
         if let registration = status.registration {
+            if try await system.status().certificateSHA256 == nil,
+                try NameConstraintsInspection.inspect(certificate: registration.certificateDER) != .limitedToTest
+            {
+                throw JerdError.unavailable("The HTTPS setup was removed. Approve HTTPS again for these sites.")
+            }
             try await system.configure(registration)
         } else {
             try await system.removeSetup()
