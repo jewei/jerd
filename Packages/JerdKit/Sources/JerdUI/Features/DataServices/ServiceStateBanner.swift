@@ -22,7 +22,7 @@ struct ServiceStateBanner: View {
         case .failed(let reason):
             let summary = ServiceFailureSummary(
                 reason: reason, dataFolder: files?.dataFolder,
-                homeFolder: FileManager.default.homeDirectoryForCurrentUser)
+                homeFolder: URL.homeDirectory)
             InlineMessage(
                 summary.cause, kind: .error, title: "\(subject) failed", style: .banner,
                 action: openLogAction, identifier: "\(identifier).failed",
