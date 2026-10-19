@@ -17,6 +17,11 @@ extension SampleData {
     public static let installationID = UUID(uuidString: "A1B2C3D4-E5F6-4071-8293-A4B5C6D7E8F9") ?? UUID()
     /// The sample installation CA, as an approval names it.
     public static let authority = InstallationAuthority(installationID: installationID, fingerprint: caFingerprint)
+    /// The sample CA that Caddy made for an earlier build: it can sign any name.
+    public static let legacyAuthority = InstallationAuthority(
+        installationID: installationID, fingerprint: caFingerprint, signsOnlyTestNames: false)
+    /// The fingerprint of the sample Jerd CA for `.test` names that replaces the legacy CA.
+    public static let constrainedCAFingerprint = "3b7e1d9a0c64f2e85a19d3c7b2e04f6a8d51c9e3f07b2a64e8d1c5f9a3b70e2d"
 
     public static let studio = Site(
         id: studioID, displayName: "Studio", projectPath: "\(user)/Projects/studio",

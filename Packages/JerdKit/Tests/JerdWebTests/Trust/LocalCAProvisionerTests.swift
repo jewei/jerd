@@ -112,4 +112,18 @@ import Testing
         #expect(throws: JerdError.self) { try provisioner.provision(installationID: Certificates.installationID) }
         #expect(FileProbe.presence(at: environment.constrainedRootCertificateFile) == .present)
     }
+
+    /// The CA update makes Jerd's CA while the legacy CA stays active, and changes nothing of it.
+    @Test func theConstrainedCAIsMadeBesideTheLegacyCA() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = environment(folder)
+        try Certificates.install(in: environment)
+        let legacy = contents(environment.legacyRootCertificateFile)
+        let made = try LocalCAProvisioner(environment: environment).provisionConstrained(
+            installationID: Certificates.installationID)
+        #expect(try NameConstraintsInspection.inspect(certificate: made.der) == .limitedToTest)
+        #expect(contents(environment.legacyRootCertificateFile) == legacy)
+        #expect(ActiveAuthority.resolve(environment, installationID: Certificates.installationID).id == "jerd")
+    }
 }

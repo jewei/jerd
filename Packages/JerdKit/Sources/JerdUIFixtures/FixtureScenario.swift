@@ -37,6 +37,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case sitesLoadFailed = "sites-load-failed"
     case sitesLong = "sites-long"
     case sitesApproving = "sites-approving"
+    /// The approved setup trusts the CA that Caddy made: the banner offers Update CA….
+    case sitesCAUpdate = "sites-ca-update"
     case tunnelConnected = "tunnel-connected"
     case tunnelStopped = "tunnel-stopped"
     case tunnelFailed = "tunnel-failed"

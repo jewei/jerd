@@ -2,7 +2,8 @@ import JerdDesign
 import SwiftUI
 
 /// The banners of the Sites pages: the failed operation, the environment failure when it
-/// says something else, and the system setup state. Each message shows once. A pending
+/// says something else, the offer to update a CA that can sign any name, and the system setup
+/// state. Each message shows once. A pending
 /// recovery has no banner button: the header's primary action opens Advanced. A setup that the
 /// helper could not report offers its remedy: Reconnect Helper…, or Open Login Items and Check Again.
 struct SitesMessages: View {
@@ -17,6 +18,17 @@ struct SitesMessages: View {
             InlineMessage(
                 message, kind: .error, title: "The sites stopped", style: .banner, identifier: "sites.environment-error"
             )
+        }
+        if model.needsCAUpdate {
+            InlineMessage(
+                "The current Jerd CA can sign certificates for any website. Update it to a CA for .test "
+                    + "hostnames only. Then a stolen CA key cannot fake other websites.",
+                kind: .info, title: "Limit the Jerd CA to .test sites", style: .banner,
+                action: PageAction(
+                    "Update CA…", isEnabled: model.canChangeSystem && !isQuitting,
+                    help: "Trust a new CA for .test hostnames and remove the current CA",
+                    identifier: "sites.update-ca"
+                ) { model.beginCAUpdate() }, identifier: "sites.ca-update")
         }
         if let setup = model.systemSetupState {
             InlineMessage(

@@ -24,6 +24,18 @@ package struct LocalCAProvisioner: Sendable {
         return try load(installationID: installationID)
     }
 
+    /// Jerd's CA for `.test` names, made first when it is absent, also while the legacy CA is
+    /// active: the CA migration needs it before the helper trusts it.
+    package func provisionConstrained(installationID: UUID) throws -> LocalCertificateAuthority {
+        if FileProbe.presence(at: environment.constrainedRootCertificateFile) == .absent {
+            try create(installationID: installationID)
+        }
+        let authority = try LocalCertificateAuthority.read(environment.constrainedRootCertificateFile)
+        try InstallationCertificate.validate(authority.der, installationID: installationID)
+        try RootKeyCheck.requireMatch(certificate: authority.der, keyFile: environment.constrainedRootKeyFile)
+        return authority
+    }
+
     /// The saved installation CA, read strictly and checked against the installation ID.
     package func load(installationID: UUID) throws -> LocalCertificateAuthority {
         let authority = try LocalCertificateAuthority.read(ActiveAuthority.rootCertificateFile(environment))

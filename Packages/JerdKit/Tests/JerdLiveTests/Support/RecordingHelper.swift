@@ -64,6 +64,11 @@ actor RecordingHelper: HelperControlling {
         try failIfSet()
     }
 
+    func replaceCA(with certificate: JerdSystem.InstallationCertificate) async throws {
+        await journal?.record("helper.replaceCA")
+        try failIfSet()
+    }
+
     func recover(report: SystemRecoveryStatus, action: SystemRecoveryAction) throws {
         calls.append(.recover(id: report.id, action: action))
         try failIfSet()
