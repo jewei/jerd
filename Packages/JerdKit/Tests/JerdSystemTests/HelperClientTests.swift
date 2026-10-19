@@ -141,6 +141,23 @@ import os
         }
     }
 
+    /// Recovery of an interrupted CA replacement may remove the old CA (and trust it again on a
+    /// restore); without the old CA in the report, the same request is refused.
+    @Test func recoveryOfAReplacementAllowsTheOldCA() async throws {
+        let old = try Fixture.certificate()
+        let new = try SetupStoreReplaceCATests.jerdCA()
+        for (previous, expected) in [(old, errSecSuccess), (nil, errSecAuthFailed)] as [(Data?, OSStatus)] {
+            let helper = FakeHelper(.init(consentRequest: .removal(of: old)))
+            let (client, _) = client(helper)
+            let report = SystemRecoveryStatus(
+                id: "abc", operation: "Replace HTTPS CA", phase: "p", details: [], canRestore: true, canRemove: true,
+                installationID: Fixture.installationID, certificateDER: new, previousHostnames: ["a.test"],
+                intendedHostnames: ["a.test"], policies: [.serverTLS], previousCertificateDER: previous)
+            try? await client.recover(report: report, action: .removeSetup)
+            #expect(helper.received.withLock { $0.consentStatuses } == [expected])
+        }
+    }
+
     @Test func acquireReturnsTheListenersAndReleaseSkipsWithoutAConnection() async throws {
         let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
         defer { pair.close() }

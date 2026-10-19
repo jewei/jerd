@@ -60,7 +60,7 @@ extension SetupStore {
     }
 
     /// Saves the hosts backup, runs the journaled steps, and deletes the backup after success.
-    private func run(
+    func run(
         _ operation: SetupOperation, steps: [SetupStep], previous: (record: RegistrationRecord, bytes: Data)?,
         intended: RegistrationRecord?, before: Data, failureTitle: String
     ) async throws {

@@ -11,4 +11,7 @@ struct RecoveryEvidence: Sendable {
     let backupDigest: Result<String?, RecoveryReadFailure>
     /// True when the recorded trust is confirmed present.
     let trustPresent: Bool
+    /// For an interrupted CA replacement: true when the trust of the old CA is confirmed present.
+    /// Nil for every other transaction.
+    var previousTrustPresent: Bool? = nil
 }

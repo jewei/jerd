@@ -59,6 +59,21 @@ import os
         #expect(!scope.allows(try request(nil, name: "jerd-ca-other")))
     }
 
+    /// A CA replacement may also remove the retiring CA, and trust it again on a rollback with the
+    /// same hostnames and policies. A third CA stays refused.
+    @Test func aReplacementScopeAlsoAllowsTheRetiringCA() throws {
+        let newCA = try SetupStoreReplaceCATests.jerdCA()
+        let scope = try ConsentScope(
+            certificate: InstallationCertificate(installationID: Fixture.installationID, der: newCA),
+            hostnames: ["old.test"], policies: [.serverTLS], retiring: certificate())
+        #expect(scope.allows(TrustConsentRequest(certificateDER: newCA, hostnames: ["old.test"], policy: .serverTLS)))
+        #expect(scope.allows(try request(nil)))
+        #expect(scope.allows(try request(["old.test"])))
+        #expect(!scope.allows(try request(["new.test"])))
+        #expect(!scope.allows(try request(nil, name: "jerd-ca-other")))
+        #expect(try self.scope().retiringCertificateDER == nil)
+    }
+
     @Test func scopeValidatesItsHostnames() throws {
         #expect(throws: JerdError.self) { try scope(["not a host"]) }
     }

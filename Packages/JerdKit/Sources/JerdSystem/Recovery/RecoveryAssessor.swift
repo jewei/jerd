@@ -36,6 +36,12 @@ enum RecoveryAssessor {
             evidence.trustPresent
                 ? "The recorded certificate trust is currently present."
                 : "The recorded certificate trust is absent or could not be confirmed.")
+        if let present = evidence.previousTrustPresent {
+            details.append(
+                present
+                    ? "The trust of the old CA, which this replacement retires, is currently present."
+                    : "The trust of the old CA, which this replacement retires, is absent or could not be confirmed.")
+        }
         details.append(
             "Recovery changes only the recorded Jerd host section, certificate, and registration. "
                 + "The operation can request macOS approval.")
@@ -46,7 +52,8 @@ enum RecoveryAssessor {
             phase: pending.journal?.phase ?? "Unknown", details: details, canRestore: canRestore, canRemove: canRemove,
             installationID: pending.reference.installationID, certificateDER: pending.reference.certificateDER,
             previousHostnames: pending.previous?.hostnames.strings ?? [],
-            intendedHostnames: pending.intended?.hostnames.strings ?? [], policies: policies(pending))
+            intendedHostnames: pending.intended?.hostnames.strings ?? [], policies: policies(pending),
+            previousCertificateDER: pending.isCAReplacement ? pending.previous?.certificateDER : nil)
         return Assessment(
             status: status, restoredHosts: canRestore ? restore : nil, removedHosts: canRemove ? removal : nil)
     }

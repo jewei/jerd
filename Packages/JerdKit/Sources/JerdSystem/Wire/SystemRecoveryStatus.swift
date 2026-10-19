@@ -4,7 +4,8 @@ import JerdFoundation
 /// The helper's report of an interrupted transaction, and the recovery actions it allows.
 ///
 /// JSON keys: `id`, `operation`, `phase`, `details`, `canRestore`, `canRemove`, `installationID`,
-/// `certificateDER`, `previousHostnames`, `intendedHostnames`, `policies`. `installationID` and
+/// `certificateDER`, `previousHostnames`, `intendedHostnames`, `policies`, and `previousCertificateDER`
+/// (only for an interrupted CA replacement; an earlier app ignores it). `installationID` and
 /// `certificateDER` are nil only when the recovery record cannot be read; then no action is allowed.
 /// On the wire they are always present (see `SystemRecoveryStatus+Codable.swift`).
 public struct SystemRecoveryStatus: Codable, Equatable, Identifiable, Sendable {
@@ -21,11 +22,14 @@ public struct SystemRecoveryStatus: Codable, Equatable, Identifiable, Sendable {
     public let intendedHostnames: [String]
     /// The trust policies that a recovery can apply, in `CertificateTrustPolicy` order.
     public let policies: [CertificateTrustPolicy]
+    /// The old CA of an interrupted CA replacement. A restore trusts it again; a removal removes it
+    /// too. Nil for every other transaction.
+    public let previousCertificateDER: Data?
 
     public init(
         id: String, operation: String, phase: String, details: [String], canRestore: Bool, canRemove: Bool,
         installationID: UUID?, certificateDER: Data?, previousHostnames: [String], intendedHostnames: [String],
-        policies: [CertificateTrustPolicy]
+        policies: [CertificateTrustPolicy], previousCertificateDER: Data? = nil
     ) {
         self.id = id
         self.operation = operation
@@ -38,6 +42,7 @@ public struct SystemRecoveryStatus: Codable, Equatable, Identifiable, Sendable {
         self.previousHostnames = previousHostnames
         self.intendedHostnames = intendedHostnames
         self.policies = policies
+        self.previousCertificateDER = previousCertificateDER
     }
 
     /// The lowercase SHA-256 of the recorded CA, or nil when the record cannot be read.

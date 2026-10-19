@@ -64,7 +64,8 @@ extension SetupStore {
         }
         let evidence = RecoveryEvidence(
             pending: pending, hosts: current, committed: committed, backupDigest: backup,
-            trustPresent: isTrustPresent(pending.reference))
+            trustPresent: isTrustPresent(pending.reference),
+            previousTrustPresent: pending.isCAReplacement ? pending.previous.map(isTrustPresent) : nil)
         return AssessedRecovery(assessment: RecoveryAssessor.assess(evidence), currentHosts: current)
     }
 

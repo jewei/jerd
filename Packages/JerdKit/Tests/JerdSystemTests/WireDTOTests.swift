@@ -83,6 +83,25 @@ import Testing
         #expect(decoded.operationInProgress == "Configure HTTPS")
     }
 
+    /// The old CA of an interrupted replacement goes on the wire only when it exists, so every
+    /// other report keeps its exact bytes, and an earlier app ignores the key.
+    @Test func theOldCAOfAReplacementIsAnOptionalKey() throws {
+        let report = RecoveryAssessor.unreadable(id: "abc", reason: "r", location: URL(fileURLWithPath: "/p"))
+        #expect(try object(HelperWireProtocol.encode(report))["previousCertificateDER"] == nil)
+        let replacement = SystemRecoveryStatus(
+            id: "abc", operation: "Replace HTTPS CA", phase: "p", details: [], canRestore: true, canRemove: true,
+            installationID: Fixture.installationID, certificateDER: Data([1]), previousHostnames: ["a.test"],
+            intendedHostnames: ["a.test"], policies: [.serverTLS], previousCertificateDER: Data([2]))
+        let bytes = try HelperWireProtocol.encode(replacement)
+        #expect(try JSONDecoder().decode(SystemRecoveryStatus.self, from: bytes) == replacement)
+        #expect(
+            try JSONDecoder().decode(
+                LegacySetupStatus.self,
+                from: HelperWireProtocol.encode(
+                    SystemSetupStatus(recovery: replacement))
+            ).recovery?.canRestore == true)
+    }
+
     @Test func approvalAndConsentRequestsKeepTheirKeys() throws {
         let approval = try roundTrip(SystemRecoveryApproval.self, "approval")
         #expect(approval.action == .restorePrevious)
