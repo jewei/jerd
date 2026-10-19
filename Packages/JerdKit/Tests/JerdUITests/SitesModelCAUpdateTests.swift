@@ -32,4 +32,20 @@ struct SitesModelCAUpdateTests {
         #expect(!harness.model.needsCAUpdate)
         #expect(harness.recorder.alerts.isEmpty)
     }
+
+    /// The sites that ran start again after the update, and also after a failed update, which
+    /// says what failed.
+    @Test("The sites that ran start again, also after a failed update", arguments: [false, true])
+    func theSitesStartAgain(failing: Bool) async {
+        let port = InMemorySitesPort(
+            environment: EnvironmentSnapshot(state: .running, siteIDs: [SampleData.studioID]),
+            authority: SampleData.legacyAuthority)
+        if failing { await port.configure { $0.caMigrationFailure = "The approval was cancelled." } }
+        let harness = await SitesHarness.launched(sites: port)
+        await harness.model.beginCAUpdate()?.value
+        await harness.model.confirm()?.value
+        #expect(await harness.sites.calls.last?.hasPrefix("run") == true)
+        #expect(harness.model.environment.siteIDs == [SampleData.studioID])
+        #expect(harness.recorder.alerts.map(\.title) == (failing ? ["The CA Update Did Not Finish"] : []))
+    }
 }

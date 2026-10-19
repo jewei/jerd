@@ -11,6 +11,8 @@ public actor InMemorySitesPort: SitesPort {
     public var setup: HTTPSSetupStatus
     /// When set, every change throws this message.
     public var failure: String?
+    /// Fails only the CA update, so the restart of the sites still runs.
+    public var caMigrationFailure: String?
     /// When set, reading the configuration throws this message.
     public var loadFailure: String?
     /// When set, reading the HTTPS setup throws this error.
@@ -168,6 +170,8 @@ public actor InMemorySitesPort: SitesPort {
     /// The approved setup and the local CA move to Jerd's CA for `.test` names together.
     public func migrateCA() async throws {
         try await record("migrate CA")
+        environmentValue = EnvironmentSnapshot(state: .stopped, siteIDs: [])
+        if let caMigrationFailure { throw JerdError.unavailable(caMigrationFailure) }
         let fingerprint = SampleData.constrainedCAFingerprint
         setup.certificateSHA256 = fingerprint
         authority = authority.map { InstallationAuthority(installationID: $0.installationID, fingerprint: fingerprint) }

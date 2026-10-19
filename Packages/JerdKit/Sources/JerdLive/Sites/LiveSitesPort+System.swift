@@ -21,13 +21,11 @@ extension LiveSitesPort {
         try await gateway.prepareCAMigration().fingerprint
     }
 
-    /// Stops the sites, replaces the CA, and starts again the sites that ran before. A failed
-    /// start after a done replacement is reported like any other start.
+    /// Stops the sites, because the helper refuses changes while they hold the ports, then
+    /// replaces the CA. The model starts the sites again, also after a failed update.
     package func migrateCA() async throws {
-        let running = await environment().siteIDs
         await sites.requestStop()
         try await gateway.migrateCA()
-        if !running.isEmpty { _ = try await run(running) }
     }
 
     package func openLoginItems() async {

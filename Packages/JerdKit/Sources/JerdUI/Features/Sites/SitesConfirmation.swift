@@ -26,7 +26,7 @@ public enum SitesConfirmation: Equatable, Sendable {
         case .reconnectHelper:
             "Jerd will stop its sites and register its system helper again. macOS can ask for approval. Existing hosts, certificate settings, and project files will remain. Start your sites after reconnection."
         case .updateCA(let fingerprint):
-            "Jerd will stop its sites, trust a new CA that can sign certificates only for .test hostnames, remove the current CA, and start the sites again. macOS asks for approval. New CA SHA-256: \(fingerprint)"
+            "Jerd will stop its sites and tunnels, trust a new CA that can sign certificates only for .test hostnames, stop trusting the current CA, and start the sites again. Start your tunnels again after the update. macOS asks for approval. New CA SHA-256: \(fingerprint)"
         }
     }
 

@@ -11,6 +11,8 @@ actor FakeSystem: SystemSetupPort {
     private(set) var removals = 0
     private(set) var replacements: [HTTPSRegistration] = []
     private var failReplace = false
+    private var loseReplaceReply = false
+    private var occupyOnFailure: URL?
     private(set) var acquired = 0
     private(set) var released = 0
     private(set) var isPausedInAcquire = false
@@ -79,13 +81,25 @@ actor FakeSystem: SystemSetupPort {
         replacements.append(registration)
         if failReplace {
             failReplace = false
+            if let occupyOnFailure { FileManager.default.createFile(atPath: occupyOnFailure.path, contents: Data()) }
             throw JerdError.approvalInterrupted("Test replacement failure")
         }
         current.certificateDER = registration.certificateDER
         current.certificateSHA256 = LocalCertificateAuthority.fingerprint(of: registration.certificateDER)
+        if loseReplaceReply {
+            loseReplaceReply = false
+            throw JerdError.unavailable("Test lost reply")
+        }
     }
 
-    func failNextReplace() { failReplace = true }
+    /// The next replacement fails; with `occupying`, a file then blocks that path.
+    func failNextReplace(occupying path: URL? = nil) {
+        failReplace = true
+        occupyOnFailure = path
+    }
+
+    /// The next replacement is applied, but its reply is lost.
+    func loseNextReplaceReply() { loseReplaceReply = true }
     func set(_ status: HTTPSSetupStatus) { current = status }
     func pauseNextAcquire() { pauseAcquire = true }
     func pauseNextConfigure() { pauseConfigure = true }

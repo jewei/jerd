@@ -65,4 +65,32 @@ import Testing
         #expect(await context.system.replacements.isEmpty)
         #expect(FileProbe.presence(at: context.layout.environment.legacyRootCertificateFile) == .present)
     }
+
+    /// The helper replaced the CA, but its reply got lost: the update is done, and the legacy
+    /// CA stays retired, so the app and the helper name the same CA.
+    @Test func aLostReplyAfterTheReplacementCountsAsDone() async throws {
+        let context = try await legacyContext()
+        defer { context.folder.remove() }
+        let prepared = try await context.gateway.prepareCAMigration()
+        await context.system.loseNextReplaceReply()
+        try await context.gateway.migrateCA()
+        #expect(try await context.gateway.localAuthority()?.fingerprint == prepared.fingerprint)
+        #expect(try retiredFolders(context.layout.environment).count == 1)
+    }
+
+    /// A folder that cannot move back gives one message that names it and keeps the first error.
+    @Test func aBlockedMoveBackNamesTheRetiredFolder() async throws {
+        let context = try await legacyContext()
+        defer { context.folder.remove() }
+        let environment = context.layout.environment
+        await context.system.failNextReplace(
+            occupying: environment.authorityDirectory(EnvironmentLayout.legacyAuthorityID))
+        await #expect {
+            try await context.gateway.migrateCA()
+        } throws: { error in
+            guard let error = error as? JerdError, error.kind == .partialChange else { return false }
+            return error.message.contains("Test replacement failure") && error.message.contains("jerd-retired-")
+        }
+        #expect(try retiredFolders(environment).count == 1)
+    }
 }

@@ -70,10 +70,7 @@ extension SitesModel {
         case .reconnectHelper:
             return performSystemStep(step) { try await $0.port.reconnectHelper() }
         case .updateCA:
-            return performSystemStep(step) { model in
-                try await model.port.migrateCA()
-                await model.settle()
-            }
+            return updateCA(step)
         }
     }
 

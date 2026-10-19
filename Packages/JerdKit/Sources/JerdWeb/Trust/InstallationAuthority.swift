@@ -25,8 +25,11 @@ public struct InstallationAuthority: Equatable, Sendable {
             FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)).mayExist
         else { return nil }
         let authority = try LocalCertificateAuthority.read(ActiveAuthority.rootCertificateFile(environment))
+        // The flag only offers the CA update. A CA that cannot be inspected counts as able to sign
+        // any name, so the start path never fails on it.
+        let inspection = try? NameConstraintsInspection.inspect(certificate: authority.der)
         return InstallationAuthority(
             installationID: installationID, fingerprint: authority.fingerprint,
-            signsOnlyTestNames: try NameConstraintsInspection.inspect(certificate: authority.der) == .limitedToTest)
+            signsOnlyTestNames: inspection == .limitedToTest)
     }
 }

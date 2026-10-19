@@ -11,8 +11,10 @@ extension SystemSetupGateway {
     }
 
     /// Stops the run, retires the folder of the legacy CA so that Jerd's CA becomes active, and
-    /// asks the helper to replace the CA. A refusal moves the folder back, so the app and the
-    /// helper always name the same CA. The retired folder is kept, never deleted.
+    /// asks the helper to replace the CA. After an error the helper is asked again: when it
+    /// already trusts the new CA (a reply that got lost), the update is done; otherwise the folder
+    /// moves back, so the app and the helper always name the same CA. The retired folder is kept,
+    /// never deleted.
     public func migrateCA() async throws {
         let installationID = try InstallationIdentity(environment: environment).readOrCreate()
         let status = try await system.status()
@@ -29,9 +31,23 @@ extension SystemSetupGateway {
                     installationID: installationID, hostnames: status.hostnames, certificateDER: new.der,
                     trustPolicy: status.trustPolicy))
         } catch {
+            // A status that cannot be read counts as "not replaced": the legacy CA comes back.
+            if (try? await system.status())?.certificateSHA256 == new.fingerprint { return }
+            try restore(retired, after: error)
+            throw error
+        }
+    }
+
+    /// Moves the retired folder back. A failed move names the folder and keeps the first error.
+    private func restore(_ retired: URL, after error: any Error) throws {
+        do {
             try FileManager.default.moveItem(
                 at: retired, to: environment.authorityDirectory(EnvironmentLayout.legacyAuthorityID))
-            throw error
+        } catch let moveError {
+            throw JerdError.partialChange(
+                "The CA update failed (\(FailureDetail.describe(error))), and Jerd could not move \(retired.path) "
+                    + "back to pki/authorities/jerd (\(FailureDetail.describe(moveError))). Move it back, then start "
+                    + "the sites again.")
         }
     }
 

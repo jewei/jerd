@@ -21,8 +21,8 @@ struct SitesMessages: View {
         }
         if model.needsCAUpdate {
             InlineMessage(
-                "The current Jerd CA can sign certificates for any website. Update it to a CA that can sign only "
-                    + ".test hostnames, so a stolen CA key cannot fake other websites.",
+                "The current Jerd CA can sign certificates for any website. Update it to a CA for .test "
+                    + "hostnames only. Then a stolen CA key cannot fake other websites.",
                 kind: .info, title: "Limit the Jerd CA to .test sites", style: .banner,
                 action: PageAction(
                     "Update CA…", isEnabled: model.canChangeSystem && !isQuitting,
