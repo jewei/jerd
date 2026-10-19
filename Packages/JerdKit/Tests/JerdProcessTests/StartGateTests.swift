@@ -88,15 +88,20 @@ import Testing
         let (location, lock) = try prepare(folder)
         let supervisor = ProcessSupervisor()
         let tree = try await Fixtures.shared.executable("process-tree")
+        // The leader waits for SIGUSR1, so its identity is captured while it runs. Without the wait,
+        // a loaded machine let it exit first, and the capture of the zombie failed.
         let token = try await supervisor.start(
-            ProcessRequest(executable: tree, workingDirectory: folder.url),
+            ProcessRequest(
+                executable: tree, workingDirectory: folder.url, environment: ["PROCESS_TREE_LEADER_WAITS": "1"]),
             log: ProcessLogFile(url: folder.path("tree.log")))
         let pid = try #require(await supervisor.processID(of: token))
+        #expect(await eventually { !text(folder.path("tree.log")).isEmpty })
         let identity = try ProcessIdentity.capture(pid)
         try ActiveRunRecordFile.write(
             ActiveRunRecord(
                 processID: pid, runtimeID: "tree", identity: identity, controller: identity, gracefulSignal: 15),
             to: location.recordFile)
+        kill(pid, SIGUSR1)
         #expect(await supervisor.waitForExit(of: token, timeout: .seconds(3)) == .exited(status: 0))
         #expect(throws: JerdError.self) { try StartGate().requireStopped(location, holding: lock) }
         #expect(await supervisor.stop(token, policy: .forceful()) == .stopped)
