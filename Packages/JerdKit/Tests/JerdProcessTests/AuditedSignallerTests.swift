@@ -89,6 +89,18 @@ import Testing
         #expect(throws: refusal) { try signaller(sent: sent).signal(IdentityFactory.make(), with: SIGCONT) }
     }
 
+    /// The kernel refuses a signal to an exiting process with `EPERM`; the graceful signal before
+    /// the continue often starts that exit. Only the graceful signal reports the refusal.
+    @Test func aContinueThatTheKernelRefusesIsNotAnError() throws {
+        let sent = SentSignals()
+        try signaller(result: EPERM, sent: sent).resume(IdentityFactory.make())
+        #expect(sent.values == [SIGCONT])
+        #expect(throws: JerdError.self) {
+            try signaller(result: EPERM, sent: sent).signal(IdentityFactory.make(), with: SIGINT)
+        }
+        #expect(throws: JerdError.self) { try signaller(result: EINVAL, sent: sent).resume(IdentityFactory.make()) }
+    }
+
     @Test(.enabled(if: AuditedSignaller.system.isSupported))
     func theSystemSignallerStopsAVerifiedChild() async throws {
         let folder = try TemporaryDirectory()

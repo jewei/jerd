@@ -44,22 +44,28 @@ public struct AuditedSignaller: Sendable {
     /// A process that is not verified again as the same running process of this user gets nothing.
     /// That is safe: a paused process that stays paused does not stop, so the recovery wait times
     /// out and keeps the record.
+    ///
+    /// The kernel refuses (`EPERM`) a signal to a process that is in its exit, and the graceful
+    /// signal just before often starts that exit. A refused continue has the same safe result as
+    /// an unverified process, so it is not an error.
     /// - Throws: `.unavailable` when the system cannot send audited signals; `.processFailed` when
-    ///   the kernel refuses the signal.
+    ///   the kernel refuses the signal for another reason.
     public func resume(_ identity: ProcessIdentity) throws {
         guard identity.userID == geteuid(), identity.processID != getpid(), let words = identity.auditWords,
             words.count == 8, match(identity) == .running
         else { return }
-        try deliver(SIGCONT, to: words)
+        try deliver(SIGCONT, to: words, accepting: [ESRCH, EPERM])
     }
 
-    private func deliver(_ signal: Int32, to words: [UInt32]) throws {
+    /// - Parameter accepting: The error numbers that count as delivered: `ESRCH` means the process
+    ///   is gone.
+    private func deliver(_ signal: Int32, to words: [UInt32], accepting: Set<Int32> = [ESRCH]) throws {
         guard let send else {
             throw JerdError.unavailable(
                 "This macOS version cannot safely signal a saved process. Stop the verified service manually.")
         }
         let code = send(words, signal)
-        guard code == 0 || code == ESRCH else {
+        guard code == 0 || accepting.contains(code) else {
             throw JerdError.processFailed(
                 "The saved process could not be stopped (\(SystemError.describe(code))). Its record was preserved. "
                     + "Quit the process in Activity Monitor, then inspect recovery again.")

@@ -9,6 +9,7 @@ code marks.
 ## [Unreleased]
 
 - A site can have aliases: more .test hostnames that serve the same document root, for example for tenants. Add them in Edit Site, then approve HTTPS for the new names.
+- Process recovery no longer reports that a saved process could not be stopped when the process exits during the stop.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
 - Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
 - A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
