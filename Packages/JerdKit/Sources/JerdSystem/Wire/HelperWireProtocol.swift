@@ -10,7 +10,7 @@ public enum HelperWireProtocol {
     /// The selectors of `JerdHelperProtocol`, sorted.
     public static let helperSelectors = [
         "acquireListenersWithReply:", "configureSite:reply:", "recoverSetup:reply:",
-        "releaseListenersWithReply:", "removeSetupWithReply:", "statusWithReply:",
+        "releaseListenersWithReply:", "removeSetupWithReply:", "replaceCA:reply:", "statusWithReply:",
     ]
     /// The selectors of `JerdTrustConsentProtocol`.
     public static let consentSelectors = ["changeTrust:reply:"]

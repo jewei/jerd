@@ -18,4 +18,8 @@ import Foundation
     func removeSetup(reply: @escaping @Sendable (String?) -> Void)
     /// Runs an approved recovery from a JSON `SystemRecoveryApproval`. A nil error text means success.
     func recoverSetup(_ approval: Data, reply: @escaping @Sendable (String?) -> Void)
+    /// Replaces the CA of the setup from a JSON `SystemRegistrationRequest` with the same hostnames
+    /// and policy. A nil error text means success. A helper from before this selector does not
+    /// export it, so the call fails there and changes nothing.
+    func replaceCA(_ request: Data, reply: @escaping @Sendable (String?) -> Void)
 }

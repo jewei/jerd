@@ -59,6 +59,10 @@ final class FakeHelper: NSObject, JerdHelperProtocol, Sendable {
         change(record("recover", approval), reply: reply)
     }
 
+    func replaceCA(_ request: Data, reply: @escaping @Sendable (String?) -> Void) {
+        change(record("replaceCA", request), reply: reply)
+    }
+
     func acquireListeners(reply: @escaping @Sendable (FileHandle?, FileHandle?, String?) -> Void) {
         let script = record("acquire")
         guard !script.unanswered else { return }

@@ -38,6 +38,22 @@ import Testing
         withExtendedLifetime(helper) {}
     }
 
+    /// A helper from before `replaceCA:reply:` does not export it: the call ends with an error and
+    /// does not hang, and nothing changes.
+    @Test func anOldHelperRefusesTheReplacementWithAnError() async throws {
+        let (helper, client, pair) = try fixture()
+        defer { pair.close() }
+        let new = try InstallationCertificate(
+            installationID: Fixture.installationID, der: SetupStoreReplaceCATests.jerdCA())
+        await #expect {
+            try await client.replaceCA(with: new)
+        } throws: { error in
+            // The call reached the helper: the client's own checks passed.
+            (error as? JerdError)?.kind != .invalid
+        }
+        withExtendedLifetime(helper) {}
+    }
+
     @Test func listenerDescriptorsSurviveTheSendersClose() async throws {
         let (helper, client, pair) = try fixture()
         let expected = try pair.ports()
