@@ -136,7 +136,8 @@ only Jerd's tracked hosts section, and manages only Jerd's installation CA.
 The app makes that CA (`LocalRootTemplate`) with critical name constraints, so it
 may sign only `.test` names and no IP address. Caddy loads it and makes only the
 intermediate. An installation with the CA that Caddy made for earlier builds
-keeps it (`ActiveAuthority`) until it migrates.
+keeps it (`ActiveAuthority`) until it migrates. The helper trusts a new CA only
+when it has these constraints; a CA that it trusts already keeps its trust.
 It never starts a process. It exits after 30 seconds without a connection, a
 listener lease, or a setup change, so that launchd starts the current helper
 file after an app update. The app restarts a helper that still runs older code

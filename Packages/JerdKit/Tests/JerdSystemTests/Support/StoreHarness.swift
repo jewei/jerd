@@ -31,11 +31,11 @@ struct StoreHarness {
     }
 
     func request(
-        _ hostnames: [String], policy: CertificateTrustPolicy = .serverTLS, certificate: String = "jerd-ca"
+        _ hostnames: [String], policy: CertificateTrustPolicy = .serverTLS, certificate: String = Fixture.constrainedCA
     )
         throws -> SystemRegistrationRequest
     {
-        let id = certificate == "jerd-ca" ? Fixture.installationID : Fixture.otherInstallationID
+        let id = certificate.hasPrefix("jerd-ca-other") ? Fixture.otherInstallationID : Fixture.installationID
         return SystemRegistrationRequest(
             installationID: id, hostnames: hostnames, certificateDER: try Fixture.certificate(certificate),
             trustPolicy: policy)
