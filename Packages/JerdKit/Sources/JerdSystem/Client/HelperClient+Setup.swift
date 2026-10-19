@@ -31,6 +31,10 @@ extension HelperClient {
         let previous = try await status().setup
         guard let id = previous.installationID, let oldDER = previous.certificateDER, !previous.hostnames.isEmpty
         else { throw JerdError.unavailable("There is no approved HTTPS setup whose CA can be replaced.") }
+        // The helper checks both again; these give an earlier and clearer message.
+        guard certificate.installationID == id,
+            try NameConstraintsInspection.inspect(certificate: certificate.der) == .limitedToTest
+        else { throw JerdError.invalid("Only this installation's Jerd CA for .test names can replace its CA.") }
         let request = SystemRegistrationRequest(
             installationID: certificate.installationID, hostnames: previous.hostnames,
             certificateDER: certificate.der, trustPolicy: previous.trustPolicy)

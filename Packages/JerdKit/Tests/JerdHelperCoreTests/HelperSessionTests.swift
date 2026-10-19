@@ -99,6 +99,7 @@ import Testing
         #expect(await change { session.replaceCA(payload, reply: $0) } == nil)
         let status = try await harness.service.setupStatus(owner: ServiceHarness.owner)
         #expect(status.certificateDER == new && status.hostnames == ["demo.test"])
+        #expect(harness.keychain.items.withLock { $0 } == [new])
     }
 
     @Test func statusRepliesWithJSON() async throws {

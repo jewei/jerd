@@ -44,6 +44,10 @@ import os
         await #expect(throws: JerdError.invalid("Stop Jerd's environment before removing system setup.")) {
             try await harness.service.remove(owner: owner, consent: harness.consent)
         }
+        // A CA replacement also waits until the sites stop, although it keeps the hostnames.
+        await #expect(throws: JerdError.self) {
+            try await harness.service.replaceCA(harness.request(), owner: owner, consent: harness.consent)
+        }
         await harness.service.release(connection: second)
         await #expect(throws: JerdError.self) {
             try await harness.service.configure(harness.request(), owner: owner, consent: harness.consent)
