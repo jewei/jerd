@@ -7,6 +7,10 @@ import JerdFoundation
 /// Before any change it keeps a copy of the journal in `recovery.previous.json`. A later attempt at
 /// the same transaction never replaces that first copy. A restore writes back the
 /// exact bytes of the earlier registration.
+///
+/// An interrupted CA replacement names two CAs. A restore installs the old trust again before it
+/// removes the new CA, so a stop between the two leaves both trusted, never neither. A removal
+/// removes both.
 struct RecoveryExecutor {
     let directory: RootRecordDirectory
     let hosts: any HostsFileAccessing
@@ -19,16 +23,29 @@ struct RecoveryExecutor {
         try await hosts.replace(expected: current, with: after)
         try save(&journal, phase: "Recovery host entries were written; certificate change is pending")
         if action == .restorePrevious, let target = pending.previous {
-            try await trust.install(target.trust(), replacingOwned: true)
-            try save(&journal, phase: "Recovery certificate trust was written")
-            let bytes = try pending.journal?.previousBytes ?? HelperRecordCodec.encode(target)
-            try directory.write(bytes, to: .registration)
+            try await restore(target, pending: pending, journal: &journal)
         } else {
             try await trust.remove(pending.reference.trust().certificate)
+            if pending.isCAReplacement, let old = pending.previous {
+                try await trust.remove(old.trust().certificate)
+            }
             try save(&journal, phase: "Recovery certificate was removed")
             try directory.remove(.registration)
         }
         try directory.remove(.pending)
+    }
+
+    private func restore(
+        _ target: RegistrationRecord, pending: PendingRecord, journal: inout SetupJournal?
+    ) async throws {
+        try await trust.install(target.trust(), replacingOwned: true)
+        try save(&journal, phase: "Recovery certificate trust was written")
+        if pending.isCAReplacement {
+            try await trust.remove(pending.reference.trust().certificate)
+            try save(&journal, phase: "The new CA of the replacement was removed")
+        }
+        let bytes = try pending.journal?.previousBytes ?? HelperRecordCodec.encode(target)
+        try directory.write(bytes, to: .registration)
     }
 
     /// Writes the copy unless it already holds this transaction from an earlier attempt.

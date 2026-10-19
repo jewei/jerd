@@ -46,7 +46,8 @@ enum RecoveryAssessor {
             phase: pending.journal?.phase ?? "Unknown", details: details, canRestore: canRestore, canRemove: canRemove,
             installationID: pending.reference.installationID, certificateDER: pending.reference.certificateDER,
             previousHostnames: pending.previous?.hostnames.strings ?? [],
-            intendedHostnames: pending.intended?.hostnames.strings ?? [], policies: policies(pending))
+            intendedHostnames: pending.intended?.hostnames.strings ?? [], policies: policies(pending),
+            previousCertificateDER: pending.isCAReplacement ? pending.previous?.certificateDER : nil)
         return Assessment(
             status: status, restoredHosts: canRestore ? restore : nil, removedHosts: canRemove ? removal : nil)
     }

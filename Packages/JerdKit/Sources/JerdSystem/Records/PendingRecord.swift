@@ -14,6 +14,9 @@ struct PendingRecord: Sendable {
     /// The record ID that an approval must name: the SHA-256 of the exact bytes.
     var id: String { CertificateIdentity.sha256Hex(bytes) }
 
+    /// True for an interrupted CA replacement: `previous` names the old CA, `reference` the new one.
+    var isCAReplacement: Bool { previous.map { !$0.hasSameCertificate(as: reference) } ?? false }
+
     /// Validates a decoded pending form for `owner`.
     ///
     /// - Parameter current: the committed registration, read only for a legacy record.
@@ -39,9 +42,13 @@ struct PendingRecord: Sendable {
             throw JerdError.corrupt("The helper recovery record is invalid. It was preserved.")
         }
         try requireOwnedCertificate(reference, owner: owner)
+        if journal.operation == SetupOperation.replaceCA.rawValue {
+            try requireReplacement(journal)
+        }
         for record in [journal.previous, journal.intended].compactMap({ $0 }) {
             try requireOwnedCertificate(record, owner: owner)
-            guard record.hasSameCertificate(as: reference) else {
+            guard record.hasSameCertificate(as: reference) || journal.operation == SetupOperation.replaceCA.rawValue
+            else {
                 throw JerdError.corrupt("The recovery certificates do not match. Inspect the records manually.")
             }
         }
@@ -49,6 +56,18 @@ struct PendingRecord: Sendable {
         return PendingRecord(
             bytes: bytes, journal: journal, reference: reference, previous: journal.previous, intended: journal.intended
         )
+    }
+
+    /// A replacement journal names both CAs, and they pass the replacement rule.
+    private static func requireReplacement(_ journal: SetupJournal) throws {
+        guard let previous = journal.previous, let intended = journal.intended else {
+            throw JerdError.corrupt("The CA replacement record lacks a CA. Inspect the records manually.")
+        }
+        do {
+            try CAReplacementRule.require(intended, replacing: previous)
+        } catch {
+            throw JerdError.corrupt("The CA replacement record is invalid. Inspect the records manually.")
+        }
     }
 
     private static func requireExactPreviousBytes(_ journal: SetupJournal) throws {

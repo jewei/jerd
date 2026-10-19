@@ -8,7 +8,7 @@ extension SystemRecoveryStatus {
 
     private enum CodingKeys: String, CodingKey {
         case id, operation, phase, details, canRestore, canRemove, installationID, certificateDER
-        case previousHostnames, intendedHostnames, policies
+        case previousHostnames, intendedHostnames, policies, previousCertificateDER
     }
 
     public init(from decoder: any Decoder) throws {
@@ -26,7 +26,8 @@ extension SystemRecoveryStatus {
             certificateDER: certificateDER?.isEmpty == true ? nil : certificateDER,
             previousHostnames: try container.decode([String].self, forKey: .previousHostnames),
             intendedHostnames: try container.decode([String].self, forKey: .intendedHostnames),
-            policies: try container.decode([CertificateTrustPolicy].self, forKey: .policies))
+            policies: try container.decode([CertificateTrustPolicy].self, forKey: .policies),
+            previousCertificateDER: try container.decodeIfPresent(Data.self, forKey: .previousCertificateDER))
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -42,5 +43,7 @@ extension SystemRecoveryStatus {
         try container.encode(previousHostnames, forKey: .previousHostnames)
         try container.encode(intendedHostnames, forKey: .intendedHostnames)
         try container.encode(policies, forKey: .policies)
+        // Absent unless a CA replacement was interrupted, so other reports keep their exact bytes.
+        try container.encodeIfPresent(previousCertificateDER, forKey: .previousCertificateDER)
     }
 }

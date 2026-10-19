@@ -158,7 +158,7 @@ their one reader and writer. `HelperRecordReferenceTests` checks this list.
 | File | Contents |
 | --- | --- |
 | `registration.json` | The committed setup: hostnames, the CA, and its trust. Versions 1 to 3 are read; version 3 is written |
-| `pending.json` | The journal of an unfinished setup change, for recovery |
+| `pending.json` | The journal of an unfinished setup change, for recovery. Its `operation` is `Configure HTTPS`, `Remove HTTPS`, or `Replace HTTPS CA`. An earlier helper reads `Replace HTTPS CA` as a damaged record and keeps it for inspection |
 | `hosts.previous` | The hosts file bytes before the latest change (evidence only) |
 | `recovery.previous.json` | The journal bytes from the first recovery attempt of a change |
 
