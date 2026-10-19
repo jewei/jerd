@@ -4,8 +4,8 @@ import JerdFoundation
 /// Normalizes and validates one site against the other registered sites.
 ///
 /// The checks run in a fixed order, so the first broken rule decides the message:
-/// name, hostname, aliases, paths, containment, document root confirmation, duplicates, hosts
-/// conflict.
+/// name, hostname, aliases, paths, containment, document root confirmation, duplicates, the
+/// total of names, hosts conflict.
 public struct SiteValidator: Sendable {
     private let files: any ProjectFileInspecting
 
@@ -40,6 +40,7 @@ public struct SiteValidator: Sendable {
             throw JerdError.invalid("Confirm the document root before saving this site.")
         }
         try requireUnique(site, among: existing)
+        try requireNameCount(site, among: existing)
         guard !HostsConflictCheck.hasConflict(hostname: site.hostname, hostsText: hostsText) else {
             throw JerdError.invalid("This hostname has a conflicting /etc/hosts entry. Choose another hostname.")
         }
@@ -56,6 +57,17 @@ public struct SiteValidator: Sendable {
             validated.append(try validate(site, existing: validated, documentRootConfirmed: true))
         }
         return validated
+    }
+
+    /// One HTTPS setup holds at most 256 names, so a save must not pass that total; otherwise
+    /// every later approval fails.
+    private func requireNameCount(_ site: Site, among existing: [Site]) throws {
+        let others = existing.filter { $0.id != site.id }.reduce(0) { $0 + $1.servedHostnames.count }
+        guard others + site.servedHostnames.count <= HostnamePolicy.maximumSetCount else {
+            throw JerdError.invalid(
+                "Jerd serves at most \(HostnamePolicy.maximumSetCount) hostnames and aliases in all. Remove some aliases."
+            )
+        }
     }
 
     /// Nested projects are allowed; an equal project path, hostname, or alias is not.

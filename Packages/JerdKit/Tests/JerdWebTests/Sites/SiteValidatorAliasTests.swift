@@ -52,3 +52,19 @@ import Testing
         }
     }
 }
+
+@Suite struct SiteValidatorNameCountTests {
+    @Test func aSaveMustKeepTheTotalOfNamesAtTheHTTPSLimit() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        var other = Samples.site(URL(fileURLWithPath: "/p/other"), hostname: "other.test")
+        other.aliases = (1...249).map { "t\($0).other.test" }
+        var draft = Samples.site(folder.url, hostname: "app.test")
+        draft.aliases = (1...5).map { "t\($0).app.test" }
+        #expect(try SiteValidator().validate(draft, existing: [other], documentRootConfirmed: true).aliases.count == 5)
+        draft.aliases.append("t6.app.test")
+        #expect(
+            throws: JerdError.invalid("Jerd serves at most 256 hostnames and aliases in all. Remove some aliases.")
+        ) { try SiteValidator().validate(draft, existing: [other], documentRootConfirmed: true) }
+    }
+}
