@@ -20,8 +20,9 @@ Base:        JerdProcess   JerdManifest   JerdArchive (CArchive)
 A target may import only the targets that `Package.swift` lists for it.
 `Package.swift` lets `JerdUI` import the domain targets, so that screens can show
 their value types. `JerdUI` calls side effects only through its own port
-protocols, which `JerdLive` implements. The compiler does not enforce this
-rule; review does.
+protocols, which `JerdLive` implements. The compiler cannot enforce this
+rule, so `./dev lint` does: `JerdUI` code must not name an actor of another
+target, or a file, process, network, or Keychain API.
 Domain targets do not import each other, except the service modules, which use
 `JerdServiceKit`. When a domain target needs another domain, it declares a
 small port protocol with its own value types. `JerdLive` implements the port

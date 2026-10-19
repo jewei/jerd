@@ -80,7 +80,7 @@ Change these files together, in one commit:
 - Swift 6 language mode, strict concurrency, macOS 14 or later.
 - One main type per file. The file name is the type name.
 - Keep source files at 300 lines or fewer and functions under 40 lines.
-  `./dev lint` checks the line count in `Sources`, `Apps`, and `Tools/Sources`;
+  `./dev lint` checks both counts in `Sources`, `Apps`, and `Tools/Sources`;
   tests may be longer. Split a larger type into extensions in separate files
   named `Type+Topic.swift`.
 - Name types for what they are and functions for what they do. Do not use
