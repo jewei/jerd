@@ -1,3 +1,4 @@
+import CryptoKit
 import Darwin
 import Foundation
 import JerdFoundation
@@ -74,5 +75,41 @@ import Testing
             try LocalCAProvisioner(environment: environment).provision(installationID: Certificates.installationID)
         }
         #expect(contents(environment.constrainedRootCertificateFile) == Data("damaged".utf8))
+    }
+
+    /// A crash between the two writes leaves a key without a certificate; the next provisioning
+    /// makes a new pair, and the intermediate of an earlier root goes.
+    @Test func aKeyWithoutACertificateGetsANewPairAndNoOldIntermediate() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = environment(folder)
+        let authorityFolder = environment.authorityDirectory(EnvironmentLayout.constrainedAuthorityID)
+        try OwnedDirectory.create(authorityFolder)
+        try AtomicFile.write(Data("stale key".utf8), to: environment.constrainedRootKeyFile)
+        let intermediate = authorityFolder.appendingPathComponent("intermediate.crt")
+        try AtomicFile.write(Data("old intermediate".utf8), to: intermediate)
+        _ = try LocalCAProvisioner(environment: environment).provision(installationID: Certificates.installationID)
+        #expect(contents(environment.constrainedRootKeyFile) != Data("stale key".utf8))
+        #expect(FileProbe.presence(at: intermediate) == .absent)
+    }
+
+    /// A lost or foreign key gives a message that a user can act on; both files stay.
+    @Test func aMissingOrForeignKeyIsReportedAndKept() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = environment(folder)
+        let provisioner = LocalCAProvisioner(environment: environment)
+        _ = try provisioner.provision(installationID: Certificates.installationID)
+        let foreign = Data(P256.Signing.PrivateKey().pemRepresentation.utf8)
+        try AtomicFile.write(foreign, to: environment.constrainedRootKeyFile)
+        #expect {
+            try provisioner.provision(installationID: Certificates.installationID)
+        } throws: { error in
+            (error as? JerdError)?.kind == .corrupt
+        }
+        #expect(contents(environment.constrainedRootKeyFile) == foreign)
+        try FileManager.default.removeItem(at: environment.constrainedRootKeyFile)
+        #expect(throws: JerdError.self) { try provisioner.provision(installationID: Certificates.installationID) }
+        #expect(FileProbe.presence(at: environment.constrainedRootCertificateFile) == .present)
     }
 }

@@ -20,16 +20,21 @@ public struct EnvironmentLayout: Hashable, Sendable {
     public var emptyINIDirectory: URL { configurationDirectory.folder("empty-ini") }
     /// Caddy file-system storage (`XDG_DATA_HOME`), which holds the installation CA.
     public var certificatesDirectory: URL { root.folder("certificates") }
+    /// The ID of the CA that Caddy made for earlier builds.
+    public static let legacyAuthorityID = "jerd"
+    /// The ID of the CA that Jerd makes, limited to `.test` names.
+    public static let constrainedAuthorityID = "jerd-2"
+
     /// The folder of one CA in Caddy's storage: `pki/authorities/<id>/`.
     public func authorityDirectory(_ id: String) -> URL {
         certificatesDirectory.folder("pki").folder("authorities").folder(id)
     }
     /// The CA that Caddy made (`jerd`). An installation that has it keeps it until it migrates.
-    public var legacyRootCertificateFile: URL { authorityDirectory("jerd").file("root.crt") }
+    public var legacyRootCertificateFile: URL { authorityDirectory(Self.legacyAuthorityID).file("root.crt") }
     /// The CA that Jerd makes (`jerd-2`), which may sign only `.test` names. Caddy loads it.
-    public var constrainedRootCertificateFile: URL { authorityDirectory("jerd-2").file("root.crt") }
+    public var constrainedRootCertificateFile: URL { authorityDirectory(Self.constrainedAuthorityID).file("root.crt") }
     /// The private key of the constrained CA (mode 0600). Only Caddy and the provisioner read it.
-    public var constrainedRootKeyFile: URL { authorityDirectory("jerd-2").file("root.key") }
+    public var constrainedRootKeyFile: URL { authorityDirectory(Self.constrainedAuthorityID).file("root.key") }
     public var logsDirectory: URL { root.folder("logs") }
     public var caddyLogFile: URL { logsDirectory.file("caddy.log") }
     /// Legacy layout only: the log of the old first pool. JerdWeb only removes this file.

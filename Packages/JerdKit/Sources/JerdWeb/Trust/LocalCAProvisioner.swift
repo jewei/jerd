@@ -28,10 +28,15 @@ package struct LocalCAProvisioner: Sendable {
     package func load(installationID: UUID) throws -> LocalCertificateAuthority {
         let authority = try LocalCertificateAuthority.read(ActiveAuthority.rootCertificateFile(environment))
         try InstallationCertificate.validate(authority.der, installationID: installationID)
+        if ActiveAuthority.resolve(environment, installationID: installationID).providesRoot {
+            try RootKeyCheck.requireMatch(certificate: authority.der, keyFile: environment.constrainedRootKeyFile)
+        }
         return authority
     }
 
-    /// Writes the key first and the certificate last, so that every `root.crt` has its key.
+    /// Writes the key first and the certificate last, so that every `root.crt` has its key. The
+    /// intermediate of an earlier root goes first: Caddy would load it, and the new root did not
+    /// sign it.
     /// Creation holds the web environment lock, so it cannot race the engine or recovery of
     /// another Jerd instance; a CA that another instance made meanwhile is kept.
     private func create(installationID: UUID) throws {
@@ -43,7 +48,12 @@ package struct LocalCAProvisioner: Sendable {
         let lock = try InstanceLock.acquire(at: environment.recoveryLockFile, messages: WebEnvironmentLock.messages)
         defer { lock.release() }
         guard FileProbe.presence(at: environment.constrainedRootCertificateFile) == .absent else { return }
-        try OwnedDirectory.create(environment.authorityDirectory("jerd-2"), within: environment.certificatesDirectory)
+        let folder = environment.authorityDirectory(EnvironmentLayout.constrainedAuthorityID)
+        try OwnedDirectory.create(folder, within: environment.certificatesDirectory)
+        for name in ["intermediate.crt", "intermediate.key"] {
+            let file = folder.appendingPathComponent(name, isDirectory: false)
+            if FileProbe.presence(at: file) != .absent { try FileManager.default.removeItem(at: file) }
+        }
         let key = P256.Signing.PrivateKey()
         try AtomicFile.write(Data(key.pemRepresentation.utf8), to: environment.constrainedRootKeyFile)
         let name = LocalAuthority.constrainedInstallation(installationID).name

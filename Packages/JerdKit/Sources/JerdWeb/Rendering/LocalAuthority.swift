@@ -1,4 +1,5 @@
 import Foundation
+import JerdFoundation
 
 /// The Caddy certificate authority of a run: its storage ID and its certificate name.
 ///
@@ -18,19 +19,21 @@ public struct LocalAuthority: Equatable, Hashable, Sendable {
     /// (uppercase UUID).
     public static func installation(_ installationID: UUID) -> LocalAuthority {
         LocalAuthority(
-            id: "jerd", name: "Jerd Local CA \(installationID.uuidString)", installationID: installationID)
+            id: EnvironmentLayout.legacyAuthorityID, name: "Jerd Local CA \(installationID.uuidString)",
+            installationID: installationID)
     }
 
     /// The CA that Jerd makes for this installation: `jerd-2`, with the same name, so that the
     /// helper and earlier builds recognize it.
     public static func constrainedInstallation(_ installationID: UUID) -> LocalAuthority {
         LocalAuthority(
-            id: "jerd-2", name: "Jerd Local CA \(installationID.uuidString)", installationID: installationID)
+            id: EnvironmentLayout.constrainedAuthorityID, name: "Jerd Local CA \(installationID.uuidString)",
+            installationID: installationID)
     }
 
     /// True when Jerd writes the root and its key, so that Caddy loads them and makes only the
     /// intermediate.
-    public var providesRoot: Bool { id == "jerd-2" }
+    public var providesRoot: Bool { id == EnvironmentLayout.constrainedAuthorityID }
 
     /// The isolated CA of preflight runs and tests.
     public static let isolatedTest = LocalAuthority(id: "jerd-test", name: "Jerd isolated test CA", installationID: nil)

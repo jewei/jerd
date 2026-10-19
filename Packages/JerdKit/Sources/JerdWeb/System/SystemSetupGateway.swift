@@ -28,8 +28,8 @@ public actor SystemSetupGateway: SystemSetupManaging {
         try InstallationAuthority.read(environment)
     }
 
-    /// The request always uses server-TLS trust. A missing CA is created only while nothing runs,
-    /// because Caddy's storage then belongs to no live process.
+    /// The request always uses server-TLS trust. A missing CA is made only while nothing runs, so
+    /// that no running Caddy still uses the intermediate of an earlier CA.
     public func prepare(hostnames: [String], caddy: CaddyRuntime) async throws -> HTTPSSetup {
         let validated = try HostnamePolicy.validateSet(hostnames).map(\.value)
         let installationID = try InstallationIdentity(environment: environment).readOrCreate()
