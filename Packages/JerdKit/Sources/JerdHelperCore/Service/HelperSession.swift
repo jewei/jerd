@@ -52,6 +52,11 @@ final class HelperSession: NSObject, JerdHelperProtocol, Sendable {
         change(reply) { try await service.recover(approval, owner: owner, consent: consent) }
     }
 
+    func replaceCA(_ request: Data, reply: @escaping @Sendable (String?) -> Void) {
+        let (service, owner, consent) = (service, owner, consent)
+        change(reply) { try await service.replaceCA(request, owner: owner, consent: consent) }
+    }
+
     func acquireListeners(reply: @escaping @Sendable (FileHandle?, FileHandle?, String?) -> Void) {
         let (service, owner, id, lifetime) = (service, owner, id, lifetime)
         let queued = listenerCalls.enqueue {

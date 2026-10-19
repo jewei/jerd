@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import JerdFoundation
 import JerdSystem
@@ -78,6 +79,26 @@ import Testing
         #expect(error == nil)
         let late = await change { closing.removeSetup(reply: $0) }
         #expect(late == "The helper connection was closed. (JERD-UNAVAILABLE)")
+    }
+
+    /// The session runs a CA replacement through the real trust installer: the new CA is trusted
+    /// and the old one leaves the keychain.
+    @Test func aSessionReplacesTheCA() async throws {
+        let harness = try ServiceHarness()
+        defer { harness.remove() }
+        let session = HelperSession(owner: ServiceHarness.owner, service: harness.service, consent: harness.consent)
+        let configure = try harness.request()
+        #expect(await change { session.configureSite(configure, reply: $0) } == nil)
+        let key = P256.Signing.PrivateKey()
+        let name = CertificateIdentity.commonName(for: HelperFixture.installationID)
+        let new = try LocalRootTemplate.certificate(commonName: name, key: key, now: Date())
+        let payload = try HelperWireProtocol.encode(
+            SystemRegistrationRequest(
+                installationID: HelperFixture.installationID, hostnames: ["demo.test"], certificateDER: new,
+                trustPolicy: .serverTLS))
+        #expect(await change { session.replaceCA(payload, reply: $0) } == nil)
+        let status = try await harness.service.setupStatus(owner: ServiceHarness.owner)
+        #expect(status.certificateDER == new && status.hostnames == ["demo.test"])
     }
 
     @Test func statusRepliesWithJSON() async throws {

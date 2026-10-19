@@ -62,4 +62,5 @@ final class XPCProbe: NSObject, JerdHelperProtocol, NSXPCListenerDelegate, @unch
     func recoverSetup(_ approval: Data, reply: @escaping @Sendable (String?) -> Void) {
         reply("Not used by this check")
     }
+    func replaceCA(_ request: Data, reply: @escaping @Sendable (String?) -> Void) { reply("Not used by this check") }
 }

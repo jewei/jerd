@@ -158,6 +158,32 @@ import os
         }
     }
 
+    /// The replacement keeps the hostnames and policy, and the helper may remove the old CA.
+    @Test func replaceCAKeepsTheSetupAndAllowsTheRetiringCA() async throws {
+        let new = try InstallationCertificate(
+            installationID: Fixture.installationID, der: SetupStoreReplaceCATests.jerdCA())
+        let helper = FakeHelper(
+            .init(
+                status: try configured(["a.test"], policy: .serverTLS),
+                consentRequest: .removal(of: try Fixture.certificate())))
+        let (client, _) = client(helper)
+        try await client.replaceCA(with: new)
+        #expect(helper.calls == ["status", "replaceCA"])
+        #expect(helper.received.withLock { $0.consentStatuses } == [errSecSuccess])
+        let request = try JSONDecoder().decode(
+            SystemRegistrationRequest.self, from: #require(helper.received.withLock { $0.payloads.first }))
+        #expect(
+            request.certificateDER == new.der && request.hostnames == ["a.test"] && request.trustPolicy == .serverTLS)
+        let foreign = TrustConsentRequest.removal(of: try Fixture.certificate("jerd-ca-other"))
+        helper.script.withLock { $0.consentRequest = foreign }
+        try? await client.replaceCA(with: new)
+        #expect(helper.received.withLock { $0.consentStatuses }.last == errSecAuthFailed)
+        helper.script.withLock { $0.status = .empty }
+        await #expect(throws: JerdError.unavailable("There is no approved HTTPS setup whose CA can be replaced.")) {
+            try await client.replaceCA(with: new)
+        }
+    }
+
     @Test func acquireReturnsTheListenersAndReleaseSkipsWithoutAConnection() async throws {
         let pair = try LoopbackListenerPair.bind(httpPort: 0, httpsPort: 0)
         defer { pair.close() }

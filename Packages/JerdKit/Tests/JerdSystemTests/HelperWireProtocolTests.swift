@@ -30,6 +30,7 @@ import Testing
             "recoverSetup:reply:": "v32@0:8@\"NSData\"16@?<v@?@\"NSString\">24",
             "releaseListenersWithReply:": "v24@0:8@?<v@?>16",
             "removeSetupWithReply:": "v24@0:8@?<v@?@\"NSString\">16",
+            "replaceCA:reply:": "v32@0:8@\"NSData\"16@?<v@?@\"NSString\">24",
             "statusWithReply:": "v24@0:8@?<v@?@\"NSData\"@\"NSString\">16",
         ]
         #expect(try methods(of: (any JerdHelperProtocol).self) == expected)

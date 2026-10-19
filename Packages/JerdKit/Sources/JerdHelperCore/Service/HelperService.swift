@@ -48,6 +48,15 @@ actor HelperService {
         }
     }
 
+    /// A CA replacement keeps the hostnames, so it changes no listener and reserves no port.
+    func replaceCA(_ data: Data, owner: uid_t, consent: any ConsentRequesting) async throws {
+        let request = try HelperWireProtocol.decode(
+            SystemRegistrationRequest.self, from: data, limit: HelperWireProtocol.configureLimit)
+        try await mutate(.configure, reservePorts: false) {
+            try await self.store.replaceCA(request, ownerUID: owner, trust: self.installer(consent))
+        }
+    }
+
     func remove(owner: uid_t, consent: any ConsentRequesting) async throws {
         try await mutate(.remove, reservePorts: false) {
             try await self.store.remove(ownerUID: owner, trust: self.installer(consent))

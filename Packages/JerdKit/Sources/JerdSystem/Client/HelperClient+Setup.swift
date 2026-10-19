@@ -24,6 +24,25 @@ extension HelperClient {
         }
     }
 
+    /// Replaces the CA of the approved setup with `certificate`, which must be Jerd's CA that may
+    /// sign only `.test` names. The hostnames and policy stay. The consent scope covers the new CA
+    /// and the retiring one: the helper removes the old CA, and a rollback trusts it again.
+    public func replaceCA(with certificate: InstallationCertificate) async throws {
+        let previous = try await status().setup
+        guard let id = previous.installationID, let oldDER = previous.certificateDER, !previous.hostnames.isEmpty
+        else { throw JerdError.unavailable("There is no approved HTTPS setup whose CA can be replaced.") }
+        let request = SystemRegistrationRequest(
+            installationID: certificate.installationID, hostnames: previous.hostnames,
+            certificateDER: certificate.der, trustPolicy: previous.trustPolicy)
+        let payload = try HelperWireProtocol.encode(request)
+        let scope = try ConsentScope(
+            certificate: certificate, hostnames: previous.hostnames, policies: [previous.trustPolicy],
+            retiring: InstallationCertificate(installationID: id, der: oldDER))
+        try await withConsent(scope) {
+            try await self.change { proxy, reply in proxy.replaceCA(payload, reply: reply) }
+        }
+    }
+
     /// Removes the hosts section, the CA, and the registration of this user.
     public func removeSetup() async throws {
         let previous = try await status().setup
