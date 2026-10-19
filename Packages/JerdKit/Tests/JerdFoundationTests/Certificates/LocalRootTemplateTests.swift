@@ -11,17 +11,23 @@ import Testing
     let rootKey = P256.Signing.PrivateKey()
     let now = Date()
 
-    private func leaf(_ name: String, signedBy key: P256.Signing.PrivateKey, issuer: String) throws -> Data {
+    /// A TLS server leaf for the DNS name `name`, or for the IP address `ip` when it is set.
+    private func leaf(
+        _ name: String, ip: Data? = nil, signedBy key: P256.Signing.PrivateKey, issuer: String
+    ) throws -> Data {
         let leafKey = P256.Signing.PrivateKey()
         let builder = CertificateBuilder(
             subjectCommonName: name, issuerCommonName: issuer, publicKey: leafKey.publicKey,
             serialNumber: CertificateBuilder.randomSerialNumber(), notBefore: now.addingTimeInterval(-60),
-            notAfter: now.addingTimeInterval(7 * 86_400), extensions: Self.serverExtensions(name))
+            notAfter: now.addingTimeInterval(7 * 86_400), extensions: Self.serverExtensions(name, ip: ip))
         return try builder.signed(by: key)
     }
 
-    private static func serverExtensions(_ name: String) -> [CertificateBuilder.Extension] {
-        [
+    private static func serverExtensions(_ name: String, ip: Data?) -> [CertificateBuilder.Extension] {
+        let alternativeName =
+            ip.map { DERWriter.contextSpecific(7, constructed: false, $0) }
+            ?? DERWriter.contextSpecific(2, constructed: false, Data(name.utf8))
+        return [
             .init(
                 identifier: CertificateObjectIdentifier.keyUsage, isCritical: true,
                 value: DERWriter.bitString(Data([0x80]), unusedBits: 7)),
@@ -31,7 +37,7 @@ import Testing
                 )),
             .init(
                 identifier: CertificateObjectIdentifier.subjectAlternativeName, isCritical: false,
-                value: DERWriter.sequence([DERWriter.contextSpecific(2, constructed: false, Data(name.utf8))])),
+                value: DERWriter.sequence([alternativeName])),
         ]
     }
 
@@ -108,5 +114,63 @@ import Testing
         ).signed(by: rootKey)
         #expect(try NameConstraintsInspection.inspect(certificate: nonCritical) == .otherConstraints)
         #expect(throws: JerdError.self) { try NameConstraintsInspection.inspect(certificate: Data([0x30, 0x00])) }
+    }
+
+    /// The excluded IP subtrees: no IPv4 or IPv6 leaf is trusted under the root, while the same
+    /// leaf is trusted under a root without the constraints.
+    @Test(arguments: [
+        ("127.0.0.1", Data([127, 0, 0, 1])), ("::1", Data(count: 15) + Data([1])),
+    ])
+    func noIPAddressIsTrusted(host: String, address: Data) throws {
+        let name = "Jerd Local CA test"
+        let constrained = try LocalRootTemplate.certificate(commonName: name, key: rootKey, now: now)
+        let plain = try LocalRootTemplate.builder(
+            commonName: name, publicKey: rootKey.publicKey, now: now,
+            extensions: LocalRootTemplate.caExtensions(for: rootKey.publicKey)
+        ).signed(by: rootKey)
+        let ipLeaf = try leaf(host, ip: address, signedBy: rootKey, issuer: name)
+        #expect(try !trusts(ipLeaf, root: constrained, host: host))
+        #expect(try trusts(ipLeaf, root: plain, host: host))
+    }
+
+    @Test func theKeyUsageSignsOnlyCertificatesAndRevocationLists() {
+        let usage = LocalRootTemplate.caExtensions(for: rootKey.publicKey).first {
+            $0.identifier == CertificateObjectIdentifier.keyUsage
+        }
+        #expect(usage?.value == Data([0x03, 0x02, 0x01, 0x06]))
+        #expect(usage?.isCritical == true)
+    }
+
+    @Test func aRepeatedOrNearMissConstraintIsNeverJerds() throws {
+        let base = LocalRootTemplate.extensions(for: rootKey.publicKey)
+        let wider = CertificateBuilder.Extension(
+            identifier: CertificateObjectIdentifier.nameConstraints, isCritical: true,
+            value: DERWriter.sequence([
+                DERWriter.contextSpecific(
+                    0, constructed: true,
+                    DERWriter.sequence([DERWriter.contextSpecific(2, constructed: false, Data("com".utf8))]))
+            ]))
+        let repeated = try LocalRootTemplate.builder(
+            commonName: "x", publicKey: rootKey.publicKey, now: now, extensions: base + [wider]
+        ).signed(by: rootKey)
+        #expect(throws: JerdError.self) { try NameConstraintsInspection.inspect(certificate: repeated) }
+        let nearMiss = try LocalRootTemplate.builder(
+            commonName: "x", publicKey: rootKey.publicKey, now: now,
+            extensions: LocalRootTemplate.caExtensions(for: rootKey.publicKey) + [wider]
+        ).signed(by: rootKey)
+        #expect(try NameConstraintsInspection.inspect(certificate: nearMiss) == .otherConstraints)
+    }
+
+    @Test func theBuilderRefusesAZeroOrLongSerialAndNoExtensions() {
+        var builder = LocalRootTemplate.builder(
+            commonName: "x", publicKey: rootKey.publicKey, now: now, extensions: [])
+        #expect(throws: JerdError.self) { try builder.signed(by: rootKey) }
+        builder.extensions = LocalRootTemplate.extensions(for: rootKey.publicKey)
+        for serial in [Data(), Data([0, 0]), Data(repeating: 0xFF, count: 20)] {
+            builder.serialNumber = serial
+            #expect(throws: JerdError.self) { try builder.signed(by: rootKey) }
+        }
+        builder.serialNumber = Data(repeating: 0x7F, count: 20)
+        #expect(throws: Never.self) { try builder.signed(by: rootKey) }
     }
 }

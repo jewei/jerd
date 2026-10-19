@@ -45,7 +45,13 @@ public struct CertificateBuilder: Sendable {
     }
 
     /// The DER of the certificate, signed by `issuerKey`.
+    /// - Throws: `.invalid` for a serial number that is zero or longer than 20 bytes in DER, or for
+    ///   no extensions; RFC 5280 forbids both.
     public func signed(by issuerKey: P256.Signing.PrivateKey) throws -> Data {
+        let serial = DERWriter.unsignedInteger(serialNumber).dropFirst(2)
+        guard serial.contains(where: { $0 != 0 }), serial.count <= 20, !extensions.isEmpty else {
+            throw JerdError.invalid("A certificate needs a positive serial of at most 20 bytes and an extension.")
+        }
         let tbs = toBeSigned
         let signature = try issuerKey.signature(for: tbs)
         return DERWriter.sequence([tbs, Self.signatureAlgorithm, DERWriter.bitString(signature.derRepresentation)])

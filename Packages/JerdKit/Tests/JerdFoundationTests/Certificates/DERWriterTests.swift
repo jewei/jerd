@@ -30,6 +30,10 @@ import Testing
         #expect(DERWriter.time(before.addingTimeInterval(1)) == Data([0x18, 0x0F]) + Data("20500101000000Z".utf8))
     }
 
+    @Test func anEmptyValueIsValid() throws {
+        #expect(try DERElement.single(in: Data([0x04, 0x00])) == DERElement(tag: 0x04, content: Data()))
+    }
+
     @Test func theReaderReturnsWhatTheWriterWrote() throws {
         let long = Data(repeating: 0xAB, count: 300)
         let data = DERWriter.sequence([DERWriter.boolean(true), DERWriter.octetString(long)])
@@ -43,6 +47,10 @@ import Testing
             [0x30, 0x81, 0x01, 0x00],  // a long form for a short length
             [0x04, 0x80],  // an indefinite length
             [0x01, 0x01, 0xFF, 0x00],  // a byte after the value
+            [0x30, 0x82, 0x00, 0x80],  // a long form with a leading zero byte
+            [0x30, 0x85, 0x01, 0x00, 0x00, 0x00, 0x00],  // a length of more than 4 bytes
+            [0x1F, 0x01, 0x00],  // a multi-byte tag
+            [0x30, 0x82, 0x01],  // the data ends inside the length
         ] as [[UInt8]])
     func theReaderRefusesInvalidDER(bytes: [UInt8]) {
         #expect(throws: JerdError.self) { try DERElement.single(in: Data(bytes)) }

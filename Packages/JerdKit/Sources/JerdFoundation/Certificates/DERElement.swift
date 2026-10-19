@@ -2,7 +2,7 @@ import Foundation
 
 /// Reads ASN.1 DER values strictly: definite lengths only, minimal length forms, and no bytes
 /// after the last value. A certificate that breaks a rule is invalid, never guessed at.
-public struct DERElement: Equatable, Sendable {
+public struct DERElement: Hashable, Sendable {
     public let tag: UInt8
     public let content: Data
 
