@@ -113,12 +113,13 @@ let package = Package(
             "JerdStorage", ["JerdFoundation", "JerdProcess", "JerdServiceKit", "JerdServiceKitTestSupport", "JerdTestSupport"],
             resources: [.copy("Fixtures")]),
         tests("JerdTunnels", ["JerdFoundation", "JerdProcess", "JerdTestSupport"]),
-        tests("JerdDesign", ["JerdSnapshotSupport"]),
-        tests("JerdSnapshotSupport", ["JerdDesign"]),
+        tests("JerdDesign", ["JerdSnapshotSupport", "JerdTestSupport"]),
+        tests("JerdSnapshotSupport", ["JerdDesign", "JerdTestSupport"]),
         tests(
             "JerdUI", [
                 "JerdUIFixtures", "JerdDesign", "JerdFoundation", "JerdSnapshotSupport", "JerdManifest", "JerdRuntimes",
                 "JerdProcess", "JerdServiceKit", "JerdWeb", "JerdSystem", "JerdDatabases", "JerdMail", "JerdStorage", "JerdTunnels",
+                "JerdTestSupport",
             ]),
         tests(
             "JerdLive", [

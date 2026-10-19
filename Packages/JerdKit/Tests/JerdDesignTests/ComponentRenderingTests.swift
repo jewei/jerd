@@ -1,11 +1,12 @@
 import JerdSnapshotSupport
+import JerdTestSupport
 import SwiftUI
 import Testing
 
 @testable import JerdDesign
 
 /// Renders components offscreen and measures the pixels, for rules that only an image shows.
-@Suite("Component rendering")
+@Suite("Component rendering", .drawsWindows)
 @MainActor
 struct ComponentRenderingTests {
     private func render(

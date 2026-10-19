@@ -1,4 +1,5 @@
 import AppKit
+import JerdTestSupport
 import SwiftUI
 import Testing
 
@@ -19,14 +20,14 @@ struct SnapshotScrollTests {
         }
     }
 
-    @Test("A top capture shows the start of a scroll view")
+    @Test("A top capture shows the start of a scroll view", .drawsWindows)
     func topShowsStart() async throws {
         let image = try await SnapshotRenderer().render(
             tallContent, size: size, appearance: .light, chrome: .content, scroll: .top)
         #expect(isRed(image), "The start of the content is red")
     }
 
-    @Test("An end capture shows the end of a scroll view at the same canvas size")
+    @Test("An end capture shows the end of a scroll view at the same canvas size", .drawsWindows)
     func endShowsEnd() async throws {
         let image = try await SnapshotRenderer().render(
             tallContent, size: size, appearance: .light, chrome: .content, scroll: .end)
@@ -36,7 +37,7 @@ struct SnapshotScrollTests {
         #expect(bottom[2] > 200 && bottom[0] < 80, "The end of the content is blue, not \(bottom)")
     }
 
-    @Test("Two end captures of one view have the same bytes, with no scroller")
+    @Test("Two end captures of one view have the same bytes, with no scroller", .drawsWindows)
     func endIsDeterministic() async throws {
         let renderer = SnapshotRenderer()
         let first = try await renderer.renderPNG(

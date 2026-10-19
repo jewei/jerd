@@ -1,10 +1,11 @@
 import AppKit
+import JerdTestSupport
 import SwiftUI
 import Testing
 
 @testable import JerdSnapshotSupport
 
-@Suite("Snapshot capture")
+@Suite("Snapshot capture", .drawsWindows)
 @MainActor
 struct SnapshotCaptureTests {
     /// `cacheDisplay` marked the SwiftUI-hosted window buttons and the toolbar picker for layout,

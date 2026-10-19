@@ -1,3 +1,4 @@
+import JerdTestSupport
 import SwiftUI
 import Testing
 
@@ -6,7 +7,7 @@ import Testing
 @Suite("VoiceOver announcements")
 @MainActor
 struct AnnouncementTests {
-    @Test("A banner error is announced when it appears and again when its text changes")
+    @Test("A banner error is announced when it appears and again when its text changes", .drawsWindows)
     func bannerErrorIsAnnouncedOnChange() async {
         let recorder = RecordingAnnouncer()
         let model = MessageModel(text: "The port 5432 is in use.")
@@ -19,7 +20,7 @@ struct AnnouncementTests {
         #expect(recorder.announcements == ["Error: The port 5432 is in use.", "Error: PostgreSQL could not start."])
     }
 
-    @Test("A row error, such as sheet validation, is announced")
+    @Test("A row error, such as sheet validation, is announced", .drawsWindows)
     func rowErrorIsAnnounced() async {
         let recorder = RecordingAnnouncer()
         let model = MessageModel(text: "The address studio.test is already in use.")
@@ -29,7 +30,7 @@ struct AnnouncementTests {
         #expect(recorder.announcements == ["Error: The address studio.test is already in use."])
     }
 
-    @Test("Information and success messages are not announced")
+    @Test("Information and success messages are not announced", .drawsWindows)
     func calmMessagesAreSilent() async {
         let recorder = RecordingAnnouncer()
         let host = ViewHost(
@@ -43,7 +44,7 @@ struct AnnouncementTests {
         #expect(recorder.announcements.isEmpty)
     }
 
-    @Test("A retained page that is set to silent speaks nothing, even when its error changes")
+    @Test("A retained page that is set to silent speaks nothing, even when its error changes", .drawsWindows)
     func silentAnnouncer() async {
         let recorder = RecordingAnnouncer()
         let model = MessageModel(text: "Failed.")
@@ -56,7 +57,7 @@ struct AnnouncementTests {
         #expect(recorder.announcements.isEmpty)
     }
 
-    @Test("Copying the same value twice announces it twice")
+    @Test("Copying the same value twice announces it twice", .drawsWindows)
     func repeatedCopyIsAnnouncedAgain() async {
         let recorder = RecordingAnnouncer()
         let model = CopyModel()

@@ -75,14 +75,14 @@ struct TestEnvironmentTests {
         let environment = try TestEnvironment.make(inherited: inherited, groups: [group])
         let switches: [IntegrationGroup: String] = [
             .web: "JERD_WEB_INTEGRATION", .database: "JERD_DATABASE_INTEGRATION", .mail: "JERD_MAIL_INTEGRATION",
-            .storage: "JERD_STORAGE_INTEGRATION",
+            .storage: "JERD_STORAGE_INTEGRATION", .windows: "JERD_WINDOW_TESTS",
         ]
         for (other, name) in switches {
             #expect(environment[name] == (other == group ? "1" : nil), "\(group) sets \(name)")
         }
         #expect(Set(environment.keys).isSuperset(of: group.requiredVariables))
         #expect(
-            environment.keys.filter { $0.hasPrefix("JERD_") && !$0.hasSuffix("_INTEGRATION") }.allSatisfy {
+            environment.keys.filter { $0.hasPrefix("JERD_") && group.switchVariables[$0] == nil }.allSatisfy {
                 group.requiredVariables.contains($0) || group.optionalVariables.contains($0)
             })
     }

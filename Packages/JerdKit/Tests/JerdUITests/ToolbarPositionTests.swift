@@ -1,5 +1,6 @@
 import AppKit
 import JerdDesign
+import JerdTestSupport
 import JerdUIFixtures
 import SwiftUI
 import Testing
@@ -11,7 +12,7 @@ import Testing
 /// also on Mail, which has no sidebar, and when the user hides a sidebar. This suite checks the
 /// SwiftUI split of the snapshots (`WorkspaceStackSplit`); `WorkspaceSplitTests` in JerdLive
 /// checks the native split of the app.
-@Suite("Toolbar positions", .serialized)
+@Suite("Toolbar positions", .serialized, .drawsWindows)
 @MainActor
 struct ToolbarPositionTests {
     /// The window frames of the section picker and the sidebar button.

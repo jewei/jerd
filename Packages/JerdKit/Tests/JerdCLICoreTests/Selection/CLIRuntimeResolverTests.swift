@@ -43,6 +43,7 @@ import Testing
         ("/code/app/nestedmore", "app", "8.4"),
     ])
     func deepestContainingProjectSelectsRuntime(directory: String, site expected: String?, version: String) throws {
+        // `app` is disabled: the pin of a disabled site still applies.
         let config = configuration([
             site("app", "/code/app", .pinned(isolated.id), enabled: false),
             site("nested", "/code/app/nested"),
@@ -50,11 +51,6 @@ import Testing
         let selection = try resolver.resolve(config, workingDirectory: directory)
         #expect(selection.site?.displayName == expected)
         #expect(selection.runtime.version == version)
-    }
-
-    @Test func disabledSitePinStillApplies() throws {
-        let config = configuration([site("app", "/code/app", .pinned(isolated.id), enabled: false)])
-        #expect(try resolver.resolve(config, workingDirectory: "/code/app").runtime.id == isolated.id)
     }
 
     @Test func missingPinFailsWithoutFallback() {

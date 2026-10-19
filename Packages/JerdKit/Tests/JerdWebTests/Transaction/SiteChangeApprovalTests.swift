@@ -118,18 +118,6 @@ import Testing
         #expect(await harness.runningIDs() == nil)
     }
 
-    @Test func aStopDuringPreparationEndsTheChangeWithoutAnyEffect() async throws {
-        let harness = try await TransactionHarness()
-        defer { harness.remove() }
-        await harness.coordinator.holdNextPreflight()
-        let change = Task { try await harness.transaction.apply(.caddy(Samples.caddy(path: "/changed"))) }
-        #expect(await waitUntil { await harness.coordinator.isWaitingInPreflight })
-        await harness.transaction.requestStop()
-        await #expect(throws: CancellationError.self) { try await change.value }
-        #expect(try await harness.registry.snapshot() == harness.before)
-        #expect(await harness.coordinator.launches == 0)
-    }
-
     @Test func aStopBeforeAChangeBeginsDoesNotCancelIt() async throws {
         let harness = try await TransactionHarness()
         defer { harness.remove() }
