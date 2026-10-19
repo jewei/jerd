@@ -83,6 +83,10 @@ jobs:
       - name: Run ./dev check
         run: ./dev check
 
+      # A local ./dev check draws no window. CI also runs the tests that draw AppKit windows.
+      - name: Run the window tests
+        run: ./dev test JerdDesign JerdSnapshotSupport JerdUI JerdLive --integration windows
+
       - name: Upload failure logs
         # A failed quiet step writes its full output to .build/logs.
         if: failure()

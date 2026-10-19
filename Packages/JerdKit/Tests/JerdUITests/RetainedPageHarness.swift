@@ -21,11 +21,16 @@ final class RetainedPageHarness {
 
     init() {
         _ = NSApplication.shared
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 320), styleMask: [.titled], backing: .buffered,
-            defer: false)
+        // AppKit presents sheets and builds the key view loop only for a window on screen, and
+        // the test must not show a window to the user. So the window is ordered in, transparent,
+        // and outside every screen. AppKit moves a parent back onto a screen to show its sheet,
+        // so the position alone does not hide it.
+        window = UnconstrainedWindow(
+            contentRect: NSRect(x: -20_000, y: -20_000, width: 480, height: 320), styleMask: [.titled],
+            backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.animationBehavior = .none
+        window.alphaValue = 0
         let pages = ZStack {
             ProbePage(field: Self.hiddenField, presentsSheet: true, report: report)
                 .retainedPage(isVisible: false)
@@ -34,9 +39,6 @@ final class RetainedPageHarness {
         }
         .frame(width: 480, height: 320)
         window.contentView = NSHostingView(rootView: pages)
-        // Far outside every screen: AppKit presents sheets and builds the key view loop only
-        // for a window on screen, and the test must not show a window to the user.
-        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
         window.orderFrontRegardless()
     }
 
@@ -102,6 +104,27 @@ private struct ProbeSheet: View {
             Button("Cancel") {}
         }
         .frame(width: 240, height: 120)
+        .background(TransparentSheetWindow())
         .onAppear { report.isEnabled = isEnabled }
     }
+}
+
+/// Makes the sheet window transparent before it is shown. AppKit places a sheet on a screen even
+/// when its parent is outside every screen, and the test must not show it to the user.
+private struct TransparentSheetWindow: NSViewRepresentable {
+    final class Probe: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.alphaValue = 0
+        }
+    }
+
+    func makeNSView(context: Context) -> Probe { Probe() }
+    func updateNSView(_ nsView: Probe, context: Context) {}
+}
+
+/// A window that keeps the frame it is given. AppKit moves a titled window back onto a screen
+/// when it is ordered in; the harness must stay outside every screen.
+private final class UnconstrainedWindow: NSWindow {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 }

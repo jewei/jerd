@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import JerdDesign
 import JerdServiceKit
+import JerdTestSupport
 import JerdUIFixtures
 import JerdWeb
 import SwiftUI
@@ -176,7 +177,7 @@ struct FeatureCardTests {
 
     @Test(
         "At the minimum window size every card keeps its actions in one row, so cards in a row match",
-        arguments: [FixtureScenario.dashboard, .dashboardBusy, .dashboardEmpty, .dashboardLong])
+        .drawsWindows, arguments: [FixtureScenario.dashboard, .dashboardBusy, .dashboardEmpty, .dashboardLong])
     func compactCardsKeepOneRow(scenario: FixtureScenario) async {
         _ = NSApplication.shared
         let host = ScenarioHost(scenario)
@@ -195,7 +196,7 @@ struct FeatureCardTests {
         }
     }
 
-    @Test("The column layout appears when two long actions do not fit")
+    @Test("The column layout appears when two long actions do not fit", .drawsWindows)
     func longActionsUseAColumn() {
         _ = NSApplication.shared
         let long = FeatureSummary(

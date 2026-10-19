@@ -1,9 +1,10 @@
 import AppKit
+import JerdTestSupport
 import Testing
 
 @testable import JerdUI
 
-@Suite("Retained pages", .serialized)
+@Suite("Retained pages", .serialized, .drawsWindows)
 @MainActor
 struct RetainedPageTests {
     @Test("A sheet of a hidden retained page stays enabled and takes keyboard focus")

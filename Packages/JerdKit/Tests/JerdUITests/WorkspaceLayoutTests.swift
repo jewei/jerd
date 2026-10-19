@@ -1,5 +1,6 @@
 import AppKit
 import JerdDesign
+import JerdTestSupport
 import JerdUIFixtures
 import SwiftUI
 import Testing
@@ -7,7 +8,7 @@ import Testing
 @testable import JerdSnapshotSupport
 @testable import JerdUI
 
-@Suite("Workspace layout", .serialized)
+@Suite("Workspace layout", .serialized, .drawsWindows)
 @MainActor
 struct WorkspaceLayoutTests {
     /// The smallest window that the workspace accepts, toolbar included, in a window like the

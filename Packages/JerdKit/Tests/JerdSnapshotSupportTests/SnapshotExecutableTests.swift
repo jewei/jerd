@@ -1,10 +1,11 @@
 import Foundation
+import JerdTestSupport
 import Testing
 
 /// Runs the built `jerd-snapshots` executable, because the settings that these tests prove
 /// apply to a whole process before AppKit starts. `swift test` builds the executable with the
 /// tests, in the same folder as the test bundle.
-@Suite("Snapshot executable", .serialized)
+@Suite("Snapshot executable", .serialized, .drawsWindows)
 struct SnapshotExecutableTests {
     /// Settings of a user who differs from the defaults in every way that changes drawing.
     private static let unusualUserSettings = [

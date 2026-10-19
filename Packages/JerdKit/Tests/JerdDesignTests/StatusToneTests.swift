@@ -17,12 +17,6 @@ struct StatusToneTests {
         #expect(symbols.count == StatusTone.allCases.count)
     }
 
-    @Test("Busy and attention differ in color and symbol")
-    func busyAndAttentionDiffer() {
-        #expect(StatusTone.busy.color != StatusTone.attention.color)
-        #expect(StatusTone.busy.systemImage != StatusTone.attention.systemImage)
-    }
-
     @Test("Each tone uses the expected semantic color and symbol")
     func toneMapping() {
         let expected: [StatusTone: (Color, String)] = [

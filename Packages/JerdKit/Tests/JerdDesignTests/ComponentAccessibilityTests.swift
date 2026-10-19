@@ -42,12 +42,6 @@ struct ComponentAccessibilityTests {
         #expect(TextRole.path.font == Font.callout.monospaced())
     }
 
-    @Test("Return confirms a sheet only when the action cannot destroy data")
-    func returnKeyIsNotDestructive() {
-        #expect(SheetConfirmation("Save") {}.usesReturnKey)
-        #expect(!SheetConfirmation("Delete Backup", isDestructive: true) {}.usesReturnKey)
-    }
-
     @Test(
         "A sheet can give Return to its confirm button or to no button, but never to a destructive confirm",
         arguments: [
