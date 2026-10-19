@@ -68,9 +68,16 @@ public actor SystemSetupGateway: SystemSetupManaging {
         try await system.configure(registration)
     }
 
+    /// The helper trusts no new legacy CA. So a legacy setup that is gone already (the last site
+    /// was removed) is not set up again; the next approval uses Jerd's CA for `.test` names.
     public func restore(_ status: HTTPSSetupStatus) async throws {
         await coordinator.halt()
         if let registration = status.registration {
+            if try await system.status().certificateSHA256 == nil,
+                try NameConstraintsInspection.inspect(certificate: registration.certificateDER) != .limitedToTest
+            {
+                throw JerdError.unavailable("The HTTPS setup was removed. Approve HTTPS again for these sites.")
+            }
             try await system.configure(registration)
         } else {
             try await system.removeSetup()

@@ -97,7 +97,8 @@ import Testing
         defer { harness.remove() }
         let store = harness.store()
         let refusal = JerdError.invalid(
-            "Jerd trusts a new CA only when it may sign only .test names. Update Jerd, then set up HTTPS again.")
+            "Jerd trusts a new CA only when it may sign only .test names. Set up HTTPS again, so that "
+                + "Jerd uses its CA for .test names.")
         await #expect(throws: refusal) {
             try await store.configure(
                 harness.request(["demo.test"], certificate: "jerd-ca"), ownerUID: owner, trust: harness.trust)

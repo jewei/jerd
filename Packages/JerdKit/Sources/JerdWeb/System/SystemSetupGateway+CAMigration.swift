@@ -45,8 +45,10 @@ extension SystemSetupGateway {
         let status = try await system.status()
         guard status.certificateSHA256 == nil, !status.hasPendingRecovery else { return }
         guard await coordinator.runningPlan() == nil else {
-            throw JerdError.unavailable("Stop the environment before preparing a missing CA.")
+            throw JerdError.unavailable("Stop the sites before Jerd retires its old CA.")
         }
+        // Another call can retire the CA while this one waits for the helper.
+        guard FileProbe.presence(at: environment.legacyRootCertificateFile) != .absent else { return }
         _ = try retireLegacyAuthority()
     }
 

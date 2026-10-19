@@ -128,9 +128,22 @@ import Testing
         try OwnedDirectory.create(environment.root)
         try AtomicFile.write(Data(Certificates.installationID.uuidString.utf8), to: environment.installationIDFile)
         try Certificates.install(in: environment)
-        await #expect(throws: JerdError.unavailable("Stop the environment before preparing a missing CA.")) {
+        await #expect(throws: JerdError.unavailable("Stop the sites before Jerd retires its old CA.")) {
             try await context.gateway.prepare(hostnames: ["a.test"], caddy: Samples.caddy())
         }
         #expect(FileProbe.presence(at: environment.legacyRootCertificateFile) == .present)
+    }
+
+    /// A rollback after the last site removed the legacy setup cannot trust the legacy CA again,
+    /// so it asks for a new approval and changes nothing.
+    @Test func aRollbackDoesNotSetUpARemovedLegacyCAAgain() async throws {
+        let context = try await legacyContext(HTTPSSetupStatus())
+        defer { context.folder.remove() }
+        await #expect(
+            throws: JerdError.unavailable("The HTTPS setup was removed. Approve HTTPS again for these sites.")
+        ) {
+            try await context.gateway.restore(try FakeSystem.approved(["a.test"]))
+        }
+        #expect(await context.system.configurations.isEmpty)
     }
 }

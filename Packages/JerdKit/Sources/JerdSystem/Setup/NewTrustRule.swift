@@ -7,8 +7,8 @@ enum NewTrustRule {
     static func require(_ next: RegistrationRecord) throws {
         guard try NameConstraintsInspection.inspect(certificate: next.certificateDER) == .limitedToTest else {
             throw JerdError.invalid(
-                "Jerd trusts a new CA only when it may sign only .test names. Update Jerd, then set up "
-                    + "HTTPS again.")
+                "Jerd trusts a new CA only when it may sign only .test names. Set up HTTPS again, so that "
+                    + "Jerd uses its CA for .test names.")
         }
     }
 }
