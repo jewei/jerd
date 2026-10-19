@@ -140,4 +140,54 @@ import Testing
         #expect(report.operation == "Unreadable HTTPS setup record")
         #expect(harness.record(.pending) != nil)
     }
+
+    /// An interrupted approval of the new CA leaves nothing to recover: the old CA keeps working.
+    @Test func anInterruptedNewTrustKeepsTheOldSetup() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        let bytes = harness.record(.registration)
+        let new = try Self.jerdCA()
+        harness.trust.failNextInstall(.interrupted)
+        await #expect(throws: JerdError.self) {
+            try await store.replaceCA(replacement(harness, new), ownerUID: owner, trust: harness.trust)
+        }
+        #expect(harness.record(.registration) == bytes)
+        #expect(harness.trust.installed(try Fixture.certificate()) != nil && harness.trust.installed(new) == nil)
+        if let report = try await store.status(ownerUID: owner).recovery {
+            try await store.recover(
+                .init(recordID: report.id, action: .restorePrevious), ownerUID: owner, trust: harness.trust)
+        }
+        #expect(harness.record(.registration) == bytes && harness.record(.pending) == nil)
+        #expect(harness.trust.installed(try Fixture.certificate()) != nil && harness.trust.installed(new) == nil)
+    }
+
+    /// A stop after the new trust and before the removal of the old CA leaves both trusted.
+    /// Restore keeps only the old CA; the report names both.
+    @Test func aStopWithBothCAsTrustedRestoresTheOldCA() async throws {
+        let harness = try StoreHarness()
+        defer { harness.remove() }
+        let store = harness.store()
+        try await store.configure(harness.request(["demo.test"]), ownerUID: owner, trust: harness.trust)
+        let bytes = try #require(harness.record(.registration))
+        let old = try HelperRecordCodec.decodeRegistration(bytes)
+        let new = RegistrationRecord(
+            ownerUID: owner, installationID: Fixture.installationID, hostnames: old.hostnames,
+            certificateDER: try Self.jerdCA(), trustPolicy: .serverTLS)
+        harness.trust.seed(try new.trust())
+        let journal = SetupJournal(
+            operation: .replaceCA, previous: old, previousBytes: bytes, intended: new,
+            hostsSHA256: FileDigest.hexSHA256(of: harness.hosts), phase: "Certificate trust was written")
+        try harness.directory.write(HelperRecordCodec.encode(journal), to: .pending)
+        let report = try #require(try await store.status(ownerUID: owner).recovery)
+        #expect(report.canRestore && report.canRemove)
+        #expect(
+            report.details.contains("The trust of the old CA, which this replacement retires, is currently present."))
+        try await store.recover(
+            .init(recordID: report.id, action: .restorePrevious), ownerUID: owner, trust: harness.trust)
+        #expect(harness.trust.installed(try Fixture.certificate()) != nil)
+        #expect(harness.trust.installed(new.certificateDER) == nil)
+        #expect(harness.record(.registration) == bytes && harness.record(.pending) == nil)
+    }
 }

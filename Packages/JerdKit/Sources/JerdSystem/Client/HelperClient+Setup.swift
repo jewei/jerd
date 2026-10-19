@@ -38,14 +38,17 @@ extension HelperClient {
         }
     }
 
-    /// Runs the recovery that the user approved for `report`.
+    /// Runs the recovery that the user approved for `report`. For an interrupted CA replacement,
+    /// the scope also covers the old CA: a restore trusts it again, and a removal removes it.
     public func recover(report: SystemRecoveryStatus, action: SystemRecoveryAction) async throws {
         guard let id = report.installationID, let der = report.certificateDER else {
             throw JerdError.unavailable("The recovery record cannot be read. An administrator must inspect it.")
         }
         let scope = try ConsentScope(
             certificate: InstallationCertificate(installationID: id, der: der),
-            hostnames: report.previousHostnames + report.intendedHostnames, policies: Set(report.policies))
+            hostnames: report.previousHostnames + report.intendedHostnames, policies: Set(report.policies),
+            retiring: try report.previousCertificateDER.map { try InstallationCertificate(installationID: id, der: $0) }
+        )
         let payload = try HelperWireProtocol.encode(SystemRecoveryApproval(recordID: report.id, action: action))
         try await withConsent(scope) {
             try await self.change { proxy, reply in proxy.recoverSetup(payload, reply: reply) }

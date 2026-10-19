@@ -36,6 +36,12 @@ enum RecoveryAssessor {
             evidence.trustPresent
                 ? "The recorded certificate trust is currently present."
                 : "The recorded certificate trust is absent or could not be confirmed.")
+        if let present = evidence.previousTrustPresent {
+            details.append(
+                present
+                    ? "The trust of the old CA, which this replacement retires, is currently present."
+                    : "The trust of the old CA, which this replacement retires, is absent or could not be confirmed.")
+        }
         details.append(
             "Recovery changes only the recorded Jerd host section, certificate, and registration. "
                 + "The operation can request macOS approval.")

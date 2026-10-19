@@ -2,7 +2,9 @@ import Foundation
 import JerdFoundation
 
 /// A CA replacement changes only the CA, and only to Jerd's CA that may sign only `.test` names.
-/// The helper checks it before a replacement, and again when it reads the journal of one.
+/// The helper checks it before a replacement, and again when it reads the journal of one. The old
+/// CA may be the CA that Caddy made (the migration) or an earlier Jerd CA (a rotation, for example
+/// after a lost key); either way the result may sign only `.test` names.
 enum CAReplacementRule {
     static func require(_ next: RegistrationRecord, replacing previous: RegistrationRecord) throws {
         guard next.ownerUID == previous.ownerUID, next.installationID == previous.installationID,
