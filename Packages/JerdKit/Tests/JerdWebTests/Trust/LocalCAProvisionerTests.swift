@@ -1,81 +1,78 @@
+import Darwin
 import Foundation
 import JerdFoundation
-import JerdProcess
 import JerdTestSupport
 import Testing
 
 @testable import JerdWeb
 
 @Suite struct LocalCAProvisionerTests {
-    /// A Caddy stand-in that writes the fixture CA where Caddy would.
-    static func creatingCaddy(_ environment: EnvironmentLayout, status: Int32 = 0) -> ScriptedCommandRunner {
-        ScriptedCommandRunner { _ in
-            if status == 0 { try Certificates.install(in: environment) }
-            return CommandResult(status: status, output: "caddy says no")
+    private func environment(_ folder: TemporaryDirectory) -> EnvironmentLayout {
+        DataLayout(root: folder.url).environment
+    }
+
+    @Test func aNewInstallationGetsAJerdMadeCAThatMaySignOnlyTestNames() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = environment(folder)
+        let authority = try LocalCAProvisioner(environment: environment).provision(
+            installationID: Certificates.installationID)
+        #expect(try NameConstraintsInspection.inspect(certificate: authority.der) == .limitedToTest)
+        #expect(try LocalCertificateAuthority.read(environment.constrainedRootCertificateFile) == authority)
+        #expect(FileProbe.presence(at: environment.legacyRootCertificateFile) == .absent)
+        for file in [environment.constrainedRootKeyFile, environment.constrainedRootCertificateFile] {
+            var info = stat()
+            #expect(lstat(file.path, &info) == 0 && info.st_mode & 0o777 == 0o600, "\(file.lastPathComponent)")
         }
+        #expect(ActiveAuthority.resolve(environment, installationID: Certificates.installationID).id == "jerd-2")
     }
 
-    @Test func aMissingCAIsCreatedWithAPKIOnlyValidation() async throws {
+    @Test func theSavedCAIsKeptAndChecked() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
-        let environment = DataLayout(root: folder.url).environment
-        let commands = Self.creatingCaddy(environment)
-        let provisioner = LocalCAProvisioner(environment: environment, commands: commands)
-        let authority = try await provisioner.provision(
-            installationID: Certificates.installationID, caddy: Samples.caddy())
-        #expect(authority == (try Certificates.authority()))
-        let request = try #require(commands.requests.first)
-        #expect(request.executable.path == "/local/caddy")
-        #expect(request.arguments == ["validate", "--config", environment.prepareCAFile.path])
-        #expect(request.workingDirectory == environment.root)
-        #expect(
-            request.environment == [
-                "XDG_DATA_HOME": environment.certificatesDirectory.path,
-                "XDG_CONFIG_HOME": environment.configurationDirectory.path,
-            ])
-        #expect(
-            contents(environment.prepareCAFile)
-                == (try CaddyConfigRenderer.renderAuthorityPreparation(
-                    authority: .installation(Certificates.installationID), storage: environment.certificatesDirectory)))
+        let provisioner = LocalCAProvisioner(environment: environment(folder))
+        let first = try provisioner.provision(installationID: Certificates.installationID)
+        #expect(try provisioner.provision(installationID: Certificates.installationID) == first)
+        #expect(throws: JerdError.self) { try provisioner.provision(installationID: UUID()) }
     }
 
-    @Test func anExistingCAIsLoadedWithoutACommand() async throws {
+    /// An installation with the CA that Caddy made keeps it; Jerd makes no second CA.
+    @Test func anInstallationWithTheLegacyCAKeepsIt() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
-        let environment = DataLayout(root: folder.url).environment
+        let environment = environment(folder)
         try Certificates.install(in: environment)
-        let commands = ScriptedCommandRunner()
-        let provisioner = LocalCAProvisioner(environment: environment, commands: commands)
-        _ = try await provisioner.provision(installationID: Certificates.installationID, caddy: Samples.caddy())
-        #expect(commands.requests.isEmpty)
-        await #expect(throws: JerdError.self) {
-            try await provisioner.provision(installationID: UUID(), caddy: Samples.caddy())
-        }
+        let authority = try LocalCAProvisioner(environment: environment).provision(
+            installationID: Certificates.installationID)
+        #expect(authority == (try Certificates.authority()))
+        #expect(FileProbe.presence(at: environment.constrainedRootCertificateFile) == .absent)
+        #expect(ActiveAuthority.resolve(environment, installationID: Certificates.installationID).id == "jerd")
+        #expect(ActiveAuthority.rootCertificateFile(environment) == environment.legacyRootCertificateFile)
     }
 
-    @Test func aFailedValidationReportsCaddysDiagnostics() async throws {
+    @Test func creationWaitsForNoOtherHolderOfTheEnvironmentLock() throws {
         let folder = try TemporaryDirectory()
         defer { folder.remove() }
-        let environment = DataLayout(root: folder.url).environment
-        let provisioner = LocalCAProvisioner(
-            environment: environment, commands: Self.creatingCaddy(environment, status: 1))
-        await #expect(throws: JerdError.processFailed("Cannot prepare the local CA: caddy says no")) {
-            try await provisioner.provision(installationID: Certificates.installationID, caddy: Samples.caddy())
-        }
-    }
-
-    @Test func creationWaitsForNoOtherHolderOfTheEnvironmentLock() async throws {
-        let folder = try TemporaryDirectory()
-        defer { folder.remove() }
-        let environment = DataLayout(root: folder.url).environment
+        let environment = environment(folder)
         try OwnedDirectory.create(environment.processesDirectory)
         let held = try InstanceLock.acquire(at: environment.recoveryLockFile, messages: WebEnvironmentLock.messages)
         defer { held.release() }
-        let commands = Self.creatingCaddy(environment)
-        let provisioner = LocalCAProvisioner(environment: environment, commands: commands)
-        await #expect(throws: JerdError.locked("Another Jerd session is using this web environment.")) {
-            try await provisioner.provision(installationID: Certificates.installationID, caddy: Samples.caddy())
+        #expect(throws: JerdError.locked("Another Jerd session is using this web environment.")) {
+            try LocalCAProvisioner(environment: environment).provision(installationID: Certificates.installationID)
         }
-        #expect(commands.requests.isEmpty)
+        #expect(FileProbe.presence(at: environment.constrainedRootKeyFile) == .absent)
+    }
+
+    /// A damaged root stays in place; Jerd never replaces it with a new CA.
+    @Test func aCorruptRootIsPreserved() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = environment(folder)
+        try OwnedDirectory.create(environment.authorityDirectory("jerd-2"))
+        try AtomicFile.write(Data("damaged".utf8), to: environment.constrainedRootCertificateFile)
+        #expect(throws: JerdError.self) {
+            try LocalCAProvisioner(environment: environment).provision(installationID: Certificates.installationID)
+        }
+        #expect(contents(environment.constrainedRootCertificateFile) == Data("damaged".utf8))
     }
 }

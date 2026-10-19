@@ -133,6 +133,10 @@ PHP-FPM, Caddy, and all data services run as the user, in their own process
 groups. Each gets a clean environment and only the file descriptors that it needs.
 The helper runs as root, binds only `127.0.0.1:80` and `127.0.0.1:443`, edits
 only Jerd's tracked hosts section, and manages only Jerd's installation CA.
+The app makes that CA (`LocalRootTemplate`) with critical name constraints, so it
+may sign only `.test` names and no IP address. Caddy loads it and makes only the
+intermediate. An installation with the CA that Caddy made for earlier builds
+keeps it (`ActiveAuthority`) until it migrates.
 It never starts a process. It exits after 30 seconds without a connection, a
 listener lease, or a setup change, so that launchd starts the current helper
 file after an app update. The app restarts a helper that still runs older code

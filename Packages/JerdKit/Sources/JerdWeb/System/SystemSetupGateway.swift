@@ -13,14 +13,11 @@ public actor SystemSetupGateway: SystemSetupManaging {
     private let coordinator: any EnvironmentCoordinating
     private let provisioner: LocalCAProvisioner
 
-    public init(
-        layout: DataLayout, system: any SystemSetupPort, coordinator: any EnvironmentCoordinating,
-        commands: any CommandRunning = CommandRunner()
-    ) {
+    public init(layout: DataLayout, system: any SystemSetupPort, coordinator: any EnvironmentCoordinating) {
         environment = layout.environment
         self.system = system
         self.coordinator = coordinator
-        provisioner = LocalCAProvisioner(environment: layout.environment, commands: commands)
+        provisioner = LocalCAProvisioner(environment: layout.environment)
     }
 
     public func status() async throws -> HTTPSSetupStatus {
@@ -36,10 +33,12 @@ public actor SystemSetupGateway: SystemSetupManaging {
     public func prepare(hostnames: [String], caddy: CaddyRuntime) async throws -> HTTPSSetup {
         let validated = try HostnamePolicy.validateSet(hostnames).map(\.value)
         let installationID = try InstallationIdentity(environment: environment).readOrCreate()
-        if FileProbe.presence(at: environment.rootCertificateFile) == .absent, await coordinator.runningPlan() != nil {
+        if FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)) == .absent,
+            await coordinator.runningPlan() != nil
+        {
             throw JerdError.unavailable("Stop the environment before preparing a missing CA.")
         }
-        let authority = try await provisioner.provision(installationID: installationID, caddy: caddy)
+        let authority = try provisioner.provision(installationID: installationID)
         return HTTPSSetup(
             registration: HTTPSRegistration(
                 installationID: installationID, hostnames: validated, certificateDER: authority.der,

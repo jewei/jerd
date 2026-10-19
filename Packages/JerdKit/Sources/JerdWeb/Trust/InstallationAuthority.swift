@@ -18,9 +18,9 @@ public struct InstallationAuthority: Equatable, Sendable {
     /// - Throws: for a corrupt file, which stays in place.
     public static func read(_ environment: EnvironmentLayout) throws -> InstallationAuthority? {
         guard let installationID = try InstallationIdentity(environment: environment).read(),
-            FileProbe.presence(at: environment.rootCertificateFile).mayExist
+            FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)).mayExist
         else { return nil }
-        let authority = try LocalCertificateAuthority.read(environment.rootCertificateFile)
+        let authority = try LocalCertificateAuthority.read(ActiveAuthority.rootCertificateFile(environment))
         return InstallationAuthority(installationID: installationID, fingerprint: authority.fingerprint)
     }
 }

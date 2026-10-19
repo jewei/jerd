@@ -1,5 +1,6 @@
 import Foundation
 import JerdFoundation
+import JerdTestSupport
 import Testing
 
 @testable import JerdWeb
@@ -10,8 +11,8 @@ import Testing
     @Test func theProductRunUsesTheEnvironmentFolderAndTheInstallationCA() {
         let id = UUID()
         let layout = RunLayout.product(environment: data.environment, installationID: id)
-        #expect(layout.authority == .installation(id))
-        #expect(layout.rootCertificateFile == data.environment.rootCertificateFile)
+        #expect(layout.authority == .constrainedInstallation(id))
+        #expect(layout.rootCertificateFile == data.environment.constrainedRootCertificateFile)
         #expect(layout.socketDirectory.lastPathComponent.hasPrefix("jerd-"))
         #expect(layout.socketDirectory.lastPathComponent.count == 17)
         #expect(
@@ -20,6 +21,17 @@ import Testing
         #expect(
             RunLayout.product(environment: data.environment, installationID: id).socketDirectory
                 != layout.socketDirectory)
+    }
+
+    /// An installation with the CA that Caddy made runs with it until the migration retires it.
+    @Test func aProductRunKeepsTheLegacyCAWhileItsRootExists() throws {
+        let folder = try TemporaryDirectory()
+        defer { folder.remove() }
+        let environment = DataLayout(root: folder.url).environment
+        try Certificates.install(in: environment)
+        let layout = RunLayout.product(environment: environment, installationID: Certificates.installationID)
+        #expect(layout.authority == .installation(Certificates.installationID))
+        #expect(layout.rootCertificateFile == environment.legacyRootCertificateFile)
     }
 
     @Test func poolsAreKeyedByRuntimeID() {

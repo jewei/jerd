@@ -69,7 +69,7 @@ import Testing
         defer { harness.remove() }
         let plan = harness.plan([try harness.site("demo.test")])
         try await harness.ensure(plan)
-        let file = harness.layout.environment.rootCertificateFile
+        let file = harness.layout.environment.legacyRootCertificateFile
         if removeCA {
             try FileManager.default.removeItem(at: file)
         } else {

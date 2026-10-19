@@ -96,25 +96,24 @@ import Testing
         }
     }
 
-    @Test func thePreparationFileHoldsOnlyThePKIAppWithEscapedSlashes() throws {
-        let data = try CaddyConfigRenderer.renderAuthorityPreparation(
-            authority: .installation(CaddySamples.installationID), storage: CaddySamples.storage)
-        let text = String(decoding: data, as: UTF8.self)
-        #expect(text.contains("\\/Users\\/u"))
-        let object = try #require(try JSONSerialization.jsonObject(with: data) as? NSDictionary)
-        let name = "Jerd Local CA 11111111-2222-3333-4444-555555555555"
-        let expected: NSDictionary = [
-            "admin": ["disabled": true],
-            "storage": ["module": "file_system", "root": CaddySamples.storage.path],
-            "apps": [
-                "pki": [
-                    "certificate_authorities": [
-                        "jerd": ["name": name, "root_common_name": name, "install_trust": false]
-                    ]
-                ]
-            ],
-        ]
-        #expect(object == expected)
+    /// Caddy loads a CA that Jerd makes from its root and key, and makes only the intermediate.
+    /// The CA that Caddy made stays in Caddy's storage, without a root entry.
+    @Test func aJerdMadeCAIsLoadedFromItsRootAndKey() throws {
+        let storage = CaddySamples.storage
+        let constrained = LocalAuthority.constrainedInstallation(CaddySamples.installationID)
+        let entry = try #require(
+            CaddyConfigRenderer.pki(constrained, storage: storage).foundationObject as? NSDictionary)
+        let root = entry.value(forKeyPath: "certificate_authorities.jerd-2.root") as? NSDictionary
+        #expect(
+            root == [
+                "certificate": storage.path + "/pki/authorities/jerd-2/root.crt",
+                "private_key": storage.path + "/pki/authorities/jerd-2/root.key", "format": "pem_file",
+            ])
+        let legacy = try #require(
+            CaddyConfigRenderer.pki(.installation(CaddySamples.installationID), storage: storage).foundationObject
+                as? NSDictionary)
+        #expect(legacy.value(forKeyPath: "certificate_authorities.jerd.root") == nil)
+        #expect(constrained.name == LocalAuthority.installation(CaddySamples.installationID).name)
     }
 
     /// The application route lists of every HTTPS host route, in host order.

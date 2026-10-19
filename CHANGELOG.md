@@ -8,6 +8,7 @@ code marks.
 
 ## [Unreleased]
 
+- New installations get a local CA that can sign certificates only for .test hostnames, so a stolen CA key cannot fake any other website.
 - A site can have aliases: more .test hostnames that serve the same document root, for example for tenants. Add them in Edit Site, then approve HTTPS for the new names.
 - Process recovery no longer reports that a saved process could not be stopped when the process exits during the stop.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.

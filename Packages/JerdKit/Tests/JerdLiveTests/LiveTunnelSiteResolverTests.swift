@@ -13,8 +13,8 @@ import Testing
     /// A data root with the installation CA, so only the site decides the result.
     private func layoutWithCA(_ folder: TemporaryDirectory) throws -> EnvironmentLayout {
         let layout = DataLayout(root: folder.url).environment
-        try OwnedDirectory.create(layout.rootCertificateFile.deletingLastPathComponent())
-        try AtomicFile.write(Data("fixture certificate".utf8), to: layout.rootCertificateFile)
+        try OwnedDirectory.create(layout.legacyRootCertificateFile.deletingLastPathComponent())
+        try AtomicFile.write(Data("fixture certificate".utf8), to: layout.legacyRootCertificateFile)
         return layout
     }
 
@@ -37,7 +37,7 @@ import Testing
             destination
                 == TunnelSiteDestination(
                     siteID: site.id, hostname: try Hostname("shop.test"), httpsPort: 443,
-                    certificateAuthorityFile: layout.rootCertificateFile))
+                    certificateAuthorityFile: layout.legacyRootCertificateFile))
         #expect(await sites.requests == [site.id])
     }
 
