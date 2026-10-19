@@ -29,10 +29,12 @@ public actor SystemSetupGateway: SystemSetupManaging {
     }
 
     /// The request always uses server-TLS trust. A missing CA is made only while nothing runs, so
-    /// that no running Caddy still uses the intermediate of an earlier CA.
+    /// that no running Caddy still uses the intermediate of an earlier CA. A legacy CA that the
+    /// helper does not trust retires first, because the helper trusts no new unconstrained CA.
     public func prepare(hostnames: [String], caddy: CaddyRuntime) async throws -> HTTPSSetup {
         let validated = try HostnamePolicy.validateSet(hostnames).map(\.value)
         let installationID = try InstallationIdentity(environment: environment).readOrCreate()
+        try await retireUntrustedLegacyAuthority()
         if FileProbe.presence(at: ActiveAuthority.rootCertificateFile(environment)) == .absent,
             await coordinator.runningPlan() != nil
         {

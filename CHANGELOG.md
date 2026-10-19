@@ -10,6 +10,7 @@ code marks.
 
 - An existing installation can update its local CA to one that can sign only .test hostnames: choose Update CA on the Sites page and approve once. Jerd then stops trusting the old CA.
 - New installations get a local CA that can sign certificates only for .test hostnames, so a stolen CA key cannot fake any other website.
+- A new HTTPS setup, for example after Remove System Setup, now always uses the CA for .test hostnames. The Jerd helper no longer trusts a new CA that can sign any name.
 - A site can have aliases: more .test hostnames that serve the same document root, for example for tenants. Add them in Edit Site, then approve HTTPS for the new names.
 - Process recovery no longer reports that a saved process could not be stopped when the process exits during the stop.
 - Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.

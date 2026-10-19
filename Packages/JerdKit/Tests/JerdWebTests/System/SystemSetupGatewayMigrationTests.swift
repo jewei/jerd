@@ -7,9 +7,9 @@ import Testing
 
 /// The CA update of an installation whose approved setup trusts the CA that Caddy made.
 @Suite struct SystemSetupGatewayMigrationTests {
-    /// A gateway with the legacy fixture CA installed and approved for `a.test`.
-    private func legacyContext() async throws -> SystemSetupGatewayTests.Context {
-        let context = try SystemSetupGatewayTests.Context(try FakeSystem.approved(["a.test"]))
+    /// A gateway with the legacy fixture CA installed and, by default, approved for `a.test`.
+    private func legacyContext(_ status: HTTPSSetupStatus? = nil) async throws -> SystemSetupGatewayTests.Context {
+        let context = try SystemSetupGatewayTests.Context(try status ?? FakeSystem.approved(["a.test"]))
         let environment = context.layout.environment
         try OwnedDirectory.create(environment.root)
         try AtomicFile.write(Data(Certificates.installationID.uuidString.utf8), to: environment.installationIDFile)
@@ -92,5 +92,45 @@ import Testing
             return error.message.contains("Test replacement failure") && error.message.contains("jerd-retired-")
         }
         #expect(try retiredFolders(environment).count == 1)
+    }
+
+    /// The helper trusts no new unconstrained CA. Without a setup, for example after Remove System
+    /// Setup, the next setup retires the legacy CA and asks for Jerd's CA for `.test` names.
+    @Test func aNewSetupRetiresAnUntrustedLegacyCA() async throws {
+        let context = try await legacyContext(HTTPSSetupStatus())
+        defer { context.folder.remove() }
+        let setup = try await context.gateway.prepare(hostnames: ["a.test"], caddy: Samples.caddy())
+        let active = try #require(try await context.gateway.localAuthority())
+        #expect(active.signsOnlyTestNames)
+        #expect(LocalCertificateAuthority.fingerprint(of: setup.registration.certificateDER) == active.fingerprint)
+        #expect(try retiredFolders(context.layout.environment).count == 1)
+    }
+
+    /// An approved legacy CA stays until the CA update, and so does one that a recovery could
+    /// trust again.
+    @Test(arguments: [false, true])
+    func aSetupThatMayTrustTheLegacyCAKeepsIt(pendingRecovery: Bool) async throws {
+        let status = pendingRecovery ? HTTPSSetupStatus(hasPendingRecovery: true) : try FakeSystem.approved(["a.test"])
+        let context = try await legacyContext(status)
+        defer { context.folder.remove() }
+        let legacy = try await context.gateway.localAuthority()
+        _ = try await context.gateway.prepare(hostnames: ["a.test"], caddy: Samples.caddy())
+        #expect(try await context.gateway.localAuthority() == legacy)
+        #expect(try retiredFolders(context.layout.environment).isEmpty)
+    }
+
+    /// A running Caddy may still use the legacy CA, so nothing moves while it runs.
+    @Test func anUntrustedLegacyCAStaysWhileTheEnvironmentRuns() async throws {
+        let context = try SystemSetupGatewayTests.Context(
+            HTTPSSetupStatus(), running: ServingPlan(sites: [], caddy: Samples.caddy()))
+        defer { context.folder.remove() }
+        let environment = context.layout.environment
+        try OwnedDirectory.create(environment.root)
+        try AtomicFile.write(Data(Certificates.installationID.uuidString.utf8), to: environment.installationIDFile)
+        try Certificates.install(in: environment)
+        await #expect(throws: JerdError.unavailable("Stop the environment before preparing a missing CA.")) {
+            try await context.gateway.prepare(hostnames: ["a.test"], caddy: Samples.caddy())
+        }
+        #expect(FileProbe.presence(at: environment.legacyRootCertificateFile) == .present)
     }
 }
