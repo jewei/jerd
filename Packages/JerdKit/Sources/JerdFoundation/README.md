@@ -25,6 +25,7 @@ and small values.
 | `CertificateBuilder` | Builds and signs an X.509 v3 certificate with a P-256 key. |
 | `LocalRootTemplate` | The installation CA: a CA that may sign only `.test` names and no IP address (name constraints). |
 | `NameConstraintsInspection` | Tells whether a CA certificate has exactly these constraints, none, or others. |
+| `BasicConstraintsInspection`, `CertificateExtensions` | Tell whether a certificate is a CA, from its DER bytes. The `php` launcher checks the CA on every command, and `SecCertificateCopyValues` costs about 4 ms in each new process. |
 
 ## Rules
 

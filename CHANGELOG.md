@@ -8,6 +8,7 @@ code marks.
 
 ## [Unreleased]
 
+- The php, composer, and laravel commands start faster, because the check of the local HTTPS CA takes less time.
 - An existing installation can update its local CA to one that can sign only .test hostnames: choose Update CA on the Sites page and approve once. Jerd then stops trusting the old CA.
 - New installations get a local CA that can sign certificates only for .test hostnames, so a stolen CA key cannot fake any other website.
 - A new HTTPS setup, for example after Remove System Setup, now always uses the CA for .test hostnames. The Jerd helper no longer trusts a new CA that can sign any name.
