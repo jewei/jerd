@@ -8,9 +8,10 @@ import JerdProcess
 ///
 /// Rules:
 /// - A start runs the shared safety steps in a fixed order (see `ServiceDefinition`).
-/// - A stop is graceful and never sends `SIGKILL`. A timeout gives `stuck`: the process, its
-///   lock, and its run record stay until a later Stop clears them, or until `refresh()` finds
-///   that the kept process and its group ended.
+/// - A stop is graceful and never sends `SIGKILL`. When the signal times out, the shutdown
+///   request of the plan (if any) runs once. A timeout gives `stuck`: the process, its lock, and
+///   its run record stay until a later Stop clears them, or until `refresh()` finds that the kept
+///   process and its group ended.
 /// - A stale run record is removed only while the lock is held.
 /// - Exit detection (`refresh()`) never waits for a stop. A user Stop joins a running exit stop,
 ///   so it is never blocked by "busy".

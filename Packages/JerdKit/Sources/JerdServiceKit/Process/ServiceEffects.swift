@@ -5,6 +5,11 @@ import JerdProcess
 public struct ServiceEffects: Sendable {
     /// The graceful stop limit of data services.
     public static let defaultStopTimeout: Duration = .seconds(30)
+    /// The limit of the shutdown request of a plan, after the graceful signal timed out.
+    public static let shutdownRequestTimeout: Duration = .seconds(15)
+    /// How long a stop waits for the exit after the shutdown request. The request saves the data
+    /// before it returns, so the exit follows soon.
+    public static let shutdownWait: Duration = .seconds(10)
 
     public var processes: any ProcessControlling
     public var commands: any CommandRunning

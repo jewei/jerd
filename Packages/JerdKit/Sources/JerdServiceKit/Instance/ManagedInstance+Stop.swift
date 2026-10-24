@@ -39,11 +39,32 @@ extension ManagedInstance {
         stopIntent = intent
         let policy = policy ?? effects.stopPolicy(signal: definition.profile.stopSignal)
         let task = Task {
-            let outcome = await owned.stop(policy: policy)
+            var outcome = await owned.stop(policy: policy)
+            if case .timedOut(leaderRunning: true) = outcome, policy.sendsSignals,
+                let request = owned.plan.shutdownRequest
+            {
+                outcome = await self.requestShutdown(owned, request: request, signal: policy.signal)
+            }
             return self.completeStop(owned, outcome: outcome, keepLock: keepLock)
         }
         pendingStop = PendingStop(token: owned.token, task: task)
         return task
+    }
+
+    /// Runs the shutdown request of the plan once, then waits a short time for the exit. Only
+    /// the exit decides the outcome: a failed or timed-out request leaves the process to the
+    /// second wait, which still never sends `SIGKILL`.
+    private func requestShutdown(
+        _ owned: OwnedServiceProcess, request: ProcessRequest, signal: Int32
+    ) async
+        -> StopOutcome
+    {
+        do {
+            _ = try await effects.commands.run(request, timeout: ServiceEffects.shutdownRequestTimeout)
+        } catch {
+            // The wait below reports a process that is still running as a timeout.
+        }
+        return await owned.stop(policy: .graceful(signal: signal, timeout: ServiceEffects.shutdownWait))
     }
 
     /// Settles ownership after a stop and applies the state for the intent.

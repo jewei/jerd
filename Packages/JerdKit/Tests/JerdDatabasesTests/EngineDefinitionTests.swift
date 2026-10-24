@@ -125,6 +125,12 @@ import Testing
         #expect(Self.redis.healthCheck.reply == "PONG")
     }
 
+    @Test func onlyRedisHasAShutdownCommandAndItSavesTheData() {
+        #expect(Self.redis.shutdownCommand == ["SHUTDOWN", "SAVE"])
+        #expect(Self.mysql.shutdownCommand == nil)
+        #expect(Self.postgres.shutdownCommand == nil)
+    }
+
     @Test func passwordsNeverAppearInArguments() throws {
         let engines: [any DatabaseEngineDefinition] = [Self.mysql, Self.postgres, Self.redis]
         for engine in engines {
@@ -132,6 +138,9 @@ import Testing
                 engine.serverRequest(sockets: Self.sockets),
                 engine.clientRequest(engine.healthCheck.command, credentials: Self.credentials),
             ]
+            if let shutdown = engine.shutdownCommand {
+                requests.append(engine.clientRequest(shutdown, credentials: Self.credentials))
+            }
             if let initializer = engine.initializerRequest() { requests.append(initializer) }
             if let phase = engine.setupPhase(Self.credentials, sockets: Self.sockets) {
                 requests += [phase.server, phase.client]

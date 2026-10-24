@@ -24,10 +24,16 @@ public struct LaunchPlan: Sendable {
     /// after the temporary items are removed. Use it to release resources that are not files,
     /// for example a URL session. It runs on the instance actor, so it must not block.
     public var didStop: (@Sendable () -> Void)?
+    /// A client command that asks the server to shut down through its own protocol, or nil. A
+    /// stop runs it once when the graceful signal times out, because a server can stop acting on
+    /// the signal (Redis handles it only in a timer that a reset CPU counter can stall). The
+    /// command must save the data, never discard it.
+    public var shutdownRequest: ProcessRequest?
 
     public init(
         request: ProcessRequest, ports: Set<UInt16>, readiness: ReadinessCheck, secrets: [String] = [],
-        temporaryItems: [URL] = [], secretFiles: [URL] = [], didStop: (@Sendable () -> Void)? = nil
+        temporaryItems: [URL] = [], secretFiles: [URL] = [], didStop: (@Sendable () -> Void)? = nil,
+        shutdownRequest: ProcessRequest? = nil
     ) {
         self.request = request
         self.ports = ports
@@ -36,6 +42,7 @@ public struct LaunchPlan: Sendable {
         self.temporaryItems = temporaryItems
         self.secretFiles = secretFiles
         self.didStop = didStop
+        self.shutdownRequest = shutdownRequest
     }
 
     /// Removes the temporary items. A missing item is not an error.

@@ -86,6 +86,10 @@ private final class RecordingStartSteps: SetupPhaseRunning, InitializerRunning {
         #expect(steps.initializers.isEmpty)
         #expect(definition.profile.stopSignal == SIGTERM)
         #expect(definition.versionProbe.rule == .standalone(version: "8.4.11"))
+        let shutdown = try #require(plan.shutdownRequest)
+        #expect(shutdown.executable.lastPathComponent == "redis-cli")
+        #expect(Array(shutdown.arguments.suffix(2)) == ["SHUTDOWN", "SAVE"])
+        #expect(shutdown.environment == ["REDISCLI_AUTH": credentials.password])
     }
 
     @Test func aPostgresInitializerGetsAPasswordFileThatIsRemovedAfterwards() async throws {

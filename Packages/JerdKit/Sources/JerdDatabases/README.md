@@ -12,7 +12,7 @@ lifecycle.
 | `DatabaseServiceDefinition` | Identity, credentials, first initialization, and the launch plan of one instance. |
 | `MySQLDefinition` | `--initialize-insecure`, a socket-only bootstrap server, then TCP on 127.0.0.1. |
 | `PostgresDefinition` | `initdb` with SCRAM and a password file, `pgpass`, and `SIGINT` to stop. |
-| `RedisDefinition` | `redis.conf` with protected mode and append-only files, and `REDISCLI_AUTH`. |
+| `RedisDefinition` | `redis.conf` with protected mode and append-only files, `REDISCLI_AUTH`, and `SHUTDOWN SAVE` after a stop timeout. |
 | `DatabaseConfiguration`, `DatabaseRuntime`, `DatabaseService` | The content of `services.json`. |
 | `DatabaseIdentity`, `DatabaseCredentials`, `RemovedRegistration` | The markers in each instance folder. |
 | `RetainedDatabase` | A data folder without a registration, which Restore can register again. |

@@ -22,12 +22,17 @@ package protocol DatabaseEngineDefinition: Sendable {
     func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase?
     /// The readiness command and its exact reply.
     var healthCheck: (command: [String], reply: String) { get }
+    /// The client command that shuts the server down and saves its data, or nil. See
+    /// `LaunchPlan.shutdownRequest`.
+    var shutdownCommand: [String]? { get }
 }
 
 extension DatabaseEngineDefinition {
     package func initializerFiles(_ credentials: DatabaseCredentials) -> [EngineFile] { [] }
 
     package func setupPhase(_ credentials: DatabaseCredentials, sockets: URL) -> DatabaseSetupPhase? { nil }
+
+    package var shutdownCommand: [String]? { nil }
 
     /// A request for an executable in the runtime, with the instance folder as working folder.
     func request(_ executable: String, _ arguments: [String], environment: [String: String] = [:]) -> ProcessRequest {

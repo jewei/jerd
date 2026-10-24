@@ -82,7 +82,8 @@ package struct DatabaseServiceDefinition: ServiceDefinition {
             readiness: DatabaseReadiness.check(
                 client: engine.clientRequest(engine.healthCheck.command, credentials: credentials),
                 reply: engine.healthCheck.reply, password: credentials.password, commands: commands),
-            secrets: [credentials.password], temporaryItems: [sockets])
+            secrets: [credentials.password], temporaryItems: [sockets],
+            shutdownRequest: engine.shutdownCommand.map { engine.clientRequest($0, credentials: credentials) })
         do {
             try engine.configuration(credentials, sockets: sockets).write()
         } catch {

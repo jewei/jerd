@@ -40,7 +40,9 @@ A start does these steps in this order. A failure stops the steps and keeps all 
 
 ## Rules
 
-- A stop is graceful and never sends `SIGKILL`. A timeout gives `stuck`: the process, the lock,
+- A stop is graceful and never sends `SIGKILL`. When the signal times out, the stop runs the
+  `shutdownRequest` of the plan once (if any) and waits `ServiceEffects.shutdownWait` again.
+  Only the exit decides the outcome. A timeout gives `stuck`: the process, the lock,
   and the record stay. This holds for every owned process: a server, a setup phase, and an
   initializer (`StartTools.runInitializer`). A later Stop leaves `stuck`. `refresh()` also
   leaves it when the kept process ended later and no group member remains (for example a paused
