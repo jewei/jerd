@@ -73,6 +73,7 @@ import Testing
         init(builtFor packed: UInt32) throws {
             var tar = TarBuilder()
             tar.file("redis-8.8.3/src/server.c", "int main(void) { return 0; }")
+            tar.file("redis-8.8.3/src/monotonic.c", RedisClockPatchTests.monotonicSource)
             tar.file("redis-8.8.3/deps/README.md", "dependencies")
             tar.file("redis-8.8.3/COPYING", "license")
             let url = try URL.runtime("https://download.redis.io/releases/redis-8.8.3.tar.gz")

@@ -143,9 +143,11 @@ listener lease, or a setup change, so that launchd starts the current helper
 file after an app update. The app restarts a helper that still runs older code
 one time, through its approved registration.
 
-Data services stop with a graceful signal and a 30-second limit. A timeout
-never escalates to `SIGKILL`; the process, its record, and its data lock stay,
-and Quit is cancelled. Saved run records let Jerd find and safely stop
+Data services stop with a graceful signal and a 30-second limit. When the
+signal times out, a service with a shutdown request (Redis: `SHUTDOWN SAVE`)
+gets that request once, then 10 more seconds. A timeout never escalates to
+`SIGKILL`; the process, its record, and its data lock stay, and Quit is
+cancelled. Saved run records let Jerd find and safely stop
 processes that survive an app crash. After a crash, Start reads the record
 before it checks the port, so it names Process recovery, not "port occupied".
 

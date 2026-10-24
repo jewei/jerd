@@ -68,6 +68,10 @@ payloads, and owns the Composer and Laravel tool record. All network access goes
   each Redis dependency. After the build, `SourceBuildCheck` refuses the payload when a
   Mach-O file declares a newer minimum (`LC_BUILD_VERSION` or `LC_VERSION_MIN_MACOSX`) and
   names each file and both versions. Jerd then installs nothing.
+- Before `make`, `RedisClockPatch` makes Redis use POSIX `clock_gettime` on arm64. Redis
+  otherwise reads the raw CPU counter, which macOS can reset in a deep sleep; its timer then
+  stalls, and Redis ignores `SIGTERM`. A source without exactly the two expected counter guards
+  in `src/monotonic.c` is refused, so a new Redis version cannot build with the counter.
 - A build or payload has private modes only: folders and executables 0700, files 0600.
   No symbolic link, FIFO, or device is accepted.
 - An install renames its staging folder into place with `RENAME_EXCL`: an existing folder

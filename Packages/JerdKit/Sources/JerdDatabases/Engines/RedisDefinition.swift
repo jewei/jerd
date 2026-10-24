@@ -17,6 +17,11 @@ package struct RedisDefinition: DatabaseEngineDefinition {
 
     package var healthCheck: (command: [String], reply: String) { (["PING"], "PONG") }
 
+    /// Redis acts on `SIGTERM` only in its timer, which stalls when the CPU counter resets after a
+    /// deep sleep. The command runs at once. `SAVE` writes a final snapshot, and a failed save
+    /// cancels the shutdown.
+    package var shutdownCommand: [String]? { ["SHUTDOWN", "SAVE"] }
+
     package func serverRequest(sockets: URL) -> ProcessRequest {
         request("redis-server", [files.redisConfiguration.path])
     }

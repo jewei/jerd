@@ -68,6 +68,7 @@ import os
         defer { folder.remove() }
         var tar = TarBuilder()
         tar.file("redis-8.8.3/src/server.c", "int main(void) { return 0; }")
+        tar.file("redis-8.8.3/src/monotonic.c", RedisClockPatchTests.monotonicSource)
         tar.file("redis-8.8.3/COPYING", "license")
         tar.file("redis-8.8.3/deps/lua/COPYRIGHT", "Lua license")
         tar.file("redis-8.8.3/deps/lua/src/lua.c", "int main(void) { return 0; }")
@@ -76,10 +77,13 @@ import os
         tar.file("redis-8.8.3/deps/prebuilt.a", "archive")
         try tar.write(to: folder.path("download"))
         // The fake build writes what the Redis build writes: the binaries, the Lua tools, objects, and
-        // dependency files.
+        // dependency files. It also keeps the clock source that make compiles.
+        let clockSource = OSAllocatedUnfairLock<String?>(initialState: nil)
         let commands = ScriptedCommandRunner { request in
             guard request.executable.lastPathComponent == "make" else { return CommandResult(status: 0, output: "") }
             let src = request.workingDirectory
+            let clock = try String(contentsOf: src.appendingPathComponent("monotonic.c"), encoding: .utf8)
+            clockSource.withLock { $0 = clock }
             let deps = src.deletingLastPathComponent().appendingPathComponent("deps")
             let outputs = [
                 src.appendingPathComponent("redis-server"), src.appendingPathComponent("redis-cli"),
@@ -106,6 +110,7 @@ import os
         #expect(files.sorted() == ["hiredis/test.sh", "lua/COPYRIGHT", "lua/src/lua.c", "xxhash/LICENSE"])
         let payload = try FileManager.default.contentsOfDirectory(atPath: context.payload.path).sorted()
         #expect(payload == ["COPYING", "bin", RedisSourceBuilder.dependencyNoticesFolder])
+        #expect(clockSource.withLock { $0 } == (try RedisClockPatch.apply(to: RedisClockPatchTests.monotonicSource)))
     }
 
     @Test func laravelNeedsPHPAndComposer() async throws {

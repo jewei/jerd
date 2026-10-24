@@ -44,7 +44,8 @@ import Testing
         let manager = try await harness.loadedManager()
         let service = try await manager.add(name: "Cache", runtimeID: harness.runtime(.redis).id, port: 26_520)
         try await manager.start(service.id)
-        await harness.processes.setStopOutcomes([.timedOut(leaderRunning: true), .timedOut(leaderRunning: true)])
+        // Each Redis stop waits twice: after the signal and after the shutdown request.
+        await harness.processes.setStopOutcomes(Array(repeating: .timedOut(leaderRunning: true), count: 4))
         await #expect(
             throws: JerdError.processFailed(
                 "Cache did not stop within 30 seconds. Its process is still tracked. Retry Stop; Jerd did not force it to exit."

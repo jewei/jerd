@@ -42,6 +42,52 @@ import Testing
         #expect(await harness.processes.stopPolicies.allSatisfy { $0.escalation == .never })
     }
 
+    @Test func aStopTimeoutRunsTheShutdownRequestOnceAndThenWaitsForTheExit() async throws {
+        let harness = try InstanceHarness()
+        var definition = harness.definition()
+        definition.plan.shutdownRequest = shutdownRequest(in: harness)
+        let instance = harness.instance(definition)
+        try await instance.start()
+        await harness.processes.setStopOutcomes([.timedOut(leaderRunning: true)])
+        try await instance.stop()
+        #expect(await instance.state == .stopped)
+        #expect(harness.commands.requests(named: "client").map(\.arguments) == [["SHUTDOWN", "SAVE"]])
+        #expect(
+            await harness.processes.stopPolicies == [
+                .graceful(signal: SIGTERM, timeout: .seconds(30)), .graceful(signal: SIGTERM, timeout: .seconds(10)),
+            ])
+        #expect(!exists(harness.recordFile))
+        #expect(isLockFree(harness.lockFile))
+    }
+
+    @Test func aProcessThatIgnoresTheShutdownRequestStaysTrackedAndIsNeverKilled() async throws {
+        let harness = try InstanceHarness()
+        var definition = harness.definition()
+        definition.plan.shutdownRequest = shutdownRequest(in: harness)
+        let instance = harness.instance(definition)
+        try await instance.start()
+        let pid = try #require(await instance.processID)
+        await harness.processes.setStopOutcomes([.timedOut(leaderRunning: true), .timedOut(leaderRunning: true)])
+        await #expect(throws: JerdError.self) { try await instance.stop() }
+        guard case .stuck(pid, _) = await instance.state else {
+            Issue.record("Expected a stuck instance")
+            return
+        }
+        #expect(harness.commands.requests(named: "client").count == 1)
+        #expect(exists(harness.recordFile))
+        #expect(!isLockFree(harness.lockFile))
+        #expect(await harness.processes.stopPolicies.allSatisfy { $0.escalation == .never })
+    }
+
+    @Test func aStopTimeoutWithoutAShutdownRequestWaitsOnlyOnce() async throws {
+        let harness = try InstanceHarness()
+        let instance = harness.instance()
+        try await instance.start()
+        await harness.processes.setStopOutcomes([.timedOut(leaderRunning: true)])
+        await #expect(throws: JerdError.self) { try await instance.stop() }
+        #expect(await harness.processes.stopPolicies.count == 1)
+    }
+
     @Test func aStopWithoutAProcessClearsAFailure() async throws {
         let harness = try InstanceHarness()
         harness.lsof.occupy(41_001)
@@ -82,5 +128,11 @@ import Testing
         #expect(isLockFree(harness.lockFile))
         await #expect(throws: (any Error).self) { try await instance.start() }
         #expect(exists(harness.recordFile))
+    }
+
+    private func shutdownRequest(in harness: InstanceHarness) -> ProcessRequest {
+        ProcessRequest(
+            executable: URL(fileURLWithPath: "/fake/bin/client"), arguments: ["SHUTDOWN", "SAVE"],
+            workingDirectory: harness.folder)
     }
 }

@@ -5,8 +5,9 @@ import JerdManifest
 
 /// Redis from its verified source tarball, built with the local Command Line Tools.
 ///
-/// Third-party modules are left out except `modules/vector-sets`. The build has no TLS and uses
-/// libc malloc. Git reads no system or user configuration and stops at the staging folder.
+/// Third-party modules are left out except `modules/vector-sets`. The build has no TLS, uses libc
+/// malloc, and uses the POSIX clock (`RedisClockPatch`). Git reads no system or user configuration
+/// and stops at the staging folder.
 ///
 /// The build targets the minimum macOS of the app, not the macOS of the build Mac. The flags go
 /// through the environment, because the Redis makefiles add to `CFLAGS` and `LDFLAGS` and pass them
@@ -58,7 +59,10 @@ package struct RedisSourceBuilder: RuntimePreparing {
             throw Self.missingCompiler
         }
         let payload = context.payload
-        try await BlockingWork.run { try Self.copyDependencyNotices(from: source, into: payload) }
+        try await BlockingWork.run {
+            try RedisClockPatch.apply(in: source)
+            try Self.copyDependencyNotices(from: source, into: payload)
+        }
         try await context.run(
             "/usr/bin/make", Self.makeArguments(processors: ProcessInfo.processInfo.activeProcessorCount),
             in: source.appendingPathComponent("src"),
