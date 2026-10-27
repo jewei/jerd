@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-27
+
 - Redis now stops when Jerd asks, also after the Mac woke from a deep sleep on low battery. Before, Redis could ignore Stop and Quit, and block a restart.
 - The php, composer, and laravel commands start faster, because the check of the local HTTPS CA takes less time.
 - An existing installation can update its local CA to one that can sign only .test hostnames: choose Update CA on the Sites page and approve once. Jerd then stops trusting the old CA.

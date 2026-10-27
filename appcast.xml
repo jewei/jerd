@@ -7,6 +7,46 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.6</title>
+            <pubDate>Tue, 27 Oct 2026 03:11:01 GMT</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• Redis now stops when Jerd asks, also after the Mac woke from a deep sleep on low battery. Before, Redis could ignore Stop and Quit, and block a restart.
+• The php, composer, and laravel commands start faster, because the check of the local HTTPS CA takes less time.
+• An existing installation can update its local CA to one that can sign only .test hostnames: choose Update CA on the Sites page and approve once. Jerd then stops trusting the old CA.
+• New installations get a local CA that can sign certificates only for .test hostnames, so a stolen CA key cannot fake any other website.
+• A new HTTPS setup, for example after Remove System Setup, now always uses the CA for .test hostnames. The Jerd helper no longer trusts a new CA that can sign any name.
+• A site can have aliases: more .test hostnames that serve the same document root, for example for tenants. Add them in Edit Site, then approve HTTPS for the new names.
+• Process recovery no longer reports that a saved process could not be stopped when the process exits during the stop.
+• Create a Cloudflare Tunnel in one step: connect Cloudflare once with an API token, then choose a domain, a subdomain, and a site. Jerd creates the tunnel and its DNS record and connects it.
+• Removing a tunnel that Jerd created can also delete the tunnel and its DNS record in Cloudflare.
+• A connected tunnel now warns you when its public hostname has no DNS record, with the record to add in Cloudflare.
+• Sidebar rows no longer show through the Add button and the count at the bottom of a long Sites, Databases, or Storage list, and the count no longer gets cut off in a narrow window.
+• A sidebar that cannot load its settings now shows the full message on two lines.
+• The Storage page now tells you to install RustFS first when its settings load and RustFS is not installed.
+• The Edit Cloudflare Tunnel sheet now says that Save changes the registration. It no longer says that Save adds one.
+• The Advanced page and the shell setup report now describe the PHP selection of php, composer, and laravel with one sentence, and each registered PHP runtime labels its registration ID and default mark.
+• Text on the Runtimes, Advanced, About, Sites, and Mail pages now uses short, active sentences, and the Connection Checks use one result text for both checks.
+• A database service page no longer repeats that database files remain after Stop, Quit, or removal.
+• When the settings of sites, tunnels, databases, storage, or mail do not load, the sidebar, the page, and the Dashboard card now use the same message.
+• When the Jerd helper is turned off in Login Items or is not registered, starting sites now tells you what to do and offers Open Login Items or Reconnect Helper.
+• A Keychain failure of the Cloudflare API token now names the Cloudflare API token, not a tunnel token.
+• When recovery cannot stop a saved process, the message now shows the system cause and tells you to quit the process in Activity Monitor.
+• Removing the Jerd section from the hosts file no longer joins your line before the section with the line after it.
+• A database start no longer sends the database password to another program that took the database port. Jerd now checks that its own server holds the port before each readiness check.
+• A service error message can no longer show part of a password from the end of the service log.
+• When Jerd cannot read the Cloudflare API token from the Keychain or load your domains, the tunnel editor now shows the error with a way to connect or load again.
+• When the Cloudflare API token lacks a permission, Jerd now lists the permissions that the token needs.
+• When a Create fails because Cloudflare already has a tunnel with the same name, for example after a lost answer, Jerd now names that tunnel so that you can delete it.
+• Create in Cloudflare now accepts only a subdomain without a dot, because Cloudflare's free certificate covers only one level below the domain.
+• When Cloudflare is not connected, Remove and Delete in Cloudflare now says where to connect it.
+• Check Again on a missing DNS record warning now works while Jerd checks another tunnel.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.6/Jerd-0.1.6.dmg" length="77636676" type="application/octet-stream" sparkle:edSignature="FmgRN7J6vJZOEhoN9T0xaYoHQLB4/PHNoOQJuF/kBk3fTSArjgLsJEoZscTLRIZb2q8/N78ObWQE0t4xOQnLAA=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.5</title>
             <pubDate>Sat, 10 Oct 2026 13:29:49 GMT</pubDate>
             <sparkle:version>11</sparkle:version>
@@ -96,6 +136,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: o2UHmf3RvFxk3nuAMR2HTCprUXJZ+xPcWK9XRcFCXQM1CLz7Md3p/Vxuajk4FuOeq348N0+tbU6e7f5dfUuaDw==
-length: 9331
+edSignature: zvMS6cjxzMEm6MmOH1KUpGRK9JX2YheWs8+/w2Q4lbUaohy65KGW0FG+z+akWyed9KMYhIDulBVFidy5NGKIBw==
+length: 14287
 -->
