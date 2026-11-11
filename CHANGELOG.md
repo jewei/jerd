@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+- Sites with a public folder now serve the package assets below /vendor, so Livewire and Filament pages work again. PHP files below /vendor still answer 404.
+
 ## [0.1.6] - 2026-10-27
 
 - Redis now stops when Jerd asks, also after the Mac woke from a deep sleep on low battery. Before, Redis could ignore Stop and Quit, and block a restart.

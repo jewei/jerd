@@ -50,6 +50,9 @@ enum AppendixFixes {
                 of: "\\.(php[0-9]*|phtml|phar|inc)", with: "\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)"
             )
             .replacingOccurrences(of: "\\.(phtml|phar|inc)", with: "\\.(pht|phtml|phar|inc)")
+            // Below a `public/` root, `/vendor` serves published assets; only its PHP is denied.
+            .replacingOccurrences(of: "^/vendor(/|$)|", with: "")
+            .replacingOccurrences(of: "^/storage/.*\\.php(/|$)", with: "^/(vendor|storage)/.*\\.php(/|$)")
         }
         if object["hide"] != nil { object["hide"] = SiteRoutePolicy.hiddenFiles }
         for item in object.allValues { replacePatternsAndHiddenFiles(in: item) }

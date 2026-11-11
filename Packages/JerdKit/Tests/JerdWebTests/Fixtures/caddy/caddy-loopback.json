@@ -119,7 +119,7 @@
                           "not" : [
                             {
                               "path_regexp" : {
-                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
+                                "pattern" : "(?i)^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/(vendor|storage)/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                               }
                             },
                             {
@@ -144,7 +144,7 @@
                       "match" : [
                         {
                           "path_regexp" : {
-                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
+                            "pattern" : "(?i)(^|/)\\.|^/(vendor|storage)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$|^/(vendor|storage)/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
                           }
                         }
                       ]

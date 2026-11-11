@@ -38,9 +38,10 @@ package enum SiteRoutePolicy {
     /// `.phps` source), and nginx setups commonly hand to PHP or show as PHP source, plus `.phpt` tests.
     package static let phpLikePattern = "(?i)\\.(php[0-9]*|phps|phpt|pht|phtml|phar|inc)(\\.|/|$)"
 
-    /// The 404 pattern: any dot segment, private folders, Composer files, `artisan`, PHP below
+    /// The 404 pattern: any dot segment, Composer files, `artisan`, PHP below `/vendor/` and
     /// `/storage/`, `.php` followed by anything but `/`, and PHP-like suffixes. Case-insensitive.
-    /// `storage` is private too when the document root is the project root.
+    /// `vendor` and `storage` are fully private only when the document root is the project root:
+    /// below a `public/` root they hold published assets (Livewire, Horizon) and uploads.
     package static func deniedPathPattern(servesProjectRoot: Bool) -> String {
         "(?i)(^|/)\\.|" + sensitiveAlternatives(servesProjectRoot: servesProjectRoot)
     }
@@ -51,9 +52,9 @@ package enum SiteRoutePolicy {
     }
 
     private static func sensitiveAlternatives(servesProjectRoot: Bool) -> String {
-        let privateFolders = servesProjectRoot ? "(vendor|storage)" : "vendor"
-        return "^/\(privateFolders)(/|$)|(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$"
-            + "|^/storage/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
+        let privateFolders = servesProjectRoot ? "^/(vendor|storage)(/|$)|" : ""
+        return privateFolders + "(^|/)(composer\\.(json|lock)|auth\\.json)$|^/artisan$"
+            + "|^/(vendor|storage)/.*\\.php(/|$)|\\.php[^/]|\\.(pht|phtml|phar|inc)(\\.|/|$)"
     }
 
     /// The routes of one site, inside its host subroute.
