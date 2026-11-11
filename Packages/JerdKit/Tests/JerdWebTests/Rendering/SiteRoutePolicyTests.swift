@@ -14,8 +14,9 @@ import Testing
     @Test(arguments: [
         "/.env", "/.git/config", "/%2eenv".removingPercentEncoding ?? "", "/a/.hidden", "/.well-known/x",
         "/index.php.bak", "/private.PHP.txt", "/file.phar", "/config.inc.bak", "/lib.phar.txt",
-        "/packages/foo/auth.json", "/composer.json", "/sub/composer.lock", "/vendor", "/vendor/x.js", "/VENDOR/a",
-        "/artisan", "/storage/upload.php", "/storage/a/b.php/extra", "/x.php5", "/x.phtml", "/x.inc",
+        "/packages/foo/auth.json", "/composer.json", "/sub/composer.lock", "/vendor/pkg/run.php",
+        "/VENDOR/a/b.PHP", "/vendor/a/b.php/extra", "/artisan", "/storage/upload.php", "/storage/a/b.php/extra",
+        "/x.php5", "/x.phtml", "/x.inc",
         "/x.pht", "/x.PHT", "/x.pht.txt", "/x.phps", "/x.phpt",
     ])
     func theDenyPatternMatchesSensitivePaths(_ path: String) throws {
@@ -24,7 +25,8 @@ import Testing
 
     @Test(arguments: [
         "/index.php", "/index.php/route", "/js/app.include.js", "/hello.txt", "/storage/112/a.jpg", "/vendors.js",
-        "/artisan.txt", "/public/composer.json.html",
+        "/artisan.txt", "/public/composer.json.html", "/vendor/livewire/livewire.js",
+        "/vendor/livewire/manifest.json", "/vendor/horizon/app.css",
     ])
     func theDenyPatternKeepsOrdinaryPaths(_ path: String) throws {
         #expect(try !Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: false), path))
@@ -35,6 +37,14 @@ import Testing
             try Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: true), "/storage/logs/laravel.log"))
         #expect(
             try !Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: false), "/storage/logs/laravel.log"))
+    }
+
+    /// Below a `public/` root, `/vendor` holds published package assets (Livewire, Horizon), not
+    /// Composer's `vendor/`. Blocking it there stopped Livewire from loading.
+    @Test(arguments: ["/vendor", "/vendor/x.js", "/VENDOR/a", "/vendor/livewire/livewire.js"])
+    func vendorIsPrivateOnlyWhenTheProjectRootIsServed(_ path: String) throws {
+        #expect(try Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: true), path))
+        #expect(try !Self.matches(SiteRoutePolicy.deniedPathPattern(servesProjectRoot: false), path))
     }
 
     @Test(arguments: [
