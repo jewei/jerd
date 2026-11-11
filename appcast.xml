@@ -7,6 +7,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed updates for Jerd on macOS.</description>
         <language>en</language>
         <item>
+            <title>Jerd 0.1.7</title>
+            <pubDate>Wed, 11 Nov 2026 06:35:58 GMT</pubDate>
+            <sparkle:version>13</sparkle:version>
+            <sparkle:shortVersionString>0.1.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text">• Sites with a public folder now serve the package assets below /vendor, so Livewire and Filament pages work again. PHP files below /vendor still answer 404.
+</description>
+            <enclosure url="https://github.com/jewei/jerd/releases/download/v0.1.7/Jerd-0.1.7.dmg" length="82564901" type="application/octet-stream" sparkle:edSignature="T8I1tJ15+R6IvMw41wS3NRiGU9Kq7UA/T4gYbK/zrWLaQ4W2D9D2m90yAyCRXqQ29Ouka0zh/1b0pPiMa1lwAQ=="></enclosure>
+        </item>
+        <item>
             <title>Jerd 0.1.6</title>
             <pubDate>Tue, 27 Oct 2026 03:11:01 GMT</pubDate>
             <sparkle:version>12</sparkle:version>
@@ -136,6 +147,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: zvMS6cjxzMEm6MmOH1KUpGRK9JX2YheWs8+/w2Q4lbUaohy65KGW0FG+z+akWyed9KMYhIDulBVFidy5NGKIBw==
-length: 14287
+edSignature: Ozl8fBbk36MPZYv7e7V6yIRLoWM1qIJxBWpUZ6rmxYOv3C7DFm5mIygeJ58utvEVT5ZVgswg0+CV2XMh/gYzDA==
+length: 15200
 -->

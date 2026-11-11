@@ -8,6 +8,8 @@ code marks.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-11-11
+
 - Sites with a public folder now serve the package assets below /vendor, so Livewire and Filament pages work again. PHP files below /vendor still answer 404.
 
 ## [0.1.6] - 2026-10-27
